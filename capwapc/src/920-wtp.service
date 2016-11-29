@@ -1,0 +1,3 @@
+id wtp
+bin /usr/bin/wtp
+flag stopped
