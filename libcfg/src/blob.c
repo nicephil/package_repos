@@ -16,7 +16,7 @@
 #include <stdio.h>
 
 #include <libubox/blobmsg.h>
-#include "cfg.h"
+#include "cfg/cfg.h"
 #include "cfg_blob.h"
 
 static bool

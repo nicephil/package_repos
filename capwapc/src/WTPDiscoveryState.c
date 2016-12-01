@@ -27,7 +27,9 @@
 
 
 #include "CWWTP.h"
-//#include "nmsc/nmsc.h" 
+#if !OK_PATCH
+#include "nmsc/nmsc.h" 
+#endif
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -376,8 +378,6 @@ void CWWTPEvaluateAC(CWACInfoValues *ACInfoPtr)
         CW_FREE_OBJECT(ACInfoPtr);
         return;
     }
-#else
-    pri = 20;
 #endif
     ACInfoPtr->priority = pri;
     CWDebugLog_F("Response from %s with the priority %d.", inet_ntoa(addr->sin_addr), pri);

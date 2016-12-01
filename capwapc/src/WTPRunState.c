@@ -161,17 +161,12 @@ CWStateTransition CWWTPEnterRun() {
     }
     unlock_pendingbox();
 
-#if !OK_PATCH
     if (!CWErr(CWStartHeartbeatTimer()) || dc_start_sta_notice_timer() != 0) {
-#else
-    if (!CWErr(CWStartHeartbeatTimer())) {
-#endif
         CWLog("Start heartbeat timer or notice timer failed, will enter RESET State.");
         return CW_ENTER_RESET;
     }
     CWLog("Start heartbeat timer and wclient notice timer success.");
 
-#if !OK_PATCH
     if (devctrl_thread == -1) {
         if(!CWErr(CWCreateThread(&devctrl_thread, task_handlereq, NULL))) {
             CWLog("Create NMS task failed.");
@@ -180,7 +175,6 @@ CWStateTransition CWWTPEnterRun() {
         }
         CWLog("Create NMS task success.");
     }
-#endif
     
 	CW_REPEAT_FOREVER
 	{
@@ -454,14 +448,12 @@ CWBool CWWTPManageGenericRunMessage(CWProtocolMessage *msgPtr) {
 					return CW_FALSE;
 				}
 
-#if !OK_PATCH
                 if(!assemble_devctrlresp_msg(&messages, &fragmentsNum, 
                     gWTPPathMTU, controlVal.seqNum, resultCode))  {
                     CWFreeMessageFragments(messages, fragmentsNum);
 					CW_FREE_OBJECT(messages);
 					return CW_FALSE; 
                 }
-#endif
                 toSend = CW_TRUE;
                 
                 if(CWErrorGetLastErrorCode() == CW_ERROR_DEVCONTROL_REQ_FRAGMENT) { 
@@ -469,7 +461,6 @@ CWBool CWWTPManageGenericRunMessage(CWProtocolMessage *msgPtr) {
             		CWErrorRaise(CW_ERROR_SUCCESS, NULL);
                 }
                 else {
-#if !OK_PATCH
                     /* Received a complete device control request  */
                     devctrl_block_s *devctrl_req;
 
@@ -489,7 +480,6 @@ CWBool CWWTPManageGenericRunMessage(CWProtocolMessage *msgPtr) {
                     CWLockSafeList(g_devctrlreq_list);
             		CWAddElementToSafeListTail(g_devctrlreq_list, devctrl_req, sizeof(devctrl_req));
             		CWUnlockSafeList(g_devctrlreq_list);	
-#endif
                 }
                 break;
             }
@@ -608,9 +598,7 @@ void CWWTPHeartBeatTimerExpiredHandler(void *arg) {
 	int fragmentsNum = 0;
 	int seqNum;
 
-#if !OK_PATCH
     dc_dev_update_notice();
-#endif
 
 	if(!gNeighborDeadTimerSet) {
 
@@ -959,11 +947,9 @@ CWBool CWAssembleWTPEventRequest(CWProtocolMessage **messagesPtr,
 				break;
                 
             case CW_MSG_ELEMENT_WTP_DEVICE_CONTROLRESULT_CW_TYPE:
-#if !OK_PATCH
                 if (!(assemble_devctrlresp_elem(&(msgElems[++k]), 
                     (devctrl_block_s *)(((CWMsgElemData *)current->data)->value))))
 					goto cw_assemble_error;	
-#endif
 				break;
               
 			default:

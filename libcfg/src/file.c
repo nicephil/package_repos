@@ -29,7 +29,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "cfg.h"
+#include "cfg/cfg.h"
 #include "cfg_internal.h"
 
 #define LINEBUF	32

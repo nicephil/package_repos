@@ -15,7 +15,7 @@
 #define __CFG_BLOB_H
 
 #include <libubox/blobmsg.h>
-#include "cfg.h"
+#include "cfg/cfg.h"
 
 struct cfg_blob_param_info {
 	enum blobmsg_type type;

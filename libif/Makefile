@@ -10,7 +10,7 @@ define Package/libif
 	SECTION:=Oakridge
 	CATEGORY:=Oakridge Software
 	TITLE:=User Level System Library
-	DEPENDS:= libpthread libutil
+	DEPENDS:=+libok_util
 endef
 
 define Package/libif/description

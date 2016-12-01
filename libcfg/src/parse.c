@@ -15,7 +15,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "cfg.h"
+#include "cfg/cfg.h"
 
 void cfg_parse_section(struct cfg_section *s, const struct cfg_parse_option *opts,
 		       int n_opts, struct cfg_option **tb)

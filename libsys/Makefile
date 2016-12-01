@@ -10,7 +10,7 @@ define Package/libsys
 	SECTION:=Oakridge
 	CATEGORY:=Oakridge Software
 	TITLE:=User Level System Library
-	DEPENDS:= libpthread
+	DEPENDS:= +libpthread
 endef
 
 define Package/libsys/description

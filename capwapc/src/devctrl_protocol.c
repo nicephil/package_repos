@@ -1,8 +1,8 @@
 #include <sys/sysinfo.h>
 #include "CWWTP.h"
 #include "devctrl_protocol.h"
-#if 0
 #include "cfg/cfg.h"
+#if !OK_PATCH
 #include "nmsc/nmsc.h"
 #include "services/vlan_services.h"
 #include "services/dialer_services.h"
@@ -184,8 +184,8 @@ struct device_update_info* chk_dev_updatinfo(void)
         }
     }
 
-#endif 
     
+#endif    
     return NULL;
 }
 
@@ -468,8 +468,7 @@ static int get_device_info(device_info_s *devinfo)
     {            
         free(stats);        
     }
-    
-#endif
+#endif    
     return 0;
 }
 
@@ -640,7 +639,6 @@ CWBool assemble_wds_info_elem(char **payload, int *len,
 CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
     struct wlan_sta_stat *stas, int count, int type)
 {
-#if !OK_PATCH
     int i, size = 0, number = 0;
     CWProtocolMessage msg;
 
@@ -764,13 +762,12 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
     
     *payload = msg.msg;
     *len = size;
-#endif
+
     return CW_TRUE;
 }
 
 CWBool assemble_cli_result_elem(char **payload, int *len, struct cli_exec_result *result)
 {
-#if !OK_PATCH
     int size = sizeof(result->code) + sizeof(result->len) + result->len;
     CWProtocolMessage msg;
     
@@ -790,13 +787,12 @@ CWBool assemble_cli_result_elem(char **payload, int *len, struct cli_exec_result
     
     *payload = msg.msg;
     *len = size;
-#endif
+
     return CW_TRUE;
 }
 
 CWBool assemble_rate_sta_elem(char **payload, int *len, struct if_rate_stas *result)
 {
-#if !OK_PATCH
     int size, i;
     CWProtocolMessage msg;
 
@@ -816,10 +812,12 @@ CWBool assemble_rate_sta_elem(char **payload, int *len, struct if_rate_stas *res
         CWProtocolStore16(&msg, 2 + RATE_STA_FIX_LEN + strlen(stas->name)); /* include slef 2 bytes */
         CWProtocolStore8(&msg, strlen(stas->name));
         CWProtocolStoreRawBytes(&msg, stas->name, strlen(stas->name));
+#if !OK_PATCH
         CWProtocolStore64(&msg, stas->sta.stat.tx_bytes);
         CWProtocolStore64(&msg, stas->sta.stat.rx_bytes);
         CWProtocolStore32(&msg, stas->sta.tx_bps);
         CWProtocolStore32(&msg, stas->sta.rx_bps);
+#endif
     }
     
     if (msg.offset != size) {
@@ -830,7 +828,7 @@ CWBool assemble_rate_sta_elem(char **payload, int *len, struct if_rate_stas *res
     
     *payload = msg.msg;
     *len = size;
-#endif
+
     return CW_TRUE;
 }
 

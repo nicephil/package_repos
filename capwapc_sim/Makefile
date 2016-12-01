@@ -9,7 +9,7 @@ define Package/capwapc_sim
 	SECTION:=Oakridge
 	CATEGORY:=Oakridge Software
 	TITLE:=capwapc_sim utilities
-	DEPENDS:=libpthread libutil libjson
+	DEPENDS:=libpthread
 endef
 
 define Package/capwapc_sim/description

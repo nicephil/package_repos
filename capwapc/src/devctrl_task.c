@@ -2,7 +2,9 @@
 #include <sys/un.h>
 #include <sys/socket.h>
 #include <sys/sysinfo.h>
-//#include "nmsc/nmsc.h"
+#if !OK_PATCH
+#include "nmsc/nmsc.h"
+#endif
 #include "devctrl_protocol.h"
 #include "devctrl_payload.h"
 #include "devctrl_notice.h"
@@ -169,8 +171,9 @@ static int task_notify_status(void * data, int size)
 
 int task_update_status(CWStateTransition state, CWACInfoValues *server)
 {
-    char *char_serach;
     struct capwapc_status status;
+#if !OK_PATCH
+    char *char_serach;
     const struct state_match {
         CWStateTransition cwstate;
         capwapc_state_e   state;
@@ -223,7 +226,7 @@ int task_update_status(CWStateTransition state, CWACInfoValues *server)
     else {
         status.uptime = -1;
     }
-    
+#endif
     return task_notify_status(&status, sizeof(status));
 }
 

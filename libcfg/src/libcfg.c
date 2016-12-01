@@ -32,7 +32,7 @@
 #include <sys/wait.h>
 #include <netinet/in.h>	
 #include <ctype.h>
-#include "cfg.h"
+#include "cfg/cfg.h"
 /* added by lsz for oem */
 #include "json/json_util.h"
 #include "json/bits.h"
@@ -1928,7 +1928,11 @@ int cfg_get_env(const char * key, char * value, int size)
     return ret;
 }
 #ifndef BUILDTIME
+#if !OK_PATCH
 #error Fix your makefile to define build time!
+#else
+#define BUILDTIME 201612020845
+#endif
 #endif
 static unsigned long g_buildtime = BUILDTIME;
 

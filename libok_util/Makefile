@@ -10,7 +10,6 @@ define Package/libok_util
 	SECTION:=Oakridge
 	CATEGORY:=Oakridge Software
 	TITLE:=User Level System Library
-	DEPENDS:= libpthread
 endef
 
 define Package/libok_util/description

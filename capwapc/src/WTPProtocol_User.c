@@ -56,8 +56,6 @@ __inline__ int CWWTPGetMaxRadios()
 		    CWDebugLog_E("Failed to get WLAN RADIO informations");
 		    return 0;
 		}
-#else
-        max_count = 2;
 #endif
 	}
     
@@ -85,6 +83,7 @@ CWBool CWWTPGetBoardData(CWWTPVendorInfos *valPtr) {
     struct product_info info;
     
 	if(valPtr == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
+
 #if !OK_PATCH
     if (cfg_get_product_info(&info)) {
         return CW_FALSE;
@@ -144,7 +143,6 @@ CWBool CWWTPGetVendorInfos(CWWTPVendorInfos *valPtr) {
 
     (valPtr->vendorInfos)[3].vendorIdentifier = RESERVED_VENDOR_INDENTIFIER;
 	(valPtr->vendorInfos)[3].type = CW_DEVICE_INFO;
-#if !OK_PATCH
     if (!assemble_vendor_devinfo((char **)(&(((valPtr->vendorInfos)[3]).valuePtr)), 
         &((valPtr->vendorInfos)[3].length))) {
         CW_FREE_OBJECT(((valPtr->vendorInfos)[0]).valuePtr);
@@ -152,7 +150,6 @@ CWBool CWWTPGetVendorInfos(CWWTPVendorInfos *valPtr) {
         CW_FREE_OBJECT(((valPtr->vendorInfos)[2]).valuePtr);
         return CW_FALSE;
     }
-#endif
 
 	return CW_TRUE;
 }

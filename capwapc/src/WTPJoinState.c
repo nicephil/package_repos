@@ -78,8 +78,8 @@ CWStateTransition CWWTPEnterJoin() {
 	CWSecurityDestroySession(gWTPSession);
 	CWSecurityDestroyContext(gWTPSecurityContext);
 	gWTPSecurityContext = NULL;
-#endif
 	gWTPSession = NULL;
+#endif
 
 	/* Initialize gACInfoPtr */
 	gACInfoPtr->ACIPv4ListInfo.ACIPv4ListCount=0;

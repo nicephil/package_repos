@@ -15,6 +15,8 @@
 #ifndef __CFG_INTERNAL_H
 #define __CFG_INTERNAL_H
 
+#include <stdbool.h>
+
 #define __private __attribute__((visibility("hidden")))
 #define __public
 

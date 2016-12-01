@@ -1,11 +1,10 @@
 #ifndef __DEVCTRL_PROTOCOL_H__
 #define __DEVCTRL_PROTOCOL_H__
 
-#if 0
+#if !OK_PATCH
 #include "portal/linux/portal_public.h"
 #include "services/dns_services.h"
 #endif
-#include "if/if_pub.h"
 
 #define DEVCTRL_BLOCK_HEADER_LEN    20
 typedef struct devctrl_block{
@@ -70,6 +69,11 @@ typedef enum {
     RSSI_LEVEL_LOW,
     RSSI_LEVEL_MAX,
 } rssi_level_e;
+
+#if OK_PATCH
+#define MAX_AUTH_USERNAME_LEN 64
+#endif
+
 struct wlan_sta_stat {
     char updated;
     unsigned short len; 
@@ -86,7 +90,7 @@ struct wlan_sta_stat {
     int ip;
     int portal_mode;
     char name_len;
-    //char user[MAX_AUTH_USERNAME_LEN + 1];
+    char user[MAX_AUTH_USERNAME_LEN + 1];
     char ps_len;
     char ps_name[33]; /* portal scheme */
     char bssid[6];
@@ -119,6 +123,9 @@ struct device_update_info {
     char wds_mode;
 };
 
+#if OK_PATCH
+#define SYS_INTF_NAME_SIZE 24
+#endif
 struct device_interface_info {
     unsigned short len;
     char interface_len;
@@ -171,7 +178,9 @@ struct cli_exec_result {
 #define RATE_STA_FIX_LEN     25  
 struct if_flow_stat {
     char name[SYS_INTF_NAME_SIZE];
-    //struct netif_flow_stat sta;
+#if !OK_PATCH
+    struct netif_flow_stat sta;
+#endif
 };
 
 struct if_rate_stas {

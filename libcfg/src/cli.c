@@ -15,7 +15,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "cfg.h"
+#include "cfg/cfg.h"
 
 #define MAX_ARGS	4 /* max command line arguments for batch mode */
 

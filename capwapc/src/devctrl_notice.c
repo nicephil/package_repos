@@ -9,8 +9,8 @@
 #include "services/vlan_services.h"
 #include "services/wds_services.h"
 #include "cmp/cmp_pub.h"
-#endif
 #include "util/util.h"
+#endif
 
 #define WLAN_STA_STAUS_TIMER    30
 
@@ -29,8 +29,9 @@ static inline rssi_level_e dc_rssi2level(int rssi)
     }
 }
 
+static int wlan_get_sta_info(struct wlan_sta_stat **stas)
+{
 #if !OK_PATCH
-static int wlan_get_sta_info(struct wlan_sta_stat **stas){
     int count = 0, size = 0;
     int i, j, k, ret, num;
     struct wmac_init_param  radio_init;
@@ -183,13 +184,15 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas){
     *stas = sta_list;
 
     return count;
-}
+#else
+    return 0;
 #endif
+}
 
-#if !OK_PATCH
 static int inline dc_reserves_stas(struct wlan_sta_stat **sta_list, 
     int totalsize, int cursize, struct wlan_sta_stat *newstas, int count)
 {
+#if !OK_PATCH
     struct wlan_sta_stat * stas = *sta_list;
     
     if (cursize + count > totalsize || stas == NULL) {
@@ -214,12 +217,14 @@ static int inline dc_reserves_stas(struct wlan_sta_stat **sta_list,
     memcpy(&(stas[cursize]), newstas, (count * sizeof(struct wlan_sta_stat)));
     *sta_list = stas;
     return totalsize;
-}
+#else
+    return 0;
 #endif
+}
 
-#if !OK_PATCH
 int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
 {
+#if !OK_PATCH
 #define UPTIME_DIFF   1 /* s */
     static struct wlan_sta_stat *pre_stas = NULL;
     static int pre_count = 0;
@@ -330,12 +335,13 @@ FREE_STAS:
     *stas = rse_stas;
     
     return res_count;
-}
+#else
+    return 0;
 #endif
+}
  
 static void dc_sta_notice_timer_handler(void *arg) 
 {
-#if !OK_PATCH
     struct wlan_sta_stat *stas = NULL;
     devctrl_block_s dc_resp;
     char *payload = NULL, *data = NULL;
@@ -419,7 +425,6 @@ RESTART_TIMER:
         CWDebugLog("Start sta status notice timer failed.");
     }
     return;
-#endif
 }
 
 int dc_start_sta_notice_timer(void) 
@@ -545,6 +550,7 @@ void dc_wds_tunnel_update_notice(struct wds_tunnel_info *pWdsInfo)
 
 int WTPProcWDSBuffer(struct wds_tunnel_info **info)
 {
+#if !OK_PATCH
     struct wds_tunnel_info *pWdsInfo= NULL;
     char acWdsBuffer[512] = {};
     char *pWdsBuf = acWdsBuffer;
@@ -603,11 +609,13 @@ int WTPProcWDSBuffer(struct wds_tunnel_info **info)
 
     *info = pWdsInfo;
 
+#endif
     return 0;
 }
 
 void get_wds_sigusr(int signo)
 {
+#if !OK_PATCH
     struct wds_tunnel_info *pWdsInfo = NULL;
     int ret = 0;
 
@@ -625,5 +633,6 @@ err:
         free(pWdsInfo);
     }
 
+#endif
     return;
 }

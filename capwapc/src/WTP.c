@@ -417,11 +417,7 @@ int main (int argc, const char * argv[])
 	}
 
     /* Capwap task related */
-#if !OK_PATCH
 	if (!CWErr(task_init()) || !create_pendingbox_mutex())
-#else
-	if (!create_pendingbox_mutex())
-#endif
 	{
 		CWLog("Can't start WTP");
 		exit(1);
@@ -509,9 +505,7 @@ int main (int argc, const char * argv[])
 	CW_REPEAT_FOREVER {
 	    CWLog("Switch next state: %s.", state_name[(nextState - CW_ENTER_SULKING) % (CW_QUIT - CW_ENTER_SULKING + 1)]);
         CWDebugLog_F("Switch next state: %s.", state_name[(nextState - CW_ENTER_SULKING) % (CW_QUIT - CW_ENTER_SULKING + 1)]);
-#if !OK_PATCH
         task_update_status(nextState, gACInfoPtr);
-#endif
 		switch(nextState) {
 			case CW_ENTER_DISCOVERY:
 				nextState = CWWTPEnterDiscovery();
@@ -534,9 +528,7 @@ int main (int argc, const char * argv[])
 			case CW_ENTER_RESET:
 				 CWStopHeartbeatTimer();
 				 CWStopNeighborDeadTimer();
-#if !OK_PATCH
                   		 dc_stop_sta_notice_timer();                 
-#endif
 				/*
 				 * CWNetworkCloseSocket(gWTPSocket);
 				 * CWSecurityDestroySession(gWTPSession);

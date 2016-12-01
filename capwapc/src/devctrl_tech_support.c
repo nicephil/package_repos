@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "CWWTP.h"
+
 #include "cfg/cfg.h"
 #include "if/if_pub.h"
+#if !OK_PATCH
 #include "services/hostname_services.h"
 #include "services/dialer_services.h"
 #include "services/dns_services.h"
@@ -23,6 +25,7 @@
 #include "services/dnsset_services.h"
 #include "services/time_range_services.h"
 #include "session/session.h"
+#endif
 
 #include <sys/types.h> 
 #include <sys/stat.h> 
@@ -416,6 +419,7 @@ void create_tech_support_file() {
 }
 #endif
 void create_tech_support_file() {
+#if !OK_PATCH
 
     #define TECH_SUPPORT_FILE	"/tmp/tech_support.tar"
     char cmdline[128] = {0};
@@ -430,6 +434,7 @@ void create_tech_support_file() {
     system(cmdline);
     sprintf(cmdline, "rm -rf %s", TECH_SUPPORT_PATH);
     system(cmdline);
+#endif
 
 }
 

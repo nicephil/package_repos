@@ -408,12 +408,10 @@ CWBool CWAssembleMessage(CWProtocolMessage **completeMsgPtr, int *fragmentsNumPt
         msgElemtype = CWProtocolRetrieve16(&(msgElems[0]));
         msgElems[0].offset = offset;
         
-#if !OK_PATCH
         if (msgElemtype == CW_MSG_ELEMENT_WTP_DEVICE_CONTROLRESULT_CW_TYPE) {
             return assemble_devctrlresp_frag(completeMsgPtr, fragmentsNumPtr, 
                 PMTU, seqNum, msgTypeValue, &(msgElems[0]), is_crypted);
         }
-#endif
     }    
 
 	//Calculate the whole size of the Msg Elements	
@@ -584,11 +582,9 @@ CWBool CWProtocolParseFragment(char *buf, int readBytes, CWList *fragmentsListPt
     }
     msg.offset = offset;
 
-#if !OK_PATCH
     if (control_header.messageTypeValue == CW_MSG_TYPE_VALUE_DEVICE_CONTROL_REQUEST) {
         return parse_devctrlreq_frag(buf, readBytes, reassembledMsg, dataFlagPtr);
     }
-#endif
 
 	if(values.isFragment == 0) { // single fragment
 		CWDebugLog_D("Single Fragment");
