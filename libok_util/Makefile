@@ -10,7 +10,6 @@ define Package/libok_util
 	SECTION:=Oakridge
 	CATEGORY:=Oakridge Software
 	TITLE:=User Level System Library
-	DEPENDS:=+kmod-qca-wifi-10.4-unified-perf
 endef
 
 define Package/libok_util/description
@@ -32,9 +31,7 @@ define Build/InstallDev
 endef
 
 define Package/libok_util/install
-	$(INSTALL_DIR) $(1)/lib/wifi
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(INSTALL_DATA) ./files/qcawifi.sh $(1)/lib/wifi
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/libok_util.so.1.0 $(1)/usr/lib/
 	(cd $(1)/usr/lib;$(LN) libok_util.so.1.0 libok_util.so.1;$(LN) libok_util.so.1.0 libok_util.so)
 endef
