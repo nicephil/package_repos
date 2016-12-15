@@ -1905,7 +1905,7 @@ config wifi-iface
 	option device	wifi$devidx
 	option network	lan
 	option mode	ap
-	option ssid	oakridg-def$devidxe
+	option ssid	oakridg-def$devidx
 	option encryption none
 
 EOF

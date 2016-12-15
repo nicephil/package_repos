@@ -110,7 +110,6 @@ wzr-hp-g450h)
 	;;
 
 ap152)
-	ucidef_set_interface_wan "eth0"
 	ucidef_set_interface_lan "eth0"
     ;;
 
