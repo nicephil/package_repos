@@ -47,6 +47,7 @@ void CWDestroyThread(CWThread thread) {
     CWDebugLog_F("Destroy the thread %d.\n", (int)thread);
     pthread_cancel(thread);
     pthread_join(thread, NULL);
+    CWDebugLog_F("Destroy the thread %d done.\n", (int)thread);
 }
 
 

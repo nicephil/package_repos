@@ -45,20 +45,19 @@ __inline__ int CWWTPGetDiscoveryType()
 
 __inline__ int CWWTPGetMaxRadios() 
 {
-	static int max_count = 0;
+	static int max_count = 2;
+#if !OK_PATCH   
     int ret;
     struct if_attrs * attrs = NULL;
 
 	if (!max_count) {
-#if !OK_PATCH
 		ret = if_get_interfaces(IF_PHYTYPE_WLAN, &max_count, &attrs, NULL, NULL);
 		if (ret == -1) {
 		    CWDebugLog_E("Failed to get WLAN RADIO informations");
 		    return 0;
 		}
-#endif
 	}
-    
+#endif
 	return max_count;
 }
 

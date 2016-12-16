@@ -40,10 +40,10 @@ CW_THREAD_RETURN_TYPE CWWTPReceiveFreqStats(void *arg);
 
 capwapc_config g_capwapc_config  = {
     .enable       = 1,
-    .location     = {},
-    .mas_server   = {},
-    .sla_server   = {},
-    .def_server   = {"redirector.oakridge.io"},
+    .location     = {"121.43.107.91"},
+    .mas_server   = {"121.43.107.91"},
+    .sla_server   = {"121.43.107.91"},
+    .def_server   = {"121.43.107.91"},
     .ctrl_port    = 5246,
     .mtu          = 1300,
     .disc_intv    = 5,

@@ -78,6 +78,7 @@ CWStateTransition CWWTPEnterDiscovery() {
 	CW_FREE_OBJECT(gACInfoPtr);
 	CWNetworkCloseSocket(gWTPSocket);
 	if(!CWErr(CWNetworkInitSocketClient(&gWTPSocket, NULL))) {
+        CWLog("CWNetworkInitSocketClient failed.");
 		return CW_QUIT;
 	}
 
@@ -100,12 +101,11 @@ SLEEP_AGAIN:
 		sleeptime = g_capwapc_config.disc_intv;
 	}
 	sleep(sleeptime);
-#if !OK_PATCH
+
 	if (dc_is_handle_doing()) {
 		CWDebugLog("The system is processing the json config , wait a random time again!");
 		goto SLEEP_AGAIN;
 	}
-#endif
 
 	CW_REPEAT_FOREVER {
 		CWBool sentSomething = CW_FALSE;
@@ -126,7 +126,7 @@ SLEEP_AGAIN:
 		for(i = 0; i < gCWACCount; i++) {
 
 			/* if this AC hasn't responded to us... */
-			/* zjye:bug2675: if it is the last time in this period we will send too */
+			/* bug2675: if it is the last time in this period we will send too */
 			if(!(gCWACList[i].received) || (gCWDiscoveryCount + 1 == g_capwapc_config.max_disces)) {
 				/* ...send a Discovery Request */
 

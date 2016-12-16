@@ -73,6 +73,7 @@ CWStateTransition CWWTPEnterSulking() {
 		
 					/* read and discard */
 					if(!CWErr(CWNetworkReceiveUnsafe(gWTPSocket, buf, CW_BUFFER_SIZE, 0, &addr, &readBytes))) {
+                        CWLog("CWNetworkReceiveUnsafe failed.");
 						return CW_QUIT;
 					}
 				}

@@ -75,6 +75,7 @@ CWStateTransition CWWTPEnterConfigure() {
 		gWTPSecurityContext = NULL;
 		gWTPSession = NULL;
 #endif
+        CWLog("CWWTPSendAcknowledgedPacket failed.");
 		return CW_QUIT;
 	}
 	
