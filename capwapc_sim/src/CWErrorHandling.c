@@ -47,7 +47,7 @@ void CWErrorHandlingInitLib() {
 		{
 			CWDebugLog("Critical Error, closing the process..."); 
             CWDebugLog_E("Critical Error, closing the process..."); 
-			exit(1);
+			exit(10);
 		}
 	#else
 		CW_CREATE_OBJECT_ERR(infoPtr, CWErrorHandlingInfo, return;);
@@ -58,17 +58,21 @@ void CWErrorHandlingInitLib() {
 
 CWBool _CWErrorRaise(CWErrorCode code, const char *msg, const char *fileName, int line) {
 	CWErrorHandlingInfo *infoPtr;
-	
+
+    if (code != CW_ERROR_SUCCESS) {
+    	CWDebugLog("Raise type %d error for %s(%d).", code, strerror(errno), errno); 
+    }
+    
 	#ifndef CW_SINGLE_THREAD
 		infoPtr = CWThreadGetSpecific(&gLastError);
 		if(infoPtr==NULL){
-			CW_CREATE_OBJECT_ERR(infoPtr, CWErrorHandlingInfo, exit(1););
+			CW_CREATE_OBJECT_ERR(infoPtr, CWErrorHandlingInfo, exit(11););
 			infoPtr->code = CW_ERROR_NONE;
 			if(!CWThreadSetSpecific(&gLastError, infoPtr))
 			{
-				CWDebugLog("Critical Error, closing the process..."); 
+				CWLog("Critical Error, closing the process..."); 
                 CWDebugLog_E("Critical Error, closing the process..."); 
-				exit(1);
+				exit(12);
 			}
 		}
 	#else
@@ -77,9 +81,9 @@ CWBool _CWErrorRaise(CWErrorCode code, const char *msg, const char *fileName, in
 	
 	if(infoPtr == NULL) 
 	{
-		CWDebugLog("Critical Error: something strange has happened, closing the process..."); 
+		CWLog("Critical Error: something strange has happened, closing the process..."); 
         CWDebugLog_E("Critical Error: something strange has happened, closing the process..."); 
-		exit(1);
+		exit(13);
 	}
 	
 	infoPtr->code = code;
@@ -95,15 +99,17 @@ void CWErrorPrint(CWErrorHandlingInfo *infoPtr, const char *desc, const char *fi
 	if(infoPtr == NULL) return;
 	
 	if(infoPtr->message != NULL && infoPtr->message[0]!='\0') {
-		CWDebugLog("Error: %s. %s .", desc, infoPtr->message);
+		CWLog("Error: %s. %s .", desc, infoPtr->message);
         CWDebugLog_E("Error: %s. %s .", desc, infoPtr->message);
 	} 
     else {
-		CWDebugLog("Error: %s", desc);
+		CWLog("Error: %s", desc);
         CWDebugLog_E("Error: %s", desc);
 	}
+    #if 0 /* fix bug 2189 */
 	CWDebugLog("(occurred at line %d in file %s, catched at line %d in file %s, reason:%s).",
 		infoPtr->line, infoPtr->fileName, line, fileName, desc);
+    #endif
     CWDebugLog_E("(occurred at line %d in file %s, catched at line %d in file %s, reason:%s).",
 		infoPtr->line, infoPtr->fileName, line, fileName, desc);
 }
@@ -134,7 +140,7 @@ CWBool _CWErrorHandleLast(const char *fileName, int line) {
 	if(infoPtr == NULL) {
 		CWDebugLog("No Error Pending, close process");
         CWDebugLog_E("No Error Pending, close process");
-		exit((3));
+		exit((14));
 		return CW_FALSE;
 	}
 	
@@ -149,10 +155,10 @@ CWBool _CWErrorHandleLast(const char *fileName, int line) {
 		case CW_ERROR_OUT_OF_MEMORY:
 			__CW_ERROR_PRINT("Out of Memory");
 			#ifndef CW_SINGLE_THREAD
-				CWExitThread(); // note: we can manage this on per-thread basis: ex. we can
+				exit(15); // note: we can manage this on per-thread basis: ex. we can
 								// kill some other thread if we are a manager thread.
 			#else
-				exit(1);
+				exit(15);
 			#endif
 			break;
 			

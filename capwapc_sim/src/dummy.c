@@ -4,12 +4,15 @@
 #include "dummy.h"
 
 static struct product_info g_product_info = {
-    .company            = {"CommSky"},
-    .production         = {"CommSky AP"},
+    .company            = {"Oakridge"},
+    .production         = {"Oakridge AP"},
+    .model              = {"WL8200-IT2"},
+    .mac                = {"34:CD:6D:E0:34:6D"},
     .bootloader_version = {"1.0.0"},
     .software_version   = {"V200R001"},
+    .software_inner_version = {"V200"},
     .hardware_version   = {"1.0.0"},
-    .serial             = {"CommSkyAPNO0001"},
+    .serial             = {"32A7D16Z0151617"},
 };
 
 void set_product_mac(const char *mac)

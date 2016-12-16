@@ -53,10 +53,9 @@
 #include <sys/file.h>
 #include "wireless_copy.h"
 
-#include "log/log.h"
+//#include "log/log.h"
 #include "services/capwapc_services.h"
 extern int log_id;
-#define debug_here zlog(log_id, LOG_DEBUG, "[maldinitest]:%s->%d", __FUNCTION__, __LINE__)
 
 // make sure the types really have the right sizes
 #define CW_COMPILE_TIME_ASSERT(name, x)               typedef int CWDummy_ ## name[(x) * 2 - 1]

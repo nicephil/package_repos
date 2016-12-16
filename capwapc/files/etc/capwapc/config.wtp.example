@@ -1,9 +1,9 @@
-<AC_ADDRESS>
-</AC_ADDRESS>cfg_master_server
-</AC_ADDRESS>cfg_slave_server
-</AC_ADDRESS>opt43_master_server
-</AC_ADDRESS>opt43_slave_server
-</AC_ADDRESS>cfg_def_server
+<AC_ADDRESSES>
+</AC_ADDRESSES>cfg_master_server
+</AC_ADDRESSES>cfg_slave_server
+</AC_ADDRESSES>opt43_master_server
+</AC_ADDRESSES>opt43_slave_server
+</AC_ADDRESSES>cfg_def_server
 <end>
 </WTP_LOCATION>cfg_location
 </WTP_CTRL_PORT>cfg_ctrl_port

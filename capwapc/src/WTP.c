@@ -40,11 +40,27 @@ CW_THREAD_RETURN_TYPE CWWTPReceiveFreqStats(void *arg);
 
 extern int dc_stop_sta_notice_timer(void);
 
-capwapc_config g_capwapc_config;
+capwapc_config g_capwapc_config  = {
+    .enable       = 1,
+    .location     = {"121.43.107.91"},
+    .mas_server   = {"121.43.107.91"},
+    .sla_server   = {"121.43.107.91"},
+    .def_server   = {"121.43.107.91"},
+    .ctrl_port    = 5246,
+    .mtu          = 1300,
+    .disc_intv    = 5,
+    .maxdisc_intv = 20,
+    .echo_intv    = 30,
+    .retran_intv  = 3,
+    .silent_intv  = 30,
+    .join_timeout = 60,
+    .max_disces   = 10,
+    .max_retran   = 5,
+};
 
-//int 	gEnabledLog;
-//int 	gMaxLogFileSize;
-//char 	gLogFileName[] = WTP_LOG_FILE_NAME;
+int 	gEnabledLog = 1;
+int 	gMaxLogFileSize = (1024 * 1024);
+char 	gLogFileName[] = WTP_LOG_FILE_NAME;
 
 /* addresses of ACs for Discovery */
 char	**gCWACAddresses;
@@ -353,6 +369,8 @@ int main (int argc, const char * argv[])
 		printf("Usage: WTP working_path\n");
 #endif
 
+#if 0
+
 	if ((pid = fork()) < 0) {
         exit(1);
     }
@@ -399,10 +417,11 @@ int main (int argc, const char * argv[])
 #endif
 	}	
     service_output_pidfile("wtp");
+#endif
     
 	CWStateTransition nextState = CW_ENTER_DISCOVERY;
 
-//	CWLogInitFile(WTP_LOG_FILE_NAME);
+	CWLogInitFile(gLogFileName);
 
 #ifndef CW_SINGLE_THREAD
 	CWDebugLog_F("Use Threads");
@@ -669,7 +688,6 @@ CWBool CWWTPInitConfiguration() {
 		gRadiosInfo.radiosInfo[i].wirelessLinkFramesPerSec= 0;
 		CWWTPResetRadioStatistics(&(gRadiosInfo.radiosInfo[i].statistics));
 		if(!CWWTPInitBinding(i)) {
-            debug_here;
             return CW_FALSE;
         }
 	}

@@ -1,6 +1,5 @@
 config capwapc 'global'
         option enable '1'
-        option location '121.43.107.91'
 
 config capwapc 'server'
         option mas_server '121.43.107.91'
@@ -8,6 +7,7 @@ config capwapc 'server'
         option def_server '121.43.107.91'
 
 config capwapc 'wtp'
+        option location '121.43.107.91'
         option ctrl_port '5246'
         option mtu '1300'
         option disc_intv '20'

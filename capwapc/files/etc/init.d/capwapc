@@ -1,4 +1,10 @@
-#!/bin/sh
+#!/bin/src /etc/rc.common
+# look at /lib/functions/services.sh on a running system for explanations of what other options you can use
+START=80
+APP=capwapc
+SERVICE_WRIT_PID=1
+SERVICE_DEAMONIZE=1
+CONFIG_FILE="/etc/config.wtp"
 
 . /lib/functions.sh
 
@@ -66,10 +72,19 @@ config_cb() {
 }
 
 
-main () {
+generate_config () {
     config_load capwapc
-    echo -e $buffer
+    echo -e $buffer > $CONFIG_FILE
 }
 
-main
+
+start() {
+    generate_config
+    service_start /bin/$APP
+}
+
+
+stop() {
+    service_stop /bin/$APP
+}
 

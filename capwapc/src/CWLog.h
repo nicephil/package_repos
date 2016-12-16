@@ -31,11 +31,15 @@
 
 extern char gLogFileName[];
 extern int log_id;
-#if 0
+#if 1
 __inline__ void CWVLog(const char *format, va_list args);
 
 __inline__ void CWLog(const char *format, ...);
 __inline__ void CWDebugLog(const char *format, ...);
+
+#define CWDebugLog_E(fmt, ...) CWLog(fmt, ##__VA_ARGS__)
+#define CWDebugLog_F(fmt, ...) CWLog(fmt, ##__VA_ARGS__)
+#define CWDebugLog_D(fmt, ...) CWDebugLog(fmt, ##__VA_ARGS__)
 #else
 #define CWLog(fmt, ...) zlog(log_id, LOG_INFO, fmt, ##__VA_ARGS__)
 #define CWDebugLog(fmt, ...) zlog(log_id, LOG_DEBUG, fmt, ##__VA_ARGS__)

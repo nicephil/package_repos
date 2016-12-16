@@ -2003,7 +2003,7 @@ struct dc_payloadfunc_table dc_payload_handler[] = {
 };
 
 
-static struct dc_payloadfunc_table *dc_get_pyaload_func(int type)
+static struct dc_payloadfunc_table *dc_get_payload_func(int type)
 {
     int i;
 
@@ -2051,7 +2051,7 @@ int dc_task_handler(devctrl_block_s *dc_block)
         
         CWLog("Received data type %d from NMS with length: %d", tlv.t, tlv.l);
 
-        func = dc_get_pyaload_func(tlv.t);
+        func = dc_get_payload_func(tlv.t);
         if (func) {
             void *arg = NULL;
             

@@ -84,6 +84,8 @@ typedef enum {
 	CW_ENTER_DATA_CHECK,
 	CW_ENTER_RUN,
 	CW_ENTER_RESET,
+	CW_RESTART_SILENTLY,
+	CW_STOP,
 	CW_QUIT
 } CWStateTransition;
 

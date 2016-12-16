@@ -32,25 +32,25 @@
 #include "../dmalloc-5.5.0/dmalloc.h"
 #endif
 
-//static FILE *gLogFile = NULL;
+static FILE *gLogFile = NULL;
 
 #ifndef CW_SINGLE_THREAD
 	CWThreadMutex gFileMutex;
 #endif
-#if 0
+#if 1
 void CWLogInitFile(char *fileName) {
 	if(fileName == NULL) {
-		CWLog("Wrong File Name for Log File");
+		printf("Wrong File Name for Log File");
 	}
 	
 	if((gLogFile = fopen(fileName, "w")) == NULL) {
-		CWLog("Can't open log file: %s", strerror(errno));
+		printf("Can't open log file: %s", strerror(errno));
 		exit(1);
 	}
 	
 	#ifndef CW_SINGLE_THREAD
 		if(!CWCreateThreadMutex(&gFileMutex)) {
-			CWLog("Can't Init File Mutex for Log");
+			printf("Can't Init File Mutex for Log");
 			exit(1);
 		}
 	#endif

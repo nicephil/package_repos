@@ -1,5 +1,5 @@
 LDFLAGS = ./static/uclibc/libssl.a ./static/uclibc/libcrypto.a -lpthread -ldl -D_REENTRANT 
-CFLAGS = -Wall -g -O0 -D_REENTRANT -I./include/ -DCW_NO_DTLS
+CFLAGS = -Wall -g -O0 -D_REENTRANT -I./include/ -DCW_NO_DTLS -DCW_DEBUGGING
 CFLAGS+=$(EXTRA_CFLAGS)
 OPENSSL_INCLUDE = #-I/usr/local/ssl/include/ #Openssl include files
 LDFLAGS+=$(EXTRA_LDFLAGS)

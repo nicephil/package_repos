@@ -32,7 +32,7 @@
 #include "../dmalloc-5.5.0/dmalloc.h"
 #endif
 
-#define CW_SETTINGS_FILE 	"settings.wtp.txt"
+#define CW_SETTINGS_FILE 	"/etc/capwapc/settings.wtp.txt"
 
 FILE* gSettingsFile=NULL;
 char* gInterfaceName=NULL;

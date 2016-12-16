@@ -118,7 +118,7 @@ static void init_dev_updateinfo(device_info_s info)
     g_dev_updateinfo.len = strlen(g_dev_updateinfo.hostname);
 }
 
-struct device_update_info* chk_dev_updatinfo(void)
+struct device_update_info* chk_dev_updateinfo(void)
 {
 #if !OK_PATCH
     struct device_update_info info;
@@ -185,6 +185,19 @@ struct device_update_info* chk_dev_updatinfo(void)
     }
 
     
+#else
+    struct in_addr addr;
+
+    g_dev_updateinfo.iptype = 1;
+    inet_aton("192.168.10.1", &addr);
+    g_dev_updateinfo.ip = addr.s_addr;
+    inet_aton("255.255.255.0", &addr);
+    g_dev_updateinfo.netmask = addr.s_addr;
+    inet_aton("192.168.0.1", &addr);
+    g_dev_updateinfo.gateway = addr.s_addr;
+    g_dev_updateinfo.len = 8;
+    strcpy(g_dev_updateinfo.hostname, "oakridge");
+    g_dev_updateinfo.wds_mode = 0;
 #endif    
     return NULL;
 }
@@ -199,7 +212,7 @@ CWBool assemble_dev_updateinfo(char **info, int *len)
         return CW_FALSE;
     }
 
-    update = chk_dev_updatinfo();
+    update = chk_dev_updateinfo();
     if (update == NULL) {
         return CW_FALSE;
     }
@@ -251,6 +264,7 @@ static int get_device_info(device_info_s *devinfo)
     if (cfg_get_product_info(&info)) {
         return -1;
     }
+
     /* mac address */
     s = info.mac;
     for (i = 0; i < 6; i++) {
@@ -468,6 +482,85 @@ static int get_device_info(device_info_s *devinfo)
     {            
         free(stats);        
     }
+#else
+    struct sysinfo sys;
+    char nms_version[16] = "1.7.0";     
+    char *s, *e;
+    int i;
+    static struct product_info s_product_info = {
+        .company            = {"Oakridge"},
+        .production         = {"Oakridge AP"},
+        .model              = {"WL8200-IT2"},
+        .mac                = {"34:CD:6D:E0:34:6D"},
+        .bootloader_version = {"1.0.0"},
+        .software_version   = {"V200R001"},
+        .software_inner_version = {"V200"},
+        .hardware_version   = {"1.0.0"},
+        .serial             = {"32A7D16Z0151617"},
+    };
+
+    /* mac address */
+    s = s_product_info.mac;
+    for (i = 0; i < 6; i++) {
+        devinfo->mac[i] = s ? strtoul(s, &e, 16) : 0;
+        if (s) {
+            s = (*e) ? e + 1 : e;
+        }
+    }
+
+    struct in_addr addr;
+
+    devinfo->iptype = 1;
+    inet_aton("192.168.10.1", &addr);
+    devinfo->ip = addr.s_addr;
+    inet_aton("255.255.255.0", &addr);
+    devinfo->netmask = addr.s_addr;
+    inet_aton("192.168.0.1", &addr);
+    devinfo->gateway = addr.s_addr;
+    devinfo->wds_mode = 0;
+
+    /* uptime in second unit */
+    sysinfo(&sys);
+    devinfo->uptime = sys.uptime;
+
+    /* serial number */
+    devinfo->snlen = strlen(s_product_info.serial);
+    CW_CREATE_OBJECT_SIZE_ERR(devinfo->sn, devinfo->snlen, CWDebugLog_E("malloc sn failed"););
+    if (devinfo->sn == NULL) {
+        return -1;
+    }
+    else {
+        strncpy(devinfo->sn, s_product_info.serial, devinfo->snlen);
+    }
+
+    /* product name */
+    devinfo->namelen = strlen(s_product_info.model);
+    CW_CREATE_OBJECT_SIZE_ERR(devinfo->name, devinfo->namelen, CWDebugLog_E("malloc name failed"););
+    if (devinfo->name == NULL) {
+        CW_FREE_OBJECT(devinfo->sn);
+        return -1;
+    }
+    else {
+        strncpy(devinfo->name, s_product_info.model, devinfo->namelen);
+    }
+    devinfo->mtu = g_capwapc_config.mtu;
+
+    devinfo->verlen = strlen(nms_version);
+    CW_CREATE_OBJECT_SIZE_ERR(devinfo->version, devinfo->verlen, CWDebugLog_E("malloc version failed"););
+    if (devinfo->version == NULL) {
+        CW_FREE_OBJECT(devinfo->sn);
+        CW_FREE_OBJECT(devinfo->name);
+        return -1;
+    }
+    else {
+        strncpy(devinfo->version, nms_version, devinfo->verlen);
+    }
+
+    devinfo->cfg_version = 1;
+    devinfo->cfg_code = 0;
+
+
+
 #endif    
     return 0;
 }

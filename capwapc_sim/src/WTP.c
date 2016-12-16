@@ -455,6 +455,7 @@ int main (int argc, char * argv[])
 
     get_opt(argc, argv);
 
+#if 0
 	if ((pid = fork()) < 0)
 		exit(1);
 	else if (pid != 0)
@@ -470,6 +471,7 @@ int main (int argc, char * argv[])
         }
 #endif        
 	}	
+#endif
 	
 	CWStateTransition nextState = CW_ENTER_DISCOVERY;
 

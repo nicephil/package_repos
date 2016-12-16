@@ -32,7 +32,7 @@
 #include "../dmalloc-5.5.0/dmalloc.h"
 #endif
 
-const char *CW_CONFIG_FILE = "config.wtp";
+const char *CW_CONFIG_FILE = "/etc/capwapc/config.wtp";
 
 CWBool CWConfigFileInitLib(void) 
 {

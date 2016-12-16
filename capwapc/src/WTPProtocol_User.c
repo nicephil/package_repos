@@ -87,7 +87,22 @@ CWBool CWWTPGetBoardData(CWWTPVendorInfos *valPtr) {
     if (cfg_get_product_info(&info)) {
         return CW_FALSE;
     }
+#else
+    static struct product_info s_product_info = {
+        .company            = {"Oakridge"},
+        .production         = {"Oakridge AP"},
+        .model              = {"WL8200-IT2"},
+        .mac                = {"34:CD:6D:E0:34:6D"},
+        .bootloader_version = {"1.0.0"},
+        .software_version   = {"V200R001"},
+        .software_inner_version = {"V200"},
+        .hardware_version   = {"1.0.0"},
+        .serial             = {"32A7D16Z0151617"},
+    };
+    memcpy(&info, &s_product_info, sizeof(struct product_info));
 #endif
+
+
     
 	valPtr->vendorInfosCount = 2; // we fill 2 information (just the required ones)
 	CW_CREATE_ARRAY_ERR((valPtr->vendorInfos), valPtr->vendorInfosCount, CWWTPVendorInfoValues, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
@@ -117,7 +132,23 @@ CWBool CWWTPGetVendorInfos(CWWTPVendorInfos *valPtr) {
     if (cfg_get_product_info(&info)) {
         return CW_FALSE;
     }
+#else
+    static struct product_info s_product_info = {
+        .company            = {"Oakridge"},
+        .production         = {"Oakridge AP"},
+        .model              = {"WL8200-IT2"},
+        .mac                = {"34:CD:6D:E0:34:6D"},
+        .bootloader_version = {"1.0.0"},
+        .software_version   = {"V200R001"},
+        .software_inner_version = {"V200"},
+        .hardware_version   = {"1.0.0"},
+        .serial             = {"32A7D16Z0151617"},
+    };
+    memcpy(&info, &s_product_info, sizeof(struct product_info));
 #endif
+
+
+
 	
 	valPtr->vendorInfosCount = 4; // we fill 4 information (just the required ones)
 	CW_CREATE_ARRAY_ERR((valPtr->vendorInfos), valPtr->vendorInfosCount, CWWTPVendorInfoValues, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
@@ -211,7 +242,7 @@ __inline__ int CWWTPGetIPv6StatusDuplicate() {
 }
 
 __inline__ char *CWWTPGetName() {
-    static char host[HOST_NAME_MAX + 1] = "CommSky";
+    static char host[HOST_NAME_MAX + 1] = "Oakridge";
     
     gethostname(host, sizeof(host));
 

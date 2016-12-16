@@ -22,8 +22,15 @@ define Build/Prepare
 endef
 
 define Package/capwapc/install
-	$(INSTALL_DIR) $(1)/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/ok_capwapc $(1)/bin/
+	$(INSTALL_DIR) $(1)/usr/sbin
+	$(INSTALL_DIR) $(1)/etc/capwapc
+	$(INSTALL_DIR) $(1)/etc/config
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_CONF) ./files/etc/capwapc/* $(1)/etc/capwapc/
+	$(INSTALL_CONF) ./files/etc/config/capwapc $(1)/etc/config/
+	$(INSTALL_DATA) ./files/etc/init.d/capwapc $(1)/etc/init.d/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/ok_capwapc $(1)/usr/sbin/
 endef
+
 
 $(eval $(call BuildPackage,capwapc))
