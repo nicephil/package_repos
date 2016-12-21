@@ -1,8 +1,8 @@
-# $Id: wifidog.spec.in 901 2006-01-17 18:58:13Z mina $
+# $Id$
 
 %define name wifidog
 %define lib_name libhttpd
-%define version 20090925
+%define version 1.3.0
 %define release 1mdk
 
 Summary: The WiFi Guard Dog project is a complete and embeedable captive portal solution for wireless community groups or individuals who wish to open a free HotSpot while still preventing abuse of their Internet connection.
