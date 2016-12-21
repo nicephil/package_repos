@@ -392,10 +392,8 @@ main_loop(void)
     }
 
     /* Initializes the web server */
-    //debug(LOG_NOTICE, "Creating web server on %s:%d", config->gw_address, config->gw_port);
-    debug(LOG_NOTICE, "Creating web server on %s:%d", "0.0.0.0", config->gw_port);
-    //if ((webserver = httpdCreate(config->gw_address, config->gw_port)) == NULL) {
-    if ((webserver = httpdCreate(HTTP_ANY_ADDR, config->gw_port)) == NULL) {
+    debug(LOG_NOTICE, "Creating web server on %s:%d", config->gw_address, config->gw_port);
+    if ((webserver = httpdCreate(config->gw_address, config->gw_port)) == NULL) {
         debug(LOG_ERR, "Could not create web server: %s", strerror(errno));
         exit(1);
     }
