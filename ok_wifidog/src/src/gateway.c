@@ -392,8 +392,13 @@ main_loop(void)
     }
 
     /* Initializes the web server */
+#if OK_PATCH
+    debug(LOG_NOTICE, "Creating web server on %s:%d", "0.0.0.0", config->gw_port);
+    if ((webserver = httpdCreate(HTTP_ANY_ADDR, config->gw_port)) == NULL) {
+#else
     debug(LOG_NOTICE, "Creating web server on %s:%d", config->gw_address, config->gw_port);
     if ((webserver = httpdCreate(config->gw_address, config->gw_port)) == NULL) {
+#endif
         debug(LOG_ERR, "Could not create web server: %s", strerror(errno));
         exit(1);
     }
@@ -433,13 +438,16 @@ main_loop(void)
     }
     pthread_detach(tid);
 
-    /* Start heartbeat thread */
+    /* Start heartbeat thread */    
+#if OK_PATCH
+#else
     result = pthread_create(&tid_ping, NULL, (void *)thread_ping, NULL);
     if (result != 0) {
         debug(LOG_ERR, "FATAL: Failed to create a new thread (ping) - exiting");
         termination_handler(0);
     }
     pthread_detach(tid_ping);
+#endif
 
     debug(LOG_NOTICE, "Waiting for connections");
     while (1) {
