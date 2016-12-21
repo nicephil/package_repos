@@ -1004,7 +1004,7 @@ parse_popular_servers(const char *ptr)
 void
 config_validate(void)
 {
-    //config_notnull(config.gw_interface, "GatewayInterface");
+    config_notnull(config.gw_interface, "GatewayInterface");
     config_notnull(config.auth_servers, "AuthServer");
     validate_popular_servers();
 
