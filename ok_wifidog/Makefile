@@ -30,6 +30,8 @@ define Package/ok_wifidog/description
 	of their Internet connection.
 endef
 
+TARGET_CFLAGS+=-DOK_PATCH=1
+
 define Package/ok_wifidog/conffiles
 /etc/wifidog.conf
 endef
