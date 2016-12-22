@@ -363,7 +363,6 @@ int dc_hdl_node_version(struct json_object *obj)
 
 static int dc_hdl_node_hostname(struct json_object *obj)
 {
-#if !OK_PATCH
     char hostname[255] = {};
     int ret, node = dc_node_hostname;
     struct node_pair_save pair = {
@@ -383,6 +382,7 @@ static int dc_hdl_node_hostname(struct json_object *obj)
 
     log_node_pair(pair);
 
+#if !OK_PATCH
     if (!strlen(hostname) || is_default_string_config(hostname)) {
         if ((ret = hostname_undo()) != 0) {
             nmsc_log("Undo hostname failed for %d.", ret);
@@ -529,7 +529,6 @@ static int dc_hdl_node_country(struct json_object *obj)
 
 int dc_hdl_node_system(struct json_object *obj)
 {
-#if !OK_PATCH
     struct subnode_handler {
         char *key;
         int (*subnode_handler)(struct json_object *obj);
@@ -564,7 +563,6 @@ int dc_hdl_node_system(struct json_object *obj)
         }
     }
 
-#endif
     return 0;
 }
 
