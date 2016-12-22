@@ -422,6 +422,12 @@ main_loop(void)
         exit(1);
     }
 
+#if OK_PATCH
+    /* Update firewall rules */
+    fw_clear_authservers();
+    fw_set_authservers();
+#endif
+
     /* Start clean up thread */
     result = pthread_create(&tid_fw_counter, NULL, (void *)thread_client_timeout_check, NULL);
     if (result != 0) {

@@ -392,6 +392,10 @@ parse_auth_server(FILE * file, const char *filename, int *linenum)
     new->authserv_auth_script_path_fragment = authscriptpathfragment;
     new->authserv_http_port = http_port;
     new->authserv_ssl_port = ssl_port;
+#if OK_PATCH
+    new->last_ip = safe_strdup(host);
+#endif
+    
 
     /* If it's the first, add to config, else append to last server */
     if (config.auth_servers == NULL) {

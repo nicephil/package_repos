@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=wifidog
-PKG_VERSION:=20090925
+PKG_VERSION:=20161222
 PKG_RELEASE:=1
 
 PKG_FIXUP:=autoreconf

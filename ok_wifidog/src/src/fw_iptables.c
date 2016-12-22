@@ -81,7 +81,11 @@ iptables_insert_gateway_id(char **input)
         memcpy(token, "%1$s", 4);
 
     config = config_get_config();
+#if OK_PATCH
+    tmp_intf = safe_strdup("okos");
+#else
     tmp_intf = safe_strdup(config->gw_interface);
+#endif
     if (strlen(tmp_intf) > CHAIN_NAME_MAX_LEN) {
         *(tmp_intf + CHAIN_NAME_MAX_LEN) = '\0';
     }
@@ -313,7 +317,10 @@ iptables_fw_init(void)
         iptables_do_command("-t nat -N " CHAIN_AUTH_IS_DOWN);
 
     /* Assign links and rules to these new chains */
+#if OK_PATCH
+#else
     iptables_do_command("-t nat -A PREROUTING -i %s -j " CHAIN_OUTGOING, config->gw_interface);
+#endif
 
     iptables_do_command("-t nat -A " CHAIN_OUTGOING " -d %s -j " CHAIN_TO_ROUTER, config->gw_address);
     iptables_do_command("-t nat -A " CHAIN_TO_ROUTER " -j ACCEPT");
@@ -362,7 +369,10 @@ iptables_fw_init(void)
     /* Assign links and rules to these new chains */
 
     /* Insert at the beginning */
+#if OK_PATCH
+#else
     iptables_do_command("-t filter -I FORWARD -i %s -j " CHAIN_TO_INTERNET, config->gw_interface);
+#endif
 
     iptables_do_command("-t filter -A " CHAIN_TO_INTERNET " -m state --state INVALID -j DROP");
 
