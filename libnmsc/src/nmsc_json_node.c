@@ -363,7 +363,6 @@ int dc_hdl_node_version(struct json_object *obj)
 
 static int dc_hdl_node_hostname(struct json_object *obj)
 {
-#if !OK_PATCH
     char hostname[255] = {};
     int ret, node = dc_node_hostname;
     struct node_pair_save pair = {
@@ -383,6 +382,7 @@ static int dc_hdl_node_hostname(struct json_object *obj)
 
     log_node_pair(pair);
 
+#if !OK_PATCH
     if (!strlen(hostname) || is_default_string_config(hostname)) {
         if ((ret = hostname_undo()) != 0) {
             nmsc_log("Undo hostname failed for %d.", ret);
@@ -401,7 +401,6 @@ static int dc_hdl_node_hostname(struct json_object *obj)
 
 static int dc_hdl_node_location(struct json_object *obj)
 {
-#if !OK_PATCH
     char location[33] = {};
     int ret, node = dc_node_location;
     struct node_pair_save pair = {
@@ -421,6 +420,7 @@ static int dc_hdl_node_location(struct json_object *obj)
 
     log_node_pair(pair);
     
+#if !OK_PATCH
     if (!strlen(location) || is_default_string_config(location)) {
         if ((ret = capwapc_undo_location()) != 0) {
             nmsc_log("Undo location failed for %d.", ret);
@@ -439,7 +439,6 @@ static int dc_hdl_node_location(struct json_object *obj)
 
 static int dc_hdl_node_domain_name(struct json_object *obj)
 {
-#if !OK_PATCH
     char domain_name[33] = {};
     int ret, node = dc_node_system;
     struct node_pair_save pair = {
@@ -459,6 +458,7 @@ static int dc_hdl_node_domain_name(struct json_object *obj)
 
     log_node_pair(pair);
 
+#if !OK_PATCH
     if (strlen(domain_name) > 0) {
         if ((ret = capwapc_set_domain(domain_name)) != 0) {
             nmsc_log("Set domain name %s config failed for %d.", domain_name, ret);
@@ -488,7 +488,6 @@ static int dc_hdl_node_domain_name(struct json_object *obj)
 
 static int dc_hdl_node_country(struct json_object *obj)
 {
-#if !OK_PATCH
     char country[4] = {};
     int ret, node = dc_node_country_code;
     struct node_pair_save pair = {
@@ -508,6 +507,7 @@ static int dc_hdl_node_country(struct json_object *obj)
 
     log_node_pair(pair);
     
+#if !OK_PATCH
     if (!strlen(country) || is_default_string_config(country)) {
         ret = wlan_undo_country();
         if (ret) {
@@ -529,7 +529,6 @@ static int dc_hdl_node_country(struct json_object *obj)
 
 int dc_hdl_node_system(struct json_object *obj)
 {
-#if !OK_PATCH
     struct subnode_handler {
         char *key;
         int (*subnode_handler)(struct json_object *obj);
@@ -564,7 +563,6 @@ int dc_hdl_node_system(struct json_object *obj)
         }
     }
 
-#endif
     return 0;
 }
 

@@ -322,7 +322,7 @@ CWBool CWAssembleMsgElemWTPMAC(CWProtocolMessage *msgPtr)
     static struct product_info s_product_info = {
         .company            = {"Oakridge"},
         .production         = {"Oakridge AP"},
-        .model              = {"WL8200-IT2"},
+        .model              = {"AP4602"},
         .mac                = {"34:CD:6D:E0:34:6D"},
         .bootloader_version = {"1.0.0"},
         .software_version   = {"V200R001"},

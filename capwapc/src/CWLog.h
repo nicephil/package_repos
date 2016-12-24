@@ -32,10 +32,10 @@
 extern char gLogFileName[];
 extern int log_id;
 #if 1
-__inline__ void CWVLog(const char *format, va_list args);
+void CWVLog(const char *format, va_list args);
 
-__inline__ void CWLog(const char *format, ...);
-__inline__ void CWDebugLog(const char *format, ...);
+void CWLog(const char *format, ...);
+void CWDebugLog(const char *format, ...);
 
 #define CWDebugLog_E(fmt, ...) CWLog(fmt, ##__VA_ARGS__)
 #define CWDebugLog_F(fmt, ...) CWLog(fmt, ##__VA_ARGS__)

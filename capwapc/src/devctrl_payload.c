@@ -163,7 +163,6 @@ static inline int dc_kickoff_sta(const char *ssid, char *mac)
 
 static int dc_sta_kickoff_handler(struct tlv *payload, void **reserved)
 {
-#if !OK_PATCH
     struct kickoff_cmd {
         char mac[32];
         char ssid[33];
@@ -174,7 +173,7 @@ static int dc_sta_kickoff_handler(struct tlv *payload, void **reserved)
         {"ssid",  json_type_string, json_cfg.ssid,       sizeof(json_cfg.ssid)},
     }; 
     struct json_object *root, *array;
-    int ret, i;
+    int ret, i=0;
     char terminated;
 
     terminated = payload->v[payload->l];
@@ -191,7 +190,6 @@ static int dc_sta_kickoff_handler(struct tlv *payload, void **reserved)
         ret = dc_error_obj_type;
         goto ERROR_OUT;
     }    
-
     json_object_object_foreach(root, key, val) {
         if (!strcasecmp(key, "clients") && json_object_get_type(val) == json_type_array) {
             for (i = 0; i < json_object_array_length(val); i++) {
@@ -204,12 +202,14 @@ static int dc_sta_kickoff_handler(struct tlv *payload, void **reserved)
 
                 log_node_paires(paires, sizeof(paires)/sizeof(paires[0]));
                 
+#if !OK_PATCH
                 if ((ret = dc_kickoff_sta(json_cfg.ssid, json_cfg.mac)) != 0) {
                     CWLog("Try to kick off sta %s attached the ssid %s failed for %d.", 
                         json_cfg.mac, json_cfg.ssid, ret);
                     ret = dc_error_commit_failed;
                     goto ERROR_OUT;
                 }
+#endif
             }
         }
     }
@@ -227,14 +227,10 @@ ERROR_OUT:
     }
     
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_sta_kickoff_response(devctrl_block_s *dc_block, void *reserved)
 {
-#if !OK_PATCH
     char *json_data = NULL, *payload;
     int paylength = 0, ret = 0, code = 0; 
 
@@ -264,14 +260,10 @@ static int dc_sta_kickoff_response(devctrl_block_s *dc_block, void *reserved)
     CW_FREE_OBJECT(payload);
     
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_sta_query_response(devctrl_block_s *dc_block, void *reserved)
 {
-#if !OK_PATCH
     struct wlan_sta_stat *stas = NULL;
     char *payload, *data = NULL;
     int paylength = 0, ret = 0, count = 0; 
@@ -303,15 +295,11 @@ err:
     }
     
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_image_upgrade_handler(struct tlv *payload, void **reserved)
 {
-#if !OK_PATCH
-#define CST_IMG_TMP_FILE    "/tmp/commsky_tmp.img"
+#define CST_IMG_TMP_FILE    "/tmp/okos_tmp.img"
     struct image_upgrade_cmd {
         char src[256];
         char usr[33];
@@ -362,7 +350,7 @@ static int dc_image_upgrade_handler(struct tlv *payload, void **reserved)
         system(cmd);
         goto ERROR_OUT;
     }
-
+#if !OK_PATCH
     ret = cfg_upgrade_image(CST_IMG_TMP_FILE);
     sprintf(cmd, "rm -rf %s", CST_IMG_TMP_FILE);
     system(cmd);
@@ -375,6 +363,7 @@ static int dc_image_upgrade_handler(struct tlv *payload, void **reserved)
         ret = dc_error_imgupgrade_failed;
         goto ERROR_OUT;
     }
+#endif
 
     /* yes, i don't care the jsco_cfg.action */
 ERROR_OUT: 
@@ -389,14 +378,10 @@ ERROR_OUT:
     }
     
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_image_upgrade_response(devctrl_block_s *dc_block, void *reserved)
 {
-#if !OK_PATCH
     char *json_data = NULL, *payload;
     int paylength = 0, ret = 0, code = 0; 
 
@@ -426,23 +411,15 @@ static int dc_image_upgrade_response(devctrl_block_s *dc_block, void *reserved)
     CW_FREE_OBJECT(payload);
     
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_reboot_handler(struct tlv *payload, void **reserved)
 {
-#if !OK_PATCH
-    eventd_reboot();
-    sleep(3);
-#endif
     return system("/sbin/reboot -f");
 }
 
 static int dc_reboot_response(devctrl_block_s *dc_block, void *reserved)
 {
-#if !OK_PATCH
     char *json_data = NULL, *payload;
     int paylength = 0, ret = 0, code; 
 
@@ -470,14 +447,11 @@ static int dc_reboot_response(devctrl_block_s *dc_block, void *reserved)
     CW_FREE_OBJECT(payload);
     
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_portal_offline_handler(struct tlv *payload, void **reserved)
 {
-#if !OK_PATCH
+#define PORTAL_NAME_MAX_LENGTH 32
     struct portal_cmd {
         char mac[20];
         char scheme[PORTAL_NAME_MAX_LENGTH + 1];
@@ -528,12 +502,14 @@ static int dc_portal_offline_handler(struct tlv *payload, void **reserved)
 
         log_node_paires(paires, sizeof(paires)/sizeof(paires[0]));
 
+#if !OK_PATCH
         if ((ret = portal_scheme_del_sta(json_cfg.scheme, json_cfg.mac)) != 0) {
             CWLog("Deauth the sta %s form the  portal scheme %s failed for %d.", 
                 json_cfg.mac, json_cfg.scheme, ret);
             ret = dc_error_commit_failed;
             goto ERROR_OUT;
         }
+#endif
     }
     
     ret = 0;
@@ -550,15 +526,10 @@ ERROR_OUT:
     }
     
     return ret;
-    
-#else
-    return 0;
-#endif
 }
 
 static int dc_portal_offline_response(devctrl_block_s *dc_block, void *reserved)
 {
-#if !OK_PATCH
     char *json_data = NULL, *payload;
     int paylength = 0, ret = 0, code = 0; 
 
@@ -588,14 +559,11 @@ static int dc_portal_offline_response(devctrl_block_s *dc_block, void *reserved)
     CW_FREE_OBJECT(payload);
     
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_portal_authentication_handler(struct tlv *payload, void **reserved)
 {
-#if !OK_PATCH
+#define PORTAL_NAME_MAX_LENGTH 32
     struct portal_authentication_cmd {
         char mac[20];
         char scheme[PORTAL_NAME_MAX_LENGTH + 1];
@@ -648,12 +616,14 @@ static int dc_portal_authentication_handler(struct tlv *payload, void **reserved
 
         log_node_paires(paires, sizeof(paires)/sizeof(paires[0]));
 
+#if !OK_PATCH
         if ((ret = portal_scheme_authentication(json_cfg.scheme, json_cfg.mac, json_cfg.remain_time)) != 0) {
             CWLog("Set portal scheme %s for the sta %s authtime %d failed for %d.", 
                 json_cfg.scheme, json_cfg.mac, json_cfg.remain_time, ret);
             ret = dc_error_commit_failed;
             goto ERROR_OUT;
         }
+#endif
     }
     
     ret = 0;
@@ -670,15 +640,10 @@ ERROR_OUT:
     }
     
     return ret;
-    
-#else
-    return 0;
-#endif
 }
 
 static int dc_portal_authentication_response(devctrl_block_s *dc_block, void *reserved)
 {
-#if !OK_PATCH
     char *json_data = NULL, *payload;
     int paylength = 0, ret = 0, code = 0; 
 
@@ -708,16 +673,12 @@ static int dc_portal_authentication_response(devctrl_block_s *dc_block, void *re
     CW_FREE_OBJECT(payload);
     
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_upload_techsupport_handler(struct tlv *payload, void **reserved)
 {
-#if !OK_PATCH
-#define SUPPORT_FILE	    "tech_support.tar"
-#define TECH_SUPPORT_FILE	"/tmp/tech_support.tar"
+#define SUPPORT_FILE	    "tech_data.tar"
+#define TECH_SUPPORT_FILE	"/tmp/tech_data.tar"
     enum {
         UPLOAD_BY_FTP = 1,
         
@@ -769,8 +730,12 @@ static int dc_upload_techsupport_handler(struct tlv *payload, void **reserved)
 
     log_node_paires(paires, sizeof(paires)/sizeof(paires[0])); 
 
+#if !OK_PATCH
     memset(local_hostname, 0, sizeof(local_hostname));
     hostname_get(local_hostname);
+#else
+    strcpy(local_hostname, "okridge");
+#endif
 
     memset(local_time, 0, sizeof(local_time));
     timer=time(NULL);
@@ -834,15 +799,10 @@ ERROR_OUT:
     }
     
     return ret;
-    
-#else
-    return 0;
-#endif
 }
 
 static int dc_upload_techsupport_response(devctrl_block_s *dc_block, void *reserved)
 {
-#if !OK_PATCH
     char *json_data = NULL, *payload;
     int paylength = 0, ret = 0, code = 0; 
 
@@ -872,9 +832,6 @@ static int dc_upload_techsupport_response(devctrl_block_s *dc_block, void *reser
     CW_FREE_OBJECT(payload);
     
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_get_interface_info(struct device_interface_info **info)
@@ -1010,7 +967,6 @@ static int dc_get_interface_info(struct device_interface_info **info)
 
 static int dc_interface_info_response(devctrl_block_s *dc_block, void *reserved)
 {
-#if !OK_PATCH
     struct device_interface_info *inter_info = NULL;
     char *payload, *data = NULL;
     int paylength = 0, ret = 0, count = 0; 
@@ -1046,17 +1002,12 @@ err:
     }
     
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_portal_ssh_tunnel_handler(struct tlv *payload, void **reserved)
 {
-#if !OK_PATCH
     struct ssh_tunnel_result result;
     struct ssh_tunnel_cmd json_cfg;
-    ssh_tunnel_info tunnel_info;
     int error_code = 0;
     struct node_pair_save paires[] = {
         {"type",        json_type_int,    &(json_cfg.type),        sizeof(json_cfg.type)},
@@ -1094,6 +1045,8 @@ static int dc_portal_ssh_tunnel_handler(struct tlv *payload, void **reserved)
     result.local_port = json_cfg.local_port;
     result.remote_port = json_cfg.remote_port;
     
+#if !OK_PATCH
+    ssh_tunnel_info tunnel_info;
     switch (json_cfg.type) {
         case 0: /* query */
             ret = get_ssh_reverse_tunnel_info(&tunnel_info, &error_code);
@@ -1168,6 +1121,7 @@ static int dc_portal_ssh_tunnel_handler(struct tlv *payload, void **reserved)
             ret = dc_error_obj_data;
             break;
     }
+#endif
 
 ERROR_OUT: 
     if (!is_error(root)) {
@@ -1182,14 +1136,10 @@ ERROR_OUT:
     }
     
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_sta_ssh_tunnel_response(devctrl_block_s *dc_block, void *reserved)
 {
-#if !OK_PATCH
     char *json_data = NULL, *payload;
     int paylength = 0, ret = 0, code = 0; 
 
@@ -1266,9 +1216,6 @@ static int dc_sta_ssh_tunnel_response(devctrl_block_s *dc_block, void *reserved)
     CW_FREE_OBJECT(payload);
     
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_get_wds_info(struct wds_tunnel_info **info)
@@ -1333,7 +1280,6 @@ static int dc_get_wds_info(struct wds_tunnel_info **info)
 
 static int dc_wds_tunnel_response(devctrl_block_s *dc_block, void *reserved)
 {
-#if !OK_PATCH
     struct wds_tunnel_info *wds_info = NULL;
     char *payload, *data = NULL;
     int paylength = 0, ret = 0, count = 0; 
@@ -1369,9 +1315,6 @@ err:
     }
     
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int GetCLIResultInfo(char **result)
@@ -1682,7 +1625,6 @@ static int do_simulate_cli(char *cmd, int len, struct cli_exec_result **result)
 
 static int dc_cli_handler(struct tlv *payload, void **reserved)
 {
-#if !OK_PATCH
     struct cli_exec_result *cli_result = NULL;
     int ret = 0;
     char terminated;
@@ -1694,14 +1636,10 @@ static int dc_cli_handler(struct tlv *payload, void **reserved)
     *reserved = cli_result;
     
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_cli_response(devctrl_block_s *dc_block, void *reserved)
 {
-#if !OK_PATCH
 #define NOT_SUPPORT "Not support"
     char *payload, *data = NULL;
     int paylength = 0, ret = 0; 
@@ -1742,14 +1680,10 @@ static int dc_cli_response(devctrl_block_s *dc_block, void *reserved)
 err:
     
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_cli_finished(void *reserved)
 {
-#if !OK_PATCH
     struct cli_exec_result *cli_result = (struct cli_exec_result *)reserved;
     
     if (cli_result) {
@@ -1758,20 +1692,16 @@ static int dc_cli_finished(void *reserved)
             cli_result->result = NULL;
         }
         if (cli_result->code == UPGRADE_OEM_CODE) {
-            eventd_reboot();
-            sleep(3);
             return system("/sbin/reboot -f");
         }
         free(cli_result);
     }
     
-#endif
     return 0;
 }
 
 static int dc_flowsta_handler(struct tlv *payload, void **reserved)
 {
-#if !OK_PATCH
 #define CALC_RATE_PERIOD    2
     struct json_object *root, *array;
     int ret, i, period = CALC_RATE_PERIOD, if_num = 0;
@@ -1782,7 +1712,6 @@ static int dc_flowsta_handler(struct tlv *payload, void **reserved)
     struct node_pair_save if_paire[] = {
         {"interfaces", json_type_string, NULL, SYS_INTF_NAME_SIZE}
     }; 
-    struct netif_stat_arg arg;
     struct if_flow_stat *if_stas = NULL;
     struct if_rate_stas *rate_stas = NULL;
 
@@ -1813,6 +1742,9 @@ static int dc_flowsta_handler(struct tlv *payload, void **reserved)
             }
         }
     }
+
+#if !OK_PATCH
+    struct netif_stat_arg arg;
     arg.period = period;
     arg.stamp_before = 0;
     
@@ -1875,6 +1807,7 @@ static int dc_flowsta_handler(struct tlv *payload, void **reserved)
             }
         }
     }
+#endif
 
     ret = 0;
 
@@ -1896,14 +1829,10 @@ ERROR_OUT:
 
     *reserved = rate_stas;
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_flowsta_response(devctrl_block_s *dc_block, void *reserved)
 {
-#if !OK_PATCH
     char *payload, *data = NULL;
     int paylength = 0, ret = 0; 
 
@@ -1938,14 +1867,10 @@ static int dc_flowsta_response(devctrl_block_s *dc_block, void *reserved)
     CW_FREE_OBJECT(payload);
 
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_flowsta_finished(void *reserved)
 {
-#if !OK_PATCH
     struct if_rate_stas *rate_result = (struct if_rate_stas *)reserved;
     
     if (rate_result) {
@@ -1957,7 +1882,6 @@ static int dc_flowsta_finished(void *reserved)
         free(rate_result);
     }
     
-#endif
     return 0;
 }
 

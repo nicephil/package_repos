@@ -185,14 +185,55 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
 
     return count;
 #else
-    return 0;
+    struct wlan_sta_stat *sta_list = NULL;
+    sta_list = (struct wlan_sta_stat *)malloc(sizeof(struct wlan_sta_stat));
+    memset(sta_list, 0, sizeof(struct wlan_sta_stat));
+    sta_list->updated = 0;
+    sta_list->len = 0; 
+    sta_list->state = 0;
+
+    /* mac address */
+    char mac[20] = "00:11:22:33:44";
+    char *s = mac;
+    char *e;
+    int i;
+    for (i = 0; i < 6; i++) {
+        sta_list->mac[i] = s ? strtoul(s, &e, 16) : 0;
+        if (s) {
+            s = (*e) ? e + 1 : e;
+        }
+    }
+
+    sta_list->time_ms = 200;
+    sta_list->uptime = 400;
+    sta_list->radioid = 1;
+    strcpy(sta_list->ssid, "oakridge");
+    sta_list->ssid_len = strlen(sta_list->ssid+1);
+    sta_list->auth = 0;
+    sta_list->cipher = 0;
+    sta_list->portal = 1;
+
+    struct in_addr addr;
+    inet_aton("192.168.10.123", &addr);
+    sta_list->ip = addr.s_addr;
+
+    sta_list->portal_mode = 1;
+    sta_list->name_len = 0;
+    strcpy(sta_list->ps_name, "123"); /* portal scheme */
+    sta_list->ps_len = strlen(sta_list->ps_name);
+    strcpy(sta_list->bssid, "oakridge");
+    sta_list->rssi = 30;
+    sta_list->channel = 124;
+    sta_list->vlan = 0;
+    sta_list->rs_level = 1;
+    *stas = sta_list;
+    return 1;
 #endif
 }
 
 static int inline dc_reserves_stas(struct wlan_sta_stat **sta_list, 
     int totalsize, int cursize, struct wlan_sta_stat *newstas, int count)
 {
-#if !OK_PATCH
     struct wlan_sta_stat * stas = *sta_list;
     
     if (cursize + count > totalsize || stas == NULL) {
@@ -217,14 +258,10 @@ static int inline dc_reserves_stas(struct wlan_sta_stat **sta_list,
     memcpy(&(stas[cursize]), newstas, (count * sizeof(struct wlan_sta_stat)));
     *sta_list = stas;
     return totalsize;
-#else
-    return 0;
-#endif
 }
 
 int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
 {
-#if !OK_PATCH
 #define UPTIME_DIFF   1 /* s */
     static struct wlan_sta_stat *pre_stas = NULL;
     static int pre_count = 0;
@@ -335,9 +372,6 @@ FREE_STAS:
     *stas = rse_stas;
     
     return res_count;
-#else
-    return 0;
-#endif
 }
  
 static void dc_sta_notice_timer_handler(void *arg) 
@@ -615,7 +649,6 @@ int WTPProcWDSBuffer(struct wds_tunnel_info **info)
 
 void get_wds_sigusr(int signo)
 {
-#if !OK_PATCH
     struct wds_tunnel_info *pWdsInfo = NULL;
     int ret = 0;
 
@@ -633,6 +666,5 @@ err:
         free(pWdsInfo);
     }
 
-#endif
     return;
 }

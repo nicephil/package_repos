@@ -2,7 +2,7 @@
 #LDFLAGS = /usr/lib/libefence.a ./static/libssl.a ./static/libcrypto.a -lpthread -ldl -D_REENTRANT
 LDFLAGS = ./static/uclibc/libssl.a ./static/uclibc/libcrypto.a -lpthread -ldl -D_REENTRANT 
 #LDFLAGS = -lpthread -ldl -D_REENTRAN
-CFLAGS = -Wall -g -O0 -D_REENTRANT -I./include/ -DCW_NO_DTLS
+CFLAGS = -Wall -g -O0 -D_REENTRANT -I./include/ -DCW_NO_DTLS -std=gnu99
 CFLAGS+=$(EXTRA_CFLAGS)
 OPENSSL_INCLUDE = #-I/usr/local/ssl/include/ #Openssl include files
 LDFLAGS+=$(EXTRA_LDFLAGS)
