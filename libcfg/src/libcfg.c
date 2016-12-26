@@ -41,6 +41,9 @@
 
 //#include "wmac/wmac.h"
 
+
+#include <uci.h>
+
 static const char *cfg_errstr[] = {
 	[CFG_OK] =            "Success",
 	[CFG_ERR_MEM] =       "Out of memory",
@@ -2066,6 +2069,7 @@ int oem_sw_ver_map( char *outVer, const char *inVer ) {
 #define PRODUCT_MATCH_STRING_LENGTH     11
 int cfg_get_product_info(struct product_info * info)
 {
+#if !OK_PATCH
     char    value[512], tmp[32];
     int     ret;
     FILE *  fp;
@@ -2154,6 +2158,39 @@ int cfg_get_product_info(struct product_info * info)
     }
 
     return 0;
+#else
+    struct uci_context *ctx;
+    struct uci_package *p;
+    struct uci_element *e1, *e2;
+
+    memset(info, 0, sizeof(*info));
+
+    ctx = uci_alloc_context();
+    if (!ctx) {
+        syslog(LOG_ERR, "no enough memory"\n);
+    }
+
+    uci_load(ctx, "productinfo", &p);
+
+    uci_foreach_element(&p->sections, e1) {
+        struct uci_section *s_cur = uci_to_section(e1);
+        uci_foreach_element(&s_cur->options, e2) {
+            struct uci_option *o_cur = uci_to_option(e2);
+            if (o_cur->type == UCI_TYPE_STRING) {
+                if (!strcmp(o_cur->e.name, "production")) {
+                    strcpy(info->production, o_cur->v.string);
+                } else if (!strcmp(o_cur->e.name, "serial")) {
+                    strcpy(info->serial, o_cur->v.string);
+                }
+            }
+        }
+    }
+
+    uci_unload(ctx, p);
+    uci_free_context(ctx);
+
+    return 0;
+#endif
 }
 
 static int cfg_get_mtd_dev(const char *name, char *dev)
