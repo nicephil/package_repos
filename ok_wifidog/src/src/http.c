@@ -40,6 +40,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <arpa/inet.h>
 
 #include "httpd.h"
 
@@ -57,15 +58,21 @@
 
 #include "../config.h"
 
+#if OK_PATCH
+static char * okos_http_insert_parameter(const request * r, const char * halfUrl);
+#endif
 
 /** The 404 handler is also responsible for redirecting to the auth server */
 void
 http_callback_404(httpd * webserver, request * r, int error_code)
 {
-    char tmp_url[MAX_BUF], *url, *mac;
+    char tmp_url[MAX_BUF], *url;
+#if OK_PATCH
+#else
+    char *mac;
     s_config *config = config_get_config();
     t_auth_serv *auth_server = get_auth_server();
-
+#endif
     memset(tmp_url, 0, sizeof(tmp_url));
     /* 
      * XXX Note the code below assumes that the client's request is a plain
@@ -104,6 +111,9 @@ http_callback_404(httpd * webserver, request * r, int error_code)
               r->clientAddr);
     } else {
         /* Re-direct them to auth server */
+#if OK_PATCH
+        char *urlFragment = okos_http_insert_parameter(r, url);
+#else
         char *urlFragment;
 
         if (!(mac = arp_get(r->clientAddr))) {
@@ -120,6 +130,7 @@ http_callback_404(httpd * webserver, request * r, int error_code)
                           config->gw_address, config->gw_port, config->gw_id, r->clientAddr, mac, url);
             free(mac);
         }
+#endif
 
         // if host is not in whitelist, maybe not in conf or domain'IP changed, it will go to here.
         debug(LOG_INFO, "Check host %s is in whitelist or not", r->request.host);       // e.g. www.example.com
@@ -165,6 +176,199 @@ http_callback_404(httpd * webserver, request * r, int error_code)
     }
     free(url);
 }
+
+#if OK_PATCH
+#define OKOS_URLPARA_SSID_MLEN 32
+#define OKOS_URLPARA_DOMAIN_MLEN 32
+#define OKOS_URLPARA_SCHEME_MLEN 100
+typedef struct s_http_auth_str {
+    unsigned char len;
+    char content[255];
+}t_http_auth_str;
+
+typedef struct s_http_auth_info_pri {
+    /* Pravite Part: */
+#define OKOS_BRIF_NAME_LEN 64
+#define OKOS_UNKNOWN_BR "br-OKOS_UNKNOWN_BRIDGE_INTERFACE"
+    char br_interface[OKOS_BRIF_NAME_LEN+1];
+}t_http_auth_info_pri;
+
+typedef struct s_http_auth_info {
+    unsigned char version; //version == 3
+
+    unsigned char device_mac[6];
+    
+    unsigned char client_mac[6];
+    unsigned int  client_ip;
+
+    unsigned char ssid_len;
+    char ssid[OKOS_URLPARA_SSID_MLEN];
+    unsigned char domain_len;
+    char domain[OKOS_URLPARA_DOMAIN_MLEN];
+    unsigned char scheme_len;
+    char scheme[OKOS_URLPARA_SCHEME_MLEN];
+
+    unsigned char bssid[6];
+}t_http_auth_info;
+
+static char * my_ssid = "ok_1st";
+static char * my_domain = "D4E78543656449ABA9EC385D001BAB71";
+static char * my_scheme = "1";
+
+static inline void okos_http_simulate_string(unsigned char * buflen, char * str,
+        const char * simulator, const unsigned char limit)
+{
+    char len = strlen(simulator);
+    *buflen = len > limit ? limit : len;
+    strncpy(str, simulator, *buflen);
+}
+static int okos_mac_str2bin(const char * macstr, unsigned char * mac)
+{
+    if (macstr == NULL || strlen(macstr) != 17)
+        goto bad;
+    unsigned int tmp[6];
+    if (sscanf(macstr, "%2x:%2x:%2x:%2x:%2x:%2x", &tmp[0],&tmp[1],&tmp[2],&tmp[3],&tmp[4],&tmp[5]) != 6)
+        goto bad;
+    
+    int i;
+    for (i = 0; i < 6; i++)
+        mac[i] = tmp[i] & 0xFF;
+
+    return 0;
+
+bad:
+    memset(mac, 0, 6);
+    return -1;
+}
+static inline void okos_get_br_from_client_ip(const char * ip, char * brX, unsigned char * mac)
+{
+    if (arp_get_all(ip, brX, mac) != 0) {
+        memset(mac, 0, 6);
+        brX = OKOS_UNKNOWN_BR ;
+    }
+
+    debug(LOG_INFO, "Got client [%2x:%2x:%2x:%2x:%2x:%2x] from %s for ip %s",
+            mac[0],mac[1],mac[2],mac[3],mac[4],mac[5], brX, ip);
+}
+static int okos_http_simulate_client_info(const request * r, t_http_auth_info * info)
+{
+    info->version = 3;
+    s_config *config = config_get_config();
+    okos_mac_str2bin(config->gw_id, info->device_mac);
+    memcpy(info->bssid, info->device_mac, 6);
+    info->client_ip = inet_addr(r->clientAddr);
+
+    t_http_auth_info_pri private;
+    okos_get_br_from_client_ip(r->clientAddr, private.br_interface, info->client_mac);
+    
+    okos_http_simulate_string(&info->ssid_len, info->ssid, my_ssid, sizeof(info->ssid));
+    okos_http_simulate_string(&info->domain_len, info->domain, my_domain, sizeof(info->domain));
+    okos_http_simulate_string(&info->scheme_len, info->scheme, my_scheme, sizeof(info->scheme));
+
+    return 0;
+}
+
+static unsigned char * okos_http_serial_auth_info(const request * r, int * len)
+{
+    t_http_auth_info info;
+    okos_http_simulate_client_info(r, &info);
+
+    unsigned char * urltmp = safe_malloc(sizeof(t_http_auth_info));
+    unsigned char * pt = urltmp;
+
+    *pt++ = info.version;
+    memcpy(pt, info.device_mac, 6);
+    pt += 6;
+    memcpy(pt, info.client_mac, 6);
+    pt += 6;
+    memcpy(pt, (char *)(&(info.client_ip)), 4);
+    pt += 4;
+    
+    *pt++ = info.ssid_len;
+    memcpy(pt, info.ssid, info.ssid_len);
+    pt += info.ssid_len;
+
+    *pt++ = info.domain_len;
+    memcpy(pt, info.domain, info.domain_len);
+    pt += info.domain_len;
+    
+    *pt++ = info.scheme_len;
+    memcpy(pt, info.scheme, info.scheme_len);
+    pt += info.scheme_len;
+
+    memcpy(pt, info.bssid, 6);
+    pt += 6;
+
+    *len = pt - urltmp;
+
+    return urltmp;
+}
+
+static unsigned char * okos_http_hex2byte(const char * hex, int* len)
+{
+    int num = strlen(hex)/2;
+    unsigned char * bytes = safe_malloc(num);
+
+    int i;
+    for (i = 0; i < num; i++) {
+        int j;
+        unsigned char tmp[2];
+        for (j = 0; j < 2; j++) {
+            if (hex[i*2+j] >= '0' && hex[i*2+j] <= '9'){
+                tmp[j] = hex[i*2+j] - '0';
+            }else if (hex[i*2+j] >= 'a' && hex[i*2+j] <= 'z'){
+                tmp[j] = hex[i*2+j] - 'a';
+            }else if (hex[i*2+j] >= 'A' && hex[i*2+j] <= 'Z'){
+                tmp[j] = hex[i*2+j] - 'A';
+            }else {
+                free(bytes);
+                return NULL;
+            }
+        }
+        bytes[i] = ((tmp[0]&0xF) << 4) | (tmp[1]&0xF);
+    }
+
+    *len = num;
+    return bytes;
+}
+
+static char * okos_http_byte2hex(const unsigned char * bytes, const int len)
+{
+    char * hex = safe_malloc(len*2+1);
+    char alph[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+    int i,j;
+    for (j = 0, i = 0; i < len; i++){
+        hex[j++] = alph[bytes[i] >> 4 & 0xF];
+        hex[j++] = alph[bytes[i] & 0xF];
+    }
+    hex[j] = '\0';
+    return hex;
+}
+
+static inline void okos_http_encrypt_auth_info(unsigned char * hex, const int len)
+{
+    int i;
+    for (i = 0; i < len; i++) hex[i] ^= 0xDA;
+}
+
+static char * okos_http_insert_parameter(const request * r, const char * halfUrl)
+{
+    int len = 0;
+    unsigned char * urlBytes = okos_http_serial_auth_info(r, &len);
+    okos_http_encrypt_auth_info(urlBytes, len);
+    char * info = okos_http_byte2hex(urlBytes, len);
+    free(urlBytes);
+
+    char * urlRet;
+    t_auth_serv *auth_server = get_auth_server();
+    safe_asprintf(&urlRet, "%sinfo=%s&originalurl=%s",
+                  auth_server->authserv_login_script_path_fragment, info, halfUrl);
+
+    free(info);
+    return urlRet;
+}
+
+#endif
 
 void
 http_callback_wifidog(httpd * webserver, request * r)
@@ -249,6 +453,76 @@ http_send_redirect(request * r, const char *url, const char *text)
     free(message);
 }
 
+#if OK_PATCH
+#define OKOS_URLPARA_USRNM_MLEN 64
+typedef struct s_auth_confirm_info {
+    unsigned char version;
+    unsigned char mac_num;
+    unsigned char mac1[6];
+    unsigned char mac2[6];
+    unsigned int auth_mode;
+    unsigned int remain_time;
+    unsigned char user_len;
+    char user[OKOS_URLPARA_USRNM_MLEN+1];
+}t_auth_confirm_info;
+
+static int okos_http_parse_info(const unsigned char * info, t_auth_confirm_info * res)
+{
+    return 0;
+}
+
+void http_callback_auth(httpd * webserver, request * r)
+{
+    httpVar * auth = httpdGetVariableByName(r, "auth");
+    httpVar * redirecturl = httpdGetVariableByName(r, "redirecturl");
+    //httpVar * key =  httpdGetVariableByName(r, "key");
+    //httpVar * flag = httpdGetVariableByName(r, "flag");
+
+    if (auth == NULL || redirecturl == NULL)
+        goto bad;
+    int len = 0;
+    unsigned char * info = okos_http_hex2byte(auth->value, &len);
+    if (info == NULL)
+        goto bad;
+
+    okos_http_encrypt_auth_info(info, len);
+
+    t_auth_confirm_info cli_info;
+    if (okos_http_parse_info(info, &cli_info) != 0)
+        goto bad;
+
+    /* We get auth result from server. */
+    char * mac;
+    if (!(mac = arp_get(r->clientAddr))) {
+        /* We could not get their MAC address */
+        debug(LOG_ERR, "Failed to retrieve MAC address for ip %s", r->clientAddr);
+        send_http_page(r, "WiFiDog Error", "Failed to retrieve your MAC address");
+    } else {
+        /* We have their MAC address */
+        LOCK_CLIENT_LIST();
+
+        t_client *client;
+        if ((client = client_list_find(r->clientAddr, mac)) == NULL) {
+            debug(LOG_DEBUG, "New client for %s", r->clientAddr);
+            //client_list_add(r->clientAddr, mac, token->value);
+        } else {
+            debug(LOG_DEBUG, "Client for %s is already in the client list", client->ip);
+        }
+
+        UNLOCK_CLIENT_LIST();
+
+
+        free(mac);
+    }
+
+    return;
+
+bad:
+    /* We don't get enough information. */
+    send_http_page(r, "okos error", "Invalid data");
+    return;
+}
+#else
 void
 http_callback_auth(httpd * webserver, request * r)
 {
@@ -287,6 +561,7 @@ http_callback_auth(httpd * webserver, request * r)
         send_http_page(r, "WiFiDog error", "Invalid token");
     }
 }
+#endif
 
 void
 http_callback_disconnect(httpd * webserver, request * r)

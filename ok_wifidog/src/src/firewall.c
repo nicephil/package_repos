@@ -187,6 +187,38 @@ arp_get(const char *req_ip)
     return reply;
 }
 
+#if OK_PATCH
+int arp_get_all(const char * req_ip, char * br_dev, unsigned char * mac)
+{
+    s_config *config = config_get_config();
+    FILE * proc;
+    if (!(proc = fopen(config->arp_table_path, "r"))) {
+        return -1;
+    }
+    /* Skip first line */
+    while (!feof(proc) && fgetc(proc) != '\n') ;
+
+    char ip[16];
+    char mac_addr[18];
+    unsigned int tmp[6];
+    while (!feof(proc) && (fscanf(proc, " %15[0-9.] %*s %*s %17[A-Fa-f0-9:] %*s %s", ip, mac_addr, br_dev) == 3)) {
+        if (strcmp(ip, req_ip) == 0) {
+            sscanf(mac_addr, "%2x:%2x:%2x:%2x:%2x:%2x", &tmp[0],&tmp[1],&tmp[2],&tmp[3],&tmp[4],&tmp[5]);
+
+            debug(LOG_INFO, "Got client [%2x:%2x:%2x:%2x:%2x:%2x] from %s for ip %s",
+                         tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5], br_dev, ip);
+            int i;
+            for (i = 0; i < 6; i++) mac[i] = tmp[i] & 0xFF;
+            fclose(proc);
+            return 0;
+        }
+    }
+
+    fclose(proc);
+    return -1;
+}
+#endif
+
 /** Initialize the firewall rules
  */
 int

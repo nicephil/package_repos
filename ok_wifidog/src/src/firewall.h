@@ -73,4 +73,9 @@ void fw_sync_with_authserver(void);
 /** @brief Get an IP's MAC address from the ARP cache.*/
 char *arp_get(const char *);
 
+#if OK_PATCH
+/** @brief Get MAC address and br interfaces from ARP cache. */
+int arp_get_all(const char *, char *, unsigned char *);
+#endif
+
 #endif                          /* _FIREWALL_H_ */

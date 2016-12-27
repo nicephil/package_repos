@@ -56,8 +56,13 @@
 /** Note that DEFAULT_AUTHSERVSSLAVAILABLE must be 0 or 1, even if the config file syntax is yes or no */
 #define DEFAULT_AUTHSERVSSLAVAILABLE 0
 /** Note:  The path must be prefixed by /, and must be suffixed /.  Put / for the server root.*/
+#if OK_PATCH
+#define DEFAULT_AUTHSERVPATH "/auth/device/"
+#define DEFAULT_AUTHSERVLOGINPATHFRAGMENT "client?"
+#else
 #define DEFAULT_AUTHSERVPATH "/wifidog/"
 #define DEFAULT_AUTHSERVLOGINPATHFRAGMENT "login/?"
+#endif
 #define DEFAULT_AUTHSERVPORTALPATHFRAGMENT "portal/?"
 #define DEFAULT_AUTHSERVMSGPATHFRAGMENT "gw_message.php?"
 #define DEFAULT_AUTHSERVPINGPATHFRAGMENT "ping/?"
