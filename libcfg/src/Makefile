@@ -6,6 +6,6 @@ LIBOBJS = blob.o cli.o delta.o \
 SHLIB = libcfg.so.1.0
 
 EXTRA_CFLAGS +=
-EXTRA_LDFLAGS += -lubox
+EXTRA_LDFLAGS += -lubox -luci
 
 include $(TOPDIR)/package_repos/build/okpost.mk

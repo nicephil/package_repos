@@ -1892,14 +1892,23 @@ detect_qcawifi() {
 		echo $nss_olcfg >/lib/wifi/wifi_nss_olcfg
 		echo $nss_ol_num >/lib/wifi/wifi_nss_olnum
 		reload=1
+        ### OK_PATCH
+        base_mac="$(cat /sys/class/net/eth0/address)"
+        mac="${base_mac%:*}:`printf "%x" $((0x${base_mac##*:} + $(($devidx*8+8))))`"
+        ### end OK_PATCH 
 		cat <<EOF
 config wifi-device  wifi$devidx
 	option type	qcawifi
 	option channel	auto
-	option macaddr	$(cat /sys/class/net/${dev}/address)
+    ### OK_PATCH
+	#option macaddr	$(cat /sys/class/net/${dev}/address)
+    option macaddr ${mac}
+    ### end OK_PATCH
 	option hwmode	11${mode_11}
 	# REMOVE THIS LINE TO ENABLE WIFI:
+    ### OK_PATCH
 	#option disabled 1
+    ### end OK_PATCH
 
 config wifi-iface
 	option device	wifi$devidx

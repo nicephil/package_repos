@@ -1,10 +1,11 @@
-#!/bin/src /etc/rc.common
+#!/bin/sh /etc/rc.common
 # look at /lib/functions/services.sh on a running system for explanations of what other options you can use
 START=80
-APP=capwapc
+APP=ok_capwapc
 SERVICE_WRIT_PID=1
 SERVICE_DEAMONIZE=1
-CONFIG_FILE="/etc/config.wtp"
+SERVICE_PID_FILE="/var/run/capwapc.pid"
+CONFIG_FILE="/etc/capwapc/config.wtp"
 
 . /lib/functions.sh
 
@@ -80,11 +81,17 @@ generate_config () {
 
 start() {
     generate_config
-    service_start /bin/$APP
+    service_start /usr/sbin/$APP &
 }
 
 
 stop() {
-    service_stop /bin/$APP
+    service_stop /usr/sbin/$APP
+}
+
+restart() {
+    stop
+    sleep 1
+    start
 }
 

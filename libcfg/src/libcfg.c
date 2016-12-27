@@ -43,6 +43,7 @@
 
 
 #include <uci.h>
+#include <syslog.h>
 
 static const char *cfg_errstr[] = {
 	[CFG_OK] =            "Success",
@@ -2167,7 +2168,7 @@ int cfg_get_product_info(struct product_info * info)
 
     ctx = uci_alloc_context();
     if (!ctx) {
-        syslog(LOG_ERR, "no enough memory"\n);
+        syslog(LOG_ERR, "no enough memory\n");
     }
 
     uci_load(ctx, "productinfo", &p);
@@ -2970,7 +2971,6 @@ int cfg_product_has_smartantenna(void)
     return cfg_has_feature("smartenna");
 }
 
-#include <syslog.h>
 
 int cfg_get_device_mode(void)
 {

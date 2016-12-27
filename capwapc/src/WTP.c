@@ -363,8 +363,8 @@ int main (int argc, const char * argv[])
 	/* Daemon Mode */ 
 	pid_t pid;
 
-    log_id = zlog_open("capwap");
 #if 0	
+    log_id = zlog_open("capwap");
 	if (argc <= 1)
 		printf("Usage: WTP working_path\n");
 #endif
@@ -416,12 +416,14 @@ int main (int argc, const char * argv[])
         }
 #endif
 	}	
-    service_output_pidfile("wtp");
+    //service_output_pidfile("wtp");
 #endif
     
 	CWStateTransition nextState = CW_ENTER_DISCOVERY;
 
+#ifdef LOG_FILE
 	CWLogInitFile(gLogFileName);
+#endif
 
 #ifndef CW_SINGLE_THREAD
 	CWDebugLog_F("Use Threads");
@@ -524,7 +526,7 @@ int main (int argc, const char * argv[])
 	CW_REPEAT_FOREVER {
 	    CWLog("Switch next state: %s.", state_name[(nextState - CW_ENTER_SULKING) % (CW_QUIT - CW_ENTER_SULKING + 1)]);
         CWDebugLog_F("Switch next state: %s.", state_name[(nextState - CW_ENTER_SULKING) % (CW_QUIT - CW_ENTER_SULKING + 1)]);
-        task_update_status(nextState, gACInfoPtr);
+        //task_update_status(nextState, gACInfoPtr);
 		switch(nextState) {
 			case CW_ENTER_DISCOVERY:
 				nextState = CWWTPEnterDiscovery();

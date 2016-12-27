@@ -8,7 +8,7 @@
 #define CAPWAPC_LATER_EXEC_STOP     2
 
 #define nmsc_log(fmt, ...) syslog(LOG_INFO, fmt, ##__VA_ARGS__)
-#define nmsc_debug(fmt, ...) syslog(LOG_INFO, fmt, ##__VA_ARGS__)
+#define nmsc_debug(fmt, ...) syslog(LOG_DEBUG, fmt, ##__VA_ARGS__)
 
 extern void log_node_pair(struct node_pair_save pair);
 extern void log_node_paires(struct node_pair_save *paires, int size);

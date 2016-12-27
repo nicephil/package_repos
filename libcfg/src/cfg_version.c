@@ -18,17 +18,9 @@ static struct cfg_verctrl g_cfg_version = {
 
 void cfg_set_version(int version)
 {
-    FILE *fp;
-    char ver_line[32];
-    
+    char tuple = 
     g_cfg_version.version = version;
-
-    if((fp = fopen(CFG_VERSION_FILE, "w")) == NULL) {
-        return;
-	}
-    sprintf(ver_line, "%d", version);
-    fwrite(ver_line, strlen(ver_line), 1, fp);
-    fclose(fp);
+    struct uci_context *ctx;
 }
 
 int cfg_get_version(void) 

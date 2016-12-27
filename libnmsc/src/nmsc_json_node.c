@@ -354,8 +354,6 @@ int dc_hdl_node_version(struct json_object *obj)
 
     log_node_pair(pair);
 
-    // cfg_set_version(version);
-
     nmsc_delay_op_new(nmsc_delay_op_version, &version, sizeof(version));
     
     return 0;

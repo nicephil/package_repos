@@ -1,5 +1,4 @@
 # Put your custom commands here that should be executed once
 # the system init finished. By default this file does nothing.
 
-/lib/fetch_productinfo.sh > /etc/config/productinfo
 exit 0

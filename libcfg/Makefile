@@ -10,7 +10,7 @@ define Package/libcfg
 	SECTION:=Oakridge
 	CATEGORY:=Oakridge Software
 	TITLE:=User Level System Library
-	DEPENDS:=+libok_util +libubox
+	DEPENDS:=+libok_util +libubox +libuci
 endef
 
 define Package/libcfg/description
