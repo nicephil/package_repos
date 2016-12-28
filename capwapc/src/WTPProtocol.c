@@ -27,10 +27,11 @@
 
  
 #include "CWWTP.h"
-#include "cfg/cfg.h"
 #ifdef DMALLOC
 #include "../dmalloc-5.5.0/dmalloc.h"
 #endif
+
+#include "services/misc_services.h"
 
 /*____________________________________________________________________________*/
 /*  *****************************___ASSEMBLE___*****************************  */
@@ -314,24 +315,9 @@ CWBool CWAssembleMsgElemWTPMAC(CWProtocolMessage *msgPtr)
     
 	if(msgPtr == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
 
-#if !OK_PATCH
     if (cfg_get_product_info(&info)) {
         return CW_FALSE;
     }
-#else
-    static struct product_info s_product_info = {
-        .company            = {"Oakridge"},
-        .production         = {"Oakridge AP"},
-        .model              = {"AP4602"},
-        .mac                = {"34:CD:6D:E0:34:6D"},
-        .bootloader_version = {"1.0.0"},
-        .software_version   = {"V200R001"},
-        .software_inner_version = {"V200"},
-        .hardware_version   = {"1.0.0"},
-        .serial             = {"32A7D16Z0151617"},
-    };
-    memcpy(&info, &s_product_info, sizeof(struct product_info));
-#endif
 
     s = info.mac;
     for (i = 0; i < 6; i++)

@@ -2,11 +2,11 @@
 #LDFLAGS = /usr/lib/libefence.a ./static/libssl.a ./static/libcrypto.a -lpthread -ldl -D_REENTRANT
 LDFLAGS = ./static/uclibc/libssl.a ./static/uclibc/libcrypto.a -lpthread -ldl -D_REENTRANT 
 #LDFLAGS = -lpthread -ldl -D_REENTRAN
-CFLAGS = -Wall -g -O0 -D_REENTRANT -I./include/ -DCW_NO_DTLS -std=gnu99
+CFLAGS = -Wall -g -O0 -D_REENTRANT -I./include/ -DCW_NO_DTLS -std=gnu99 -DLOG_FILE
 CFLAGS+=$(EXTRA_CFLAGS)
 OPENSSL_INCLUDE = #-I/usr/local/ssl/include/ #Openssl include files
 LDFLAGS+=$(EXTRA_LDFLAGS)
-LDFLAGS+=-ljson -lok_util -lcfg -lnmsc -Wl
+LDFLAGS+=-ljson -lnmsc -lservices -Wl
 
 # Memory leak
 #LDFLAGS += ../dmalloc-5.5.0/libdmallocth.a

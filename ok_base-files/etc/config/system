@@ -1,11 +1,11 @@
 config system
-	option hostname	oakridge
-	option timezone CST-8
+    option hostname	oakridge
+    option timezone CST-8
     option zonename Asia/Shanghai
     option conloglevel 5
     option klogconloglevel 5
     option log_type file
-    log_file /var/log/system.log
+    option log_file /var/log/messages
     option log_size 128
     option log_remote 0
 

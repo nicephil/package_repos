@@ -3,7 +3,7 @@ CFLAGS?=-O0 -Wall -g
 LDFLAGS?=
 
 CFLAGS+=-I./ -fPIC -std=gnu99
-LDFLAGS+=-shared -fPIC  -lcfg
+LDFLAGS+=-shared -fPIC 
 CPPFLAGS+=-I./ -fPIC  
 
 LIBOBJS=nmsc_json.o \
