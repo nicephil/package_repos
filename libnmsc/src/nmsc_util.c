@@ -2,16 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "nmsc_util.h"
-#if !OK_PATCH
-#include "services/log_services.h"
-#include "services/dhcpd_services.h"
-#include "services/wds_services.h"
-#include "if/if_pub.h"
-#include "cmp/cmp_pub.h"
-#endif
-#include "cfg/cfg.h"
 
-//extern struct wlan_scan_bind_info;
 
 void log_node_pair(struct node_pair_save pair)
 {
@@ -209,9 +200,11 @@ int nmsc_delay_op_version(void *reserved)
 {
     if (reserved) {
         int version = *((int *)reserved);
+#if !OK_PATCH
         cfg_set_version(version);
 
         nmsc_log("New config version %d:%d.\n", version, cfg_get_version());
+#endif
     }
 
     return 0;

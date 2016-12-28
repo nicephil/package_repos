@@ -1,7 +1,11 @@
 #ifndef __NMSC_UTIL_H__
 #define __NMSC_UTIL_H__
 #include <syslog.h>
+#include <libubox/list.h>
+
+
 #include "nmsc/nmsc.h"
+
 
 #define CAPWAPC_LATER_EXEC_NOTHING  0
 #define CAPWAPC_LATER_EXEC_RESTART  1
@@ -51,7 +55,6 @@ static inline int dc_generate_error_code(int error)
     }while (0)
 
 
-#include "util/list.h"
 enum {
     NMSC_DELAY_OP_LOG = (0 << 1),
 };

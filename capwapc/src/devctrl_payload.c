@@ -7,21 +7,7 @@
 #include "devctrl_payload.h"
 #include "devctrl_notice.h"
 #include "json/json.h"
-#include "cfg/cfg.h"
-#include "if/if_pub.h"
 #include "nmsc/nmsc.h"
-#if !OK_PATCH
-#include "services/hostname_services.h"
-#include "services/eventd_services.h"
-#include "services/wlan_services.h"
-#include "services/vlan_services.h"
-#include "services/netifd_services.h"
-#include "services/portal_services.h"
-#include "services/ssh_services.h"
-#include "services/wds_services.h"
-#include "devctrl_tech_support.h"
-#include "cmp/cmp_pub.h"
-#endif
 
 extern void log_node_paires(struct node_pair_save *paires, int size);
 
