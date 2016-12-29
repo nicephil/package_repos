@@ -7,21 +7,7 @@
 #include "devctrl_payload.h"
 #include "devctrl_notice.h"
 #include "json/json.h"
-#include "cfg/cfg.h"
-#include "if/if_pub.h"
 #include "nmsc/nmsc.h"
-#if !OK_PATCH
-#include "services/hostname_services.h"
-#include "services/eventd_services.h"
-#include "services/wlan_services.h"
-#include "services/vlan_services.h"
-#include "services/netifd_services.h"
-#include "services/portal_services.h"
-#include "services/ssh_services.h"
-#include "services/wds_services.h"
-#include "devctrl_tech_support.h"
-#include "cmp/cmp_pub.h"
-#endif
 
 extern void log_node_paires(struct node_pair_save *paires, int size);
 
@@ -123,17 +109,18 @@ static int dc_json_config_response(devctrl_block_s *dc_block, void *reserved)
 
 static int dc_json_config_finished(void *reserved)
 {
+#if !OK_PATCH
     if (dc_restart_cawapc()) {
         task_update_status(CW_RESTART_SILENTLY, NULL);
     }
     else if (dc_stop_cawapc()) {
         task_update_status(CW_STOP, NULL);
     }
+#endif 
 
     if (reserved) {
         free(reserved);
     }
-    
     return 0;
 }
 

@@ -1,31 +1,44 @@
 #ifndef _CAPWAPC_SERVICES_H_
 #define _CAPWAPC_SERVICES_H_
-#if !OK_PATCH
-#include "services/dialer_services.h"
-#endif
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
 
-#define CAPWAPC_LISTEN_ADDRESS    "/var/run/wtp"
 
-typedef enum {
-    CAPWAPC_STATE_DISABLE = 0,
-    CAPWAPC_STATE_INIT,
-    CAPWAPC_STATE_SULKING,
-    CAPWAPC_STATE_DISCOVERY,
-    CAPWAPC_STATE_JOIN,
-    CAPWAPC_STATE_CONFIGURE,
-    CAPWAPC_STATE_DATA_CHECK,
-    CAPWAPC_STATE_RUN,
-    CAPWAPC_STATE_RESET,
-    CAPWAPC_STATE_RESTART_SILENTLY,
-    CAPWAPC_STATE_STOP_SILENTLY,
-    CAPWAPC_STATE_QUIT,
-    CAPWAPC_STATE_MAX,
-} capwapc_state_e;
+#define CAPWAPC_CFG_PACKAGE             "capwapc"
 
-#define CAPWAP_STATUS_NOTICE    (DHCP_OPTION43_RELEASE + 10)
+#define CAPWAPC_CFG_SECTION_GLOBAL         "global"
+#define CAPWAPC_CFG_SECTION_SERVER         "server"
+#define CAPWAPC_CFG_SECTION_WTP            "wtp"
+
+#define CAPWAPC_CFG_OPTION_ENABLE     "enable"
+#define CAPWAPC_CFG_OPTION_LOCATION    "location"
+#define CAPWAPC_CFG_OPTION_DOMAIN      "domain"
+
+#define CAPWAPC_CFG_OPTION_MASSER      "mas_server"
+#define CAPWAPC_CFG_OPTION_SLASER      "sla_server"
+#define CAPWAPC_CFG_OPTION_DEFSER      "def_server"
+#define CAPWAPC_CFG_OPTION_CTRLPORT    "ctrl_port"
+
+#define CAPWAPC_CFG_OPTION_MTU	      "mtu"
+#define CAPWAPC_CFG_OPTION_DISCINTV    "disc_intv"
+#define CAPWAPC_CFG_OPTION_MAXDISCINTV "maxdisc_intv"
+#define CAPWAPC_CFG_OPTION_ECHOINTV    "echo_intv"
+#define CAPWAPC_CFG_OPTION_RETRANINTV  "retran_intv"
+#define CAPWAPC_CFG_OPTION_SILENTINTV  "silent_intv"
+#define CAPWAPC_CFG_OPTION_JOINTIMEOUT "join_timeout"
+#define CAPWAPC_CFG_OPTION_MAXDISCES   "max_disces"
+#define CAPWAPC_CFG_OPTION_MAXRETRANS  "max_retran"
+
+#define CAPWAPC_DEFAULT_ENABLE        1
+#define CAPWAPC_DEFAULT_SERVER        "redirector.oakridge.io"
+#define CAPWAPC_DEFAULT_CTRLPORT      5246
+#define CAPWAPC_DEFAULT_MTU           1300
+#define CAPWAPC_DEFAULT_DISCINTV      5
+#define CAPWAPC_DEFAULT_MAXDISCINTV   20
+#define CAPWAPC_DEFAULT_ECHOINTV      30
+#define CAPWAPC_DEFAULT_RETRANINTV    3
+#define CAPWAPC_DEFAULT_SILENTINTV    30
+#define CAPWAPC_DEFAULT_JIONTIMEOUT   60
+#define CAPWAPC_DEFAULT_MAXDISCES     10
+#define CAPWAPC_DEFAULT_MAXRETRAN     5
 
 /* following for the selection of the highest prioriy capwapc server */
 /* low 4 bites for the master or slave server */
@@ -50,13 +63,8 @@ typedef enum {
     MASTER_ADDRESS = 0,
     SLAVE_ADDRESS,
 } capwapc_static_address;
-struct capwapc_status {
-    char type;
-    capwapc_state_e state;
-    char server_name[32];
-    char server_addr[16];
-    long uptime;
-};
+
+
 
 typedef struct capwapc_config {
     /* globale cfg */
@@ -83,49 +91,6 @@ typedef struct capwapc_config {
 } capwapc_config;
 
 
-extern int capwapc_enable(void);
-extern int capwapc_disable(void);
-extern int capwapc_set_location(const char *location);
-extern int capwapc_undo_location(void);
-extern int capwapc_set_domain(const char *domain);
-extern int capwapc_undo_domain(void);
-extern int capwapc_get_domain(char *domain, int len);
-extern int capwapc_set_masterserver(const char *server);
-extern int capwapc_undo_masterserver(void);
-extern int capwapc_set_slaveserver(const char *server);
-extern int capwapc_undo_slaveserver(void);
-extern int capwapc_set_defaultserver(const char *server);
-extern int capwapc_undo_defaultserver(void);
-extern int capwapc_set_ctrlport(int ctrlport);
-extern int capwapc_undo_ctrlport(void);
-extern int capwapc_set_mtu(int mtu);
-extern int capwapc_undo_mtu(void);
-extern int capwapc_set_discintv(int discintv);
-extern int capwapc_undo_discintv(void);
-extern int capwapc_set_maxdiscintv(int max_discintv);
-extern int capwapc_undo_maxdiscintv(void);
-extern int capwapc_set_echointv(int echointv);
-extern int capwapc_undo_echointv(void);
-extern int capwapc_set_retranintv(int retranintv);
-extern int capwapc_undo_retranintv(void);
-extern int capwapc_set_silentintv(int silentintv);
-extern int capwapc_undo_silentintv(void);
-extern int capwapc_set_jointimeout(int jointimeout);
-extern int capwapc_undo_jointimeout(void);
-extern int capwapc_set_maxdisces(int maxdisces);
-extern int capwapc_undo_maxdisces(void);
-extern int capwapc_set_maxretran(int maxretran);
-extern int capwapc_undo_maxretran(void);
-extern int capwapc_set_forceexec(int force);
-extern int capwapc_restart(void);
-extern int capwapc_get_status(struct capwapc_status *status);
 
-extern int capwapc_get_defcfg(capwapc_config *defcfg);
-extern int capwapc_get_curcfg(capwapc_config *curcfg);
-
-//add by puyg
-extern int capwapc_decompile(int fd);
-//extern int show_capwap_info(int fd);
-extern int capwapc_get_server_pri(char *server, int *pri);
-//end by puyg
+extern int capwapc_get_server_pri(char *server, int *server_pri);
 #endif    

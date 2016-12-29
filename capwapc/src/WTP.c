@@ -27,8 +27,6 @@
  ************************************************************************************************/
 
 #include "CWWTP.h"
-#include "log/log.h"
-#include "util/util.h"
 #ifdef DMALLOC
 #include "../dmalloc-5.5.0/dmalloc.h"
 #endif
@@ -41,21 +39,18 @@ CW_THREAD_RETURN_TYPE CWWTPReceiveFreqStats(void *arg);
 extern int dc_stop_sta_notice_timer(void);
 
 capwapc_config g_capwapc_config  = {
-    .enable       = 1,
-    .location     = {"121.43.107.91"},
-    .mas_server   = {"121.43.107.91"},
-    .sla_server   = {"121.43.107.91"},
-    .def_server   = {"121.43.107.91"},
-    .ctrl_port    = 5246,
-    .mtu          = 1300,
-    .disc_intv    = 5,
-    .maxdisc_intv = 20,
-    .echo_intv    = 30,
-    .retran_intv  = 3,
-    .silent_intv  = 30,
-    .join_timeout = 60,
-    .max_disces   = 10,
-    .max_retran   = 5,
+    .enable       = CAPWAPC_DEFAULT_ENABLE,
+    .def_server   = CAPWAPC_DEFAULT_SERVER,
+    .ctrl_port    = CAPWAPC_DEFAULT_CTRLPORT,
+    .mtu          = CAPWAPC_DEFAULT_MTU,
+    .disc_intv    = CAPWAPC_DEFAULT_DISCINTV,
+    .maxdisc_intv = CAPWAPC_DEFAULT_MAXDISCINTV,
+    .echo_intv    = CAPWAPC_DEFAULT_ECHOINTV,
+    .retran_intv  = CAPWAPC_DEFAULT_RETRANINTV,
+    .silent_intv  = CAPWAPC_DEFAULT_SILENTINTV,
+    .join_timeout = CAPWAPC_DEFAULT_JIONTIMEOUT,
+    .max_disces   = CAPWAPC_DEFAULT_MAXDISCES,
+    .max_retran   = CAPWAPC_DEFAULT_MAXRETRAN,
 };
 
 int 	gEnabledLog = 1;
@@ -363,12 +358,6 @@ int main (int argc, const char * argv[])
 	/* Daemon Mode */ 
 	pid_t pid;
 
-    log_id = zlog_open("capwap");
-#if 0	
-	if (argc <= 1)
-		printf("Usage: WTP working_path\n");
-#endif
-
 #if 0
 
 	if ((pid = fork()) < 0) {
@@ -416,12 +405,13 @@ int main (int argc, const char * argv[])
         }
 #endif
 	}	
-    service_output_pidfile("wtp");
 #endif
     
 	CWStateTransition nextState = CW_ENTER_DISCOVERY;
 
+#ifdef LOG_FILE
 	CWLogInitFile(gLogFileName);
+#endif
 
 #ifndef CW_SINGLE_THREAD
 	CWDebugLog_F("Use Threads");
@@ -524,7 +514,6 @@ int main (int argc, const char * argv[])
 	CW_REPEAT_FOREVER {
 	    CWLog("Switch next state: %s.", state_name[(nextState - CW_ENTER_SULKING) % (CW_QUIT - CW_ENTER_SULKING + 1)]);
         CWDebugLog_F("Switch next state: %s.", state_name[(nextState - CW_ENTER_SULKING) % (CW_QUIT - CW_ENTER_SULKING + 1)]);
-        task_update_status(nextState, gACInfoPtr);
 		switch(nextState) {
 			case CW_ENTER_DISCOVERY:
 				nextState = CWWTPEnterDiscovery();

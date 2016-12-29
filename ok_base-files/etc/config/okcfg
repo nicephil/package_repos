@@ -1,0 +1,40 @@
+config okcfg config
+    option version 1
+
+config okcfg system
+    #option hostname # system.@system[0].hostname
+    option location # capwapc.wtp.location
+    option domain_name 'domain.com' # 
+    option country_code 'CN' # 
+
+#config okcfg ntp
+    #option enable # system.ntp.enable_server
+    #list servers  # system.ntp.server
+    #option period # not supported
+
+#config okcfg dns
+    #list servers # network.lan.dns
+
+#config okcfg capwapc
+    #option enable # capwapc.global.enable
+    #option master_server # capwapc.server.mas_server
+    #option slave_server # capwapc.server.sla_server
+    #option control_port # capwapc.wtp.ctrl_port
+    #option echo_interval # capwapc.wtp.echo_intv
+    #option mtu # capwapc.wtp.mtu
+
+#config okcfg log
+    #option enable # system.@system[0].log_type
+    #option log_server_enable # system.@system[0].log_remote
+    #option server # system.@system[0].log_ip
+    #option log_server_level # system.@system[0].conloglevel
+
+config okcfg interface
+    #option name # wireless.wifi1.disabled
+    #option enable #
+
+config okcfg vlan
+    option id '1'
+    option name 'vlan 1'
+    option desc 'lsjdf'
+

@@ -8,38 +8,7 @@
 #include <strings.h>
 #include "nmsc/nmsc.h"
 #include "nmsc_util.h"
-#include "cfg/cfg.h"
 #include "json/json.h"
-#if !OK_PATCH
-#include "cmp/cmp_pub.h"
-#include "util/util.h"
-#include "services/hostname_services.h"
-#include "services/capwapc_services.h"
-#include "services/usrmanage_services.h"
-#include "services/ntpclient_services.h"
-#include "services/dns_services.h"
-#include "services/vlan_services.h"
-#include "services/netifd_services.h"
-#include "services/vlan_services.h"
-#include "services/dialer_services.h"
-#include "services/aaad_services.h"
-#include "services/wlan_services.h"
-#include "services/route_services.h"
-#include "services/portal_services.h"
-#include "services/wifisensor_services.h"
-#include "services/log_services.h"
-#include "services/time_range_services.h"
-#include "services/time_range_public.h"
-#include "services/dhcpd_services.h"
-#include "services/dnsset_services.h"
-#include "services/alg_services.h"
-#include "services/nat_services.h"
-#include "services/wlan_scan_services.h"
-#include "acsm/dnsset_public.h"
-#include "services/igmp_snooping_services.h"
-#include "services/dnsmasq_services.h"
-#include "services/wds_services.h"
-#endif
 
 #define SCHEME_TIME_RANGE_MAXSIZE 16
 #define PERIODIC_TIME_RANGE_MAXSIZE 16
@@ -353,8 +322,6 @@ int dc_hdl_node_version(struct json_object *obj)
     }
 
     log_node_pair(pair);
-
-    // cfg_set_version(version);
 
     nmsc_delay_op_new(nmsc_delay_op_version, &version, sizeof(version));
     

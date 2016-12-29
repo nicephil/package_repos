@@ -1,14 +1,18 @@
 #ifndef __NMSC_UTIL_H__
 #define __NMSC_UTIL_H__
 #include <syslog.h>
+#include <libubox/list.h>
+
+
 #include "nmsc/nmsc.h"
+
 
 #define CAPWAPC_LATER_EXEC_NOTHING  0
 #define CAPWAPC_LATER_EXEC_RESTART  1
 #define CAPWAPC_LATER_EXEC_STOP     2
 
 #define nmsc_log(fmt, ...) syslog(LOG_INFO, fmt, ##__VA_ARGS__)
-#define nmsc_debug(fmt, ...) syslog(LOG_INFO, fmt, ##__VA_ARGS__)
+#define nmsc_debug(fmt, ...) syslog(LOG_DEBUG, fmt, ##__VA_ARGS__)
 
 extern void log_node_pair(struct node_pair_save pair);
 extern void log_node_paires(struct node_pair_save *paires, int size);
@@ -51,7 +55,6 @@ static inline int dc_generate_error_code(int error)
     }while (0)
 
 
-#include "util/list.h"
 enum {
     NMSC_DELAY_OP_LOG = (0 << 1),
 };

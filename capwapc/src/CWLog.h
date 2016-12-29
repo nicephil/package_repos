@@ -28,10 +28,11 @@
 
 #ifndef __CAPWAP_CWLog_HEADER__
 #define __CAPWAP_CWLog_HEADER__
+#include <syslog.h>
 
 extern char gLogFileName[];
 extern int log_id;
-#if 1
+#ifdef LOG_FILE
 void CWVLog(const char *format, va_list args);
 
 void CWLog(const char *format, ...);
@@ -41,11 +42,11 @@ void CWDebugLog(const char *format, ...);
 #define CWDebugLog_F(fmt, ...) CWLog(fmt, ##__VA_ARGS__)
 #define CWDebugLog_D(fmt, ...) CWDebugLog(fmt, ##__VA_ARGS__)
 #else
-#define CWLog(fmt, ...) zlog(log_id, LOG_INFO, fmt, ##__VA_ARGS__)
-#define CWDebugLog(fmt, ...) zlog(log_id, LOG_DEBUG, fmt, ##__VA_ARGS__)
-#define CWDebugLog_E(fmt, ...) zlog(log_id, DEBUG_EXCEPT, fmt, ##__VA_ARGS__)
-#define CWDebugLog_F(fmt, ...) zlog(log_id, DEBUG_FLOW, fmt, ##__VA_ARGS__)
-#define CWDebugLog_D(fmt, ...) zlog(log_id, DEBUG_DETAIL, fmt, ##__VA_ARGS__)
+#define CWLog(fmt, ...) syslog(LOG_INFO, fmt, ##__VA_ARGS__)
+#define CWDebugLog(fmt, ...) syslog(LOG_DEBUG, fmt, ##__VA_ARGS__)
+#define CWDebugLog_E(fmt, ...) syslog(LOG_DEBUG, fmt, ##__VA_ARGS__)
+#define CWDebugLog_F(fmt, ...) syslog(LOG_DEBUG, fmt, ##__VA_ARGS__)
+#define CWDebugLog_D(fmt, ...) syslog(LOG_DEBUG, fmt, ##__VA_ARGS__)
 #endif
 void CWLogInitFile(char *fileName);
 

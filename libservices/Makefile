@@ -10,7 +10,7 @@ define Package/libservices
 	SECTION:=Oakridge
 	CATEGORY:=Oakridge Software
 	TITLE:=User Level System Library
-	DEPENDS:= +libpthread
+	DEPENDS:= +libpthread +libuci
 endef
 
 define Package/libservices/description

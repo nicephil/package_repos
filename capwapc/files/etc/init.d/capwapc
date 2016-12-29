@@ -1,10 +1,13 @@
-#!/bin/src /etc/rc.common
+#!/bin/sh /etc/rc.common
 # look at /lib/functions/services.sh on a running system for explanations of what other options you can use
-START=80
-APP=capwapc
-SERVICE_WRIT_PID=1
+START=99
+
+APP=ok_capwapc
+
+SERVICE_WRITE_PID=1
 SERVICE_DEAMONIZE=1
-CONFIG_FILE="/etc/config.wtp"
+
+CONFIG_FILE="/etc/capwapc/config.wtp"
 
 . /lib/functions.sh
 
@@ -15,11 +18,11 @@ config_cb() {
     local name="$2"
     if [ "$name" == "server" ]
     then
-        append buffer "<AC_ADDRESS>\n"
+        append buffer "<AC_ADDRESSES>\n"
         option_cb() {
             local name="$1"
             local value="$2"
-            append buffer "</AC_ADDRESS>$value\n"
+            append buffer "</AC_ADDRESSES>$value\n"
         }
     elif [ "$name" == "wtp" ]
     then
@@ -75,16 +78,22 @@ config_cb() {
 generate_config () {
     config_load capwapc
     echo -e $buffer > $CONFIG_FILE
+    sed -i 's/^ //g' $CONFIG_FILE
 }
-
 
 start() {
     generate_config
-    service_start /bin/$APP
+    service_start /usr/sbin/$APP
 }
 
 
 stop() {
-    service_stop /bin/$APP
+    service_stop /usr/sbin/$APP
+}
+
+restart() {
+    stop
+    sleep 1
+    start
 }
 

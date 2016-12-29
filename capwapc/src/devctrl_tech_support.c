@@ -2,31 +2,6 @@
 #include <stdlib.h>
 #include "CWWTP.h"
 
-#include "cfg/cfg.h"
-#include "if/if_pub.h"
-#if !OK_PATCH
-#include "services/hostname_services.h"
-#include "services/dialer_services.h"
-#include "services/dns_services.h"
-#include "services/route_services.h"
-#include "services/vlan_services.h"
-#include "services/log_services.h"
-#include "services/usrmanage_services.h"
-#include "services/ntpclient_services.h"
-#include "services/netifd_services.h"
-#include "services/wlan_services.h"
-#include "services/eventd_services.h"
-#include "services/hostapd_services.h"
-#include "services/capwapc_services.h"
-#include "services/telnetd_services.h"
-#include "services/aaad_services.h"
-#include "services/portal_services.h"
-#include "services/wifisensor_services.h"
-#include "services/dnsset_services.h"
-#include "services/time_range_services.h"
-#include "session/session.h"
-#endif
-
 #include <sys/types.h> 
 #include <sys/stat.h> 
 
