@@ -717,12 +717,8 @@ static int dc_upload_techsupport_handler(struct tlv *payload, void **reserved)
 
     log_node_paires(paires, sizeof(paires)/sizeof(paires[0])); 
 
-#if !OK_PATCH
     memset(local_hostname, 0, sizeof(local_hostname));
-    hostname_get(local_hostname);
-#else
-    strcpy(local_hostname, "okridge");
-#endif
+    hostname_get(local_hostname, sizeof(local_hostname));
 
     memset(local_time, 0, sizeof(local_time));
     timer=time(NULL);

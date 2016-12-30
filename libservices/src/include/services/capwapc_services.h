@@ -2,6 +2,7 @@
 #define _CAPWAPC_SERVICES_H_
 
 
+
 #define CAPWAPC_CFG_PACKAGE             "capwapc"
 
 #define CAPWAPC_CFG_SECTION_GLOBAL         "global"
@@ -10,7 +11,9 @@
 
 #define CAPWAPC_CFG_OPTION_ENABLE     "enable"
 #define CAPWAPC_CFG_OPTION_LOCATION    "location"
+#define CAPWAPC_CFG_OPTION_LOCATION_TUPLE "capwapc.wtp.location"
 #define CAPWAPC_CFG_OPTION_DOMAIN      "domain"
+#define CAPWAPC_CFG_OPTION_DOMAIN_TUPLE "capwapc.wtp.domain"
 
 #define CAPWAPC_CFG_OPTION_MASSER      "mas_server"
 #define CAPWAPC_CFG_OPTION_SLASER      "sla_server"
@@ -92,5 +95,13 @@ typedef struct capwapc_config {
 
 
 
+
 extern int capwapc_get_server_pri(char *server, int *server_pri);
+
+
+extern int capwapc_undo_location(void);
+extern int capwapc_set_location(const char *location);
+extern int capwapc_set_domain(const char *domain);
+extern int capwapc_set_domain(const char *domain);
+extern int capwapc_undo_domain(void);
 #endif    

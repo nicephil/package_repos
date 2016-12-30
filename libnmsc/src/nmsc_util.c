@@ -200,11 +200,8 @@ int nmsc_delay_op_version(void *reserved)
 {
     if (reserved) {
         int version = *((int *)reserved);
-#if !OK_PATCH
         cfg_set_version(version);
-
         nmsc_log("New config version %d:%d.\n", version, cfg_get_version());
-#endif
     }
 
     return 0;

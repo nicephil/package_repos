@@ -1,0 +1,21 @@
+config portalscheme "aa"
+    option name "aa"
+    option enable 1
+    option url "http://172.20.20.11/auth/device/client"
+    option auth_ip "192.168.1.1"
+    option domain "192.168.1.1"
+    list ip  "192.168.1.1"
+    list netmask "255.255.255.0"
+    list ip "192.168.1.123"
+    list netmask "255.255.255.0"
+
+config portalscheme "bb"
+    option name "bb"
+    option enable 1
+    option url "http://172.20.20.11/auth/device/client"
+    option auth_ip "192.168.1.1"
+    option domain "192.168.1.1"
+    list ip  "192.168.1.1"
+    list netmask "255.255.255.0"
+    list ip "192.168.1.123"
+    list netmask "255.255.255.0"

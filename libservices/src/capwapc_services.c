@@ -109,3 +109,58 @@ int capwapc_get_server_pri(char *server, int *server_pri)
     return 0;
 }
 
+int capwapc_set_location(const char *location)
+{
+    if (!strcmp(location, g_capwapc_config.location)) {
+        return 0;
+    }
+
+    /* capwapc needs restart after config changed */
+
+    /* update config file */
+    cfg_set_option_value(CAPWAPC_CFG_OPTION_LOCATION_TUPLE, location);
+    strncpy(g_capwapc_config.location, location, sizeof(g_capwapc_config.location)-1);
+    g_capwapc_config.domain[sizeof(g_capwapc_config.domain)-1] = '\0';
+
+    return 0;
+}
+
+int capwapc_undo_location(void)
+{
+    if (!g_capwapc_config.location[0]) {
+        return 0;
+    }
+    /* capwapc needs restart */
+
+    cfg_del_option(CAPWAPC_CFG_OPTION_LOCATION_TUPLE);
+    g_capwapc_config.location[0] = '\0';
+
+    return 0;
+}
+
+
+int capwapc_set_domain(const char *domain)
+{
+    if (!strcmp(g_capwapc_config.domain, domain)) {
+        return 0;
+    }
+
+    /* capwapc needs restart */
+    cfg_set_option_value(CAPWAPC_CFG_OPTION_DOMAIN_TUPLE);
+    strncpy(g_capwapc_config.domain, domain, sizeof(g_capwapc_config.domain)-1);
+    g_capwapc_config.domain[sizeof(g_capwapc_config.domain)-1] = '\0';
+
+    return 0;
+}
+
+int capwapc_undo_domain(void)
+{
+    if (!g_capwapc_config.domain[0]) {
+        return 0;
+    }
+
+    cfg_del_option(CAPWAPC_CFG_OPTION_DOMAIN_TUPLE);
+    g_capwapc_config.domain[0] = '\0';
+
+    return 0;
+}

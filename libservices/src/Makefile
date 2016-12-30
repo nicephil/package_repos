@@ -1,5 +1,8 @@
 LIBOBJS = capwapc_services.o \
-		  misc_services.o
+		  hostname_services.o \
+		  cfg_services.o \
+		  portal_services.o \
+		  wlan_services.o
 
 
 SHLIB = libservices.so.1.0

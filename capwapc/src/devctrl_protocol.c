@@ -4,7 +4,7 @@
 #include "devctrl_protocol.h"
 #include "nmsc/nmsc.h"
 
-#include "services/misc_services.h"
+#include "services/cfg_services.h"
 
 static const int gMaxDTLSHeaderSize = 25; // see http://crypto.stanford.edu/~nagendra/papers/dtls.pdf
 static const int gMaxCAPWAPHeaderSize = 8; // note: this include optional Wireless field

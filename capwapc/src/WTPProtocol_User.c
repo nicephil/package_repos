@@ -33,7 +33,7 @@
 #endif
 
 #include "devctrl_protocol.h"
-#include "services/misc_services.h"
+#include "services/cfg_services.h"
 
 #define RESERVED_VENDOR_INDENTIFIER   0
 
