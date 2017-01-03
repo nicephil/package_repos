@@ -10,6 +10,16 @@
 #include "nmsc_util.h"
 #include "json/json.h"
 
+
+#include "services/hostname_services.h"
+#include "services/capwapc_services.h"
+#include "services/portal_services.h"
+#include "services/wlan_services.h"
+#include "services/ntpclient_services.h"
+#include "services/log_services.h"
+#include "services/dns_services.h"
+#include "services/vlan_services.h"
+
 #define SCHEME_TIME_RANGE_MAXSIZE 16
 #define PERIODIC_TIME_RANGE_MAXSIZE 16
 #define SCHEME_TIME_RANGE_NAME_MAXSIZE 32
@@ -30,6 +40,17 @@ struct bandsteering_config {
 struct bandsteering_suppress_config {
         int enable;
             int suppress_threshold;
+};
+struct vlan_shownode {
+    int id;
+    char is_routedif;
+    char ifname[24];
+    char desc[81];
+    char name[33];
+};
+struct vlan_showinfo {
+    int num;
+    struct vlan_shownode *nodes;
 };
 
 
@@ -216,12 +237,23 @@ struct arp_optimize {
 struct wlan_scan_template {
     int configed;
     int num;
-    struct wcan_template *config;
+    struct wscan_template *config;
 };
 
 struct wlan_scan_bind_info {
     char cRadioName[33];
     char cRadioWScanName[33];
+};
+
+#define WSCAN_TEMPLATE_MAX_LEN 32
+#define WSCAN_CHANNEL_MAX_NUM 36
+struct wscan_template {
+    char name[WSCAN_TEMPLATE_MAX_LEN+1];
+    char channels[2*WSCAN_CHANNEL_MAX_NUM];
+    int type;
+    int period;
+    int intval;
+    int rd_bits;
 };
 
 
@@ -527,6 +559,7 @@ int dc_hdl_node_system(struct json_object *obj)
 
 int dc_hdl_node_usrmanage(struct json_object *obj)
 {
+    /* not supported yet */
 #if !OK_PATCH
     int i, ret, node = dc_node_users;
     struct json_object *array;
@@ -581,7 +614,6 @@ int dc_hdl_node_usrmanage(struct json_object *obj)
 
 int dc_hdl_node_ntp(struct json_object *obj)
 {
-#if !OK_PATCH
 #define MAX_NTP_SERVER  3    
     struct ntpclient_info  def_cfg, json_cfg;
     struct node_pair_save paires[] = {
@@ -643,7 +675,7 @@ int dc_hdl_node_ntp(struct json_object *obj)
 
     ntpclient_disabled();
     if ((ret = ntpclient_set_update_period(json_cfg.period)) != 0
-        && ret != CMP_ERR_COMMIT_FAIL) {
+        ) {
         nmsc_log("Ntpclient update period failed for %d.", ret);
         return dc_error_code(dc_error_commit_failed, node, ret);
     }
@@ -664,13 +696,11 @@ int dc_hdl_node_ntp(struct json_object *obj)
         }
     }
     
-#endif
     return 0;
 }
 
 int dc_hdl_node_dns(struct json_object *obj)
 {
-#if !OK_PATCH
 #define MAX_DNS_COUNT   3    
     struct dnses {
         int num;
@@ -719,8 +749,6 @@ int dc_hdl_node_dns(struct json_object *obj)
         }
         if (!obj_saved) {
             nmsc_log("Unknow json obj :%s", key);
-            /* Only handle recognized, others will be ignored */
-            // return dc_error_code(dc_error_save_obj, node, 0);
         }
     }
 
@@ -735,12 +763,12 @@ int dc_hdl_node_dns(struct json_object *obj)
         }
     }
 
-#endif
     return 0;
 }
 
 int dc_hdl_node_radius(struct json_object *obj)
 {
+    /* not supported yet */
 #if !OK_PATCH
     struct radius_scheme_json json_cfg, cur_cfg;    
     struct node_pair_save paires[] = {
@@ -1216,6 +1244,7 @@ static int dc_hdl_node_route_forward(struct json_object *obj)
 
 int dc_hdl_node_network(struct json_object *obj)
 {
+    /* not supported yet */
 #if !OK_PATCH
     struct subnode_handler {
         char *key;
@@ -1258,6 +1287,7 @@ int dc_hdl_node_network(struct json_object *obj)
 
 int dc_hdl_node_ethif(struct json_object *obj)
 {
+    /* not supported yet */
 #if !OK_PATCH
 #define MAX_ETH_IF_NUM  16
     struct ethif {
@@ -1406,7 +1436,6 @@ ERROR_OUT:
 
 int dc_hdl_node_vlan(struct json_object *obj)
 {
-#if !OK_PATCH
     struct vlan {
         int   id;
         char name[33];
@@ -1452,6 +1481,7 @@ int dc_hdl_node_vlan(struct json_object *obj)
                 }
             }
             if (j >= vlanes.num) {
+#if !OK_PATCH
                 char ifname[SYS_INTF_NAME_SIZE];
                 
                 if_form_name(0, idlist[i], IF_PHYTYPE_VLAN,  ifname);
@@ -1459,6 +1489,7 @@ int dc_hdl_node_vlan(struct json_object *obj)
                     nmsc_log("Interface %s nat enabled, do nothing.", ifname);
                     continue;
                 }
+#endif
                 if ((ret = vlan_destroy(idlist[i], idlist[i])) != 0) {
                     nmsc_log("Delete vlan %d failed for %d.", idlist[i], ret);
                     ret = dc_error_code(dc_error_commit_failed, node, ret);
@@ -1477,7 +1508,7 @@ int dc_hdl_node_vlan(struct json_object *obj)
 
         if (i >= listnum) {
             ret = vlan_create(vlanes.config[j].id, vlanes.config[j].id);
-            if (ret != 0 && ret != CMP_ERR_COMMIT_FAIL) {
+            if (ret != 0) {
                 nmsc_log("Create vlan %d failed for %d.", vlanes.config[j].id, ret);
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
@@ -1502,9 +1533,6 @@ ERROR_OUT:
     vlan_list_id_free(&idlist);
 
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_nat_vlan_reserved(struct vlan_showinfo *info)
@@ -1530,6 +1558,7 @@ static int dc_nat_vlan_reserved(struct vlan_showinfo *info)
 
 int dc_hdl_node_vlan_interface(struct json_object *obj)
 {
+    /* not supported */
 #if !OK_PATCH
 #define DEFAULT_DHCPD_ENABLE    0   /* default disable */
     struct vlan_interface {
@@ -1715,6 +1744,7 @@ static int dc_hdl_node_alg(struct json_object *obj)
 
 int dc_hdl_node_nat(struct json_object *obj)
 {
+    /* not supported yet */
 #if !OK_PATCH
     struct subnode_handler {
         char *key;
@@ -1752,6 +1782,7 @@ int dc_hdl_node_nat(struct json_object *obj)
 
 int dc_hdl_node_dialer(struct json_object *obj)
 {
+    /* not supported yet */
 #if !OK_PATCH
     struct dialer {
         char name[33];
@@ -1899,7 +1930,6 @@ static int dc_parse_node_service_template(struct json_object *obj,
     struct service_templates *service_templates = (struct service_templates *)jsoncfg;
     struct service_template_json service_template;
     struct node_pair_save paires[] = {
-//        {"id",            json_type_int,    NULL, sizeof(service_template.id)},
         {"ssid",                  json_type_string, NULL, sizeof(service_template.ssid)},
         {"ssid_hide",             json_type_int,    NULL, sizeof(service_template.beacon_ssid_hide)},
         {"client_max",            json_type_int,    NULL, sizeof(service_template.client_max)},
@@ -1940,7 +1970,6 @@ static int dc_parse_node_service_template(struct json_object *obj,
         service_templates->num = 0;
         service_templates->config = NULL;
         return 0;
-        //return dc_error_code(dc_error_obj_data, node, 0);
     }
 
     service_templates->config = malloc(size * sizeof(struct service_template_json));
@@ -1951,7 +1980,6 @@ static int dc_parse_node_service_template(struct json_object *obj,
     
     for(i = 0; i < size; i++) {   
         j = 0;
-//        paires[0].value = &(service_templates->config[service_templates->num].id);
         paires[j++].value = service_templates->config[service_templates->num].ssid;
         paires[j++].value = &(service_templates->config[service_templates->num].beacon_ssid_hide);
         paires[j++].value = &(service_templates->config[service_templates->num].client_max);
@@ -2105,7 +2133,6 @@ static int dc_parse_node_radio(struct json_object *obj, void *jsoncfg)
 static int dc_parse_node_portal_scheme(struct json_object *obj, 
     void *jsoncfg)
 {
-#if !OK_PATCH
     struct portal_schemes *portal_schemes = (struct portal_schemes *)jsoncfg;
     struct portal_scheme_cfg *portal_scheme = (struct portal_scheme_cfg *)0;
     struct node_pair_save paires[] = {
@@ -2198,14 +2225,12 @@ static int dc_parse_node_portal_scheme(struct json_object *obj,
         
         portal_schemes->num++;
     }
-#endif
     return 0;
 }
 
 static int dc_parse_node_client_isolation(struct json_object *obj, 
     void *jsoncfg)
 {
-#if !OK_PATCH
     int *client_isolation = (int *)jsoncfg, ret, node = dc_node_client_isolation;
     struct node_pair_save pair = {
         .key   = "client_isolation",
@@ -2224,13 +2249,11 @@ static int dc_parse_node_client_isolation(struct json_object *obj,
 
     log_node_pair(pair);
     
-#endif
     return 0;
 }
 
 static int dc_parse_node_acl_scheme(struct json_object *obj, void *jsoncfg)
 {
-#if !OK_PATCH
     struct wlan_acl_schemes *acl_schemes = (struct wlan_acl_schemes *)jsoncfg;
     struct wlan_acl_status *acl_scheme = (struct wlan_acl_status *)0;
     struct node_pair_save paires[] = {
@@ -2323,7 +2346,6 @@ static int dc_parse_node_acl_scheme(struct json_object *obj, void *jsoncfg)
         acl_schemes->num++;
     }
     
-#endif
     return 0;
 }
 
@@ -2766,7 +2788,6 @@ static int dc_parse_node_igmp_snooping(struct json_object *obj,
     struct igmp_snooping_s *igmp = (struct igmp_snooping_s *)jsoncfg;
     struct node_pair_save paires[] = {
         {"Igmp_snooping",           json_type_int, &(igmp->enable),           sizeof(igmp->enable)},
-//        {"m2u_enable",              json_type_int, &(igmp->m2u_enable),       sizeof(igmp->m2u_enable)},
         {"group_threshold",         json_type_int, &(igmp->group_threshold),  sizeof(igmp->group_threshold)},
         {"group_member_threshold",  json_type_int, &(igmp->member_threshold), sizeof(igmp->member_threshold)},
         {"aging_time",              json_type_int, &(igmp->age_time),         sizeof(igmp->age_time)},
@@ -3603,9 +3624,8 @@ static int dc_parse_node_arp_optimize(struct json_object *obj,
 
 static int dc_parse_node_air_scan(struct json_object *obj, void *jsoncfg)
 {
-#if !OK_PATCH
     struct wlan_scan_template *ws_templates = (struct wlan_scan_template *)jsoncfg;
-    struct wcan_template *ws_template = (struct wcan_template *)0;
+    struct wscan_template *ws_template = (struct wscan_template *)0;
     struct node_pair_save paires[] = {
         {"name",            json_type_string, NULL, sizeof(ws_template->name)},
         {"scan_type",       json_type_int,    NULL, sizeof(ws_template->type)},
@@ -3629,11 +3649,11 @@ static int dc_parse_node_air_scan(struct json_object *obj, void *jsoncfg)
         return 0;
     }
 
-    ws_templates->config = malloc(size * sizeof(struct wcan_template));
+    ws_templates->config = malloc(size * sizeof(struct wscan_template));
     if (ws_templates->config == NULL) {
         return dc_error_code(dc_error_system, node, 0);
     }
-    memset(ws_templates->config, 0, size * sizeof(struct wcan_template));
+    memset(ws_templates->config, 0, size * sizeof(struct wscan_template));
 
     for(i = 0; i < size; i++) {   
         paires[0].value = ws_templates->config[ws_templates->num].name;
@@ -3693,7 +3713,6 @@ static int dc_parse_node_air_scan(struct json_object *obj, void *jsoncfg)
         ws_templates->num++;
     }
     
-#endif
     return 0;
 }
 
@@ -3829,11 +3848,13 @@ int dc_hdl_node_wlan(struct json_object *obj)
     struct portal_preauth pp_json_cfg;
     struct arp_optimize ao_json_cfg;
     struct wlan_scan_template ws_json_cfg;
+
     struct service_template *st_cur_cfg = NULL;
     struct wlan_radio_info *rd_cur_cfg = NULL;
     struct portal_schemes ps_cur_cfg;
     struct wlan_acl_stats *as_cur_cfg = NULL;
     struct scheme_time_range *tl_cur_cfg = NULL;
+
     struct service_template_json st_def_cfg = {
         .beacon_ssid_hide = 0,
         .client_max = 127,
@@ -5126,6 +5147,7 @@ ERROR_OUT:
 
 int dc_hdl_node_vlan_port(struct json_object *obj)
 {
+    /* TODO */
 #if !OK_PATCH
     struct vlan_port {
         char name[33];
@@ -5284,7 +5306,6 @@ ERROR_OUT:
 
 int dc_hdl_node_interface(struct json_object *obj)
 {
-#if !OK_PATCH
     struct if_enable {
         int enable;
         char name[33];
@@ -5309,7 +5330,6 @@ int dc_hdl_node_interface(struct json_object *obj)
     size = json_object_array_length(obj);
     if (size <= 0) {
         return 0;
-        //return dc_error_code(dc_error_obj_data, node, 0);
     }
 
     memset(&interfaces, 0, sizeof(interfaces));
@@ -5333,6 +5353,7 @@ int dc_hdl_node_interface(struct json_object *obj)
     }
 
     for (i = 0; i < interfaces.num; i++) {
+#if !OK_PATCH
         if ((ret = netifd_set_enable(interfaces.config[i].name, interfaces.config[i].enable)) != 0) {
             if (ret != CMP_ERR_COMMIT_FAIL) { /* same config */
                 nmsc_log("Set the interface %s enable %d failed for %d.", 
@@ -5344,19 +5365,16 @@ int dc_hdl_node_interface(struct json_object *obj)
                 ret = 0;
             }
         }
+#endif
     }
     
     free(interfaces.config);
 
     return ret;    
-#else
-    return 0;
-#endif
 }
 
 int dc_hdl_node_capwap(struct json_object *obj)
 {
-#if !OK_PATCH
     struct capwapc_config def_cfg, cur_cfg, json_cfg;
 
     struct node_pair_save paires[] = {
@@ -5406,7 +5424,6 @@ int dc_hdl_node_capwap(struct json_object *obj)
         || json_cfg.mtu != cur_cfg.mtu
         || strcmp(json_cfg.mas_server, cur_cfg.mas_server) != 0
         || strcmp(json_cfg.sla_server, cur_cfg.sla_server) != 0)) {
-        //capwapc_disable();
         capwapc_set_forceexec(1);
 
         if (strcmp(json_cfg.mas_server, cur_cfg.mas_server) != 0) {
@@ -5479,13 +5496,12 @@ int dc_hdl_node_capwap(struct json_object *obj)
         nmsc_log("Same capwap config, do nothing.");
     }
 
-#endif
     return 0;
 }
 
-//add by puyg for probe
 int dc_hdl_node_probe(struct json_object *obj)
 {
+    /* not support yet */
 #if !OK_PATCH
     struct probe_config{
         int enable;
@@ -5564,7 +5580,6 @@ int dc_hdl_node_probe(struct json_object *obj)
 
 int dc_hdl_node_log(struct json_object *obj)
 {
-#if !OK_PATCH
     log_infocenter def_cfg, json_cfg;
     int server_enable = 0;
 
@@ -5651,21 +5666,14 @@ int dc_hdl_node_log(struct json_object *obj)
         }
     }
 
-#if 0
-    if((ret = log_set_bufferlevel(json_cfg.buffer.level)) != 0){
-        nmsc_log("Infocenter set log buffer level %d failed for %d.", json_cfg.buffer.level, ret);
-        return dc_error_code(dc_error_commit_failed, node, ret);
-    }
-#else 
     nmsc_delay_op_new(nmsc_delay_op_log, &json_cfg.buffer.level, sizeof(json_cfg.buffer.level));
-#endif
     
-#endif
     return 0;
 }
 
 int dc_hdl_node_wds(struct json_object *obj)
 {
+    /* not supported yet */
 #if !OK_PATCH
 
 //#define MAC_BUF_LEN (sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx") + 1)

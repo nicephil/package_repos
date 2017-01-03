@@ -1,5 +1,6 @@
 #ifndef __NETWORK_SERVICES_H_
 #define __NETWORK_SERVICES_H_
+#include <arpa/inet.h>
 
 #define NETWORK_CFG_PACKAGE "network"
 #define NETWORK_SECTION_LAN "lan"
@@ -29,7 +30,5 @@ typedef struct interface_info
 }interface_info;
 
 extern int get_manage_ifinfo(interface_info *info);
-
-
 
 #endif /* __NETWORK_SERVICES_H_ */

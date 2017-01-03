@@ -7,7 +7,7 @@
 
 #include "services/cfg_services.h"
 
-int cfg_visit_package(const char *package, 
+int cfg_visit_package(const char *package_tuple, 
         int (*visitor)(struct uci_package *p, void *arg),
         void *arg)
 {
@@ -21,9 +21,9 @@ int cfg_visit_package(const char *package,
         return -1;
     }
 
-    uci_load(ctx, package, &p);
+    uci_load(ctx, package_tuple, &p);
     if(!p) {
-        syslog(LOG_ERR, "no such package:%s\n", package);
+        syslog(LOG_ERR, "no such package:%s\n", package_tuple);
         ret = -1;
         goto _free;
     }
@@ -148,7 +148,7 @@ int cfg_set_option_value(const char *option_tuple, char *value)
         goto _free;
     }
 
-    if (!(ptr.p) || !(ptr.s)) {
+    if (!(ptr.flags & UCI_LOOKUP_COMPLETE)) {
         syslog(LOG_ERR, "no such complete field:%s\n", tuple);
         ret = -1;
         goto _free;
@@ -303,15 +303,15 @@ _free:
     return ret;
 }
 
-int cfg_add_section(const char *section_tuple, const char *section_name)
+int cfg_add_section(const char *section_tuple, const char *section_type)
 {
     struct uci_context *ctx = NULL;
     struct uci_ptr ptr = {0};
     int ret = 0;
     char *tuple;
 
-    tuple = malloc(strlen(section_tuple)+strlen(section_name)+10);
-    sprintf(tuple, "%s=%s", section_tuple, section_name);
+    tuple = malloc(strlen(section_tuple)+strlen(section_type)+10);
+    sprintf(tuple, "%s=%s", section_tuple, section_type);
 
     ctx = uci_alloc_context();
     if (!ctx) {

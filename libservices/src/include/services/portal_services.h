@@ -12,6 +12,9 @@
 #define PORTAL_MAX_IP_ACCESS_ONCE   10
 #define PORTAL_DNSSET_MAX           32
 
+
+#define PORTALSCHEME_CFG_OPTION_DOMAIN_TUPLE "portalscheme.global.domain"
+
 struct white_iplist 
 {
     unsigned int ip;

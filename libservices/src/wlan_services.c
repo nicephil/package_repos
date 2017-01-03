@@ -45,15 +45,20 @@ _free:
 
 int wlan_set_country(const char *country)
 {
+    cfg_set_option_value(WIFI_CFG_RADIO0_OPTION_COUNTRY_TUPLE, country);
+    cfg_set_option_value(WIFI_CFG_RADIO1_OPTION_COUNTRY_TUPLE, country);
     return 0;
 }
 
 int wlan_undo_country(void)
 {
+    cfg_set_option_value(WIFI_CFG_RADIO0_OPTION_COUNTRY_TUPLE, WIFI_COUNTRY_DEFAULT);
+    cfg_set_option_value(WIFI_CFG_RADIO1_OPTION_COUNTRY_TUPLE, WIFI_COUNTRY_DEFAULT);
     return 0;
 }
 
 int wlan_get_country(char *country)
 {
+    cfg_get_option_value(WIFI_CFG_RADIO0_OPTION_COUNTRY_TUPLE, country, 128);
     return 0;
 }

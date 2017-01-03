@@ -16,14 +16,19 @@
 #define CAPWAPC_CFG_OPTION_DOMAIN_TUPLE "capwapc.wtp.domain"
 
 #define CAPWAPC_CFG_OPTION_MASSER      "mas_server"
+#define CAPWAPC_CFG_OPTION_MASSER_TUPLE "capwapc.server.mas_server"
 #define CAPWAPC_CFG_OPTION_SLASER      "sla_server"
+#define CAPWAPC_CFG_OPTION_SLASER_TUPLE "capwapc.server.sla_server"
 #define CAPWAPC_CFG_OPTION_DEFSER      "def_server"
 #define CAPWAPC_CFG_OPTION_CTRLPORT    "ctrl_port"
+#define CAPWAPC_CFG_OPTION_CTRLPORT_TUPLE  "capwapc.wtp.ctrl_port"
 
 #define CAPWAPC_CFG_OPTION_MTU	      "mtu"
+#define CAPWAPC_CFG_OPTION_MTU_TUPLE "capwapc.wtp.mtu"
 #define CAPWAPC_CFG_OPTION_DISCINTV    "disc_intv"
 #define CAPWAPC_CFG_OPTION_MAXDISCINTV "maxdisc_intv"
 #define CAPWAPC_CFG_OPTION_ECHOINTV    "echo_intv"
+#define CAPWAPC_CFG_OPTION_ECHOINTV_TUPLE "capwapc.wtp.echo_intv"
 #define CAPWAPC_CFG_OPTION_RETRANINTV  "retran_intv"
 #define CAPWAPC_CFG_OPTION_SILENTINTV  "silent_intv"
 #define CAPWAPC_CFG_OPTION_JOINTIMEOUT "join_timeout"
@@ -99,8 +104,18 @@ typedef struct capwapc_config {
 extern int capwapc_get_server_pri(char *server, int *server_pri);
 
 
-extern int capwapc_undo_location(void);
+extern int capwapc_get_defcfg(capwapc_config *defcfg);
+extern int capwapc_get_curcfg(capwapc_config *curcfg);
+extern int capwapc_set_echointv(int echointv);
+extern int capwapc_set_mtu(int mtu);
+extern int capwapc_set_slaveserver(const char *server);
+extern int capwapc_undo_slaveserver(void);
+extern int capwapc_set_masterserver(const char *server);
+extern int capwapc_undo_masterserver(void);
+extern int capwapc_set_ctrlport(int ctrlport);
+extern int capwapc_set_forceexec(int force);
 extern int capwapc_set_location(const char *location);
+extern int capwapc_undo_location(void);
 extern int capwapc_set_domain(const char *domain);
 extern int capwapc_set_domain(const char *domain);
 extern int capwapc_undo_domain(void);

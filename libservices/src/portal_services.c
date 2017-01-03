@@ -1,18 +1,7 @@
-#include <limits.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <signal.h>
+#include <uci.h>
 
-#include <linux/if.h>
-
-#define DEBUG printf
+#include "services/cfg_services.h"
+#include "services/portal_services.h"
 
 int portal_scheme_create(char * name)
 {
@@ -141,8 +130,12 @@ int portal_scheme_del_sta(char * scheme_name, char * clientmac)
 
 int portald_scheme_update_domain(char * domain_name)
 {
-	return 0;
-
+    if (!domain_name) {
+        cfg_del_option(PORTALSCHEME_CFG_OPTION_DOMAIN_TUPLE);
+    } else {
+        cfg_set_option_value(PORTALSCHEME_CFG_OPTION_DOMAIN_TUPLE, domain_name);
+    }
+    return 0;
 }
 
 int portal_scheme_authentication(char * scheme_name, char * clientmac, unsigned int time) 

@@ -102,7 +102,6 @@ void nmsc_delay_op_new(int (*operator)(void *reserved), void *param, int size)
 
 int nmsc_delay_op_log(void *reserved) 
 {
-#if !OK_PATCH
     int ret = log_set_bufferlevel(*(int *)reserved);
 
     if (ret != 0) {
@@ -113,9 +112,6 @@ int nmsc_delay_op_log(void *reserved)
     return 0;
 ERROR_OUT:
     return dc_error_code(dc_error_commit_failed, dc_node_log, ret);
-#else
-    return 0;
-#endif
 }
 
 int nmsc_delay_op_dhcpd(void *reserved) 
