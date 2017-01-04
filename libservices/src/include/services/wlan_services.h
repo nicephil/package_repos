@@ -3,6 +3,179 @@
 #include <netinet/in.h>
 
 
+enum PORT_EAABLE
+{
+    ENABLE = 1,
+    DISABLE = 0,    
+};
+
+
+
+enum RADIO_DEVICE_MODE 
+{
+    RADIO_DEVICE_MODE_NORMAL = 1,
+    RADIO_DEVICE_MODE_MONITOR
+};
+
+
+#define WLAN_SSID_MAX_LENGTH    33
+#define WLAN_KEY_MAX_LENGTH     65
+#define ACL_NAME_MAX_LENGTH     16
+#define PORTAL_SCHEME_NAME_MAX_LENGTH     32
+#define TIMER_NAME_MAX_LENGTH     32
+#define RADIUS_SCHEME_NAME_MAX_LENGTH   17
+#define RADIUS_SCHEME_NAME_MAX_LENGTH   17
+
+enum WLAN_STA_CIPHER {
+    WLAN_STA_CIPHER_WEP = 0, 
+    WLAN_STA_CIPHER_TKIP = 1, 
+    WLAN_STA_CIPHER_AES_OCB = 2, 
+    WLAN_STA_CIPHER_AES_CCM = 3, 
+    WLAN_STA_CIPHER_WAPI = 4, 
+    WLAN_STA_CIPHER_CKIP = 5, 
+
+    WLAN_STA_CIPHER_NONE = 6, 
+
+    WLAN_STA_CIPHER_MAX
+};
+
+struct wlan_radio_config {
+    int beacon_interval;    //in ms
+    int max_power;
+    int dtim;               // beacon slot
+    int fragment_threshold;
+    int rts_threshold;
+    int short_gi;
+    unsigned char atf;
+    unsigned char amsdu;
+    unsigned char ampdu;
+    unsigned char mode;
+    unsigned char device_mode;	//normal or monitor
+    unsigned char channel;
+    unsigned char distance;             // in kilometer
+    unsigned char bandwidth;            // 20M or 40M Hz
+    unsigned char preamble;             // refer to enum WLAN_PREAMBLE
+    unsigned char dot11nonly;
+    unsigned char dot11aconly;
+    unsigned char protection_mode;      // refer to enum WLAN_PROTECTION_MODE
+    unsigned char   rssi_access_enable;
+    unsigned char   bcast_ratelimit_enable;
+    unsigned int    bcast_ratelimit_cir;
+    unsigned int    bcast_ratelimit_cbs;
+    int             rssi_access_threshold;
+    unsigned int    debug_switch;    /* lczhang add for wlan driver radio debugging */
+    unsigned int    basic_rateset;      /* lczhang add for rateset */
+    unsigned int    supported_rateset;
+    unsigned int    disabled_rateset;
+    unsigned int    basic_mcs;
+    unsigned int    supported_mcs;/* end */
+    int beacon_rate;
+    int manage_rate;
+
+    char country[4];        // used 2 or 3 chars, aligned to 4 bytes
+    char scan_template[33];
+};
+
+typedef struct radio_info
+{
+    struct wlan_radio_config radio;
+    int id;
+    int enable;
+    int count;
+    int service[20];
+    int wlan_bss[20];
+}radio_info;
+
+typedef struct wlan_radio_info
+{
+    int num;
+    radio_info radioinfo[5];
+}wlan_radio_info;
+
+struct wlan_wep40_key {
+    char    key_type;   // refer enum WLAN_BSS_KEY_TYPE
+    char    key_crypt;  // refer enum WLAN_BSS_KEY_CRYPT
+    char    key_len;    // actually key length, no include '\0'
+    char    key[22];    // longest format: WEP108
+};
+
+struct wlan_wep108_key {
+    char    key_type;   // refer enum WLAN_BSS_KEY_TYPE
+    char    key_crypt;  // refer enum WLAN_BSS_KEY_CRYPT
+    char    key_len;    // actually key length, no include '\0'
+    char    key[54];    // longest format: WEP108
+};
+
+struct wpa_key {
+    char    key_type;   // refer enum WLAN_BSS_KEY_TYPE
+    char    key_crypt;  // refer enum WLAN_BSS_KEY_CRYPT
+    char    key_len;    // actually key length, no include '\0'
+    char    key[130];    // longest format: hex64
+};
+
+enum WLAN_OPMODE{
+    WLAN_OPMODE_AP,
+    WLAN_OPMODE_STA,
+    
+    WLAN_OPMODE_MAX
+};
+
+struct wlan_service_template {
+    int     id;
+    int     client_max;
+    int     ref_count;
+    unsigned int    ptk_lifetime;
+    unsigned int    gtk_lifetime;
+
+    char    opmode; //refer WLAN_OPMODE
+    char    wds;
+    char    used;
+    char    service_enabled;    // service template enable state, generate by enabled & ssid_ctrl .....
+    char    enabled;        // service template enabled or not
+    char    ptk_enabled;
+    char    gtk_enabled;
+    char beacon_ssid_hide;
+    char    cipher;     // refer enum WLAN_CIPHER
+    char    auth;       // refer enum WLAN_AUTH
+	char	m2u_enabled;	//added by lsz for m2u
+	
+    /* Begin: lczhang add for rate limit */
+    unsigned int dynamic_uplink_rate_limit;
+    unsigned int dynamic_downlink_rate_limit;
+    unsigned int static_uplink_rate_limit;
+    unsigned int static_downlink_rate_limit;    
+    /* End */
+    char ssid[WLAN_SSID_MAX_LENGTH];
+    char radius_scheme[RADIUS_SCHEME_NAME_MAX_LENGTH + 1];
+	char portal_scheme[PORTAL_SCHEME_NAME_MAX_LENGTH + 1];
+	char acl[ACL_NAME_MAX_LENGTH + 1];
+	char timer_scheme[TIMER_NAME_MAX_LENGTH + 1];
+    char bssid[6]; //specify ap in sta-mode
+
+    char    wds_autopath;    //autopath
+    char    wds_acl;     //use wds specified acl
+    
+    char    manage_template;     //indicate manage_template
+    char    mgt_enable;    //manage feature 1:up ,0:down
+    unsigned int manage_ip; //manage feature
+    unsigned int manage_mask; //manage feature 0~32
+    
+    char    pmf;    //0:disabled, 1:optional, 2:mandatory
+	char    ssid_ctrl;       // ssid control state 1: up, -1:down
+    char    wep_key_slot;   // only used when @cipher = WLAN_CIPHER_WEP
+    struct  wlan_wep40_key      wep40_key[4];
+    struct  wlan_wep108_key     wep108_key[4];
+    struct  wpa_key             wpa_key;
+};
+
+typedef struct service_template
+{
+    int num;
+    struct wlan_service_template wlan_st_info[20];
+}service_template;
+
+
+
 enum EN_DOT11_RADIO_MODE {
     DOT11_RADIO_MODE_A = 1 << 0,
     DOT11_RADIO_MODE_B = 1 << 1,
@@ -117,14 +290,32 @@ struct wlan_acl_stats {
 #define WIFI_CFG_OPTION_COUNTRY "country"
 extern int if_get_radio_count(int *count);
 
-int wlan_get_country(char *country);
-int wlan_set_country(const char *country);
 #define WIFI_CFG_RADIO0_OPTION_COUNTRY_TUPLE "wireless.@wifi-iface[0].country"
 #define WIFI_CFG_RADIO1_OPTION_COUNTRY_TUPLE "wireless.@wifi-iface[0].country"
 #define WIFI_COUNTRY_DEFAULT "156"
-int wlan_undo_country(void);
+extern int wlan_get_country(char *country);
+extern int wlan_set_country(const char *country);
+extern int wlan_undo_country(void);
+
+
+extern int wlan_set_beacon_ssid_hide(int stid, int value);
+extern int wlan_set_client_max(int stid, int value);
+extern int wlan_set_auth(int stid, int auth);
+extern int wlan_set_service_template_enable(int stid, int enable);
 
 
 
+
+#define WLAN_CFG_SERVICE_TEMPLATE_PACKAGE "wlan_service_template"
+extern int wlan_service_template_get_all(struct service_template *stcfg);
+extern int wlan_undo_service_template(int stid);
+
+
+#define WLAN_CFG_RADIO_PACKAGE   "wlan_radio"
+extern int wlan_radio_get_all(struct wlan_radio_info *rdcfg);
+
+
+
+extern int wlan_undo_bind(int radio, int stid);
 
 #endif /*__WLAN_SERVICES_H_ */

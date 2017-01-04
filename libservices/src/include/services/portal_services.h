@@ -51,6 +51,9 @@ extern int portal_scheme_uri(char * name, char *uri);
 extern int portal_scheme_blackip(char * name, char *authip, char *wechatip);
 extern int portal_decompile( int fd );
 extern int portal_scheme_flush_ipacl(char * name);
+
+#define PORTAL_SCHEME_CFG_PACKAGE "portal"
+#define PORTAL_SCHEME_MAX_SIZE 10
 extern int portal_scheme_get_all(struct portal_schemes *schemes);
 extern void portal_scheme_free_all(struct portal_schemes *schemes);
 extern int portal_scheme_undo_dnsset(char * portal_scheme);

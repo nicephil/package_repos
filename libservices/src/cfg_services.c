@@ -216,15 +216,12 @@ _free:
     return ret;
 }
 
-int cfg_del_option_list_value(const char *option_tuple, char *list_value)
+int cfg_del_option_list_value(const char *option_tuple)
 {
     struct uci_context *ctx = NULL;
     struct uci_ptr ptr = {0};
     int ret = 0;
-    char *tuple;
-
-    tuple = malloc(strlen(option_tuple)+strlen(list_value)+10);
-    sprintf(tuple, "%s=%s", option_tuple, list_value);
+    char *tuple = strdup(option_tuple);
 
     ctx = uci_alloc_context();
     if (!ctx) {
@@ -303,15 +300,15 @@ _free:
     return ret;
 }
 
-int cfg_add_section(const char *section_tuple, const char *section_type)
+int cfg_add_section(const char *package_tuple, const char *section_name_type)
 {
     struct uci_context *ctx = NULL;
     struct uci_ptr ptr = {0};
     int ret = 0;
     char *tuple;
 
-    tuple = malloc(strlen(section_tuple)+strlen(section_type)+10);
-    sprintf(tuple, "%s=%s", section_tuple, section_type);
+    tuple = malloc(strlen(package_tuple)+strlen(section_name_type)+10);
+    sprintf(tuple, "%s.%s=%s", package_tuple, section_name_type, section_name_type);
 
     ctx = uci_alloc_context();
     if (!ctx) {

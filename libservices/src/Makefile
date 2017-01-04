@@ -1,4 +1,5 @@
-LIBOBJS = capwapc_services.o \
+LIBOBJS = util_services.o \
+		  capwapc_services.o \
 		  hostname_services.o \
 		  cfg_services.o \
 		  portal_services.o \
@@ -6,7 +7,8 @@ LIBOBJS = capwapc_services.o \
 		  ntpclient_services.o \
 		  log_services.o \
 		  dns_services.o \
-		  vlan_services.o
+		  vlan_services.o \
+		  dnsset_services.o
 
 
 SHLIB = libservices.so.1.0

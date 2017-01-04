@@ -52,10 +52,9 @@ extern int cfg_add_option_list_value(const char *option_tuple, char *list_value)
 /*
  * @brief delete the list value according to option tuple
  * @param [in] option_tuple e.g. portalscheme.bb.ip='192.168.1.1/255.255.255.0'
- * @param [in] the value of list
  * @return 0 means success, otherwise means failure
  */
-extern int cfg_del_option_list_value(const char *option_tuple, char *list_value);
+extern int cfg_del_option_list_value(const char *option_tuple);
 
 /*
  * @brief delete the option according to option tuple
@@ -66,11 +65,11 @@ extern int cfg_del_option(const char *option_tuple);
 
 /*
  * @brief add the name of section
- * @param [in] setion_tuple e.g. portalscheme.aa 
- * @param [in] section_type e.g. portalscheme
+ * @param [in] package_tuple e.g. portalscheme 
+ * @param [in] section_name_type e.g. config aa aa
  * @return 0 means success, otherwise means failure
  */
-extern int cfg_add_section(const char *section_tuple, const char *section_type);
+extern int cfg_add_section(const char *package_tuple, const char *section_name_type);
 
 /*
  * @brief delete the section
