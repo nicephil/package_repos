@@ -136,10 +136,12 @@ void dnsset_cfg_free(DNSSET_S *dns_set)
 }
 
 
-int dnsset_create(char * name)
+int dnsset_create(char *name)
 {
 
+    //dns_set.aa=aa
     cfg_add_section(DNSSET_CFG_PACKAGE, name);
+
     //dns_set.aa.enabled='enabled'
     char tuple[128];
     sprintf(tuple, "dns_set.%s.enabled", name);
@@ -155,7 +157,7 @@ int dnsset_disable(char *name)
     cfg_set_option_value(tuple, "disabled");
 }
 
-int dnsset_add_key(char * name, char *key)
+int dnsset_add_key(char *name, char *key)
 {
     //dns_set.aa.key='19214/24' '2444/2'
     char tuple[128];

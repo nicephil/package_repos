@@ -290,9 +290,7 @@ struct wlan_acl_stats {
 #define WIFI_CFG_OPTION_COUNTRY "country"
 extern int if_get_radio_count(int *count);
 
-#define WIFI_CFG_RADIO0_OPTION_COUNTRY_TUPLE "wireless.@wifi-iface[0].country"
-#define WIFI_CFG_RADIO1_OPTION_COUNTRY_TUPLE "wireless.@wifi-iface[0].country"
-#define WIFI_COUNTRY_DEFAULT "156"
+#define WLAN_DEFAULT_COUNTRY_CODE "CN"
 extern int wlan_get_country(char *country);
 extern int wlan_set_country(const char *country);
 extern int wlan_undo_country(void);
@@ -307,6 +305,7 @@ extern int wlan_set_service_template_enable(int stid, int enable);
 
 
 #define WLAN_CFG_SERVICE_TEMPLATE_PACKAGE "wlan_service_template"
+#define ST_MAX_COUNT 10    
 extern int wlan_service_template_get_all(struct service_template *stcfg);
 extern int wlan_undo_service_template(int stid);
 
@@ -317,5 +316,43 @@ extern int wlan_radio_get_all(struct wlan_radio_info *rdcfg);
 
 
 extern int wlan_undo_bind(int radio, int stid);
-
+extern int wlan_undo_service_template_enable(int stid);
+extern int wlan_get_valid_stid(void);
+extern int wlan_create_service_template(int stid);
+extern int wlan_set_ssid(int stid, const char *ssid);
+extern int wlan_set_portal_scheme(int service_template, char *portal_scheme);
+extern int wlan_set_beacon_ssid_hide(int stid, int value);
+extern int wlan_set_client_max(int stid, int value);
+extern int wlan_set_radio_enable(int radio_id, int enable);
+extern int wlan_set_mode(int radio_id, int mode);
+extern int wlan_set_channel(int radio_id, int value);
+extern int wlan_set_max_power(int radio_id, int value);
+extern int wlan_set_dtim(int radio_id, int value);
+extern int wlan_set_frag_threshold(int radio_id, int value);
+extern int wlan_set_rts_threshold(int radio_id, int value);
+extern int wlan_set_short_gi(int radio_id, int value);
+extern int wlan_set_ampdu(int radio_id, int enable);
+extern int wlan_set_dot11nonly(int radio_id, int dot11nonly);
+extern int wlan_set_dot11aconly(int radio_id, int dot11aconly);
+extern int wlan_set_bandwidth(int radio_id, int bandwidth);
+extern int wlan_set_distance(int radio_id, int value);
+extern int wlan_set_preamble(int radio_id, int preamble);
+extern int wlan_set_protection_mode(int radio_id, int mode);
+extern int wlan_set_beacon_interval(int radio_id, int value);
+extern int wlan_set_rssi_threshold(int radio_id, int value);
+extern int wlan_set_rssi(int radio_id, int enable);
+extern int wlan_set_bind(int radio_id, int bssid, int stid);
+extern int wlan_set_bcast_ratelimit_enable(int radio_id, int value);
+extern int wlan_set_cipher(int stid, int cipher);
+extern int wlan_set_wep40_key(int stid, int slot, int type, int crypt, const char *key);
+extern int wlan_set_wep108_key(int stid, int slot, int type, int crypt, const char * key);
+extern int wlan_set_psk(int stid, const char * password, int crypt, int type);
+extern int wlan_set_radius_scheme(int stid, const char * name);
+extern int wlan_set_ptk_lifetime(int stid, int value);
+extern int wlan_set_ptk_lifetime_enable(int stid, int value);
+extern int wlan_set_gtk_lifetime(int stid, int value);
+extern int wlan_set_gtk_lifetime_enable(int stid, int value);
+extern int wlan_set_static_client_uplink_rate_limit_value(int stid, unsigned int value);
+extern int wlan_set_dynamic_client_uplink_rate_limit_value(int stid, unsigned int value);
+extern int wlan_undo_dynamic_client_uplink_rate_limit_value( int stid );
 #endif /*__WLAN_SERVICES_H_ */

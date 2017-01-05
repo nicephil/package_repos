@@ -38,11 +38,21 @@ int portal_scheme_enable(char * name)
 
 int portal_scheme_disable(char * name)
 {
+    //portal.aa.enabled
+    char tuple[128];
+    sprintf(tuple, "portal.%s.enabled", name);
+    cfg_set_option_value(tuple, "disabled");
     return 0;
 }
 
 int portal_scheme_add_ipacl(char * name, char *ip, unsigned int cidr)
 {
+    //portal.aa.iplist
+    char iplist[40];
+    char tuple[128];
+    snprintf(iplist, sizeof(iplist), "%s/%u", ip, cidr);
+    sprintf(tuple, "portal.%s.iplist", name);
+    cfg_add_option_list_value(tuple, iplist);
     return 0;
 }
 
@@ -53,6 +63,10 @@ int portal_scheme_del_ipacl(char * name, char *ip, unsigned int cidr)
 
 int portal_scheme_flush_ipacl(char * name)
 {
+    //portal.bb.iplist='192.168.0.0/24'
+    char tuple[128];
+    sprintf(tuple, "portal.%s.iplist", name);
+    cfg_del_section(tuple);
     return 0;
 }
 
@@ -61,17 +75,19 @@ int portal_scheme_uri(char *name, char *uri)
 {
     //portal.aa.url
     char tuple[128];
-    sprintf("portal.%s.url", name);
+    sprintf(tuple, "portal.%s.url", name);
     cfg_set_option_value(tuple, uri);
     return 0;
 }
 
 int portal_scheme_blackip(char *name, char *authip, char *wechatip)
 {
-    //portal.aa.wechatip='192.168.1.1'
     char tuple[128];
-    sprintf(tuple, "portal.%s.wechatip", name);
-    cfg_set_optionvalue(tuple, wechatip);
+    //portal.aa.wechatip='192.168.1.1'
+    if (wechatip) {
+        sprintf(tuple, "portal.%s.wechatip", name);
+        cfg_set_option_value(tuple, wechatip);
+    }
 
     //portal.aa.authip='192.168.1.1'
     sprintf(tuple, "portal.%s.authip", name);
@@ -87,6 +103,7 @@ int portal_scheme_set_dnsset(char * portal_scheme, char *set_name)
     cfg_set_option_value(tuple, set_name);
     return 0;
 }
+
 int portal_scheme_undo_dnsset(char *portal_scheme)
 {
     //portal.aa.dns_set='name'
@@ -96,25 +113,22 @@ int portal_scheme_undo_dnsset(char *portal_scheme)
     return 0;
 }
 
-int wlan_set_portal_scheme(int service_template, char * portal_scheme)
+int wlan_set_portal_scheme(int service_template, char *portal_scheme)
 {
+    //wlan_service_template.ServiceTemplate1.portal_scheme='bb'
+    char tuple[128];
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.portal_scheme", service_template);
+    cfg_set_option_value(tuple, portal_scheme);
     return 0;
 }
 
 int wlan_undo_portal_scheme(int service_template)
 {
-    //wlan_service_template.@ServiceTemplate1[0].portal_scheme='bb'
+    //wlan_service_template.ServiceTemplate1.portal_scheme='bb'
     char tuple[128];
     sprintf(tuple, "wlan_service_template.ServiceTemplate%d.portal_scheme", service_template);
-    char portal_scheme[32];
-    cfg_get_option_value(tuple, portal_scheme, 32);
     /* delete it in wlan_service_template */
     cfg_del_option(tuple);
-
-    //portal.@aa[0]=aa
-    sprintf(tuple, "portal.%s", portal_scheme);
-    /* delete it in portal scheme */
-    cfg_del_section(tuple);
 
     return 0;
 }
@@ -274,10 +288,12 @@ int portal_scheme_del_sta(char * scheme_name, char * clientmac)
 
 int portald_scheme_update_domain(char * domain_name)
 {
+    //portal.domain.domain='aa'
     if (!domain_name) {
-        cfg_del_option(PORTALSCHEME_CFG_OPTION_DOMAIN_TUPLE);
+        cfg_del_section("portal.domain");
     } else {
-        cfg_set_option_value(PORTALSCHEME_CFG_OPTION_DOMAIN_TUPLE, domain_name);
+        cfg_add_section("portal","domain");
+        cfg_set_option_value("portal.domain.domain", domain_name);
     }
     return 0;
 }

@@ -39,7 +39,16 @@ extern int cfg_get_option_value(const char *option_tuple, char *value, int len);
  * @param [in] value set to option
  * @return 0 means success, otherwise means failure
  */
-extern int cfg_set_option_value(const char *option_tuple, char *value);
+extern int cfg_set_option_value(const char *option_tuple, const char *value);
+
+/*
+ * @brief set the int value according to whole option tuple, will create one option
+ * if not found
+ * @param [in] option_tuple e.g. portalschemem.bb.timeslot
+ * @param [in] value set to option
+ * @return 0 means success, otherwise means failure
+ */
+extern int cfg_set_option_value_int(const char *option_tuple, int value);
 
 /*
  * @brief add the list value according to option tuple
@@ -66,10 +75,19 @@ extern int cfg_del_option(const char *option_tuple);
 /*
  * @brief add the name of section
  * @param [in] package_tuple e.g. portalscheme 
- * @param [in] section_name_type e.g. config aa aa
+ * @param [in] section_type_name e.g. config aa aa
  * @return 0 means success, otherwise means failure
  */
-extern int cfg_add_section(const char *package_tuple, const char *section_name_type);
+extern int cfg_add_section(const char *package_tuple, const char *section_type_name);
+
+/*
+ * @breif add the section with name and type. e.g. system.ntp.timeserver
+ * @param [in] package_tuple e.g. system
+ * @param [in] section_type e.g. ntp
+ * @param [in] section_name e.g. timeserver
+ * @return 0 means success, otherwise failure
+ */
+extern int cfg_add_section_with_type_name(const char *package_tuple, const char *section_type, const char *section_name);
 
 /*
  * @brief delete the section

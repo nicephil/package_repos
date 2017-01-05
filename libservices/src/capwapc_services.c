@@ -170,7 +170,7 @@ int capwapc_get_defcfg(capwapc_config *defcfg)
     defcfg->mas_server[0] = '\0';
     defcfg->sla_server[0] = '\0';
     strcpy(defcfg->def_server, CAPWAPC_DEFAULT_SERVER);
-    strcpy(defcfg->ctrl_port, CAPWAPC_DEFAULT_CTRLPORT);
+    defcfg->ctrl_port =  CAPWAPC_DEFAULT_CTRLPORT;
     defcfg->mtu = CAPWAPC_DEFAULT_MTU;
     defcfg->disc_intv = CAPWAPC_DEFAULT_DISCINTV;
     defcfg->maxdisc_intv = CAPWAPC_DEFAULT_MAXDISCINTV;
@@ -207,18 +207,14 @@ int capwapc_undo_slaveserver(void)
 
 int capwapc_set_echointv(int echointv)
 {
-    char buf[10];
-    sprintf(buf, "%d", echointv);
-    cfg_set_option_value(CAPWAPC_CFG_OPTION_ECHOINTV_TUPLE, buf);
+    cfg_set_option_value_int(CAPWAPC_CFG_OPTION_ECHOINTV_TUPLE, echointv);
     g_capwapc_config.echo_intv = echointv;
     return 0;
 }
 
 int capwapc_set_mtu(int mtu)
 {
-    char buf[10];
-    sprintf(buf, "%d", mtu);
-    cfg_set_option_value(CAPWAPC_CFG_OPTION_MTU_TUPLE, buf);
+    cfg_set_option_value_int(CAPWAPC_CFG_OPTION_MTU_TUPLE, mtu);
     g_capwapc_config.mtu = mtu;
     return 0;
 }
@@ -239,9 +235,7 @@ int capwapc_undo_masterserver(void)
 
 int capwapc_set_ctrlport(int ctrlport)
 {
-    char buf[10];
-    sprintf(buf, "%d", ctrlport);
-    cfg_set_option_value(CAPWAPC_CFG_OPTION_CTRLPORT_TUPLE, buf);
+    cfg_set_option_value_int(CAPWAPC_CFG_OPTION_CTRLPORT_TUPLE, ctrlport);
     g_capwapc_config.ctrl_port = ctrlport;
     return 0;
 }

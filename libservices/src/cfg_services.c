@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <assert.h>
 
 #include "services/cfg_services.h"
 
@@ -126,12 +127,15 @@ _free:
     return ret;
 }
 
-int cfg_set_option_value(const char *option_tuple, char *value)
+int cfg_set_option_value(const char *option_tuple, const char *value)
 {
     struct uci_context *ctx = NULL;
     struct uci_ptr ptr = {0};
     int ret = 0;
     char *tuple;
+
+    assert(option_tuple);
+    assert(value);
 
     tuple = malloc(strlen(option_tuple)+strlen(value)+10);
     sprintf(tuple, "%s=%s", option_tuple, value);
@@ -148,7 +152,7 @@ int cfg_set_option_value(const char *option_tuple, char *value)
         goto _free;
     }
 
-    if (!(ptr.flags & UCI_LOOKUP_COMPLETE)) {
+    if (!(ptr.p) || !(ptr.s)) {
         syslog(LOG_ERR, "no such complete field:%s\n", tuple);
         ret = -1;
         goto _free;
@@ -169,6 +173,52 @@ _free:
         free(tuple);
     }
     return ret;
+}
+
+int cfg_set_option_value_int(const char *option_tuple, int value)
+{
+    struct uci_context *ctx = NULL;
+    struct uci_ptr ptr = {0};
+    int ret = 0;
+    char *tuple;
+
+    tuple = malloc(strlen(option_tuple)+43);
+    sprintf(tuple, "%s=%d", option_tuple, value);
+
+    ctx = uci_alloc_context();
+    if (!ctx) {
+        syslog(LOG_ERR, "no enough memory\n");
+        return -1;
+    }
+
+    if (uci_lookup_ptr(ctx, &ptr, tuple, true) != UCI_OK) {
+        syslog(LOG_ERR, "no such field:%s\n", tuple);
+        ret = -1;
+        goto _free;
+    }
+
+    if (!(ptr.p) || !(ptr.s)) {
+        syslog(LOG_ERR, "no such complete field:%s\n", tuple);
+        ret = -1;
+        goto _free;
+    }
+    
+    uci_set(ctx, &ptr);
+
+    uci_commit(ctx, &ptr.p, false);
+
+_free:
+    if (ctx && ptr.p) {
+        uci_unload(ctx, ptr.p);
+    }
+    if (ctx) {
+        uci_free_context(ctx);
+    }
+    if (tuple) {
+        free(tuple);
+    }
+    return ret;
+
 }
 
 int cfg_add_option_list_value(const char *option_tuple, char *list_value)
@@ -300,15 +350,61 @@ _free:
     return ret;
 }
 
-int cfg_add_section(const char *package_tuple, const char *section_name_type)
+int cfg_add_section_with_type_name(const char *package_tuple, const char *section_type, const char *section_name)
 {
     struct uci_context *ctx = NULL;
     struct uci_ptr ptr = {0};
     int ret = 0;
     char *tuple;
 
-    tuple = malloc(strlen(package_tuple)+strlen(section_name_type)+10);
-    sprintf(tuple, "%s.%s=%s", package_tuple, section_name_type, section_name_type);
+     tuple = malloc(strlen(package_tuple)+strlen(section_name)+strlen(section_type)+10);
+     sprintf(tuple, "%s.%s=%s", package_tuple, section_type, section_name);
+
+    ctx = uci_alloc_context();
+    if (!ctx) {
+        syslog(LOG_ERR, "no enough memory\n");
+        return -1;
+    }
+
+    if (uci_lookup_ptr(ctx, &ptr, tuple, true) != UCI_OK) {
+        syslog(LOG_ERR, "no such field:%s\n", tuple);
+        ret = -1;
+        goto _free;
+    }
+
+    if (!(ptr.p)) {
+        syslog(LOG_ERR, "no such complete field:%s\n", tuple);
+        ret = -1;
+        goto _free;
+    }
+    
+    uci_set(ctx, &ptr);
+
+    uci_commit(ctx, &ptr.p, false);
+
+_free:
+    if (ctx && ptr.p) {
+        uci_unload(ctx, ptr.p);
+    }
+    if (ctx) {
+        uci_free_context(ctx);
+    }
+    if (tuple) {
+        free(tuple);
+    }
+    return ret;
+
+}
+
+int cfg_add_section(const char *package_tuple, const char *section_type_name)
+{
+    struct uci_context *ctx = NULL;
+    struct uci_ptr ptr = {0};
+    int ret = 0;
+    char *tuple;
+
+    tuple = malloc(strlen(package_tuple)+strlen(section_type_name)+10);
+    sprintf(tuple, "%s.%s=%s", package_tuple, section_type_name, section_type_name);
 
     ctx = uci_alloc_context();
     if (!ctx) {

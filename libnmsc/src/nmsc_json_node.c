@@ -20,6 +20,7 @@
 #include "services/dns_services.h"
 #include "services/vlan_services.h"
 #include "services/dnsset_services.h"
+#include "services/cfg_services.h"
 
 #define SCHEME_TIME_RANGE_MAXSIZE 16
 #define PERIODIC_TIME_RANGE_MAXSIZE 16
@@ -529,8 +530,8 @@ int dc_hdl_node_system(struct json_object *obj)
     struct subnode_handler system_subnodes[] = {
         {"hostname", dc_hdl_node_hostname},
         {"location", dc_hdl_node_location},
-        {"domain_name", dc_hdl_node_domain_name},
-        {"country_code", dc_hdl_node_country}
+        {"country_code", dc_hdl_node_country},
+        {"domain_name", dc_hdl_node_domain_name}
     };
     int i, obj_saved, ret, node = dc_node_system;
     
@@ -663,6 +664,8 @@ int dc_hdl_node_ntp(struct json_object *obj)
             // return dc_error_code(dc_error_save_obj, node, 0);
         }
     }
+
+
 
     memset(&def_cfg, 0, sizeof(def_cfg));
     if (ntpclient_get_defcfg(&def_cfg) != 0 
@@ -1481,16 +1484,8 @@ int dc_hdl_node_vlan(struct json_object *obj)
                     break;
                 }
             }
+            /* existing vlan not in json_cfg, so delete it */
             if (j >= vlanes.num) {
-#if !OK_PATCH
-                char ifname[SYS_INTF_NAME_SIZE];
-                
-                if_form_name(0, idlist[i], IF_PHYTYPE_VLAN,  ifname);
-                if (nat_get_enable(ifname)) {
-                    nmsc_log("Interface %s nat enabled, do nothing.", ifname);
-                    continue;
-                }
-#endif
                 if ((ret = vlan_destroy(idlist[i], idlist[i])) != 0) {
                     nmsc_log("Delete vlan %d failed for %d.", idlist[i], ret);
                     ret = dc_error_code(dc_error_commit_failed, node, ret);
@@ -1507,6 +1502,7 @@ int dc_hdl_node_vlan(struct json_object *obj)
             }
         }
 
+        /* new json_cfg vlan, need create it */
         if (i >= listnum) {
             ret = vlan_create(vlanes.config[j].id, vlanes.config[j].id);
             if (ret != 0) {
@@ -3808,21 +3804,11 @@ static int dc_hdl_node_wlan_scan(struct wlan_scan_template *ws_op)
 
 static inline int if_support_11ac(unsigned int id)
 {
-#if !OK_PATCH
-    struct wmac_init_param  radio_init;
-    DOT11_RADIO_CAP_S   caps[DOT11_RADIO_NUM_MAX];
-    int ret = 0;
-
-    if (id < DOT11_RADIO_NUM_MAX) {
-        if (DOT11_GetHardwareInfo(&radio_init, &caps[0]) == DOT11_OK) {
-            ret = (caps[id].uiRadioMode & DOT11_RADIO_MODE_AC) == DOT11_RADIO_MODE_AC; 
-        }
+    if (id == 1) {
+        return 1;
+    } else {
+        return 0;
     }
-
-    return ret;
-#else
-    return 0;
-#endif
 }
 
 int dc_hdl_node_wlan(struct json_object *obj)
@@ -4001,7 +3987,8 @@ int dc_hdl_node_wlan(struct json_object *obj)
             // goto ERROR_OUT;
         }
     }
-    
+
+
     st_cur_cfg = (struct service_template *)malloc(sizeof(struct service_template));
     if (!st_cur_cfg) {
         ret = dc_error_code(dc_error_system, node, 0); 
@@ -4032,55 +4019,6 @@ int dc_hdl_node_wlan(struct json_object *obj)
         goto ERROR_OUT;
     }
 
-#if !OK_PATCH
-    for (i = 0; i < rd_cur_cfg->num; i++) {
-        int enabled = 0;
-
-        if (rd_cur_cfg->radioinfo[i].radio.device_mode == RADIO_DEVICE_MODE_MONITOR) {
-            if_form_name(0, i, IF_PHYTYPE_WLAN, if_name);
-            enabled = netifd_get_interface_enabled(if_name);
-            if (enabled) {
-                netifd_set_enable(if_name, 0);
-            }
-            wlan_set_device_mode(if_name, RADIO_DEVICE_MODE_NORMAL);
-            if (enabled) {
-                netifd_set_enable(if_name, 1);
-            }
-        }
-    }
-#endif
- 
-    /* no cfg from NMS for the as, need to do nothing */
-#if !OK_PATCH
-    if (as_json_cfg.configed) {
-        if ((ret = wlan_get_acl_all(&as_cur_cfg)) != 0) {
-            nmsc_log("Get all acl scheme failed for %d.", ret);
-            ret = dc_error_code(dc_error_commit_failed, node, ret); 
-            goto ERROR_OUT;
-        }
-
-        ret = dc_hdl_node_acl_scheme(STEP_UNBIND, st_cur_cfg, &st_json_cfg,
-            as_cur_cfg, &as_json_cfg);
-        if (ret) {
-            nmsc_log("Handle acl scheme failed for %d.", ret);
-            goto ERROR_OUT;
-        }
-    }
-
-    if(tl_json_cfg.configed) {
-        tl_cur_cfg = get_time_range_byname(NULL);
-
-        if(tl_cur_cfg){
-            ret = dc_hdl_node_time_limit(STEP_UNBIND, st_cur_cfg, &st_json_cfg,
-                tl_cur_cfg, &tl_json_cfg);
-            if (ret) {
-                nmsc_log("Handle time limit failed for %d.", ret);
-                goto ERROR_OUT;
-            }
-        }
-    }
-#endif
-       
     /* Try to delete service template */
     for (i = 0; i < st_cur_cfg->num; i++) {
         for (j = 0; j < st_json_cfg.num; j++) {
@@ -4095,14 +4033,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
             for (k = 0; k < rd_cur_cfg->num; k++) {
                 for (r = 0; r < sizeof(rd_cur_cfg->radioinfo[k].service)/sizeof(rd_cur_cfg->radioinfo[k].service[0]); r++) {                    
                     if (rd_cur_cfg->radioinfo[k].service[r] == stid) {
-#if !OK_PATCH
-                        if_form_name(0, rd_cur_cfg->radioinfo[k].id, IF_PHYTYPE_WLAN,  if_name);
-                        wlan_undo_bind(if_name, stid);
-                        if_form_name(0, rd_cur_cfg->radioinfo[k].wlan_bss[r], IF_PHYTYPE_WLAN_BSS,  if_name);
-                        wlan_undo_bss(if_name);
-#else
                         wlan_undo_bind(rd_cur_cfg->radioinfo[k].id, stid);
-#endif
                         break;
                     }
                 }
@@ -4244,7 +4175,6 @@ int dc_hdl_node_wlan(struct json_object *obj)
         }
     }
 
-#if 0
     /* Process new dns set config from NMS */
     ret = dc_hdl_node_dns_set(STEP_OTHERS, NULL, &ps_json_cfg, &ds_json_cfg);
     if (ret != 0) {
@@ -4316,7 +4246,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
                     }
                 }
             }
-            /* if change the st config, save the stid and disenable it, then will be set config  */
+            /* if change the st config, save the stid and disable it, then will be set config  */
             stid = st_cur_cfg->wlan_st_info[i].id;
             wlan_undo_service_template_enable(stid);
         }
@@ -4370,7 +4300,6 @@ int dc_hdl_node_wlan(struct json_object *obj)
             goto ERROR_OUT;
         }
         
-#if !OK_PATCH
         ret = wlan_set_cipher(stid, st_json->cipher);
         if (ret) {
             nmsc_log("Set service template %d cipher %d failed for %d.", stid,st_json->cipher, ret);
@@ -4395,15 +4324,6 @@ int dc_hdl_node_wlan(struct json_object *obj)
             nmsc_log("Set service template %d key %s failed for %d.", stid,st_json->key, ret);
             ret = dc_error_code(dc_error_commit_failed, node, ret); 
             goto ERROR_OUT;
-        }
-        
-        if (strlen(st_json->radius_scheme) > 0) {
-            ret = wlan_set_radius_scheme(stid, st_json->radius_scheme);
-            if (ret) {
-                nmsc_log("Set service template %d radius_scheme %s failed for %d.", stid,st_json->radius_scheme, ret);
-                ret = dc_error_code(dc_error_commit_failed, node, ret); 
-                goto ERROR_OUT;
-            }
         }
         
         ret = wlan_set_ptk_lifetime(stid, st_json->ptk_lifetime);
@@ -4438,104 +4358,6 @@ int dc_hdl_node_wlan(struct json_object *obj)
             goto ERROR_OUT;
         }
 
-        if(1 == st_json->uplink_limit_enable){//enable
-            if(1 == st_json->uplink_limit_mode){//static
-                ret = wlan_set_static_client_uplink_rate_limit_value(stid, st_json->uplink_limit_rate);
-                if (ret) {
-                    nmsc_log("Set service template %d static uplink limit rate %d failed for %d.", stid, 
-                        st_json->uplink_limit_rate, ret);
-                    ret = dc_error_code(dc_error_commit_failed, node, ret); 
-                    goto ERROR_OUT;
-                }
-            }else if(2 == st_json->uplink_limit_mode){//dynamic
-                ret = wlan_set_dynamic_client_uplink_rate_limit_value(stid, st_json->uplink_limit_rate);
-                if (ret) {
-                    nmsc_log("Set service template %d dynamic uplink limit rate %d failed for %d.", stid, 
-                        st_json->uplink_limit_rate, ret);
-                    ret = dc_error_code(dc_error_commit_failed, node, ret); 
-                    goto ERROR_OUT;
-                }
-            }
-        }else if(0 == st_json->uplink_limit_enable){//disable
-            ret = wlan_undo_dynamic_client_uplink_rate_limit_value(stid);
-            if (ret) {
-                nmsc_log("Set service template %d undo dynamic uplink limit rate failed for %d.", stid, ret);
-                ret = dc_error_code(dc_error_commit_failed, node, ret); 
-                goto ERROR_OUT;
-            }
-            ret = wlan_undo_static_client_uplink_rate_limit_value(stid);  
-            if (ret) {
-                nmsc_log("Set service template %d undo static uplink limit rate failed for %d.", stid, ret);
-                ret = dc_error_code(dc_error_commit_failed, node, ret); 
-                goto ERROR_OUT;
-            }
-        }
-
-        if(1 == st_json->downlink_limit_enable){//enable
-            if(1 == st_json->downlink_limit_mode){//static
-                ret = wlan_set_static_client_downlink_rate_limit_value(stid, st_json->downlink_limit_rate);
-                if (ret) {
-                    nmsc_log("Set service template %d static downlink limit rate %d failed for %d.", stid, 
-                        st_json->downlink_limit_rate, ret);
-                    ret = dc_error_code(dc_error_commit_failed, node, ret); 
-                    goto ERROR_OUT;
-                }
-            }else if(2 == st_json->downlink_limit_mode){//dynamic
-                ret = wlan_set_dynamic_client_downlink_rate_limit_value(stid, st_json->downlink_limit_rate);
-                if (ret) {
-                    nmsc_log("Set service template %d dynamic downlink limit rate %d failed for %d.", stid, 
-                        st_json->downlink_limit_rate, ret);
-                    ret = dc_error_code(dc_error_commit_failed, node, ret); 
-                    goto ERROR_OUT;
-                }
-            }
-        }else if(0 == st_json->downlink_limit_enable){//disable
-            ret = wlan_undo_dynamic_client_downlink_rate_limit_value(stid);
-            if (ret) {
-                nmsc_log("Set service template %d undo dynamic uplink downlink rate failed for %d.", stid, ret);
-                ret = dc_error_code(dc_error_commit_failed, node, ret); 
-                goto ERROR_OUT;
-            }
-            ret = wlan_undo_static_client_downlink_rate_limit_value(stid);  
-            if (ret) {
-                nmsc_log("Set service template %d undo static limit downlink rate failed for %d.", stid, ret);
-                ret = dc_error_code(dc_error_commit_failed, node, ret); 
-                goto ERROR_OUT;
-            }
-        }
-
-        if (st_json->m2u_enable) {
-            ret = wlan_set_m2u_enable(st_json->stid);
-        }
-        else {
-            ret = wlan_set_m2u_disable(st_json->stid);
-        }
-        if (ret) {
-            nmsc_log("Set %s(%d) m2u-%s failed for %d.", st_json->ssid, st_json->stid,
-                st_json->m2u_enable ? "enable":"disable", ret);
-            goto ERROR_OUT;
-        }
-
-        if(st_json->ts_enable){
-            int iWdsManageMask = 0;
-            struct in_addr stIpAddr;
-
-            iWdsManageMask = netmask_str2len(st_json->ts_netmask);
-
-            inet_pton(AF_INET, st_json->ts_ip, &stIpAddr);
-
-            ret = wlan_set_wds_mgt(st_json->stid, stIpAddr.s_addr, iWdsManageMask);
-        }else{
-            ret = wlan_undo_wds_mgt(st_json->stid); 
-        }
-
-        if (ret) {
-            nmsc_log("Set %s(%d) troubleshooting-%s failed for %d.", st_json->ssid, st_json->stid,
-                st_json->ts_enable? "enable":"disable", ret);
-            goto ERROR_OUT;
-        }
-#endif
-        
         ret = wlan_set_service_template_enable(stid, 1);
         if (ret) {
             nmsc_log("Enable service template %d failed for %d.", stid, ret);
@@ -4614,9 +4436,8 @@ int dc_hdl_node_wlan(struct json_object *obj)
         CHECK_DEFAULT_INTEGER_CONFIG(rd_json->bcst_ratelimt_cbs, rd_def->bcst_ratelimt_cbs);
         CHECK_DEFAULT_INTEGER_CONFIG(rd_json->air_time_fairness, rd_def->air_time_fairness);
         
-#if !OK_PATCH
-        if_form_name(0, rd_json->id, IF_PHYTYPE_WLAN,  if_name);
         if (rd_cur->enable) {
+            /* disable it as rd_cur config is different from rd_json */
             if (rd_cur->radio.mode != rd_json->mode
                 || rd_cur->radio.dot11nonly != rd_json->dot11nonly
                 || rd_cur->radio.dot11aconly != rd_json->dot11aconly
@@ -4626,16 +4447,17 @@ int dc_hdl_node_wlan(struct json_object *obj)
                 || rd_cur->radio.dtim != rd_json->dtim
                 || rd_cur->radio.short_gi != rd_json->short_gi
                 || rd_cur->radio.ampdu != rd_json->ampdu) {
-                netifd_set_enable(if_name, 0);
+                wlan_set_radio_enable(rd_json->id, 0);
             }
             else {
-                
+               /* rd_cur config is same as rd_json, check bind */ 
                 for (k = 0; k < rd_cur->count; k++) {
                     char *ssid = NULL;
                     if (rd_cur->service[k] < 0) {
                         continue;
                     }
 
+                    /* rd_cur binded ssid in st_json_cfg */
                     for (r = 0; r < st_json_cfg.num; r++) {
                         if (st_json_cfg.config[r].stid == rd_cur->service[k]) {
                             ssid = st_json_cfg.config[r].ssid;
@@ -4654,7 +4476,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
                         }
                     }
                     if (r >= rd_json->mbss_num) {
-                        netifd_set_enable(if_name, 0);
+                        wlan_set_radio_enable(rd_json->id, 0);
                         break;
                     }
                 }
@@ -4685,183 +4507,183 @@ int dc_hdl_node_wlan(struct json_object *obj)
                     }
 
                     if (k >= rd_cur->count) {
-                        netifd_set_enable(if_name, 0);
+                        wlan_set_radio_enable(rd_json->id, 0);
                         break;
                     }
                 }
                 
             }
         }
-#endif
+
         if (rd_cur->radio.mode != rd_json->mode) {
-            ret = wlan_set_mode(if_name, rd_json->mode);
+            ret = wlan_set_mode(rd_json->id, rd_json->mode);
             if (ret) {
-                nmsc_log("Set radio %s mode %d failed for %d.", 
-                    if_name, rd_json->mode, ret);   
+                nmsc_log("Set radio %d mode %d failed for %d.", 
+                    rd_json->id, rd_json->mode, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
 
         if (rd_cur->radio.channel != rd_json->channel) {
-            ret = wlan_set_channel(if_name, rd_json->channel);
+            ret = wlan_set_channel(rd_json->id, rd_json->channel);
             if (ret) {
-                nmsc_log("Set radio %s channel %d failed for %d.", 
-                    if_name, rd_json->channel, ret);   
+                nmsc_log("Set radio %d channel %d failed for %d.", 
+                    rd_json->id, rd_json->channel, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
 
         if (rd_cur->radio.max_power != rd_json->max_power) {
-            ret = wlan_set_max_power(if_name, rd_json->max_power);
+            ret = wlan_set_max_power(rd_json->id, rd_json->max_power);
             if (ret) {
-                nmsc_log("Set radio %s max_power %d failed for %d.", 
-                    if_name, rd_json->max_power, ret);   
+                nmsc_log("Set radio %d max_power %d failed for %d.", 
+                    rd_json->id, rd_json->max_power, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
 
         if (rd_cur->radio.dtim != rd_json->dtim) {
-            ret = wlan_set_dtim(if_name, rd_json->dtim);
+            ret = wlan_set_dtim(rd_json->id, rd_json->dtim);
             if (ret) {
-                nmsc_log("Set radio %s dtim %d failed for %d.", 
-                    if_name, rd_json->dtim, ret);   
+                nmsc_log("Set radio %d dtim %d failed for %d.", 
+                    rd_json->id, rd_json->dtim, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
 
         if (rd_cur->radio.fragment_threshold != rd_json->fragment_threshold) {
-            ret = wlan_set_frag_threshold(if_name, rd_json->fragment_threshold);
+            ret = wlan_set_frag_threshold(rd_json->id, rd_json->fragment_threshold);
             if (ret) {
-                nmsc_log("Set radio %s fragment_threshold %d failed for %d.", 
-                    if_name, rd_json->fragment_threshold, ret);   
+                nmsc_log("Set radio %d fragment_threshold %d failed for %d.", 
+                    rd_json->id, rd_json->fragment_threshold, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
         
         if (rd_cur->radio.rts_threshold != rd_json->rts_threshold) {
-            ret = wlan_set_rts_threshold(if_name, rd_json->rts_threshold);
+            ret = wlan_set_rts_threshold(rd_json->id, rd_json->rts_threshold);
             if (ret) {
-                nmsc_log("Set radio %s rts_threshold %d failed for %d.", 
-                    if_name, rd_json->rts_threshold, ret);   
+                nmsc_log("Set radio %d rts_threshold %d failed for %d.", 
+                    rd_json->id, rd_json->rts_threshold, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
 
         if (1/* rd_cur->radio.short_gi != rd_json->short_gi */) {
-            ret = wlan_set_short_gi(if_name, rd_json->short_gi);
+            ret = wlan_set_short_gi(rd_json->id, rd_json->short_gi);
             if (ret) {
-                nmsc_log("Set radio %s short_gi %d failed for %d:%d.", 
-                    if_name, rd_json->short_gi, ret,  rd_json->mode);   
+                nmsc_log("Set radio %d short_gi %d failed for %d:%d.", 
+                    rd_json->id, rd_json->short_gi, ret,  rd_json->mode);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
 
         if (1/* rd_cur->radio.ampdu != rd_json->ampdu */) {
-            ret = wlan_set_ampdu(if_name);
+            ret = wlan_set_ampdu(rd_json->id, rd_json->ampdu);
             if (ret) {
-                nmsc_log("Set radio %s ampdu %d failed for %d.", 
-                    if_name, rd_json->ampdu, ret);   
+                nmsc_log("Set radio %d ampdu %d failed for %d.", 
+                    rd_json->id, rd_json->ampdu, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
 
         if (1/* rd_cur->radio.dot11nonly != rd_json->dot11nonly */) {
-            ret = wlan_set_dot11nonly(if_name, rd_json->dot11nonly);
+            ret = wlan_set_dot11nonly(rd_json->id, rd_json->dot11nonly);
             if (ret) {
-                nmsc_log("Set radio %s dot11nonly %d:%d failed for %d.", 
-                    if_name, rd_json->dot11nonly, rd_cur->radio.dot11nonly, ret);   
+                nmsc_log("Set radio %d dot11nonly %d:%d failed for %d.", 
+                    rd_json->id, rd_json->dot11nonly, rd_cur->radio.dot11nonly, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
 
         if (1/* rd_cur->radio.dot11aconly != rd_json->dot11aconly */) {
-            ret = wlan_set_dot11aconly(if_name, rd_json->dot11aconly);
+            ret = wlan_set_dot11aconly(rd_json->id, rd_json->dot11aconly);
             if (ret) {
-                nmsc_log("Set radio %s dot11aconly %d:%d failed for %d.", 
-                    if_name, rd_json->dot11aconly, rd_cur->radio.dot11aconly, ret);   
+                nmsc_log("Set radio %d dot11aconly %d:%d failed for %d.", 
+                    rd_json->id, rd_json->dot11aconly, rd_cur->radio.dot11aconly, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
 
         if (1/* rd_cur->radio.bandwidth != rd_json->bandwidth */) {
-            ret = wlan_set_bandwidth(if_name, rd_json->bandwidth);
+            ret = wlan_set_bandwidth(rd_json->id, rd_json->bandwidth);
             if (ret) {
-                nmsc_log("Set radio %s bandwidth %d failed for %d.", 
-                    if_name, rd_json->bandwidth, ret);   
+                nmsc_log("Set radio %d bandwidth %d failed for %d.", 
+                    rd_json->id, rd_json->bandwidth, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
 
         if (rd_cur->radio.distance != rd_json->distance) {
-            ret = wlan_set_distance(if_name, rd_json->distance);
+            ret = wlan_set_distance(rd_json->id, rd_json->distance);
             if (ret) {
-                nmsc_log("Set radio %s distance %d failed for %d.", 
-                    if_name, rd_json->distance, ret);   
+                nmsc_log("Set radio %d distance %d failed for %d.", 
+                    rd_json->id, rd_json->distance, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
 
         if (rd_cur->radio.preamble != rd_json->preamble) {
-            ret = wlan_set_preamble(if_name, rd_json->preamble);
+            ret = wlan_set_preamble(rd_json->id, rd_json->preamble);
             if (ret) {
-                nmsc_log("Set radio %s preamble %d failed for %d.", 
-                    if_name, rd_json->preamble, ret);   
+                nmsc_log("Set radio %d preamble %d failed for %d.", 
+                    rd_json->id, rd_json->preamble, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
 
         if (rd_cur->radio.protection_mode != rd_json->protection_mode) {
-            ret = wlan_set_protection_mode(if_name, rd_json->protection_mode);
+            ret = wlan_set_protection_mode(rd_json->id, rd_json->protection_mode);
             if (ret) {
-                nmsc_log("Set radio %s protection_mode %d failed for %d.", 
-                    if_name, rd_json->protection_mode, ret);   
+                nmsc_log("Set radio %d protection_mode %d failed for %d.", 
+                    rd_json->id, rd_json->protection_mode, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
 
         if (rd_cur->radio.beacon_interval != rd_json->beacon_interval) {
-            ret = wlan_set_beacon_interval(if_name, rd_json->beacon_interval);
+            ret = wlan_set_beacon_interval(rd_json->id, rd_json->beacon_interval);
             if (ret) {
-                nmsc_log("Set radio %s beacon_interval %d failed for %d.", 
-                    if_name, rd_json->beacon_interval, ret);   
+                nmsc_log("Set radio %d beacon_interval %d failed for %d.", 
+                    rd_json->id, rd_json->beacon_interval, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
         
         if(rd_json->rssi_access){
-            ret = wlan_set_rssi_threshold(if_name, rd_json->rssi_access_threshold);
+            ret = wlan_set_rssi_threshold(rd_json->id, rd_json->rssi_access_threshold);
             if (ret) {
-                nmsc_log("Set radio %s rssi threshold %d failed for %d.", 
-                    if_name, rd_json->rssi_access_threshold, ret);   
+                nmsc_log("Set radio %d rssi threshold %d failed for %d.", 
+                    rd_json->id, rd_json->rssi_access_threshold, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         
-            ret = wlan_set_rssi(if_name, 1);
+            ret = wlan_set_rssi(rd_json->id, 1);
             if (ret) {
-                nmsc_log("Set radio %s rssi enable failed for %d.", if_name, ret);   
+                nmsc_log("Set radio %d rssi enable failed for %d.", rd_json->id, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }else{
-            ret = wlan_set_rssi(if_name, 0);
+            ret = wlan_set_rssi(rd_json->id, 0);
             if (ret) {
-                nmsc_log("Set radio %s rssi disable failed for %d.", if_name, ret);   
+                nmsc_log("Set radio %d rssi disable failed for %d.", rd_json->id, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
@@ -4870,40 +4692,39 @@ int dc_hdl_node_wlan(struct json_object *obj)
         /* added for broadcast rate limit */
         if (rd_json->bcst_ratelimt >= 0) {
             if (rd_json->bcst_ratelimt) {
-                ret = wlan_set_bcast_ratelimit_enable(if_name, 1);
+                ret = wlan_set_bcast_ratelimit_enable(rd_json->id, 1);
             }
             else {
-                ret = wlan_set_bcast_ratelimit_enable(if_name, 0);
+                ret = wlan_set_bcast_ratelimit_enable(rd_json->id, 0);
             }
             if (ret) {
-                nmsc_log("Set radio %s broadcast ratelimit %s failed for %d.", 
-                    if_name, rd_json->bcst_ratelimt ? "enable" : "disable", ret);
+                nmsc_log("Set radio %d broadcast ratelimit %s failed for %d.", 
+                    rd_json->id, rd_json->bcst_ratelimt ? "enable" : "disable", ret);
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
 
-            ret = wlan_set_bcast_ratelimit_param(if_name, rd_json->bcst_ratelimt_cir, rd_json->bcst_ratelimt_cbs);
+            ret = wlan_set_bcast_ratelimit_param(rd_json->id, rd_json->bcst_ratelimt_cir, rd_json->bcst_ratelimt_cbs);
             if (ret) {
-                nmsc_log("Set radio %s broadcast ratelimit parameter %d:%d failed for %d.", 
-                    if_name, rd_json->bcst_ratelimt_cir, rd_json->bcst_ratelimt_cbs, ret);
+                nmsc_log("Set radio %d broadcast ratelimit parameter %d:%d failed for %d.", 
+                    rd_json->id, rd_json->bcst_ratelimt_cir, rd_json->bcst_ratelimt_cbs, ret);
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
 
         if (rd_json->air_time_fairness >= 0) {
-            ret = wlan_set_atf(if_name, !!rd_json->air_time_fairness);
+            ret = wlan_set_atf(rd_json->id, !!rd_json->air_time_fairness);
             if (ret) {
-               nmsc_log("Set radio %s atf %s failed for %d.", 
-                    if_name, rd_json->air_time_fairness ? "enable" : "disable", ret);
+               nmsc_log("Set radio %d atf %s failed for %d.", 
+                    rd_json->id, rd_json->air_time_fairness ? "enable" : "disable", ret);
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
         }
 
-        /* unbind wlan scan*/
-        wlan_unbind_scan_tempate(if_name);
 
+        /* unbind st, as st's ssid not set on this radio */
         for (k = 0; k < rd_cur->count; k++) {
             char *ssid;
             if (rd_cur->service[k] < 0) {
@@ -4926,15 +4747,11 @@ int dc_hdl_node_wlan(struct json_object *obj)
                 }
             }
             if (r >= rd_json->mbss_num) {
-#if !OK_PATCH
-                if_form_name(0, rd_json->id, IF_PHYTYPE_WLAN,  if_name);
-                wlan_undo_bind(if_name, rd_cur->service[k]);
-                if_form_name(0, rd_cur->wlan_bss[k], IF_PHYTYPE_WLAN_BSS,  if_name);
-                wlan_undo_bss(if_name);
-#endif
+                wlan_undo_bind(rd_json->id, rd_cur->service[k]);
             }
         }
 
+        /* bind rd_json's new st */
         for (r = 0; r < rd_json->mbss_num; r++) {
             for (k = 0; k < rd_cur->count; k++) {
                 char *ssid = NULL;
@@ -4961,13 +4778,6 @@ int dc_hdl_node_wlan(struct json_object *obj)
             }
 
             if (k >= rd_cur->count) {
-                int bssid = wlan_get_free_bssid();
-                if (bssid < 0) {
-                    nmsc_log("Get free bssid failed.");
-                    ret = dc_error_code(dc_error_commit_failed, node, bssid);
-                    goto ERROR_OUT;
-                }
-                
                 stid = -1;
                 for (m = 0; m < st_json_cfg.num; m++) {
                     if (!strcmp(rd_json->mbss[r].ssidname, st_json_cfg.config[m].ssid)) {
@@ -4981,18 +4791,11 @@ int dc_hdl_node_wlan(struct json_object *obj)
                     ret = dc_error_code(dc_error_commit_failed, node, ret);
                     goto ERROR_OUT;
                 }
-#if !OK_PATCH
-                if_form_name(0, bssid, IF_PHYTYPE_WLAN_BSS,  if_name);
-                wlan_create_bss(if_name);
-                if_form_name(0, rd_json->id, IF_PHYTYPE_WLAN,  if_name);
-#endif
-                ret = wlan_set_bind(if_name, bssid, stid);
+
+                ret = wlan_set_bind(rd_json->id, 0, stid);
+
                 if (ret) {
-                    nmsc_log("Set the radio %s mbss bind %d:%d failed for %d.", if_name, bssid, stid, ret);
-#if !OK_PATCH
-                    if_form_name(0, bssid, IF_PHYTYPE_WLAN_BSS,  if_name);
-                    wlan_undo_bss(if_name);
-#endif
+                    nmsc_log("Set the radio %d mbss bind %d:%d failed for %d.", rd_json->id, 0, stid, ret);
                     ret = dc_error_code(dc_error_commit_failed, node, ret);
                     goto ERROR_OUT;
                 }
@@ -5005,96 +4808,9 @@ int dc_hdl_node_wlan(struct json_object *obj)
                     }
                 }
             }
-
-            if(rd_json->air_scan[0] != '\0'){
-                struct wlan_scan_bind_info wscan_info;
-
-                memset(&wscan_info, 0, sizeof(wscan_info));
-                
-                strcpy(wscan_info.cRadioName, if_name);
-                strcpy(wscan_info.cRadioWScanName, rd_json->air_scan);
-
-                /* radio bind wlan scan templat */
-                nmsc_delay_op_new(nmsc_delay_op_bind_wlan_scan, &wscan_info, sizeof(wscan_info));
-            }
         }
     }
     
-#if !OK_PATCH
-
-    wlan_set_isolation(ci_json_cfg);
-
-    /* no cfg from NMS for the as, need to do nothing */
-    if (as_json_cfg.configed) {
-        ret = dc_hdl_node_acl_scheme(STEP_OTHERS, st_cur_cfg, &st_json_cfg,
-            as_cur_cfg, &as_json_cfg);
-        if (ret) {
-            nmsc_log("Handle acl scheme failed for %d.", ret);
-            goto ERROR_OUT;
-        }
-    }
-
-    if(rrm_json_cfg.configed){
-        ret = dc_hdl_node_rrm(&rrm_json_cfg);
-        if (ret) {
-            nmsc_log("Handle rrm failed for %d.", ret);
-            goto ERROR_OUT;
-        }
-    }
-
-    if(tl_json_cfg.configed){
-        ret = dc_hdl_node_time_limit(STEP_OTHERS, st_cur_cfg, &st_json_cfg,
-            tl_cur_cfg, &tl_json_cfg);
-        if (ret) {
-            nmsc_log("Handle time limit failed for %d.", ret);
-            goto ERROR_OUT;
-        }
-    }
-
-    if(bs_json_cfg.configed){
-        ret = dc_hdl_node_band_steering(&bs_json_cfg);
-        if (ret) {
-            nmsc_log("Handle band steering failed for %d.", ret);
-            goto ERROR_OUT;
-        }
-    }
-
-    if (is_json_cfg.configed) {
-        ret = dc_hdl_node_igmp_snooping(&is_json_cfg);
-        if (ret) {
-            nmsc_log("Handle IGMP snooping failed for %d.", ret);
-            goto ERROR_OUT;
-        }
-    }
-
-    dc_hdl_node_rate_optmize(&ro_json_cfg);
-
-    if (pp_json_cfg.configed) {
-        ret = dc_hdl_node_portal_preauth(&pp_json_cfg);
-        if (ret) {
-            nmsc_log("Handle portal preauth failed for %d.", ret);
-            goto ERROR_OUT;
-        }
-    }
-
-    if (ao_json_cfg.configed) {
-        ret = dc_hdl_node_arp_optimize(&ao_json_cfg);
-        if (ret) {
-            nmsc_log("Handle arp optimize failed for %d.", ret);
-            goto ERROR_OUT;
-        }
-    }
-
-    if (ws_json_cfg.configed) {
-        ret = dc_hdl_node_wlan_scan(&ws_json_cfg);
-        if (ret) {
-            nmsc_log("Handle wlan scan failed for %d.", ret);
-            goto ERROR_OUT;
-        }
-    }
-#endif
-#endif
-
     ret = 0;
 ERROR_OUT:
     
@@ -5156,7 +4872,6 @@ ERROR_OUT:
 
 int dc_hdl_node_vlan_port(struct json_object *obj)
 {
-#if !OK_PATCH
     struct vlan_port {
         char name[33];
         int  rdid;
@@ -5211,7 +4926,6 @@ int dc_hdl_node_vlan_port(struct json_object *obj)
         vlan_portes.num++;
         log_node_paires(paires, sizeof(paires)/sizeof(paires[0]));
     }
-
     for (i = 0; i < vlan_portes.num; i++) {
         struct vlan_port *config;
         char *pvlan, sec[255];
@@ -5219,7 +4933,7 @@ int dc_hdl_node_vlan_port(struct json_object *obj)
         
         config = &(vlan_portes.config[i]);
         if (config->rdid != -1) {
-            int bssid = -1;
+#if !OK_PATCH
             bssid = wlan_get_bssid_by_ssid(config->name, config->rdid);
             if (bssid < 0) {
                 nmsc_log("Get bssid for the ssid %s or radio %d failed for %d.", config->name, 
@@ -5228,6 +4942,7 @@ int dc_hdl_node_vlan_port(struct json_object *obj)
                 goto ERROR_OUT;
             }
             if_form_name(0, bssid, IF_PHYTYPE_WLAN_BSS, config->name);
+#endif
         }
         
         if (config->type == 0) {
@@ -5253,9 +4968,6 @@ int dc_hdl_node_vlan_port(struct json_object *obj)
 
         if (!strcasecmp(config->pvlan, "all")) {
             ret = vlan_permit_all(config->name);
-            if (ret == CMP_ERR_WRONG_VALUE) {
-                ret = 0;
-            }
             if (ret) {
                 nmsc_log("Set port %s permit all failed for %d.", config->name, ret);
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
@@ -5307,9 +5019,6 @@ ERROR_OUT:
     }
 
     return ret;
-#else
-    return 0;
-#endif
 }
 
 int dc_hdl_node_interface(struct json_object *obj)
@@ -5903,7 +5612,7 @@ err:
 
 int dc_hdl_node_save_config(struct json_object *obj)
 {
-#if !OK_PATCH
+
     int save = 0, ret, node = dc_node_save_config;
     struct node_pair_save pair = {
         .key   = "save_config",
@@ -5923,16 +5632,9 @@ int dc_hdl_node_save_config(struct json_object *obj)
     log_node_pair(pair);
     
     if (save) {
-#if 0        
-        ret = cfg_save_all(0);
-        if (ret) {
-            return dc_error_code(dc_error_commit_failed, node, ret);
-        }
-#else 
         nmsc_delay_op_new(nmsc_delay_op_save_all, NULL, 0);
-#endif
     }
-#endif
+
     return 0;
 }
 
