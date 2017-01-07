@@ -194,54 +194,42 @@ int capwapc_get_curcfg(capwapc_config *curcfg)
 int capwapc_set_slaveserver(const char *server)
 {
     cfg_set_option_value(CAPWAPC_CFG_OPTION_SLASER_TUPLE, server);
-    strcpy(g_capwapc_config.sla_server, server);
     return 0;
 }
 
 int capwapc_undo_slaveserver(void)
 {
     cfg_del_option(CAPWAPC_CFG_OPTION_SLASER_TUPLE);
-    g_capwapc_config.sla_server[0] = '\0';
     return 0;
 }
 
 int capwapc_set_echointv(int echointv)
 {
     cfg_set_option_value_int(CAPWAPC_CFG_OPTION_ECHOINTV_TUPLE, echointv);
-    g_capwapc_config.echo_intv = echointv;
     return 0;
 }
 
 int capwapc_set_mtu(int mtu)
 {
     cfg_set_option_value_int(CAPWAPC_CFG_OPTION_MTU_TUPLE, mtu);
-    g_capwapc_config.mtu = mtu;
     return 0;
 }
 
 int capwapc_set_masterserver(const char *server)
 {
     cfg_set_option_value(CAPWAPC_CFG_OPTION_MASSER_TUPLE, server);
-    strcpy(g_capwapc_config.mas_server, server);
     return 0;
 }
 
 int capwapc_undo_masterserver(void)
 {
     cfg_del_option(CAPWAPC_CFG_OPTION_MASSER_TUPLE);
-    g_capwapc_config.mas_server[0] = '\0';
     return 0;
 }
 
 int capwapc_set_ctrlport(int ctrlport)
 {
     cfg_set_option_value_int(CAPWAPC_CFG_OPTION_CTRLPORT_TUPLE, ctrlport);
-    g_capwapc_config.ctrl_port = ctrlport;
     return 0;
-}
-
-int capwapc_set_forceexec(int force)
-{
-    g_capwapc_forceexec = force;
 }
 

@@ -435,9 +435,9 @@ int wlan_set_auth(int stid, int auth)
 
 int wlan_set_country(const char *country)
 {
-    //wlan_radio.country.country='CN'
-    cfg_add_section("wlan_radio", "country");
-    cfg_set_option_value("wlan_radio.country.country", country);
+    //wireless.wifi0.country
+    cfg_set_option_value_int("wireless.wifi0.country", 156);
+    cfg_set_option_value_int("wireless.wifi1.country", 156);
 
     return 0;
 }
@@ -445,7 +445,8 @@ int wlan_set_country(const char *country)
 int wlan_undo_country(void)
 {
     //wlan_radio.country.country='CN'
-    cfg_del_section("wlan_radio.country");
+    cfg_set_option_value_int("wireless.wifi0.country", 156);
+    cfg_set_option_value_int("wireless.wifi1.country", 156);
     return 0;
 }
 
@@ -468,8 +469,17 @@ int wlan_get_country(char *country)
 
 int wlan_undo_bind(int radio, int stid)
 {
-    //wlan_radio.WLAN_Radio1.bind='0-1'
+    /* fetch ssid from stid */
+    //wlan_service_template.ServiceTemplate0.ssid='name'
     char tuple[128];
+    char ssid[WLAN_SSID_MAX_LENGTH];
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.ssid", stid);
+    cfg_get_option_value(tuple, ssid, WLAN_SSID_MAX_LENGTH);
+    /* del ssid conf on specified radio in openwrt wireless conf file */
+
+
+
+    //wlan_radio.WLAN_Radio1.bind='0-1'
     sprintf(tuple, "wlan_radio.WLAN_Radio%d.bind=0-%d", radio, stid);
     cfg_del_option_list_value(tuple);
 
@@ -485,7 +495,7 @@ int wlan_undo_service_template_enable(int stid)
     return 0;
 }
 
-static int get_server_id(struct uci_package *p, void *arg) {
+static int get_service_id(struct uci_package *p, void *arg) {
     struct uci_element *e1;
     struct uci_section *s;
     int id = 0;
@@ -503,13 +513,13 @@ static int get_server_id(struct uci_package *p, void *arg) {
 
 int wlan_get_valid_stid(void) 
 {
-    char server_arry[ST_MAX_COUNT];
+    char service_arry[ST_MAX_COUNT];
     int i, id = -1;
     
-    memset(server_arry, 0, sizeof(server_arry));
-    cfg_visit_package(WLAN_CFG_SERVICE_TEMPLATE_PACKAGE, get_server_id, server_arry);
+    memset(service_arry, 0, sizeof(service_arry));
+    cfg_visit_package(WLAN_CFG_SERVICE_TEMPLATE_PACKAGE, get_service_id, service_arry);
     for ( i = 0; i < ST_MAX_COUNT; i++ ) { 
-        if ( 0 == server_arry[i] ) {
+        if ( 0 == service_arry[i] ) {
             id = i;
             break;
         }
@@ -1051,5 +1061,63 @@ int wlan_set_bind(int radio_id, int bssid, int stid)
     return 0;
 }
 
+static int get_bss_id(struct uci_package *p, void *arg) {
+    struct uci_element *e1, *e2;
+    struct uci_section *s;
+    struct uci_option *o;
+    int st_num, bss_id; //service template, wlan_bss id
+    
+    char *info = (char *)arg;
 
+    uci_foreach_element(&p->sections, e1) {
+        s = uci_to_section(e1);
+        uci_foreach_element(&s->options, e2) {
+            o = uci_to_option(e2);
+            if (o->type != UCI_TYPE_STRING) {   
+                struct uci_element * e3;
+                uci_foreach_element(&o->v.list, e3) {
+                    if (!strcmp(o->e.name, "bind")) {
+                        sscanf(e3->name, "%d-%d", &bss_id, &st_num);
+                        *(info + bss_id) = 1;
+                    }
+                }
+            }
+        }
+    }
 
+    return 0;
+}
+
+int wlan_get_free_bssid(void) 
+{
+#define BSS_MAX_COUNT    20
+    int i, id = -1;
+	char bss_arry[BSS_MAX_COUNT];
+
+    memset(bss_arry, 0, sizeof(bss_arry) );
+    cfg_visit_package( "wlan_radio", get_bss_id, bss_arry );
+    
+    for (i = 0; i < BSS_MAX_COUNT; i++) {
+        if (0 == bss_arry[i]) {
+            id = i;
+            break;
+        }
+    }
+	
+    return id;
+}
+
+int wlan_get_bssid_by_ssid(const char *ssid, int radioid)
+{
+    char buf[33];
+    char tuple[128];
+    sprintf(tuple, "wlan_radio.WLAN_Radio%d.bind", radioid);
+    
+    return 0;
+}
+
+int wlan_get_ifname_by_bssid(int bssid, char *ifname)
+{
+    strcpy(ifname, "ath0");
+    return 0;
+}

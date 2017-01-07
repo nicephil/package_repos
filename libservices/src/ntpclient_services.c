@@ -4,11 +4,14 @@ int ntpclient_enabled(void)
 {
     //system.ntp.enable_server='1'
     cfg_set_option_value_int("system.ntp.enable_server", 1);
+
+    system("/etc/init.d/sysntpd restart");
     return 0;
 }
 
 int ntpclient_disabled(void)
 {
+    system("/etc/init.d/sysntpd stop");
     cfg_set_option_value_int("system.ntp.enable_server", 0);
     return 0;
 }

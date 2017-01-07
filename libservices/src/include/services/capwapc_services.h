@@ -113,7 +113,6 @@ extern int capwapc_undo_slaveserver(void);
 extern int capwapc_set_masterserver(const char *server);
 extern int capwapc_undo_masterserver(void);
 extern int capwapc_set_ctrlport(int ctrlport);
-extern int capwapc_set_forceexec(int force);
 extern int capwapc_set_location(const char *location);
 extern int capwapc_undo_location(void);
 extern int capwapc_set_domain(const char *domain);

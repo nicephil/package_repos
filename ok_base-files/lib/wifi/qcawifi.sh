@@ -134,7 +134,7 @@ set_default_country() {
 		config_get mode "$vif" mode
 		case "$mode" in
 			ap|wrap|ap_monitor|ap_smart_monitor|ap_lp_iot)
-				iwpriv "$phy" setCountryID 843
+				iwpriv "$phy" setCountryID 156
 				return 0;
 			;;
 		*) ;;
@@ -1900,15 +1900,10 @@ detect_qcawifi() {
 config wifi-device  wifi$devidx
 	option type	qcawifi
 	option channel	auto
-    ### OK_PATCH
-	#option macaddr	$(cat /sys/class/net/${dev}/address)
     option macaddr ${mac}
-    ### end OK_PATCH
 	option hwmode	11${mode_11}
 	# REMOVE THIS LINE TO ENABLE WIFI:
-    ### OK_PATCH
 	#option disabled 1
-    ### end OK_PATCH
 
 config wifi-iface
 	option device	wifi$devidx

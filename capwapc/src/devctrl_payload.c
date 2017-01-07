@@ -109,14 +109,8 @@ static int dc_json_config_response(devctrl_block_s *dc_block, void *reserved)
 
 static int dc_json_config_finished(void *reserved)
 {
-#if !OK_PATCH
-    if (dc_restart_cawapc()) {
-        task_update_status(CW_RESTART_SILENTLY, NULL);
-    }
-    else if (dc_stop_cawapc()) {
-        task_update_status(CW_STOP, NULL);
-    }
-#endif 
+    dc_stop_cawapc();
+    dc_restart_cawapc();
 
     if (reserved) {
         free(reserved);

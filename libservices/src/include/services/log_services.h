@@ -1,6 +1,9 @@
 #ifndef __LOG_SERVICES_H_
 #define __LOG_SERVICES_H_
 
+#include <syslog.h>
+
+
 #define DEFAULT_HOST_IP           "0.0.0.0"
 #define DEFAULT_HOST_LEVEL        LOG_INFO
 #define DEFAULT_BUFFER_LEVEL      LOG_INFO
@@ -47,4 +50,5 @@ extern int log_undo_hostlevel(void);
 extern int log_enable_buffer(void);
 extern int log_undo_buffer(void);
 extern int log_set_bufferlevel(int level);
+extern int log_apply_all(void);
 #endif /* __LOG_SERVICES_H_ */

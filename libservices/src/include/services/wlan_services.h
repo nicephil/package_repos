@@ -305,7 +305,7 @@ extern int wlan_set_service_template_enable(int stid, int enable);
 
 
 #define WLAN_CFG_SERVICE_TEMPLATE_PACKAGE "wlan_service_template"
-#define ST_MAX_COUNT 10    
+#define ST_MAX_COUNT 40    
 extern int wlan_service_template_get_all(struct service_template *stcfg);
 extern int wlan_undo_service_template(int stid);
 
@@ -355,4 +355,7 @@ extern int wlan_set_gtk_lifetime_enable(int stid, int value);
 extern int wlan_set_static_client_uplink_rate_limit_value(int stid, unsigned int value);
 extern int wlan_set_dynamic_client_uplink_rate_limit_value(int stid, unsigned int value);
 extern int wlan_undo_dynamic_client_uplink_rate_limit_value( int stid );
+extern int wlan_get_free_bssid(void); 
+extern int wlan_get_bssid_by_ssid(const char *ssid, int radioid);
+extern int wlan_get_ifname_by_bssid(int bssid, char *ifname);
 #endif /*__WLAN_SERVICES_H_ */

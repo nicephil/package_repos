@@ -119,13 +119,21 @@ void vlan_list_id_free(int **idlist)
     *idlist = NULL;
 }
 
-int vlan_set_type(const char * port_name, int type)
+
+static const char * vlan_port_type_string[] = {"access", "trunk", "hybrid"};
+int vlan_set_type(const char *port_name, int type)
 {
+    char tuple[128];
+    sprintf(tuple, "vlan_port.VLAN%s.type", port_name);
+    cfg_set_value(tuple, vlan_port_type_string[type]);
     return 0;
 }
 
 int vlan_set_pvid(const char * port_name, int pvid, int type)
 {
+    char tuple[128];
+    sprintf(tuple, "vlan_port.VLAN%s.pvid", port_name);
+    cfg_set_value_int(tuple, pvid);
     return 0;
 }
 

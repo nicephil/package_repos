@@ -23,10 +23,10 @@ const dc_json_node dc_nodes[] = {
     {"vlans",           dc_hdl_node_vlan},
     {"vlan_interfaces", dc_hdl_node_vlan_interface}, /* not supported */
     {"nat",             dc_hdl_node_nat},  /* not supported */
-    {"dialers",         dc_hdl_node_dialer}, /* not supported */
+    {"dialers",         dc_hdl_node_dialer}, /* partial supported */
     {"wds",             dc_hdl_node_wds},   /* not supported */
-    {"wlan",            dc_hdl_node_wlan}, /* TODO */
-    {"ports",           dc_hdl_node_vlan_port}, /* ? */
+    {"wlan",            dc_hdl_node_wlan}, 
+    {"ports",           dc_hdl_node_vlan_port},
     {"interfaces",      dc_hdl_node_interface},
     {"save_config",     dc_hdl_node_save_config}
 };

@@ -5,6 +5,7 @@ int dns_set_global(struct in_addr dns)
 {
     //dns.DNS.dns='2.2.2.2'
     cfg_add_option_list_value("dns.DNS.dns", inet_ntoa(dns));
+
     return 0;
 }
 
@@ -19,6 +20,7 @@ int dns_undo_global(struct in_addr dns)
 
 int dns_undo_global_all(void)
 {
+    system("/lib/cleardns.sh");
     cfg_del_section(DNS_CFG_PACKAGE, "DNS");
     cfg_add_section(DNS_CFG_PACKAGE, "DNS");
     return 0;
@@ -27,4 +29,10 @@ int dns_undo_global_all(void)
 int dns_get_global(struct in_addr * dns)
 {
     return 0;
+}
+
+extern void dns_apply_all(void)
+{
+    /* add dns to /etc/resolv.conf */
+    system("/lib/adddns.sh");
 }

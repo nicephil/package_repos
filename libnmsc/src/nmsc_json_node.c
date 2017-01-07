@@ -27,7 +27,7 @@
 #define SCHEME_TIME_RANGE_NAME_MAXSIZE 32
 
 #if OK_PATCH
-#define WLAN_SSID_MAX_LENGTH 65
+#define WLAN_SSID_MAX_LENGTH 33
 #define RADIUS_SCHEME_NAME_MAX_LENGTH   16
 #define PORTAL_SCHEME_NAME_MAX_LENGTH     32
 #define ACL_NAME_MAX_LENGTH     16
@@ -334,6 +334,8 @@ int dc_hdl_node_type(struct json_object *obj)
 
     log_node_pair(pair);
     
+
+
     return 0;
 }
 
@@ -356,6 +358,8 @@ int dc_hdl_node_version(struct json_object *obj)
     }
 
     log_node_pair(pair);
+
+
 
     nmsc_delay_op_new(nmsc_delay_op_version, &version, sizeof(version));
     
@@ -382,6 +386,9 @@ static int dc_hdl_node_hostname(struct json_object *obj)
     }
 
     log_node_pair(pair);
+
+
+
 
     if (!strlen(hostname) || is_default_string_config(hostname)) {
         if ((ret = hostname_undo()) != 0) {
@@ -419,6 +426,9 @@ static int dc_hdl_node_location(struct json_object *obj)
 
     log_node_pair(pair);
     
+
+
+
     if (!strlen(location) || is_default_string_config(location)) {
         if ((ret = capwapc_undo_location()) != 0) {
             nmsc_log("Undo location failed for %d.", ret);
@@ -501,6 +511,9 @@ static int dc_hdl_node_country(struct json_object *obj)
     }
 
     log_node_pair(pair);
+
+
+
     
     if (!strlen(country) || is_default_string_config(country)) {
         ret = wlan_undo_country();
@@ -678,12 +691,14 @@ int dc_hdl_node_ntp(struct json_object *obj)
     CHECK_DEFAULT_INTEGER_CONFIG(json_cfg.period, def_cfg.period);
 
     ntpclient_disabled();
+    /* not supported on update period
     if ((ret = ntpclient_set_update_period(json_cfg.period)) != 0
         ) {
         nmsc_log("Ntpclient update period failed for %d.", ret);
         return dc_error_code(dc_error_commit_failed, node, ret);
-    }
+    } */
     
+
     ntpclient_undo_all_server();
     if (!is_default_string_config(json_cfg.server[0])) {    
         for (i = 0; i < json_cfg.num; i++) {
@@ -761,11 +776,11 @@ int dc_hdl_node_dns(struct json_object *obj)
         if (strlen(dnses.server[j]) > 0) {
             inet_pton(AF_INET, dnses.server[j], (void *)&addr);
             if ((ret = dns_set_global(addr)) < 0) {
-                nmsc_log("Set dns server %s failed for %d.", dnses.server[j], ret);
                 return dc_error_code(dc_error_commit_failed, node, ret);
             }
         }
     }
+    dns_apply_all();
 
     return 0;
 }
@@ -1475,6 +1490,11 @@ int dc_hdl_node_vlan(struct json_object *obj)
         vlanes.num++;
         log_node_paires(paires, sizeof(paires)/sizeof(paires[0]));
     }
+
+
+
+
+
 
     listnum = vlan_list_id(&idlist);
     if (listnum > 0) {
@@ -3948,7 +3968,6 @@ int dc_hdl_node_wlan(struct json_object *obj)
     };
 
     int i, j, k, r, m, obj_saved, ret, stid, node = dc_node_wlan, later_enable = 0;
-    char if_name[33];
     
     if (json_object_get_type(obj) != json_type_object) {
         return dc_error_code(dc_error_obj_type, node, 0); 
@@ -3987,6 +4006,9 @@ int dc_hdl_node_wlan(struct json_object *obj)
             // goto ERROR_OUT;
         }
     }
+
+
+
 
 
     st_cur_cfg = (struct service_template *)malloc(sizeof(struct service_template));
@@ -4393,7 +4415,6 @@ int dc_hdl_node_wlan(struct json_object *obj)
         struct radio_info *rd_cur = &(rd_cur_cfg->radioinfo[i]);
         struct radio_json *rd_def;
         struct radio_json *rd_json = &(rd_json_cfg.config[j]);
-        char if_name[33];
         
         if (rd_json->id == 0) {
             rd_def = &rd0_def_cfg;
@@ -4778,6 +4799,13 @@ int dc_hdl_node_wlan(struct json_object *obj)
             }
 
             if (k >= rd_cur->count) {
+                int bssid = wlan_get_free_bssid();
+                if (bssid < 0) {
+                    nmsc_log("Get free bssid failed.");
+                    ret = dc_error_code(dc_error_commit_failed, node, bssid);
+                    goto ERROR_OUT;
+                }
+
                 stid = -1;
                 for (m = 0; m < st_json_cfg.num; m++) {
                     if (!strcmp(rd_json->mbss[r].ssidname, st_json_cfg.config[m].ssid)) {
@@ -4792,7 +4820,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
                     goto ERROR_OUT;
                 }
 
-                ret = wlan_set_bind(rd_json->id, 0, stid);
+                ret = wlan_set_bind(rd_json->id, bssid, stid);
 
                 if (ret) {
                     nmsc_log("Set the radio %d mbss bind %d:%d failed for %d.", rd_json->id, 0, stid, ret);
@@ -4926,14 +4954,19 @@ int dc_hdl_node_vlan_port(struct json_object *obj)
         vlan_portes.num++;
         log_node_paires(paires, sizeof(paires)/sizeof(paires[0]));
     }
+
+
+
+
     for (i = 0; i < vlan_portes.num; i++) {
         struct vlan_port *config;
         char *pvlan, sec[255];
         int start, end, sec_flag;
         
         config = &(vlan_portes.config[i]);
+        /* convert ssid to ifname */
         if (config->rdid != -1) {
-#if !OK_PATCH
+            int bssid = -1;
             bssid = wlan_get_bssid_by_ssid(config->name, config->rdid);
             if (bssid < 0) {
                 nmsc_log("Get bssid for the ssid %s or radio %d failed for %d.", config->name, 
@@ -4941,8 +4974,7 @@ int dc_hdl_node_vlan_port(struct json_object *obj)
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }
-            if_form_name(0, bssid, IF_PHYTYPE_WLAN_BSS, config->name);
-#endif
+            wlan_get_ifname(bssid, config->name);
         }
         
         if (config->type == 0) {
@@ -5133,6 +5165,9 @@ int dc_hdl_node_capwap(struct json_object *obj)
     CHECK_DEFAULT_STRING_CONFIG(mas_server);
     CHECK_DEFAULT_STRING_CONFIG(sla_server);
 
+
+
+
     memset(&cur_cfg, 0, sizeof(cur_cfg));
     if (capwapc_get_curcfg(&cur_cfg) != 0 
         || (json_cfg.enable != cur_cfg.enable
@@ -5141,7 +5176,6 @@ int dc_hdl_node_capwap(struct json_object *obj)
         || json_cfg.mtu != cur_cfg.mtu
         || strcmp(json_cfg.mas_server, cur_cfg.mas_server) != 0
         || strcmp(json_cfg.sla_server, cur_cfg.sla_server) != 0)) {
-        capwapc_set_forceexec(1);
 
         if (strcmp(json_cfg.mas_server, cur_cfg.mas_server) != 0) {
             if (strlen(json_cfg.mas_server) > 0) {
@@ -5207,7 +5241,6 @@ int dc_hdl_node_capwap(struct json_object *obj)
         else {
             dc_cawapc_later_action(CAPWAPC_LATER_EXEC_STOP);
         }
-        capwapc_set_forceexec(0);
     }
     else {
         nmsc_log("Same capwap config, do nothing.");
@@ -5376,6 +5409,10 @@ int dc_hdl_node_log(struct json_object *obj)
             nmsc_log("Infocenter set log buffer enable failed for %d.", ret);
             return dc_error_code(dc_error_commit_failed, node, ret);
         }
+        if((ret = log_set_bufferlevel(json_cfg.buffer.level)) != 0){
+            nmsc_log("Infocenter set log buffer level failed for %d.", ret);
+            return dc_error_code(dc_error_commit_failed, node, ret);
+        }
     }else{
         if((ret = log_undo_buffer()) != 0){
             nmsc_log("Infocenter set log buffer disable failed for %d.", ret);
@@ -5383,7 +5420,7 @@ int dc_hdl_node_log(struct json_object *obj)
         }
     }
 
-    nmsc_delay_op_new(nmsc_delay_op_log, &json_cfg.buffer.level, sizeof(json_cfg.buffer.level));
+    nmsc_delay_op_new(nmsc_delay_op_log, &json_cfg.center.enable, sizeof(json_cfg.buffer.level));
     
     return 0;
 }

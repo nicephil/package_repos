@@ -2,8 +2,8 @@ config system
     option hostname	oakridge
     option timezone CST-8
     option zonename Asia/Shanghai
-    option conloglevel 5
-    option klogconloglevel 5
+    option conloglevel 7
+    option klogconloglevel 7
     option log_type file
     option log_file /var/log/messages
     option log_size 128
