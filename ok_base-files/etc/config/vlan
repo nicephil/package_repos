@@ -1,3 +1,0 @@
-config VLAN0 VLAN0
-    option name 'ljf'
-    option description 'dljf'

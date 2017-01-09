@@ -37,13 +37,13 @@ int log_enable_infocenter(void)
     //system.@system[0].log_file='/var/log/messages'
     //system.@system[0].log_size='128'
     //system.@system[0].log_remote='0'
-    system("/etc/init.d/boot restart");
+    //system("/etc/init.d/boot restart");
     return 0;
 }
 
 int log_undo_infocenter(void)
 {
-    system("/etc/init.d/boot stop");
+    //system("/etc/init.d/boot stop");
     return 0;
 }
 

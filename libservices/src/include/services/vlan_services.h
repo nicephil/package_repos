@@ -2,7 +2,8 @@
 #define __VLAN_SERVICES_H_
 
 #define VLAN_MAX_COUNT 32
-#define VLAN_CFG_PACKAGE "vlan"
+#define VLAN_CFG_PACKAGE "network"
+#define VLAN_BR_PREFIX "br-lan"
 #define VLAN_PORT_CFG_PACKAGE "vlan_port"
 
 enum VLAN_PORT_TYPE {
@@ -12,6 +13,41 @@ enum VLAN_PORT_TYPE {
 
     VLAN_PORT_TYPE_MAX
 };
+
+enum IP_TYPE
+{
+    INVALID = 0,
+    DHCP,
+    STATICED,
+    PPPOE,
+    NONE,
+};
+
+typedef struct interface_info
+{
+    int id;
+    unsigned char type;
+    unsigned char enable;
+    unsigned char nat_enable;
+    unsigned char dns_count;
+    char address[33];
+    char netmask[33];
+    char dns_server[3][33];
+    char default_address[33];
+    char default_netmask[33];
+    char pppoe_user[65];
+    char pppoe_pass[65];
+    char pppoe_acname[65];
+    char pppoe_servicesname[65];
+    char pppoe_mtu[65];
+    char desc[81];
+}interface_info;
+
+typedef struct vlan_interface_info
+{
+    int count;
+    interface_info info[20];   
+} vlan_interface_info;
 
 
 

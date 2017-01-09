@@ -1,53 +1,11 @@
 config WLAN_Radio0 WLAN_Radio0
-    option rssi_access enable #enabled/.*
-    option atf enabled #enabled/.*
-    option rssi_access_threshold 20
-    option beacon_interval 20
-    option max_power 20 #auto/20
-    option dtim 20
-    option fragment_threshold 20
-    option rts_threshold 20
-    option a_mpdu enabled #enabled/.*
-    option short_gi enabled #enabled/.*
-    option device_mode monitor #monitor/.*
-    option mode gn #11ac/an/gn/a/g/n
-    option channel 20 #auto/20
-    option distance 20
-    option bandwidth 20
-    option dot11only enabled #enabled/.*
-    option dot11aconly enabled #enabled/.*
-    option preamble short #short/.*
-    option protection_mode none #cts-to-self/none/rts-cts
-    option bcast_ratelimit enabled #enabled/.*
-    option bcast_ratelimit_cir 20
-    option bcast_ratelimit_cbs 20
-    option scan_template "name"
-    list bind 0-1 #bss_num-st_num
-    option enabled enabled #enabled/.*
-
+    option enabled enabled 
+    option mode ng  
+    option channel auto
+                       
+                       
 config WLAN_Radio1 WLAN_Radio1
-    option rssi_access enable #enabled/.*
-    option atf enabled #enabled/.*
-    option rssi_access_threshold 20
-    option beacon_interval 20
-    option max_power 20 #auto/20
-    option dtim 20
-    option fragment_threshold 20
-    option rts_threshold 20
-    option a_mpdu enabled #enabled/.*
-    option short_gi enabled #enabled/.*
-    option device_mode monitor #monitor/.*
-    option mode gn #11ac/an/gn/a/g/n
-    option channel 20 #auto/20
-    option distance 20
-    option bandwidth 20
-    option dot11only enabled #enabled/.*
-    option dot11aconly enabled #enabled/.*
-    option preamble short #short/.*
-    option protection_mode none #cts-to-self/none/rts-cts
-    option bcast_ratelimit enabled #enabled/.*
-    option bcast_ratelimit_cir 20
-    option bcast_ratelimit_cbs 20
-    option scan_template "name"
-    list bind 0-1 #bss_num-st_num
-    option enabled enabled #enabled/.*
+    option enabled enabled 
+    option mode 11ac
+    option channel auto
+

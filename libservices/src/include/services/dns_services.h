@@ -3,13 +3,10 @@
 
 #include <arpa/inet.h>
 
-#define DNS_CFG_PACKAGE "dns"
-
 extern int dns_set_global(struct in_addr dns);
 extern int dns_undo_global(struct in_addr dns);
 extern int dns_undo_global_all(void);
 extern int dns_get_global(struct in_addr * dns);
-extern void dns_apply_all(void);
 
 #endif /* __DNS_SERVICES_H_ */
 

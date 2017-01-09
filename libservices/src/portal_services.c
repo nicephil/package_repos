@@ -180,7 +180,7 @@ static int portal_scheme_iterator(struct uci_package *p, void *arg)
         uci_foreach_element(&s->options, e1) {
             o = uci_to_option(e1);
             if (strcmp(o->e.name, "enabled") == 0) {
-                if (strcmp(o->v.string, "enabled")) {
+                if (strcmp(o->v.string, "enabled") == 0) {
                     schemes.config[count].enable = 1;
                 }
                 else {

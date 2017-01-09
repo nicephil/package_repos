@@ -113,9 +113,9 @@ static int wlan_radio_list(struct uci_package *p, void *arg)
                 }else if (!strcmp(o->e.name, "mode"))  {
                     if (!strcmp(o->v.string, "11ac"))
                         info->radioinfo[num].radio.mode = DOT11_RADIO_MODE_A | DOT11_RADIO_MODE_N | DOT11_RADIO_MODE_AC;
-                    else if (!strcmp(o->v.string, "an"))
+                    else if (!strcmp(o->v.string, "na"))
                         info->radioinfo[num].radio.mode = DOT11_RADIO_MODE_A | DOT11_RADIO_MODE_N;
-                    else if (!strcmp(o->v.string, "gn"))
+                    else if (!strcmp(o->v.string, "ng"))
                         info->radioinfo[num].radio.mode = DOT11_RADIO_MODE_G | DOT11_RADIO_MODE_N;
                     else if (!strcmp(o->v.string, "a"))
                         info->radioinfo[num].radio.mode = DOT11_RADIO_MODE_A;
@@ -184,9 +184,9 @@ static int wlan_radio_list(struct uci_package *p, void *arg)
                 int count = 0;
                 uci_foreach_element(&o->v.list, e3) {
                     if (!strcmp(o->e.name, "bind"))  {
-                        sscanf(e3->name, "%d-%d", &bss_num, &st_num);
-                        info->radioinfo[num].service[count] = st_num;
-                        info->radioinfo[num].wlan_bss[count] = bss_num;
+                        int stid;
+                        sscanf(e3->name, "ServiceTemplate%d", &stid);
+                        info->radioinfo[num].service[count] = stid;
                         ++count;
                     }
                     
@@ -406,11 +406,7 @@ int wlan_set_service_template_enable(int stid, int enable)
     //wlan_service_template.ServiceTemplate1.service_template='enabled'
     char tuple[128];
     sprintf(tuple, "wlan_service_template.ServiceTemplate%d.service_template", stid);
-    if (enable) {
-        cfg_set_option_value(tuple, "enabled");
-    } else {
-        cfg_set_option_value(tuple, "disabled");
-    }
+    cfg_set_option_value(tuple, enable?"enabled":"disabled");
     return 0;
 }
 
@@ -435,9 +431,15 @@ int wlan_set_auth(int stid, int auth)
 
 int wlan_set_country(const char *country)
 {
-    //wireless.wifi0.country
-    cfg_set_option_value_int("wireless.wifi0.country", 156);
-    cfg_set_option_value_int("wireless.wifi1.country", 156);
+    if (!strcmp(country, "CN")) {
+        //wireless.wifi0.country
+        cfg_set_option_value("wireless.wifi0.country", "156");
+        cfg_set_option_value("wireless.wifi1.country", "156");
+    } else if (!strcmp(country, "US")) {
+        //wireless.wifi0.country
+        cfg_set_option_value("wireless.wifi0.country", "840");
+        cfg_set_option_value("wireless.wifi1.country", "840");
+    }
 
     return 0;
 }
@@ -445,8 +447,8 @@ int wlan_set_country(const char *country)
 int wlan_undo_country(void)
 {
     //wlan_radio.country.country='CN'
-    cfg_set_option_value_int("wireless.wifi0.country", 156);
-    cfg_set_option_value_int("wireless.wifi1.country", 156);
+    cfg_set_option_value("wireless.wifi0.country", "156");
+    cfg_set_option_value("wireless.wifi1.country", "156");
     return 0;
 }
 
@@ -469,18 +471,15 @@ int wlan_get_country(char *country)
 
 int wlan_undo_bind(int radio, int stid)
 {
-    /* fetch ssid from stid */
-    //wlan_service_template.ServiceTemplate0.ssid='name'
+    //wireless.ath02.ifname='ath02'
     char tuple[128];
-    char ssid[WLAN_SSID_MAX_LENGTH];
-    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.ssid", stid);
-    cfg_get_option_value(tuple, ssid, WLAN_SSID_MAX_LENGTH);
+    sprintf(tuple, "wireless.ath%d%d", radio, stid);
     /* del ssid conf on specified radio in openwrt wireless conf file */
+    cfg_del_section(tuple);
 
 
-
-    //wlan_radio.WLAN_Radio1.bind='0-1'
-    sprintf(tuple, "wlan_radio.WLAN_Radio%d.bind=0-%d", radio, stid);
+    //wlan_radio.WLAN_Radio1.bind='ServiceTemplate1'
+    sprintf(tuple, "wlan_radio.WLAN_Radio%d.bind=ServiceTemplate%d", radio, stid);
     cfg_del_option_list_value(tuple);
 
     return 0;
@@ -488,8 +487,8 @@ int wlan_undo_bind(int radio, int stid)
 
 int wlan_undo_service_template_enable(int stid)
 {
-    //wlan_service_template.ServiceTemplate0.service_template='enabled'
     char tuple[128];
+    //wlan_service_template.ServiceTemplate0.service_template='enabled'
     sprintf(tuple, "wlan_service_template.ServiceTemplate%d.service_template", stid);
     cfg_set_option_value(tuple, "disabled");
     return 0;
@@ -662,7 +661,7 @@ int wlan_set_beacon_ssid_hide(int stid, int value)
 {
     //wlan_service_template.ServiceTemplate1.beacon_ssid_hide='disabled'
     char tuple[128];
-    sprintf(tuple, "wlan_service_template.ServiceTemplate1.beacon_ssid_hide", stid);
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.beacon_ssid_hide", stid);
     if (value) {
         cfg_set_option_value(tuple, "enabled");
     } else {
@@ -780,9 +779,13 @@ int wlan_set_gtk_lifetime_enable(int stid, int value)
 
 int wlan_set_radio_enable(int radio_id, int enable)
 {
-    //wlan_radio.WLAN_Radio1.enabled='enabled'
     char tuple[128];
-    sprintf(tuple, "wlan_radio.WLAN_Radio1.enabled", radio_id);
+    //wireless.wifi1.disabled='1'
+    sprintf(tuple, "wireless.wifi%d.disabled", radio_id);
+    cfg_set_option_value_int(tuple, enable?0:1);
+
+    //wlan_radio.WLAN_Radio1.enabled='enabled'
+    sprintf(tuple, "wlan_radio.WLAN_Radio%d.enabled", radio_id);
     if (enable) {
         cfg_set_option_value(tuple, "enabled");
     } else {
@@ -802,6 +805,10 @@ char * wlan_mode_to_str(int mode)
         return mode_str;
     }
 
+    if (mode & DOT11_RADIO_MODE_N) {
+        mode_str[i] = 'n';
+        ++i;
+    }
     if (mode & DOT11_RADIO_MODE_A) {
         mode_str[i] = 'a';
         ++i;
@@ -814,10 +821,6 @@ char * wlan_mode_to_str(int mode)
         mode_str[i] = 'g';
         ++i;
     }
-    if (mode & DOT11_RADIO_MODE_N) {
-        mode_str[i] = 'n';
-        ++i;
-    }
     mode_str[i] = 0;
 
     return mode_str;
@@ -825,9 +828,12 @@ char * wlan_mode_to_str(int mode)
 
 int wlan_set_mode(int radio_id, int mode)
 {
-    syslog(LOG_INFO, "Set radio %d with mode %s\n", radio_id, wlan_mode_to_str(mode));
-    //wlan_radio.WLAN_Radio1.mode='gn'
     char tuple[128];
+    //wireless.wifi0.hwmode
+    sprintf(tuple, "wireless.wifi%d.hwmode", radio_id);
+    cfg_set_option_value(tuple, wlan_mode_to_str(mode));
+
+    //wlan_radio.WLAN_Radio1.mode='ng'
     sprintf(tuple, "wlan_radio.WLAN_Radio%d.mode", radio_id);
     cfg_set_option_value(tuple, wlan_mode_to_str(mode));
 
@@ -841,14 +847,21 @@ int wlan_set_mode(int radio_id, int mode)
         radio->config.ampdu = 1;
         */
 
+        //wireless.wifi0.AMDPU
+        sprintf(tuple, "wireless.wifi%d.AMPDU", radio_id);
+        cfg_set_option_value_int(tuple, 1);
         //wlan_radio.WLAN_Radio1.a_mpdu='enabled'
         sprintf(tuple, "wlan_radio.WLAN_Radio%d.a_mpdu", radio_id);
         cfg_set_option_value(tuple, "enabled");
 
+        //wireless.ath01.shortgi
         //wlan_radio.WLAN_Radio1.short_gi='enabled'
         sprintf(tuple, "wlan_radio.WLAN_Radio%d.short_gi", radio_id);
         cfg_set_option_value(tuple, "enabled");
 
+        //wireless.wifi0.htmode
+        sprintf(tuple, "wireless.wifi%d.htmode", radio_id);
+        cfg_set_option_value(tuple, "HT20");
         //wlan_radio.WLAN_Radio1.bandwidth='20'
         sprintf(tuple, "wlan_radio.WLAN_Radio%d.bandwidth", radio_id);
         cfg_set_option_value(tuple, "20");
@@ -871,6 +884,9 @@ int wlan_set_mode(int radio_id, int mode)
         radio->config.ampdu = 0;
         */
 
+        //wireless.wifi0.AMDPU
+        sprintf(tuple, "wireless.wifi%d.AMPDU", radio_id);
+        cfg_set_option_value_int(tuple, 0);
         //wlan_radio.WLAN_Radio1.a_mpdu='enabled'
         sprintf(tuple, "wlan_radio.WLAN_Radio%d.a_mpdu", radio_id);
         cfg_set_option_value(tuple, "disabled");
@@ -879,6 +895,9 @@ int wlan_set_mode(int radio_id, int mode)
         sprintf(tuple, "wlan_radio.WLAN_Radio%d.short_gi", radio_id);
         cfg_set_option_value(tuple, "disabled");
 
+        //wireless.wifi0.htmode
+        sprintf(tuple, "wireless.wifi%d.htmode", radio_id);
+        cfg_set_option_value(tuple, "HT20");
         //wlan_radio.WLAN_Radio1.bandwidth='20'
         sprintf(tuple, "wlan_radio.WLAN_Radio%d.bandwidth", radio_id);
         cfg_set_option_value(tuple, "20");
@@ -901,6 +920,9 @@ int wlan_set_mode(int radio_id, int mode)
         radio->config.ampdu = 1;
         */
         
+        //wireless.wifi0.AMDPU
+        sprintf(tuple, "wireless.wifi%d.AMPDU", radio_id);
+        cfg_set_option_value_int(tuple, 1);
         //wlan_radio.WLAN_Radio1.a_mpdu='enabled'
         sprintf(tuple, "wlan_radio.WLAN_Radio%d.a_mpdu", radio_id);
         cfg_set_option_value(tuple, "enabled");
@@ -909,6 +931,9 @@ int wlan_set_mode(int radio_id, int mode)
         sprintf(tuple, "wlan_radio.WLAN_Radio%d.short_gi", radio_id);
         cfg_set_option_value(tuple, "enabled");
 
+        //wireless.wifi0.htmode
+        sprintf(tuple, "wireless.wifi%d.htmode", radio_id);
+        cfg_set_option_value(tuple, "HT20");
         //wlan_radio.WLAN_Radio1.bandwidth='20'
         sprintf(tuple, "wlan_radio.WLAN_Radio%d.bandwidth", radio_id);
         cfg_set_option_value(tuple, "20");
@@ -926,13 +951,18 @@ int wlan_set_mode(int radio_id, int mode)
         syslog(LOG_DEBUG, "Add code to support default setting under mode 0x%x\n", mode);
     }
 
+    syslog(LOG_INFO, "Set radio %d with mode %s\n", radio_id, wlan_mode_to_str(mode));
     return 0;
 }
 
 int wlan_set_channel(int radio_id, int value)
 {
-    //wlan_radio.WLAN_Radio1.channel='20'
     char tuple[128];
+    //wireless.wifi0.channel
+    sprintf(tuple, "wireless.wifi%d.channel", radio_id);
+    cfg_set_option_value_int(tuple, value);
+
+    //wlan_radio.WLAN_Radio1.channel='20'
     sprintf(tuple, "wlan_radio.WLAN_Radio%d.channel", radio_id);
     char value_str[33] = "auto";
     if (value) {
@@ -977,61 +1007,139 @@ int wlan_set_frag_threshold(int radio_id, int value)
 
 int wlan_set_rts_threshold(int radio_id, int value)
 {
+    //wlan_radio.WLAN_Radio1.rts_threshold='20'
+    char tuple[128];
+    sprintf(tuple, "wlan_radio.WLAN_Radio%d.rts_threshold", radio_id);
+    cfg_set_option_value_int(tuple, value);
     return 0;
 }
 
 int wlan_set_short_gi(int radio_id, int value)
 {
+    //wlan_radio.WLAN_Radio0.short_gi='enabled'
+    char tuple[128];
+    sprintf(tuple, "wlan_radio.WLAN_Radio%d.short_gi", radio_id);
+    if (value) {
+        cfg_set_option_value(tuple, "enabled");
+    } else {
+        cfg_set_option_value(tuple, "disabled");
+    }
     return 0;
 }
 
 int wlan_set_ampdu(int radio_id, int enable)
 {
+    char tuple[128];
+    //wireless.wifi0.AMPDU
+    sprintf(tuple, "wireless.wifi%d.AMPDU", radio_id);
+    cfg_set_option_value_int(tuple, enable);
+
+    //wlan_radio.WLAN_Radio0.a_mpdu='enabled'
+    sprintf(tuple, "wlan_radio.WLAN_Radio%d.a_mpdu", radio_id);
+    if (enable) {
+        cfg_set_option_value(tuple, "enabled");
+    } else {
+        cfg_set_option_value(tuple, "disabled");
+    }
     return 0;
 }
 
 int wlan_set_dot11nonly(int radio_id, int dot11nonly)
 {
+    //wlan_radio.WLAN_Radio1.dot11nonly='disabled'
+    char tuple[128];
+    sprintf(tuple, "wlan_radio.WLAN_Radio%d.dot11only", radio_id);
+    if (dot11nonly) {
+        cfg_set_option_value(tuple, "enabled");
+    } else {
+        cfg_set_option_value(tuple, "disabled");
+    }
+
     return 0;
 }
 
 int wlan_set_dot11aconly(int radio_id, int dot11aconly)
 {
+    //wlan_radio.WLAN_Radio1.dot11aconly='disabled'
+    char tuple[128];
+    sprintf(tuple, "wlan_radio.WLAN_Radio%d.dot11aconly", radio_id);
+    if (dot11aconly) {
+        cfg_set_option_value(tuple, "enabled");
+    } else {
+        cfg_set_option_value(tuple, "disabled");
+    }
     return 0;
 }
 
 int wlan_set_bandwidth(int radio_id, int bandwidth)
 {
+    char tuple[128];
+    char buf[33];
+    //wireless.wifi0.htmode='HT20'
+    sprintf(tuple, "wireless.wifi%d.bandwidth", radio_id);
+    sprintf(buf, "HT%d", bandwidth);
+    cfg_set_option_value(tuple, buf);
+
+    //wlan_radio.WLAN_Radio0.bandwidth='20'
+    sprintf(tuple, "wlan_radio.WLAN_Radio%d.bandwidth", radio_id);
+    cfg_set_option_value_int(tuple, bandwidth);
+
     return 0;
 }
 
 int wlan_set_distance(int radio_id, int value)
 {
+    char tuple[128];
+    //wireless.wifi0.distance
+    sprintf(tuple, "wireless.wifi%d.distance", radio_id);
+    cfg_set_option_value_int(tuple, value);
+
+    //wlan_radio.WLAN_Radio0.distance='20'
+    sprintf(tuple, "wlan_radio.WLAN_Radio%d.distance", radio_id);
+    cfg_set_option_value_int(tuple, value);
     return 0;
 }
 
+const char * wlan_convert_preamble(int value)
+{
+    const static char * preamble_str[] = {
+        "short", "long"
+    };
+
+    return preamble_str[value];
+}
+
+
 int wlan_set_preamble(int radio_id, int preamble)
 {
+    //wlan_radio.WLAN_Radio0.preamble='short'
+    char tuple[128];
+    sprintf(tuple, "wlan_radio.WLAN_Radio%d.preamble", radio_id);
+    cfg_set_option_value(tuple, wlan_convert_preamble(preamble));
     return 0;
 }
 
 int wlan_set_protection_mode(int radio_id, int mode)
 {
+    //wlan_radio.WLAN_Radio0.protection_mode='none'
     return 0;
 }
 
 int wlan_set_beacon_interval(int radio_id, int value)
 {
+    //wlan_radio.WLAN_Radio0.beacon_interval='20'
     return 0;
 }
 
 int wlan_set_rssi_threshold(int radio_id, int value)
 {
+    //wlan_radio.WLAN_Radio0.rssi_access_threshold='20'
     return 0;
 }
 
 int wlan_set_rssi(int radio_id, int enable)
 {
+    //wlan_radio.WLAN_Radio0.rssi_access='enable'
     return 0;
 }
 
@@ -1050,36 +1158,75 @@ int wlan_set_atf(int radio_id, int enable)
     return 0;
 }
 
-int wlan_set_bind(int radio_id, int bssid, int stid)
+int wlan_set_bind(int radio_id, int stid)
 {
-    //wlan_radio.WLAN_Radio1.bind='0-1'
     char tuple[128];
+    char buf[33];
+    //wireless.ath15=wifi-iface
+    sprintf(buf, "ath%d%d", radio_id, stid);
+    cfg_add_section_with_name_type("wireless", buf, "wifi-iface");
+
+    //wireless.ath15.network='lan'
+    sprintf(tuple, "wireless.ath%d%d.network", radio_id, stid);
+    cfg_set_option_value(tuple, "lan1");
+
+    //wireless.ath15.device='wifi1'
+    sprintf(tuple, "wireless.ath%d%d.device", radio_id, stid);
+    sprintf(buf, "wifi%d", radio_id);
+    cfg_set_option_value(tuple, buf);
+
+    //wireless.ath15.ifname='ath15'
+    sprintf(tuple, "wireless.ath%d%d.ifname", radio_id, stid);
+    sprintf(buf, "ath%d%d", radio_id, stid);
+    cfg_set_option_value(tuple, buf);
+
+    //wireless.ath15.mode='ap'
+    sprintf(tuple, "wireless.ath%d%d.mode", radio_id, stid);
+    cfg_set_option_value(tuple, "ap");
+
+    //wireless.ath15.ssid='oakridg-def1' <-> wlan_service_template.ServiceTemplate1.ssid="ssid"
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.ssid", stid);
+    cfg_get_option_value(tuple, buf, 33);
+    sprintf(tuple, "wireless.ath%d%d.ssid", radio_id, stid);
+    cfg_set_option_value(tuple, buf);
+
+    //wireless.ath15.disabled='0' <-> wlan_serivce_template.ServiceTemplate1.service_template="enabled"
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.service_template", stid);
+    cfg_get_option_value(tuple, buf, 33);
+    if (!strcmp(buf, "enabled")) {
+        sprintf(tuple, "wireless.ath%d%d.disabled", radio_id, stid);
+        cfg_set_option_value(tuple, "0");
+    } else {
+        cfg_set_option_value(tuple, "1");
+    }
+
+    //wlan_radio.WLAN_Radio1.bind='ServiceTemplate1'
     sprintf(tuple, "wlan_radio.WLAN_Radio%d.bind", radio_id);
-    char bind[20];
-    sprintf (bind, "%d-%d", bssid, stid);
-    cfg_set_option_value(tuple, bind);
+    sprintf (buf, "ServiceTemplate%d", stid);
+    cfg_add_option_list_value(tuple, buf);
+
     return 0;
 }
 
-static int get_bss_id(struct uci_package *p, void *arg) {
+static int wlan_fetch_stid(struct uci_package *p, void *arg)
+{
     struct uci_element *e1, *e2;
     struct uci_section *s;
     struct uci_option *o;
-    int st_num, bss_id; //service template, wlan_bss id
-    
-    char *info = (char *)arg;
+    struct wlan_ssid_stid {
+        char ssid[33];
+        int stid;
+    };
+    struct wlan_ssid_stid *ssid_stid = (struct wlan_ssid_stid *)arg;
 
     uci_foreach_element(&p->sections, e1) {
         s = uci_to_section(e1);
+        sscanf(s->e.name, "ServiceTemplate%d", &(ssid_stid->stid));
         uci_foreach_element(&s->options, e2) {
             o = uci_to_option(e2);
-            if (o->type != UCI_TYPE_STRING) {   
-                struct uci_element * e3;
-                uci_foreach_element(&o->v.list, e3) {
-                    if (!strcmp(o->e.name, "bind")) {
-                        sscanf(e3->name, "%d-%d", &bss_id, &st_num);
-                        *(info + bss_id) = 1;
-                    }
+            if (!strcmp(o->e.name, "ssid")) {
+                if(!strcmp(o->v.string, ssid_stid->ssid)) {
+                    break;
                 }
             }
         }
@@ -1088,36 +1235,22 @@ static int get_bss_id(struct uci_package *p, void *arg) {
     return 0;
 }
 
-int wlan_get_free_bssid(void) 
+int wlan_get_stid_by_ssid(char *ssid, int *stid)
 {
-#define BSS_MAX_COUNT    20
-    int i, id = -1;
-	char bss_arry[BSS_MAX_COUNT];
+    struct wlan_ssid_stid {
+        char ssid[33];
+        int stid;
+    };
+    struct wlan_ssid_stid ssid_stid;
+    strcpy(ssid_stid.ssid, ssid);
+    cfg_visit_package(WLAN_CFG_SERVICE_TEMPLATE_PACKAGE, wlan_fetch_stid, &ssid_stid);
+    *stid = ssid_stid.stid;
 
-    memset(bss_arry, 0, sizeof(bss_arry) );
-    cfg_visit_package( "wlan_radio", get_bss_id, bss_arry );
-    
-    for (i = 0; i < BSS_MAX_COUNT; i++) {
-        if (0 == bss_arry[i]) {
-            id = i;
-            break;
-        }
-    }
-	
-    return id;
-}
-
-int wlan_get_bssid_by_ssid(const char *ssid, int radioid)
-{
-    char buf[33];
-    char tuple[128];
-    sprintf(tuple, "wlan_radio.WLAN_Radio%d.bind", radioid);
-    
     return 0;
 }
 
-int wlan_get_ifname_by_bssid(int bssid, char *ifname)
+int wlan_get_ifname_by_stid(int radioid, int stid, char *ifname)
 {
-    strcpy(ifname, "ath0");
+    sprintf(ifname, "ath%d%d", radioid, stid);
     return 0;
 }

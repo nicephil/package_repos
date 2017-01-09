@@ -30,5 +30,6 @@ typedef struct interface_info
 }interface_info;
 
 extern int get_manage_ifinfo(interface_info *info);
+extern int network_set_enable(const char *name, int enable);
 
 #endif /* __NETWORK_SERVICES_H_ */

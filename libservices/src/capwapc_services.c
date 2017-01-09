@@ -118,8 +118,6 @@ int capwapc_set_location(const char *location)
     }
 
     cfg_set_option_value(CAPWAPC_CFG_OPTION_LOCATION_TUPLE, location);
-    strncpy(g_capwapc_config.location, location, sizeof(g_capwapc_config.location)-1);
-    g_capwapc_config.domain[sizeof(g_capwapc_config.domain)-1] = '\0';
 
     return 0;
 }
@@ -131,7 +129,6 @@ int capwapc_undo_location(void)
     }
 
     cfg_del_option(CAPWAPC_CFG_OPTION_LOCATION_TUPLE);
-    g_capwapc_config.location[0] = '\0';
 
     return 0;
 }
@@ -144,8 +141,6 @@ int capwapc_set_domain(const char *domain)
     }
 
     cfg_set_option_value(CAPWAPC_CFG_OPTION_DOMAIN_TUPLE);
-    strncpy(g_capwapc_config.domain, domain, sizeof(g_capwapc_config.domain)-1);
-    g_capwapc_config.domain[sizeof(g_capwapc_config.domain)-1] = '\0';
 
     return 0;
 }
@@ -157,7 +152,6 @@ int capwapc_undo_domain(void)
     }
 
     cfg_del_option(CAPWAPC_CFG_OPTION_DOMAIN_TUPLE);
-    g_capwapc_config.domain[0] = '\0';
 
     return 0;
 }

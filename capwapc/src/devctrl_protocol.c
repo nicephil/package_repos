@@ -123,8 +123,9 @@ struct device_update_info* chk_dev_updateinfo(void)
 		return -1;
 	}
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, "br-lan", sizeof(ifr.ifr_name));
+	strncpy(ifr.ifr_name, "br-lan1", sizeof(ifr.ifr_name));
 	if (ioctl(sk, SIOCGIFADDR, &ifr) < 0) {
+        syslog(LOG_ERR, "no such interface: br-lan1");
 		close(sk);
 		return -1;
 	}
@@ -226,8 +227,9 @@ static int get_device_info(device_info_s *devinfo)
 		return -1;
 	}
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, "br-lan", sizeof(ifr.ifr_name));
+	strncpy(ifr.ifr_name, "br-lan1", sizeof(ifr.ifr_name));
 	if (ioctl(sk, SIOCGIFADDR, &ifr) < 0) {
+        syslog(LOG_ERR, "no interface: br-lan1");
 		close(sk);
 		return -1;
 	}
@@ -281,7 +283,7 @@ static int get_device_info(device_info_s *devinfo)
         strncpy(devinfo->version, nms_version, devinfo->verlen);
     }
 
-    devinfo->cfg_version = 1;
+    devinfo->cfg_version = cfg_get_version();
     devinfo->cfg_code = dc_get_handcode();
 
     init_dev_updateinfo(devinfo);
@@ -302,9 +304,13 @@ CWBool assemble_vendor_devinfo(char **info, int *len)
 
     memset(&msg, 0, sizeof(msg));
     memset(&devinfo, 0, sizeof(devinfo));
+#if !AH_PATCH
     if (get_device_info(&devinfo)) {
         return CW_FALSE;
     }
+#else
+    get_device_info(&devinfo);
+#endif
     size = DEVINFO_FIX_LEN + NAT_VLAN_FIX_LEN * devinfo.natlist.num;
     size += devinfo.snlen + devinfo.namelen + devinfo.verlen + devinfo.cn_len;
 

@@ -341,7 +341,7 @@ extern int wlan_set_protection_mode(int radio_id, int mode);
 extern int wlan_set_beacon_interval(int radio_id, int value);
 extern int wlan_set_rssi_threshold(int radio_id, int value);
 extern int wlan_set_rssi(int radio_id, int enable);
-extern int wlan_set_bind(int radio_id, int bssid, int stid);
+extern int wlan_set_bind(int radio_id, int stid);
 extern int wlan_set_bcast_ratelimit_enable(int radio_id, int value);
 extern int wlan_set_cipher(int stid, int cipher);
 extern int wlan_set_wep40_key(int stid, int slot, int type, int crypt, const char *key);
@@ -355,7 +355,6 @@ extern int wlan_set_gtk_lifetime_enable(int stid, int value);
 extern int wlan_set_static_client_uplink_rate_limit_value(int stid, unsigned int value);
 extern int wlan_set_dynamic_client_uplink_rate_limit_value(int stid, unsigned int value);
 extern int wlan_undo_dynamic_client_uplink_rate_limit_value( int stid );
-extern int wlan_get_free_bssid(void); 
-extern int wlan_get_bssid_by_ssid(const char *ssid, int radioid);
+extern int wlan_get_stid_by_ssid(char *ssid, int *stid);
 extern int wlan_get_ifname_by_bssid(int bssid, char *ifname);
 #endif /*__WLAN_SERVICES_H_ */

@@ -350,7 +350,7 @@ _free:
     return ret;
 }
 
-int cfg_add_section_with_type_name(const char *package_tuple, const char *section_type, const char *section_name)
+int cfg_add_section_with_name_type(const char *package_tuple, const char *section_name, const char *section_type)
 {
     struct uci_context *ctx = NULL;
     struct uci_ptr ptr = {0};
@@ -358,7 +358,7 @@ int cfg_add_section_with_type_name(const char *package_tuple, const char *sectio
     char *tuple;
 
      tuple = malloc(strlen(package_tuple)+strlen(section_name)+strlen(section_type)+10);
-     sprintf(tuple, "%s.%s=%s", package_tuple, section_type, section_name);
+     sprintf(tuple, "%s.%s=%s", package_tuple, section_name, section_type);
 
     ctx = uci_alloc_context();
     if (!ctx) {
@@ -403,7 +403,10 @@ int cfg_add_section(const char *package_tuple, const char *section_type_name)
     int ret = 0;
     char *tuple;
 
-    tuple = malloc(strlen(package_tuple)+strlen(section_type_name)+10);
+    assert(package_tuple);
+    assert(section_type_name);
+
+    tuple = malloc(strlen(package_tuple)+2*strlen(section_type_name)+10);
     sprintf(tuple, "%s.%s=%s", package_tuple, section_type_name, section_type_name);
 
     ctx = uci_alloc_context();
@@ -602,6 +605,7 @@ int cfg_get_product_info(struct product_info * info)
 
     memcpy(&g_pinfo, info, sizeof(struct product_info));
     g_pinfo_init = 1;
+    ret = 0;
 
 _free:
     if (ctx && p) {

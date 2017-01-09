@@ -8,7 +8,8 @@ LIBOBJS = util_services.o \
 		  log_services.o \
 		  dns_services.o \
 		  vlan_services.o \
-		  dnsset_services.o
+		  dnsset_services.o \
+		  network_services.o
 
 
 SHLIB = libservices.so.1.0

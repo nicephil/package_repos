@@ -4,13 +4,6 @@
 #include "devctrl_protocol.h"
 #include "devctrl_payload.h"
 #include "devctrl_notice.h"
-#if !OK_PATCH
-#include "services/wlan_services.h"
-#include "services/vlan_services.h"
-#include "services/wds_services.h"
-#include "cmp/cmp_pub.h"
-#include "util/util.h"
-#endif
 
 #define WLAN_STA_STAUS_TIMER    30
 
@@ -31,160 +24,6 @@ static inline rssi_level_e dc_rssi2level(int rssi)
 
 static int wlan_get_sta_info(struct wlan_sta_stat **stas)
 {
-#if !OK_PATCH
-    int count = 0, size = 0;
-    int i, j, k, ret, num;
-    struct wmac_init_param  radio_init;
-    struct wlan_radio_status   radio;
-    DOT11_RADIO_CAP_S   caps[DOT11_RADIO_NUM_MAX];
-    struct wlan_sta_stat *sta_list = NULL;
-    static char radio_count = -1;
-
-    if(radio_count <= 0){
-        if (DOT11_GetHardwareInfo(&radio_init, &caps[0]) == DOT11_OK) {
-            radio_count = radio_init.uRadioNums;
-        }
-    }
-
-    for (i = 0; i < radio_count; ++i) {
-        ret = wlan_get_radio_status(i, &radio);
-        if (ret != CMP_ERR_NO_ERR) {
-            CWDebugLog("WLAN radio %d does not exist.", i);
-        }
-        else {
-            struct wlan_bss_status bss;
-            
-            if (radio.enable) {
-                struct wlan_service_template stspec, *stcur;
-                
-                for (j = 0; j < radio.bss_count; ++j) {
-                    ret = wlan_get_bss_status(radio.bss[j], &bss);
-                    if (ret == 0) {
-                        struct wlan_sta_status  * sta, *s;
-                        struct if_attrs attrs;
-                        port_vlan_info portinfo;
-                        int vlan = 1;
-                        
-                        num = wlan_get_sta_list(bss.linkname, &sta);
-                        if (num <= 0 || sta == NULL) {
-                            continue;
-                        }
-
-/* BEGIN: modified by zjye to fix bug 3617 2016-4-11 */
-#if 0
-                        vlan_get_pvid(bss.linkname, &vlan);                        
-#else
-                        portinfo.port_pvid = -1;
-                        eth_get_vlan_info(IF_PHYTYPE_WLAN_BSS, bss.id, &portinfo);
-                        if (portinfo.port_pvid <= 0) {
-                            vlan = 1;
-                        }
-                        else {
-                            vlan = portinfo.port_pvid;
-                        }
-#endif
-/* END: modified by zjye to fix bug 3617 2016-4-11 */
-                        if_get_attrs_by_linkname(bss.linkname, &attrs, NULL);
-                        
-                        memset(&stspec, 0, sizeof(stspec));
-                        strncpy(stspec.ssid, bss.ssid, sizeof(stspec.ssid) - 1);
-                        if (wlan_service_template_by_ssid(&stspec) == 0 && strlen(stspec.portal_scheme) > 0) {
-                            stcur = &stspec;
-                        }
-                        else {
-                            stcur = NULL;
-                        }
-                        s = sta;
-                        for (k = 0; k < num; ++k) {
-                            struct  timeval    tv;
-                            if (count >= size) {
-                                size += 5;
-                                if (count == 0) {
-                                    sta_list = (struct wlan_sta_stat *)malloc(size *sizeof(struct wlan_sta_stat));
-                                }
-                                else  {
-                                    sta_list = (struct wlan_sta_stat *)realloc(sta_list, size * sizeof(struct wlan_sta_stat));
-                                }
-                                if(sta_list == NULL){
-                                    CWLog("Failed to malloc station in get station.");
-                                    return -1;
-                                }
-                            }
-                            sta_list[count].auth = bss.auth;
-                            sta_list[count].cipher = bss.crypt;
-                            sta_list[count].ip = s->ipv4.s_addr;
-                            memcpy(sta_list[count].mac, s->mac, sizeof(sta_list[count].mac));
-                            sta_list[count].state = 0;
-                            sta_list[count].radioid = i;
-                            strncpy(sta_list[count].ssid, bss.ssid, sizeof(sta_list[count].ssid) - 1);
-                            sta_list[count].ssid_len = strlen(bss.ssid);
-                            sta_list[count].uptime = s->assoc_time;
-                            gettimeofday(&tv,NULL);
-                            sta_list[count].time_ms = ((unsigned long long)tv.tv_sec*1000 + tv.tv_usec/1000) - (s->assoc_time*1000);
-                            sta_list[count].updated = 0;
-                            if (stcur == NULL) {
-                                sta_list[count].portal = 0;
-                                sta_list[count].portal_mode = 0;
-                                sta_list[count].name_len = 0;
-                                sta_list[count].user[0] = 0;
-                                sta_list[count].ps_len = 0; 
-                                sta_list[count].ps_name[0] = 0;
-                            }
-                            else {
-                                sta_list[count].portal = 1;
-                                sta_list[count].portal_mode = 0;
-                                sta_list[count].name_len = 0;
-                                sta_list[count].user[0] = 0;
-                                sta_list[count].ps_len = strlen(stcur->portal_scheme);
-                                strcpy(sta_list[count].ps_name, stcur->portal_scheme);
-
-                                int fd = 0, cmd = PORTAL_IOC_GET_AUTHSTA;
-                                portal_op_arg arg;
-                                portal_auth_cfg_t auinfo;
-
-                                memset(&auinfo, 0, sizeof(portal_auth_cfg_t));
-                                memcpy(auinfo.clientmac, s->mac, ETH_ALEN);
-                                strncpy(arg.portal_scheme_name, stcur->portal_scheme, PORTAL_SCHEME_NAME_MAX);
-                                arg.datalen = sizeof(portal_auth_cfg_t);
-                                arg.pointer = &auinfo;
-                                fd = open(PORTAL_DEV_NAME, O_RDWR);
-                                if (fd >= 0)
-                                {
-                                    if (ioctl(fd, cmd, &arg) < 0) {
-#if 0
-                                        CWLog("Get portal info from %s for client %02X:%02X:%02X:%02X:%02X:%02X failed.",
-                                            stcur->portal_scheme, auinfo.clientmac[0], auinfo.clientmac[1], auinfo.clientmac[2],
-                                            auinfo.clientmac[3], auinfo.clientmac[4], auinfo.clientmac[5]);
-#endif
-                                    }
-                                    else {
-                                        sta_list[count].portal_mode = auinfo.authmode;
-                                        sta_list[count].name_len = auinfo.namelen;
-                                        strcpy(sta_list[count].user, auinfo.username);
-                                    }
-                                    close(fd);
-                                }
-                            }
-                            memcpy(sta_list[count].bssid, attrs.dev_addr.sa_data, sizeof(sta_list[count].bssid));
-                            sta_list[count].rssi = s->rssi - 95;
-                            sta_list[count].rs_level = dc_rssi2level(sta_list[count].rssi);
-                            sta_list[count].channel = bss.channel;
-                            sta_list[count].vlan = vlan;
-                            
-                            count++;
-                            ++s;
-                        }
-                        free(sta);
-                    }
-                }
-            }
-        }
-    }
-    
-    *stas = sta_list;
-
-    return count;
-#else
     struct wlan_sta_stat *sta_list = NULL;
     sta_list = (struct wlan_sta_stat *)malloc(sizeof(struct wlan_sta_stat));
     memset(sta_list, 0, sizeof(struct wlan_sta_stat));
@@ -228,7 +67,6 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
     sta_list->rs_level = 1;
     *stas = sta_list;
     return 1;
-#endif
 }
 
 static int inline dc_reserves_stas(struct wlan_sta_stat **sta_list, 

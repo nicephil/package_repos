@@ -87,7 +87,7 @@ extern int cfg_add_section(const char *package_tuple, const char *section_type_n
  * @param [in] section_name e.g. timeserver
  * @return 0 means success, otherwise failure
  */
-extern int cfg_add_section_with_type_name(const char *package_tuple, const char *section_type, const char *section_name);
+extern int cfg_add_section_with_name_type(const char *package_tuple, const char *section_name, const char *section_type);
 
 /*
  * @brief delete the section

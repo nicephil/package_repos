@@ -239,13 +239,9 @@ CWBool CWAssembleMsgElemWTPDescriptor(CWProtocolMessage *msgPtr) {
 	
 	CWProtocolStore8(msgPtr, CWWTPGetMaxRadios()); // number of radios supported by the WTP
 	CWProtocolStore8(msgPtr, CWWTPGetRadiosInUse()); // number of radios present in the WTP
-#if 0	
-	CWProtocolStore16(msgPtr, CWWTPGetEncCapabilities()); // encryption capabilities
-#else
 	CWProtocolStore8(msgPtr, 1); // Num Encrypt
 	CWProtocolStore8(msgPtr, 1); // 3-bit reserverd, 5-bit field that is the wireless binding identifier, 1 for 802.11
 	CWProtocolStore16(msgPtr, CWWTPGetEncCapabilities()); // encryption capabilities	
-#endif
  
 	for(i = 0; i < infos.vendorInfosCount; i++) {
 		CWProtocolStore32(msgPtr, ((infos.vendorInfos)[i].vendorIdentifier));
@@ -258,12 +254,6 @@ CWBool CWAssembleMsgElemWTPDescriptor(CWProtocolMessage *msgPtr) {
 	
 		CWProtocolStoreRawBytes(msgPtr, (char*) ((infos.vendorInfos)[i].valuePtr), (infos.vendorInfos)[i].length);
 
-//		CWDebugLog("WTP Descriptor Vendor ID: %d", (infos.vendorInfos)[i].vendorIdentifier);
-//		CWDebugLog("WTP Descriptor Type: %d", (infos.vendorInfos)[i].type);
-//		CWDebugLog("WTP Descriptor Length: %d", (infos.vendorInfos)[i].length);
-//		CWDebugLog("WTP Descriptor Value: %d", *((infos.vendorInfos)[i].valuePtr));
-
-		//CWDebugLog("Vendor Info \"%d\" = %d - %d - %d", i, (infos.vendorInfos)[i].vendorIdentifier, (infos.vendorInfos)[i].type, (infos.vendorInfos)[i].length);
 	}
 	
 	CWWTPDestroyVendorInfos(&infos);

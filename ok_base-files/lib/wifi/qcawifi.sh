@@ -71,9 +71,13 @@ scan_qcawifi() {
 		[ $disabled = 0 ] || continue
 
 		local vifname
+        # we will use the ifname defined in vif config, it must be defined
+        # notice the ifname must be athN, otherwise wlanconfig will select random name
+        config_get _ifname "$vif" ifname
+        [ -z $_ifname ] && {
 		[ $ifidx -gt 0 ] && vifname="ath${radioidx}$ifidx" || vifname="ath${radioidx}"
-
 		config_set "$vif" ifname $vifname
+        }
 
 		config_get mode "$vif" mode
 		case "$mode" in
@@ -1892,25 +1896,15 @@ detect_qcawifi() {
 		echo $nss_olcfg >/lib/wifi/wifi_nss_olcfg
 		echo $nss_ol_num >/lib/wifi/wifi_nss_olnum
 		reload=1
-        ### OK_PATCH
         base_mac="$(cat /sys/class/net/eth0/address)"
         mac="${base_mac%:*}:`printf "%x" $((0x${base_mac##*:} + $(($devidx*8+8))))`"
-        ### end OK_PATCH 
 		cat <<EOF
 config wifi-device  wifi$devidx
-	option type	qcawifi
-	option channel	auto
+    option type	qcawifi
+    option channel	auto
     option macaddr ${mac}
-	option hwmode	11${mode_11}
-	# REMOVE THIS LINE TO ENABLE WIFI:
-	#option disabled 1
-
-config wifi-iface
-	option device	wifi$devidx
-	option network	lan
-	option mode	ap
-	option ssid	oakridg-def$devidx
-	option encryption none
+    option hwmode	11${mode_11}
+    option disabled 0
 
 EOF
 	devidx=$(($devidx + 1))

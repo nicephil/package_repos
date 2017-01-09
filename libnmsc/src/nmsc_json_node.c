@@ -465,6 +465,9 @@ static int dc_hdl_node_domain_name(struct json_object *obj)
 
     log_node_pair(pair);
 
+
+
+
     if (strlen(domain_name) > 0) {
         if ((ret = capwapc_set_domain(domain_name)) != 0) {
             nmsc_log("Set domain name %s config failed for %d.", domain_name, ret);
@@ -771,6 +774,7 @@ int dc_hdl_node_dns(struct json_object *obj)
         }
     }
 
+
     dns_undo_global_all();
     for (j = 0; j < dnses.num; j++) {
         if (strlen(dnses.server[j]) > 0) {
@@ -780,7 +784,6 @@ int dc_hdl_node_dns(struct json_object *obj)
             }
         }
     }
-    dns_apply_all();
 
     return 0;
 }
@@ -1738,23 +1741,6 @@ static int dc_hdl_node_alg(struct json_object *obj)
     ret = nat_alg_set_enable(NAT_ALG_PPTP, alg_config.pptp);
     ALG_ENABLE("PPTP", alg_config.pptp, ret);
 
-/* fix bug 3265 */
-#if 0
-    ret = nat_alg_set_enable(NAT_ALG_IRC, alg_config.irc);
-    ALG_ENABLE("IRC", alg_config.irc, ret);
-
-    ret = nat_alg_set_enable(NAT_ALG_SIP, alg_config.sip);
-    ALG_ENABLE("SIP", alg_config.sip, ret);
-
-    ret = nat_alg_set_enable(NAT_ALG_H323, alg_config.h323);
-    ALG_ENABLE("h323", alg_config.h323, ret);
-
-    ret = nat_alg_set_enable(NAT_ALG_SNMP, alg_config.snmp);
-    ALG_ENABLE("SNMP", alg_config.snmp, ret);
-
-    ret = nat_alg_set_enable(NAT_ALG_NETBIOS, alg_config.netbios);
-    ALG_ENABLE("NETBIOS", alg_config.netbios, ret);
-#endif    
 #endif
     return 0;
 }
@@ -1800,7 +1786,6 @@ int dc_hdl_node_nat(struct json_object *obj)
 int dc_hdl_node_dialer(struct json_object *obj)
 {
     /* not supported yet */
-#if !OK_PATCH
     struct dialer {
         char name[33];
         int  dial_type;
@@ -1831,7 +1816,6 @@ int dc_hdl_node_dialer(struct json_object *obj)
         {"ac_name",      json_type_string, NULL, sizeof(dialeres.config[0].pppoe_acname)},
     };   
     struct json_object *array;
-    vlan_interface_info *info = NULL;
     char interface_name[20];
     int i, j, id, ret, node = dc_node_dialers;
     
@@ -1860,6 +1844,12 @@ int dc_hdl_node_dialer(struct json_object *obj)
         log_node_paires(paires, sizeof(paires)/sizeof(paires[0]));
     }
 
+
+
+
+
+#if !OK_PATCH
+    vlan_interface_info *info = NULL;
     if ((ret = vlan_get_dialer_info(&info)) != 0 || info == NULL) {
         nmsc_log("Get dialer failed for %d.", ret);
         return dc_error_code(dc_error_commit_failed, node, ret);
@@ -1934,11 +1924,9 @@ int dc_hdl_node_dialer(struct json_object *obj)
     }
 
     free(info);
-
-    return ret;
-#else
-    return 0;
 #endif
+    ret = 0;
+    return ret;
 }
 
 static int dc_parse_node_service_template(struct json_object *obj, 
@@ -4271,6 +4259,15 @@ int dc_hdl_node_wlan(struct json_object *obj)
             /* if change the st config, save the stid and disable it, then will be set config  */
             stid = st_cur_cfg->wlan_st_info[i].id;
             wlan_undo_service_template_enable(stid);
+            /* st is changed, undo bind first, then change template  */
+            for (k = 0; k < rd_cur_cfg->num; k++) {
+                for (r = 0; r < sizeof(rd_cur_cfg->radioinfo[k].service)/sizeof(rd_cur_cfg->radioinfo[k].service[0]); r++) {                    
+                    if (rd_cur_cfg->radioinfo[k].service[r] == stid) {
+                        wlan_undo_bind(rd_cur_cfg->radioinfo[k].id, stid);
+                        break;
+                    }
+                }
+            }
         }
         else {
             /* does't not exist, get free stid and create it */
@@ -4772,7 +4769,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
             }
         }
 
-        /* bind rd_json's new st */
+        /* bind rd_json's new or changed st */
         for (r = 0; r < rd_json->mbss_num; r++) {
             for (k = 0; k < rd_cur->count; k++) {
                 char *ssid = NULL;
@@ -4799,13 +4796,6 @@ int dc_hdl_node_wlan(struct json_object *obj)
             }
 
             if (k >= rd_cur->count) {
-                int bssid = wlan_get_free_bssid();
-                if (bssid < 0) {
-                    nmsc_log("Get free bssid failed.");
-                    ret = dc_error_code(dc_error_commit_failed, node, bssid);
-                    goto ERROR_OUT;
-                }
-
                 stid = -1;
                 for (m = 0; m < st_json_cfg.num; m++) {
                     if (!strcmp(rd_json->mbss[r].ssidname, st_json_cfg.config[m].ssid)) {
@@ -4820,13 +4810,6 @@ int dc_hdl_node_wlan(struct json_object *obj)
                     goto ERROR_OUT;
                 }
 
-                ret = wlan_set_bind(rd_json->id, bssid, stid);
-
-                if (ret) {
-                    nmsc_log("Set the radio %d mbss bind %d:%d failed for %d.", rd_json->id, 0, stid, ret);
-                    ret = dc_error_code(dc_error_commit_failed, node, ret);
-                    goto ERROR_OUT;
-                }
                 if (later_enable) {
                     ret = wlan_set_service_template_enable(stid, 1);
                     if (ret) {
@@ -4835,10 +4818,18 @@ int dc_hdl_node_wlan(struct json_object *obj)
                         goto ERROR_OUT;
                     }
                 }
+
+                ret = wlan_set_bind(rd_json->id, stid);
+
+                if (ret) {
+                    nmsc_log("Set the radio %d mbss bind %d:%d failed for %d.", rd_json->id, 0, stid, ret);
+                    ret = dc_error_code(dc_error_commit_failed, node, ret);
+                    goto ERROR_OUT;
+                }
             }
         }
     }
-    
+
     ret = 0;
 ERROR_OUT:
     
@@ -4966,15 +4957,9 @@ int dc_hdl_node_vlan_port(struct json_object *obj)
         config = &(vlan_portes.config[i]);
         /* convert ssid to ifname */
         if (config->rdid != -1) {
-            int bssid = -1;
-            bssid = wlan_get_bssid_by_ssid(config->name, config->rdid);
-            if (bssid < 0) {
-                nmsc_log("Get bssid for the ssid %s or radio %d failed for %d.", config->name, 
-                    config->rdid, bssid);
-                ret = dc_error_code(dc_error_commit_failed, node, ret);
-                goto ERROR_OUT;
-            }
-            wlan_get_ifname(bssid, config->name);
+            int stid;
+            wlan_get_stid_by_ssid(config->name, &stid);
+            wlan_get_ifname_by_stid(config->rdid, stid, config->name);
         }
         
         if (config->type == 0) {
@@ -5102,19 +5087,14 @@ int dc_hdl_node_interface(struct json_object *obj)
     }
 
     for (i = 0; i < interfaces.num; i++) {
-#if !OK_PATCH
-        if ((ret = netifd_set_enable(interfaces.config[i].name, interfaces.config[i].enable)) != 0) {
-            if (ret != CMP_ERR_COMMIT_FAIL) { /* same config */
-                nmsc_log("Set the interface %s enable %d failed for %d.", 
+        if ((ret = network_set_enable(interfaces.config[i].name, interfaces.config[i].enable)) != 0) {
+            nmsc_log("Set the interface %s enable %d failed for %d.", 
                     interfaces.config[i].name, interfaces.config[i].enable, ret);
-                ret = dc_error_code(dc_error_commit_failed, node, ret);
-                break;
-            }
-            else {
-                ret = 0;
-            }
+            ret = dc_error_code(dc_error_commit_failed, node, ret);
+            break;
+        } else {
+            ret = 0;
         }
-#endif
     }
     
     free(interfaces.config);

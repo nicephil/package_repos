@@ -12,6 +12,7 @@ int ntpclient_enabled(void)
 int ntpclient_disabled(void)
 {
     system("/etc/init.d/sysntpd stop");
+
     cfg_set_option_value_int("system.ntp.enable_server", 0);
     return 0;
 }
@@ -27,7 +28,7 @@ int ntpclient_undo_all_server(void)
 {
     //system.ntp=timeserver
     cfg_del_section("system.ntp");
-    cfg_add_section_with_type_name("system", "ntp", "timeserver");
+    cfg_add_section_with_name_type("system", "ntp", "timeserver");
     return 0;
 }
 
@@ -38,10 +39,11 @@ int ntpclient_set_update_period(unsigned int value)
 
 int ntpclient_get_defcfg(struct ntpclient_info *defcfg)
 {
-    defcfg->num = 1; 
+    defcfg->num = 2; 
     defcfg->enabled = 1;
     defcfg->period = 5;
-    strcpy(defcfg->server[0], "ntp.oakridge.io");
+    strcpy(defcfg->server[0], "time.nist.gov");
+    strcpy(defcfg->server[1], "time.windows.com");
     return 0;
 }
 
