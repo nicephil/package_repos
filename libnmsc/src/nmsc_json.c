@@ -46,20 +46,24 @@ void dc_cawapc_later_action(int action)
 
 int dc_restart_cawapc(void)
 {
-    int ret = (g_capwapc_exec_later == CAPWAPC_LATER_EXEC_RESTART);
+    if (g_capwapc_exec_later == CAPWAPC_LATER_EXEC_RESTART) {
+        system("/etc/init.d/capwapc restart &");
+    }
 
     g_capwapc_exec_later = CAPWAPC_LATER_EXEC_NOTHING;
-    
-    return ret;
+
+    return 0;
 }
 
 int dc_stop_cawapc(void)
 {
-    int ret = (g_capwapc_exec_later == CAPWAPC_LATER_EXEC_STOP);
+    if (g_capwapc_exec_later == CAPWAPC_LATER_EXEC_STOP) {
+        system("/etc/init.d/capwapc stop &");
+    }
 
     g_capwapc_exec_later = CAPWAPC_LATER_EXEC_NOTHING;
     
-    return ret;
+    return 0;
 }
 
 static void dc_reset_handle_result(void)

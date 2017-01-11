@@ -65,6 +65,8 @@ config_cb() {
                 append buffer "</WTP_MAX_TRANS>$value\n"
                 append buffer "<end>\n"
                 ;;
+                "domain")
+                ;;
                 *)
                 echo "error: not support"
                 ;;
@@ -83,7 +85,7 @@ generate_config () {
 
 start() {
     generate_config
-    service_start /usr/sbin/$APP
+    service_start /usr/sbin/$APP &
 }
 
 

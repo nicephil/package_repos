@@ -1,11 +1,6 @@
 #ifndef __DEVCTRL_PROTOCOL_H__
 #define __DEVCTRL_PROTOCOL_H__
 
-#if !OK_PATCH
-#include "portal/linux/portal_public.h"
-#include "services/dns_services.h"
-#endif
-
 #define DEVCTRL_BLOCK_HEADER_LEN    20
 typedef struct devctrl_block{
 #define COOKIE_LENGTH   8    

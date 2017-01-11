@@ -109,14 +109,10 @@ static int dc_json_config_response(devctrl_block_s *dc_block, void *reserved)
 
 static int dc_json_config_finished(void *reserved)
 {
-#if !OK_PATCH
-    if (dc_restart_cawapc()) {
-        task_update_status(CW_RESTART_SILENTLY, NULL);
-    }
-    else if (dc_stop_cawapc()) {
-        task_update_status(CW_STOP, NULL);
-    }
-#endif 
+    system("/etc/init.d/network restart");
+    dc_stop_cawapc();
+    dc_restart_cawapc();
+
 
     if (reserved) {
         free(reserved);
@@ -717,12 +713,8 @@ static int dc_upload_techsupport_handler(struct tlv *payload, void **reserved)
 
     log_node_paires(paires, sizeof(paires)/sizeof(paires[0])); 
 
-#if !OK_PATCH
     memset(local_hostname, 0, sizeof(local_hostname));
-    hostname_get(local_hostname);
-#else
-    strcpy(local_hostname, "okridge");
-#endif
+    hostname_get(local_hostname, sizeof(local_hostname));
 
     memset(local_time, 0, sizeof(local_time));
     timer=time(NULL);

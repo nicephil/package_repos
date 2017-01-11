@@ -6,13 +6,15 @@
 
 #include "services/capwapc_services.h"
 
-static int g_init = 0;
+static int g_capwapc_init = 0;
+
+static int g_capwapc_forceexec = 0;
 
 extern struct capwapc_config g_capwapc_config;
 
 int capwapc_cfg_server_init(struct capwapc_config *cfg)
 {
-    if (g_init) {
+    if (g_capwapc_init) {
         return 0;
     }
     struct uci_context *ctx;
@@ -41,7 +43,7 @@ int capwapc_cfg_server_init(struct capwapc_config *cfg)
 
     uci_unload(ctx, p);
     uci_free_context(ctx);
-    g_init = 1;
+    g_capwapc_init = 1;
     return 0;
 }
 
@@ -106,6 +108,122 @@ int capwapc_get_server_pri(char *server, int *server_pri)
     syslog(LOG_DEBUG, "Server %s was discoveried by broadcast with priority %d.\n", 
         server, pri);
     
+    return 0;
+}
+
+int capwapc_set_location(const char *location)
+{
+    if (!strcmp(location, g_capwapc_config.location)) {
+        return 0;
+    }
+
+    cfg_set_option_value(CAPWAPC_CFG_OPTION_LOCATION_TUPLE, location);
+
+    return 0;
+}
+
+int capwapc_undo_location(void)
+{
+    if (!g_capwapc_config.location[0]) {
+        return 0;
+    }
+
+    cfg_del_option(CAPWAPC_CFG_OPTION_LOCATION_TUPLE);
+
+    return 0;
+}
+
+
+int capwapc_set_domain(const char *domain)
+{
+    if (!strcmp(g_capwapc_config.domain, domain)) {
+        return 0;
+    }
+
+    cfg_set_option_value(CAPWAPC_CFG_OPTION_DOMAIN_TUPLE);
+
+    return 0;
+}
+
+int capwapc_undo_domain(void)
+{
+    if (!g_capwapc_config.domain[0]) {
+        return 0;
+    }
+
+    cfg_del_option(CAPWAPC_CFG_OPTION_DOMAIN_TUPLE);
+
+    return 0;
+}
+
+int capwapc_get_defcfg(capwapc_config *defcfg)
+{
+    defcfg->enable = CAPWAPC_DEFAULT_ENABLE;
+    defcfg->location[0] = '\0';
+    defcfg->domain[0] = '\0';
+    defcfg->mas_server[0] = '\0';
+    defcfg->sla_server[0] = '\0';
+    strcpy(defcfg->def_server, CAPWAPC_DEFAULT_SERVER);
+    defcfg->ctrl_port =  CAPWAPC_DEFAULT_CTRLPORT;
+    defcfg->mtu = CAPWAPC_DEFAULT_MTU;
+    defcfg->disc_intv = CAPWAPC_DEFAULT_DISCINTV;
+    defcfg->maxdisc_intv = CAPWAPC_DEFAULT_MAXDISCINTV;
+    defcfg->echo_intv = CAPWAPC_DEFAULT_ECHOINTV;
+    defcfg->retran_intv = CAPWAPC_DEFAULT_RETRANINTV;
+    defcfg->silent_intv = CAPWAPC_DEFAULT_SILENTINTV;
+    defcfg->join_timeout = CAPWAPC_DEFAULT_JIONTIMEOUT;
+    defcfg->max_disces = CAPWAPC_DEFAULT_MAXDISCES ;
+    defcfg->max_retran = CAPWAPC_DEFAULT_MAXRETRAN;
+
+    return 0;
+}
+
+
+int capwapc_get_curcfg(capwapc_config *curcfg)
+{
+    memcpy(curcfg, &g_capwapc_config, sizeof(capwapc_config));
+    return 0;
+}
+
+int capwapc_set_slaveserver(const char *server)
+{
+    cfg_set_option_value(CAPWAPC_CFG_OPTION_SLASER_TUPLE, server);
+    return 0;
+}
+
+int capwapc_undo_slaveserver(void)
+{
+    cfg_del_option(CAPWAPC_CFG_OPTION_SLASER_TUPLE);
+    return 0;
+}
+
+int capwapc_set_echointv(int echointv)
+{
+    cfg_set_option_value_int(CAPWAPC_CFG_OPTION_ECHOINTV_TUPLE, echointv);
+    return 0;
+}
+
+int capwapc_set_mtu(int mtu)
+{
+    cfg_set_option_value_int(CAPWAPC_CFG_OPTION_MTU_TUPLE, mtu);
+    return 0;
+}
+
+int capwapc_set_masterserver(const char *server)
+{
+    cfg_set_option_value(CAPWAPC_CFG_OPTION_MASSER_TUPLE, server);
+    return 0;
+}
+
+int capwapc_undo_masterserver(void)
+{
+    cfg_del_option(CAPWAPC_CFG_OPTION_MASSER_TUPLE);
+    return 0;
+}
+
+int capwapc_set_ctrlport(int ctrlport)
+{
+    cfg_set_option_value_int(CAPWAPC_CFG_OPTION_CTRLPORT_TUPLE, ctrlport);
     return 0;
 }
 
