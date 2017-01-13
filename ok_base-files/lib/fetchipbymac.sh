@@ -2,5 +2,12 @@
 
 mac=$1
 
-awk '{if ($4 == "'$mac'") print "\toption ipaddr "$1;}' /proc/net/arp
+ip=`awk '{if ($4 == "'$mac'") print "\toption ipaddr "$1;}' /proc/net/arp`
 
+if [[ -n "$ip" ]]
+then
+  echo -e "$ip"
+  exit 0
+fi
+
+/lib/fresharplist.sh &

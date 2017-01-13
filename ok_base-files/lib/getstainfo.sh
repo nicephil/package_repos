@@ -1,6 +1,6 @@
 #!/bin/sh
 
-/lib/genarplist.sh
+/lib/fresharplist.sh
 
 ath_all=`ifconfig | grep -E 'ath*' | awk '{print $1}'`
 
@@ -15,6 +15,7 @@ wlanconfig $ath list sta  | awk -F' ' '$1 !~ /ADDR/{
     print "\toption rssi "$6
     print "\toption assoctime "$17
     system("/lib/fetchipbymac.sh "$1)
-}' |tee /etc/config/stationinfo 
-done
+    system("/lib/fetchinfobyinterface.sh '$ath'")
+}'
+done > /etc/config/stationinfo
 

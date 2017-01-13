@@ -24,7 +24,7 @@ int dns_undo_global(struct in_addr dns)
 int dns_undo_global_all(void)
 {
     //network.loopback.dns='2.2.2.4' '4.4.8.8'
-    cfg_del_option("network.loopback.dns=0");
+    cfg_del_option("network.loopback.dns");
 
     return 0;
 }
