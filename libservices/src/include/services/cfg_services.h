@@ -14,6 +14,17 @@ extern int cfg_visit_package(const char *package_tuple,
         void *arg);
 
 /*
+ * @brief go through whole config package in specific path
+ * @param [in] path the specific path
+ * @param [in] package the package name. e.g. portalscheme
+ * @param [in] visitor the callback function
+ * @param [in] arg will pass to visitor callback function
+ * @return 0 means success, otherwise means failure
+ */
+extern int cfg_visit_package_with_path(const char *path, const char *package_tuple, 
+        int (*visitor)(struct uci_package *p, void *arg),
+        void *arg);
+/*
  * @brief go through section
  * @param [in] section_tuple e.g. portalscheme.aa
  * @param [in] visitor call back function

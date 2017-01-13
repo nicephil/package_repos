@@ -288,12 +288,12 @@ int portal_scheme_del_sta(char * scheme_name, char * clientmac)
 
 int portald_scheme_update_domain(char * domain_name)
 {
-    //portal.domain.domain='aa'
+    //system.domain.domain='aa'
     if (!domain_name) {
-        cfg_del_section("portal.domain");
+        cfg_del_section("system.domain");
     } else {
-        cfg_add_section("portal","domain");
-        cfg_set_option_value("portal.domain.domain", domain_name);
+        cfg_add_section("system","domain");
+        cfg_set_option_value("system.domain.domain", domain_name);
     }
     return 0;
 }

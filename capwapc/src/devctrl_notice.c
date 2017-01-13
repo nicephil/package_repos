@@ -5,6 +5,8 @@
 #include "devctrl_payload.h"
 #include "devctrl_notice.h"
 
+#include "services/cfg_services.h"
+
 #define WLAN_STA_STAUS_TIMER    30
 
 static CWTimerID g_sta_notice_timerid = -1;
@@ -22,51 +24,119 @@ static inline rssi_level_e dc_rssi2level(int rssi)
     }
 }
 
+static int fetch_station_info_visitor(struct uci_package *p, void *arg)
+{
+    struct uci_element *e1, *e2;
+    int index = 0;
+    struct wlan_sta_stat_all {
+        int count;
+        struct wlan_sta_stat **stas;
+    };
+    struct wlan_sta_stat_all *all = (struct wlan_sta_stat_all *)arg;
+
+    struct wlan_sta_stat *stas = NULL;
+
+    uci_foreach_element(&p->sections, e1) {
+        all->count ++;
+    }
+    if (!all->count) {
+        stas = NULL;
+        return 0;
+    }
+    stas = (struct wlan_sta_stat *)malloc(all->count * sizeof(struct wlan_sta_stat));
+    memset(stas, 0, all->count * sizeof(struct wlan_sta_stat));
+    index = 0;
+    uci_foreach_element(&p->sections, e1) {
+        struct uci_section *s = uci_to_section(e1);
+        uci_foreach_element(&s->options, e2) {
+            struct uci_option *o = uci_to_option(e2);
+            if (!strcmp(o->e.name, "ifname")) {
+                continue;
+            }else if (!strcmp(o->e.name, "mac")) {
+                char mac[22] = {0};
+                strcpy(mac, o->v.string);
+                char *s = mac;
+                char *e;
+                int i;
+                for (i = 0; i < 6; i++) {
+                    stas[index].mac[i] = s ? strtoul(s, &e, 16) : 0;
+                    if (s) {
+                        s = (*e) ? e + 1 : e;
+                    }
+                }
+            } else if (!strcmp(o->e.name, "chan")) {
+                stas[index].channel = atoi(o->v.string);
+            } else if (!strcmp(o->e.name, "rssi")) {
+                stas[index].rssi = atoi(o->v.string);
+            } else if (!strcmp(o->e.name, "assoctime")) {
+                struct  timeval    tv;
+                int hours=0, minutes=0, seconds=0;
+                if(sscanf(o->v.string, "%d:%d:%d", &hours, &minutes, &seconds)) {
+                    stas[index].uptime = hours*60*60 + minutes*60 + seconds;
+                }
+                gettimeofday(&tv,NULL);
+                stas[index].time_ms = ((unsigned long long)tv.tv_sec*1000 + tv.tv_usec/1000) - (stas[index].uptime*1000);
+            } else if (!strcmp(o->e.name, "ipaddr")) {
+                struct in_addr net;
+                inet_aton(o->v.string, &net);
+                stas[index].ip = net.s_addr;
+            } else if (!strcmp(o->e.name, "radioid")) {
+                stas[index].radioid = atoi(o->v.string);
+            } else if (!strcmp(o->e.name, "bssid")) {
+                char mac[22] = {0};
+                strcpy(mac, o->v.string);
+                char *s = mac;
+                char *e;
+                int i;
+                for (i = 0; i < 6; i++) {
+                    stas[index].bssid[i] = s ? strtoul(s, &e, 16) : 0;
+                    if (s) {
+                        s = (*e) ? e + 1 : e;
+                    }
+                }
+            } else if (!strcmp(o->e.name, "authentication")) {
+                if (!strcmp(o->e.name, "open")) {
+                    stas[index].auth = 0;
+                } else {
+                    stas[index].auth = 1;
+                }
+            } else if (!strcmp(o->e.name, "portal_scheme")) {
+                strcpy(stas[index].ps_name, o->v.string);
+                stas[index].ps_len = strlen(stas[index].ps_name);
+                stas[index].portal = 1;
+            } else if (!strcmp(o->e.name, "ssid")) {
+                strcpy(stas[index].ssid, o->v.string);
+                stas[index].ssid_len = strlen(stas[index].ssid);
+            } else if (!strcmp(o->e.name, "vlan")) {
+                stas[index].vlan = atoi(o->v.string);
+            }
+        }
+        index ++;
+    }
+    *(all->stas) = stas;
+    return 0;
+}
+
 static int wlan_get_sta_info(struct wlan_sta_stat **stas)
 {
-    struct wlan_sta_stat *sta_list = NULL;
-    sta_list = (struct wlan_sta_stat *)malloc(sizeof(struct wlan_sta_stat));
-    memset(sta_list, 0, sizeof(struct wlan_sta_stat));
-    sta_list->updated = 0;
-    sta_list->len = 0; 
-    sta_list->state = 0;
+    struct wlan_sta_stat_all {
+        int count;
+        struct wlan_sta_stat **stas;
+    };
 
-    /* mac address */
-    char mac[20] = "00:11:22:33:44";
-    char *s = mac;
-    char *e;
-    int i;
-    for (i = 0; i < 6; i++) {
-        sta_list->mac[i] = s ? strtoul(s, &e, 16) : 0;
-        if (s) {
-            s = (*e) ? e + 1 : e;
-        }
+    struct wlan_sta_stat_all all;
+    all.count = 0;
+    all.stas = stas;
+    int ret = 0;
+
+    system("/lib/getstainfo.sh");
+
+    ret = cfg_visit_package_with_path("/tmp/stationinfo", "stationinfo", fetch_station_info_visitor, (void*)&all);
+    if (ret) {
+        return -1;
     }
 
-    sta_list->time_ms = 200;
-    sta_list->uptime = 400;
-    sta_list->radioid = 1;
-    strcpy(sta_list->ssid, "oakridge");
-    sta_list->ssid_len = strlen(sta_list->ssid+1);
-    sta_list->auth = 0;
-    sta_list->cipher = 0;
-    sta_list->portal = 1;
-
-    struct in_addr addr;
-    inet_aton("192.168.10.123", &addr);
-    sta_list->ip = addr.s_addr;
-
-    sta_list->portal_mode = 1;
-    sta_list->name_len = 0;
-    strcpy(sta_list->ps_name, "123"); /* portal scheme */
-    sta_list->ps_len = strlen(sta_list->ps_name);
-    strcpy(sta_list->bssid, "oakridge");
-    sta_list->rssi = 30;
-    sta_list->channel = 124;
-    sta_list->vlan = 0;
-    sta_list->rs_level = 1;
-    *stas = sta_list;
-    return 1;
+    return all.count;
 }
 
 static int inline dc_reserves_stas(struct wlan_sta_stat **sta_list, 

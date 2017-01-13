@@ -41,6 +41,41 @@ _free:
     return ret;
 }
 
+int cfg_visit_package_with_path(const char *path, const char *package_tuple, 
+        int (*visitor)(struct uci_package *p, void *arg),
+        void *arg)
+{
+    struct uci_context *ctx = NULL;
+    struct uci_package *p = NULL;
+    int ret = 0;
+
+    ctx = uci_alloc_context();
+    if (!ctx) {
+        syslog(LOG_ERR, "no enough memory\n");
+        return -1;
+    }
+
+    uci_set_confdir(ctx, path);
+
+    uci_load(ctx, package_tuple, &p);
+    if(!p) {
+        syslog(LOG_ERR, "no such package:%s\n", package_tuple);
+        ret = -1;
+        goto _free;
+    }
+
+    ret = visitor(p, arg);
+
+_free:
+    if (ctx && p) {
+        uci_unload(ctx, p);
+    }
+    if (ctx) {
+        uci_free_context(ctx);
+    }
+    return ret;
+}
+
 int cfg_visit_section(const char *section_tuple, 
         int (*visitor)(struct uci_section *s, void *arg),
         void *arg)
