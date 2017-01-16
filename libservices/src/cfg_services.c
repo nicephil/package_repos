@@ -652,4 +652,15 @@ _free:
     return ret;
 }
 
+int cfg_upgrade_image(const char *imagefile)
+{
+    int ret = 0;
+    char buf[128];
+    sprintf(buf, "sysupgrade -n %s", imagefile);
+    ret = system(buf);
+    if (ret) {
+        return IMG_UPGRADE_FAILED;
+    }
+    return 0;
+}
 

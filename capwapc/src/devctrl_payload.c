@@ -9,6 +9,8 @@
 #include "json/json.h"
 #include "nmsc/nmsc.h"
 
+#include "services/cfg_services.h"
+
 extern void log_node_paires(struct node_pair_save *paires, int size);
 
 static inline char *dc_generate_json_result(int code)
@@ -318,13 +320,7 @@ static int dc_image_upgrade_handler(struct tlv *payload, void **reserved)
         goto ERROR_OUT;
     }
 
-    sprintf(cmd, "wget -q -T %d -O %s %s", json_cfg.timeout, CST_IMG_TMP_FILE, json_cfg.src);
-#if 0 /* busybox wget does not support user&password option */
-    if (strlen(json_cfg.usr) > 0 && strlen(json_cfg.pwd) > 0) {
-        sprintf(cmd, "wget -o %s --http-user=%s --http-password=%s %s", CST_IMG_TMP_FILE, 
-            , json_cfg.usr, json_cfg.pwd, json_cfg.src);
-    }
-#endif
+    sprintf(cmd, "wget -q -T %d -O - \'%s\' | tail -c +65 | tar xzf - -O > %s", json_cfg.timeout, json_cfg.src, CST_IMG_TMP_FILE);
     ret = system(cmd);
     if (ret) {
         CWDebugLog("Running cmd %s failed.", cmd);
@@ -333,7 +329,6 @@ static int dc_image_upgrade_handler(struct tlv *payload, void **reserved)
         system(cmd);
         goto ERROR_OUT;
     }
-#if !OK_PATCH
     ret = cfg_upgrade_image(CST_IMG_TMP_FILE);
     sprintf(cmd, "rm -rf %s", CST_IMG_TMP_FILE);
     system(cmd);
@@ -346,7 +341,6 @@ static int dc_image_upgrade_handler(struct tlv *payload, void **reserved)
         ret = dc_error_imgupgrade_failed;
         goto ERROR_OUT;
     }
-#endif
 
     /* yes, i don't care the jsco_cfg.action */
 ERROR_OUT: 

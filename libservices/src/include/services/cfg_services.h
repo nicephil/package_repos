@@ -140,5 +140,12 @@ struct product_info {
 
 
 extern int cfg_get_product_info(struct product_info * info);
+enum upgrade_failed_e{
+    MTDDEV_GET_FAILED = -1,
+    VERSION_MATCH_FAILED = -2,
+    IMG_UPGRADE_FAILED = -3,
+    BOOTIMG_SET_FAILED = -4
+};
+extern int cfg_upgrade_image(const char *imagefile);
 
 #endif /* __CFG_SERVICES_H */
