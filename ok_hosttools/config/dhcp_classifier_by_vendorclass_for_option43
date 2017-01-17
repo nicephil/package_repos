@@ -1,0 +1,5 @@
+config vendorclass 'oakridge'
+    option vendorclass 'oakridge'
+    option networkid 'oakridge'
+    option force '1'
+    list dhcp_option '43,1,4,192.168.100.117,1,4,192.168.100.20,2,12,ac1.test.com'
