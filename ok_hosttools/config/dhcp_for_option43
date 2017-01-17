@@ -1,0 +1,8 @@
+config dhcp lan
+    option interface    lan
+    option start    1
+    option limit  200
+    option leasetime    12h
+    option ra_management 1
+    option ignore 0
+    list dhcp_option '43,1,4,192.168.100.117,1,4,192.168.100.20,2,12,ac1.test.com'

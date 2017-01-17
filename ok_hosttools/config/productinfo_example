@@ -1,0 +1,5 @@
+config productinfo
+	option production "WL8200-T2"
+	option serial "WL019610G107000033"
+	option mac "00:03:0F:6F:49:11"
+	option mac_count "1,16"
