@@ -29,24 +29,30 @@
 
 #include "httpd.h"
 
-/**@brief Callback for libhttpd, main entry point for captive portal */
-void http_callback_404(httpd *, request *, int);
 /**@brief Callback for libhttpd */
 void http_callback_wifidog(httpd *, request *);
 /**@brief Callback for libhttpd */
 void http_callback_about(httpd *, request *);
 /**@brief Callback for libhttpd */
 void http_callback_status(httpd *, request *);
-/**@brief Callback for libhttpd, main entry point post login for auth confirmation */
-void http_callback_auth(httpd *, request *);
 /**@brief Callback for libhttpd, disconnect user from network */
 void http_callback_disconnect(httpd *, request *);
-
 /** @brief Sends a HTML page to web browser */
 void send_http_page(request *, const char *, const char* );
-
 /** @brief Sends a redirect to the web browser */
 void http_send_redirect(request *, const char *, const char *);
+/**@brief Callback for libhttpd, main entry point for captive portal */
+void http_callback_404(httpd *, request *, int);
+/**@brief Callback for libhttpd, main entry point post login for auth confirmation */
+void http_callback_auth(httpd *, request *);
+
+#if OK_PATCH
+struct _auth_serv_t;
+
+void http_send_redirect_to_auth(request *, const char *, const char *, const struct _auth_serv_t *);
+#else
 /** @brief Convenience function to redirect the web browser to the authe server */
 void http_send_redirect_to_auth(request *, const char *, const char *);
+#endif
+
 #endif /* _HTTP_H_ */

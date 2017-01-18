@@ -59,20 +59,215 @@
 #include "../config.h"
 
 #if OK_PATCH
-static char * okos_http_insert_parameter(const request * r, const char * halfUrl);
+#include "okos_auth_param.h"
 #endif
+
+
+
+#if OK_PATCH
+static int okos_http_check_whitelist(request *r, char *url)
+{
+    // if host is not in whitelist, maybe not in conf or domain'IP changed, it will go to here.
+    // e.g. www.example.com  
+    debug(LOG_INFO, "Check host %s is in global whitelist or not", r->request.host);
+    t_firewall_rule *rule;
+    //e.g. example.com is in whitelist
+    // if request http://www.example.com/, it's not equal example.com.
+    for (rule = get_ruleset("global"); NULL != rule; rule = rule->next) {
+        debug(LOG_INFO, "rule mask %s", rule->mask);
+        if (NULL == strstr(r->request.host, rule->mask)) {
+            debug(LOG_INFO, "host %s is not in %s, continue", r->request.host, rule->mask);
+            continue;
+        }
+        int host_length = strlen(r->request.host);
+        int mask_length = strlen(rule->mask);
+        if (host_length != mask_length) {
+            char prefix[1024] = { 0 };
+            // must be *.example.com, if not have ".", maybe Phishing. e.g. phishingexample.com
+            strncpy(prefix, r->request.host, host_length - mask_length - 1);        // e.g. www
+            strcat(prefix, ".");    // www.
+            strcat(prefix, rule->mask);     // www.example.com
+            if (strcasecmp(r->request.host, prefix) == 0) {
+                debug(LOG_INFO, "allow subdomain");
+                fw_allow_host(r->request.host, NULL);
+                http_send_redirect(r, url, "allow subdomain");
+                return 0;
+            }
+        } else {
+            /* e.g. "example.com" is in conf, so it had been parse to IP and
+             * added into "iptables allow" when wifidog start.
+             * but then its' A record(IP) changed, it will go to here.*/
+            debug(LOG_INFO, "allow domain again, because IP changed");
+            fw_allow_host(r->request.host, NULL);
+            http_send_redirect(r, url, "allow domain");
+            return 0;
+        }
+    }
+    return 1;
+}
+static int okos_http_check_whitelist_by_ssid(request *r, char *url, t_ssid_config *ssid)
+{
+    // if host is not in whitelist, maybe not in conf or domain'IP changed, it will go to here.
+    // e.g. www.example.com  
+    debug(LOG_INFO, "Check host %s is in whitelist or not for ssid(%s).", r->request.host, ssid->ssid);
+    t_firewall_rule *rule;
+    //e.g. example.com is in whitelist
+    // if request http://www.example.com/, it's not equal example.com.
+    okos_list_for_each(rule, ssid->dn_white_list->rules) {
+        debug(LOG_INFO, "rule mask %s", rule->mask);
+        if (NULL == strstr(r->request.host, rule->mask)) {
+            debug(LOG_INFO, "host %s is not in %s, continue", r->request.host, rule->mask);
+            continue;
+        }
+        int host_length = strlen(r->request.host);
+        int mask_length = strlen(rule->mask);
+        if (host_length != mask_length) {
+            char prefix[1024] = { 0 };
+            // must be *.example.com, if not have ".", maybe Phishing. e.g. phishingexample.com
+            strncpy(prefix, r->request.host, host_length - mask_length - 1);        // e.g. www
+            strcat(prefix, ".");    // www.
+            strcat(prefix, rule->mask);     // www.example.com
+            if (strcasecmp(r->request.host, prefix) == 0) {
+                debug(LOG_INFO, "allow subdomain");
+                fw_allow_host(r->request.host, ssid);
+                http_send_redirect(r, url, "allow subdomain");
+                return 0;
+            }
+        } else {
+            /* e.g. "example.com" is in conf, so it had been parse to IP and
+             * added into "iptables allow" when wifidog start.
+             * but then its' A record(IP) changed, it will go to here.*/
+            debug(LOG_INFO, "allow domain again, because IP changed");
+            fw_allow_host(r->request.host, ssid);
+            http_send_redirect(r, url, "allow domain");
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static t_client * okos_query_auth_server(t_client *client)
+{
+    debug(LOG_INFO, "Querying auth server...");
+    
+    t_authresponse auth_code;
+    int updateFailed = 1;
+    updateFailed = auth_server_request(&auth_code, client);
+    if (!updateFailed && AUTH_ALLOWED == auth_code.authcode) {
+        LOCK_CLIENT_LIST();
+        
+        t_client *old = client_list_find(client->ip, client->mac);
+        if (NULL == old) {
+            debug(LOG_DEBUG, "New client for {%s,%s}", client->ip, client->mac);
+            client_list_insert_client(client);
+        } else {
+            /* This case should be a mismatch between iptables and client list.
+             * FIXME: 
+             */ 
+            debug(LOG_WARNING, "Client for {%s,%s} is already in the client list with remain time: %d", old->ip, old->mac, old->remain_time);
+            okos_client_list_flush(old, client->remain_time);
+            client_free_node(client);
+            client = old;
+        }
+
+        /* Logged in successfully as a regular account */
+        debug(LOG_INFO, "Got ALLOWED from auth server from %s at %s - "
+              "adding to firewall and redirecting them to portal", client->ip, client->mac);
+        fw_allow(client, FW_MARK_KNOWN);
+
+        UNLOCK_CLIENT_LIST();
+        served_this_session++;
+
+        return NULL;
+    }
+    return client;
+}
+
+/** The 404 handler is also responsible for redirecting to the auth server */
+void
+http_callback_404(httpd *webserver, request *r, int error_code)
+{
+    debug(LOG_INFO, "Calling 404() for %s", r->clientAddr);
+    char tmp_url[MAX_BUF];
+    memset(tmp_url, 0, sizeof(tmp_url));
+    /* 
+     * XXX Note the code below assumes that the client's request is a plain
+     * http request to a standard port. At any rate, this handler is called only
+     * if the internet/auth server is down so it's not a huge loss, but still.
+     */
+    snprintf(tmp_url, (sizeof(tmp_url) - 1), "http://%s%s%s%s",
+             r->request.host, r->request.path, r->request.query[0] ? "?" : "", r->request.query);
+
+    /* This part is for roaming.
+     * When a client is roaming to a new AP, it didn't register to this AP before.
+     * So, iptables won't let it go. the http request will be redirected to 404.
+     * We query auth server here to confirm his login status.
+     * If we got confirm from Auth Sever and this client is allowed, set it into iptables.
+     * Then, redirect him to the original web page.
+     */
+    debug(LOG_DEBUG, "build a new client data structure for 404.");
+    t_client * client = okos_client_get_new_client(r->clientAddr);
+    if (NULL == client) {
+        debug(LOG_ERR, "Since we can't get local infor for client(%s), we need to apologize to our client.", r->clientAddr);
+        /* FIXME: we may need to port some error handler here. */
+        return;
+    }
+    
+    debug(LOG_DEBUG, "Start to query for new client in 404.");
+    if (NULL == okos_query_auth_server(client)) {
+        http_send_redirect(r, tmp_url, "Allowed");
+
+        debug(LOG_DEBUG, "Auth process completed after roaming check, no more redirection needed.");
+        return;
+    }
+
+    debug(LOG_INFO, "Auth server won't like to authority the client(%s), client need to kickoff auth process from beginning.", r->clientAddr);
+    /* For new client, check his target host in the white list.
+     */
+    t_ssid_config * ssid = okos_conf_get_ssid_by_client(client);
+    debug(LOG_DEBUG, "Start to check target host in white list...");
+    int canntMatchHostInWhiteList;
+    canntMatchHostInWhiteList = okos_http_check_whitelist(r, tmp_url);
+    if (0 == canntMatchHostInWhiteList) {
+        debug(LOG_ERR, "Match target in global WhiteList, redirect client to where s/he want, exit 404 process..");
+        return;
+    }
+    canntMatchHostInWhiteList = okos_http_check_whitelist_by_ssid(r, tmp_url, ssid);
+    if (0 == canntMatchHostInWhiteList) {
+        debug(LOG_ERR, "Match target in WhiteList on ssid(%s), redirect client to where s/he want, exit 404 process..", ssid->ssid);
+        return;
+    }
+
+    /* Re-direct them to auth server */
+    char *url = httpdUrlEncode(tmp_url);
+    char *info = okos_http_insert_parameter(client);
+    char *urlFragment;
+    t_auth_serv *auth_server = get_auth_server(client);
+    client_free_node(client);
+
+    safe_asprintf(&urlFragment, "%sinfo=%s&originalurl=%s",
+              auth_server->authserv_login_script_path_fragment, info, url);
+    free(info);
+    
+    debug(LOG_INFO, "Captured %s requesting [%s] and re-directing them to login page",
+                     r->clientAddr, url);
+    free(url);
+
+    http_send_redirect_to_auth(r, urlFragment, "Redirect to login page", auth_server);
+    free(urlFragment);
+    return;
+}
+
+#else /* OK_PATCH */
 
 /** The 404 handler is also responsible for redirecting to the auth server */
 void
 http_callback_404(httpd * webserver, request * r, int error_code)
 {
     char tmp_url[MAX_BUF], *url;
-#if OK_PATCH
-#else
+    t_auth_serv *auth_server = get_auth_server();
     char *mac;
     s_config *config = config_get_config();
-    t_auth_serv *auth_server = get_auth_server();
-#endif
     memset(tmp_url, 0, sizeof(tmp_url));
     /* 
      * XXX Note the code below assumes that the client's request is a plain
@@ -111,9 +306,6 @@ http_callback_404(httpd * webserver, request * r, int error_code)
               r->clientAddr);
     } else {
         /* Re-direct them to auth server */
-#if OK_PATCH
-        char *urlFragment = okos_http_insert_parameter(r, url);
-#else
         char *urlFragment;
 
         if (!(mac = arp_get(r->clientAddr))) {
@@ -130,7 +322,6 @@ http_callback_404(httpd * webserver, request * r, int error_code)
                           config->gw_address, config->gw_port, config->gw_id, r->clientAddr, mac, url);
             free(mac);
         }
-#endif
 
         // if host is not in whitelist, maybe not in conf or domain'IP changed, it will go to here.
         debug(LOG_INFO, "Check host %s is in whitelist or not", r->request.host);       // e.g. www.example.com
@@ -176,210 +367,18 @@ http_callback_404(httpd * webserver, request * r, int error_code)
     }
     free(url);
 }
-
-#if OK_PATCH
-#define OKOS_URLPARA_SSID_MLEN 32
-#define OKOS_URLPARA_DOMAIN_MLEN 32
-#define OKOS_URLPARA_SCHEME_MLEN 100
-typedef struct s_http_auth_str {
-    unsigned char len;
-    char content[255];
-}t_http_auth_str;
-
-typedef struct s_http_auth_info_pri {
-    /* Pravite Part: */
-#define OKOS_BRIF_NAME_LEN 64
-#define OKOS_UNKNOWN_BR "br-OKOS_UNKNOWN_BRIDGE_INTERFACE"
-    char br_interface[OKOS_BRIF_NAME_LEN+1];
-}t_http_auth_info_pri;
-
-typedef struct s_http_auth_info {
-    unsigned char version; //version == 3
-
-    unsigned char device_mac[6];
-    
-    unsigned char client_mac[6];
-    unsigned int  client_ip;
-
-    unsigned char ssid_len;
-    char ssid[OKOS_URLPARA_SSID_MLEN];
-    unsigned char domain_len;
-    char domain[OKOS_URLPARA_DOMAIN_MLEN];
-    unsigned char scheme_len;
-    char scheme[OKOS_URLPARA_SCHEME_MLEN];
-
-    unsigned char bssid[6];
-}t_http_auth_info;
-
-static char * my_ssid = "ok_1st";
-static char * my_domain = "D4E78543656449ABA9EC385D001BAB71";
-static char * my_scheme = "1";
-
-static inline void okos_http_simulate_string(unsigned char * buflen, char * str,
-        const char * simulator, const unsigned char limit)
-{
-    char len = strlen(simulator);
-    *buflen = len > limit ? limit : len;
-    strncpy(str, simulator, *buflen);
-}
-static int okos_mac_str2bin(const char * macstr, unsigned char * mac)
-{
-    if (macstr == NULL || strlen(macstr) != 17)
-        goto bad;
-    unsigned int tmp[6];
-    if (sscanf(macstr, "%2x:%2x:%2x:%2x:%2x:%2x", &tmp[0],&tmp[1],&tmp[2],&tmp[3],&tmp[4],&tmp[5]) != 6)
-        goto bad;
-    
-    int i;
-    for (i = 0; i < 6; i++)
-        mac[i] = tmp[i] & 0xFF;
-
-    return 0;
-
-bad:
-    memset(mac, 0, 6);
-    return -1;
-}
-static inline void okos_get_br_from_client_ip(const char * ip, char * brX, unsigned char * mac)
-{
-    if (arp_get_all(ip, brX, mac) != 0) {
-        memset(mac, 0, 6);
-        brX = OKOS_UNKNOWN_BR ;
-    }
-
-    debug(LOG_INFO, "Got client [%2x:%2x:%2x:%2x:%2x:%2x] from %s for ip %s",
-            mac[0],mac[1],mac[2],mac[3],mac[4],mac[5], brX, ip);
-}
-static int okos_http_simulate_client_info(const request * r, t_http_auth_info * info)
-{
-    info->version = 3;
-    s_config *config = config_get_config();
-    okos_mac_str2bin(config->gw_id, info->device_mac);
-    memcpy(info->bssid, info->device_mac, 6);
-    info->client_ip = inet_addr(r->clientAddr);
-
-    t_http_auth_info_pri private;
-    okos_get_br_from_client_ip(r->clientAddr, private.br_interface, info->client_mac);
-    
-    okos_http_simulate_string(&info->ssid_len, info->ssid, my_ssid, sizeof(info->ssid));
-    okos_http_simulate_string(&info->domain_len, info->domain, my_domain, sizeof(info->domain));
-    okos_http_simulate_string(&info->scheme_len, info->scheme, my_scheme, sizeof(info->scheme));
-
-    return 0;
-}
-
-static unsigned char * okos_http_serial_auth_info(const request * r, int * len)
-{
-    t_http_auth_info info;
-    okos_http_simulate_client_info(r, &info);
-
-    unsigned char * urltmp = safe_malloc(sizeof(t_http_auth_info));
-    unsigned char * pt = urltmp;
-
-    *pt++ = info.version;
-    memcpy(pt, info.device_mac, 6);
-    pt += 6;
-    memcpy(pt, info.client_mac, 6);
-    pt += 6;
-    memcpy(pt, (char *)(&(info.client_ip)), 4);
-    pt += 4;
-    
-    *pt++ = info.ssid_len;
-    memcpy(pt, info.ssid, info.ssid_len);
-    pt += info.ssid_len;
-
-    *pt++ = info.domain_len;
-    memcpy(pt, info.domain, info.domain_len);
-    pt += info.domain_len;
-    
-    *pt++ = info.scheme_len;
-    memcpy(pt, info.scheme, info.scheme_len);
-    pt += info.scheme_len;
-
-    memcpy(pt, info.bssid, 6);
-    pt += 6;
-
-    *len = pt - urltmp;
-
-    return urltmp;
-}
-
-static unsigned char * okos_http_hex2byte(const char * hex, int* len)
-{
-    int num = strlen(hex)/2;
-    unsigned char * bytes = safe_malloc(num);
-
-    int i;
-    for (i = 0; i < num; i++) {
-        int j;
-        unsigned char tmp[2];
-        for (j = 0; j < 2; j++) {
-            if (hex[i*2+j] >= '0' && hex[i*2+j] <= '9'){
-                tmp[j] = hex[i*2+j] - '0';
-            }else if (hex[i*2+j] >= 'a' && hex[i*2+j] <= 'z'){
-                tmp[j] = hex[i*2+j] - 'a';
-            }else if (hex[i*2+j] >= 'A' && hex[i*2+j] <= 'Z'){
-                tmp[j] = hex[i*2+j] - 'A';
-            }else {
-                free(bytes);
-                return NULL;
-            }
-        }
-        bytes[i] = ((tmp[0]&0xF) << 4) | (tmp[1]&0xF);
-    }
-
-    *len = num;
-    return bytes;
-}
-
-static char * okos_http_byte2hex(const unsigned char * bytes, const int len)
-{
-    char * hex = safe_malloc(len*2+1);
-    char alph[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
-    int i,j;
-    for (j = 0, i = 0; i < len; i++){
-        hex[j++] = alph[bytes[i] >> 4 & 0xF];
-        hex[j++] = alph[bytes[i] & 0xF];
-    }
-    hex[j] = '\0';
-    return hex;
-}
-
-static inline void okos_http_encrypt_auth_info(unsigned char * hex, const int len)
-{
-    int i;
-    for (i = 0; i < len; i++) hex[i] ^= 0xDA;
-}
-
-static char * okos_http_insert_parameter(const request * r, const char * halfUrl)
-{
-    int len = 0;
-    unsigned char * urlBytes = okos_http_serial_auth_info(r, &len);
-    okos_http_encrypt_auth_info(urlBytes, len);
-    char * info = okos_http_byte2hex(urlBytes, len);
-    free(urlBytes);
-
-    char * urlRet;
-    t_auth_serv *auth_server = get_auth_server();
-    safe_asprintf(&urlRet, "%sinfo=%s&originalurl=%s",
-                  auth_server->authserv_login_script_path_fragment, info, halfUrl);
-
-    free(info);
-    return urlRet;
-}
-
-#endif
+#endif /* OK_PATCH */
 
 void
 http_callback_wifidog(httpd * webserver, request * r)
 {
-    send_http_page(r, "WiFiDog", "Please use the menu to navigate the features of this WiFiDog installation.");
+    send_http_page(r, "OKOS", "Please use the menu to navigate the features of this OKOS installation.");
 }
 
 void
 http_callback_about(httpd * webserver, request * r)
 {
-    send_http_page(r, "About WiFiDog", "This is WiFiDog version <strong>" VERSION "</strong>");
+    send_http_page(r, "About me", "This is my version <strong>" VERSION "</strong>");
 }
 
 void
@@ -408,12 +407,20 @@ http_callback_status(httpd * webserver, request * r)
  * @param r The request
  * @param urlFragment The end of the auth server URL to redirect to (the part after path)
  * @param text The text to include in the redirect header ant the mnual redirect title */
+#if OK_PATCH
+void
+http_send_redirect_to_auth(request *r, const char *urlFragment, const char *text, const t_auth_serv *auth_server)
+#else /* OK_PATCH */
 void
 http_send_redirect_to_auth(request * r, const char *urlFragment, const char *text)
+#endif /* OK_PATCH */
 {
     char *protocol = NULL;
     int port = 80;
+#if OK_PATCH
+#else /* OK_PATCH */
     t_auth_serv *auth_server = get_auth_server();
+#endif /* OK_PATCH */
 
     if (auth_server->authserv_use_ssl) {
         protocol = "https";
@@ -454,75 +461,80 @@ http_send_redirect(request * r, const char *url, const char *text)
 }
 
 #if OK_PATCH
-#define OKOS_URLPARA_USRNM_MLEN 64
-typedef struct s_auth_confirm_info {
-    unsigned char version;
-    unsigned char mac_num;
-    unsigned char mac1[6];
-    unsigned char mac2[6];
-    unsigned int auth_mode;
-    unsigned int remain_time;
-    unsigned char user_len;
-    char user[OKOS_URLPARA_USRNM_MLEN+1];
-}t_auth_confirm_info;
 
-static int okos_http_parse_info(const unsigned char * info, t_auth_confirm_info * res)
+void http_callback_auth(httpd *webserver, request *r)
 {
-    return 0;
-}
+    debug(LOG_INFO, "Calling http_callback_auth...");
+    httpVar *auth = httpdGetVariableByName(r, "auth");
+	if (NULL == auth) {
+        send_http_page(r, "Auth Server Error", "Invalid Auth Parameter");
+        return;
+    }
 
-void http_callback_auth(httpd * webserver, request * r)
-{
-    httpVar * auth = httpdGetVariableByName(r, "auth");
-    httpVar * redirecturl = httpdGetVariableByName(r, "redirecturl");
-    //httpVar * key =  httpdGetVariableByName(r, "key");
-    //httpVar * flag = httpdGetVariableByName(r, "flag");
+    debug(LOG_DEBUG, "build a new client data structure in auth confirm.");
+    t_client *client = okos_client_get_new_client(r->clientAddr);
+    if (NULL == client) {
+        debug(LOG_ERR, "Since we can't get local infor for client(%s),"
+                "we need to apologize to our client.", r->clientAddr);
+        /* FIXME: we may need to port some error handler here. */
+        return;
+    }
 
-    if (auth == NULL || redirecturl == NULL)
-        goto bad;
-    int len = 0;
-    unsigned char * info = okos_http_hex2byte(auth->value, &len);
-    if (info == NULL)
-        goto bad;
+    debug(LOG_DEBUG, "Starting parse the return info from auth server.");
+    int parseFailed = okos_http_parse_info(auth->value, client);
+    if (parseFailed) {
+        send_http_page(r, "Auth Server Error", "Invalid auth parameter");
+        debug(LOG_DEBUG, "We can't parse the auth parameter correctly."
+                "code: %d", parseFailed);
+        client_free_node(client);
+        return;
+    }
+    
+    /* We have their MAC address */
+    LOCK_CLIENT_LIST();
 
-    okos_http_encrypt_auth_info(info, len);
-
-    t_auth_confirm_info cli_info;
-    if (okos_http_parse_info(info, &cli_info) != 0)
-        goto bad;
-
-    /* We get auth result from server. */
-    char * mac;
-    if (!(mac = arp_get(r->clientAddr))) {
-        /* We could not get their MAC address */
-        debug(LOG_ERR, "Failed to retrieve MAC address for ip %s", r->clientAddr);
-        send_http_page(r, "WiFiDog Error", "Failed to retrieve your MAC address");
+    t_client *old;
+    if (NULL == (old = client_list_find(client->ip, client->mac))) {
+        debug(LOG_DEBUG, "New client for {%s,%s}", client->ip, client->mac);
+        client_list_insert_client(client);
     } else {
-        /* We have their MAC address */
-        LOCK_CLIENT_LIST();
+        okos_client_list_flush(old, client->remain_time);
+        debug(LOG_DEBUG, "Client {%s,%s} is already in the list with remain time: %d",
+                client->ip, client->mac, client->remain_time);
+    }
 
-        t_client *client;
-        if ((client = client_list_find(r->clientAddr, mac)) == NULL) {
-            debug(LOG_DEBUG, "New client for %s", r->clientAddr);
-            //client_list_add(r->clientAddr, mac, token->value);
-        } else {
-            debug(LOG_DEBUG, "Client for %s is already in the client list", client->ip);
-        }
+    /* Logged in successfully as a regular account */
+    debug(LOG_INFO, "Got ALLOWED from central server for {%s, %s} "
+            "adding to firewall and redirecting them to portal",
+            client->ip, client->mac);
+    fw_allow(client, FW_MARK_KNOWN);
 
-        UNLOCK_CLIENT_LIST();
+    UNLOCK_CLIENT_LIST();
+    served_this_session++;
 
+    httpVar *flag = httpdGetVariableByName(r, "flag");
+    int donot_redirect = 0;
+    if (NULL != flag) {
+        sscanf(flag->value, "%d", &donot_redirect);
+    }
+    httpVar *redirecturl = httpdGetVariableByName(r, "redirecturl");
+    if (NULL == redirecturl)
+        donot_redirect = 1;
 
-        free(mac);
+    if (0 == donot_redirect) {
+        debug(LOG_DEBUG, "We need to redirect client to the assigned web page.");
+        char *url= NULL;
+        safe_asprintf(&url, "%s", redirecturl->value);
+        http_send_redirect(r, url, "Redirect to portal");
+        free(url);
+    } else {
+        debug(LOG_DEBUG, "We just need to reply to client something.");
+        send_http_page(r, "Life is short, play!", "my friend");
     }
 
     return;
-
-bad:
-    /* We don't get enough information. */
-    send_http_page(r, "okos error", "Invalid data");
-    return;
 }
-#else
+#else /* OK_PATCH */
 void
 http_callback_auth(httpd * webserver, request * r)
 {
@@ -561,7 +573,7 @@ http_callback_auth(httpd * webserver, request * r)
         send_http_page(r, "WiFiDog error", "Invalid token");
     }
 }
-#endif
+#endif /* OK_PATCH */
 
 void
 http_callback_disconnect(httpd * webserver, request * r)
