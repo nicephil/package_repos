@@ -236,13 +236,15 @@ get_status_text()
 
     pstr_cat(pstr, "\nAuthentication servers:\n");
 
+#if OK_PATCH
+#else
     LOCK_CONFIG();
-
     for (auth_server = config->auth_servers; auth_server != NULL; auth_server = auth_server->next) {
         pstr_append_sprintf(pstr, "  Host: %s (%s)\n", auth_server->authserv_hostname, auth_server->last_ip);
     }
 
     UNLOCK_CONFIG();
+#endif
 
     return pstr_to_string(pstr);
 }
