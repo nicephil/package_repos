@@ -6,12 +6,8 @@
 #include "nmsc/nmsc.h"
 #include "nmsc_util.h"
 #include "json/json.h"
-#include "cfg/cfg.h"
 #include "nmsc_json_entry.h"
 #include "nmsc_json.h"
-#if !OK_PATCH
-#include "services/capwapc_services.h"
-#endif
 
 const dc_json_entry dc_entries[] = {
     {0,  "type",            dc_hdl_entry_singleobj},
@@ -50,20 +46,24 @@ void dc_cawapc_later_action(int action)
 
 int dc_restart_cawapc(void)
 {
-    int ret = (g_capwapc_exec_later == CAPWAPC_LATER_EXEC_RESTART);
+    if (g_capwapc_exec_later == CAPWAPC_LATER_EXEC_RESTART) {
+        system("/etc/init.d/capwapc restart &");
+    }
 
     g_capwapc_exec_later = CAPWAPC_LATER_EXEC_NOTHING;
-    
-    return ret;
+
+    return 0;
 }
 
 int dc_stop_cawapc(void)
 {
-    int ret = (g_capwapc_exec_later == CAPWAPC_LATER_EXEC_STOP);
+    if (g_capwapc_exec_later == CAPWAPC_LATER_EXEC_STOP) {
+        system("/etc/init.d/capwapc stop &");
+    }
 
     g_capwapc_exec_later = CAPWAPC_LATER_EXEC_NOTHING;
     
-    return ret;
+    return 0;
 }
 
 static void dc_reset_handle_result(void)
@@ -147,7 +147,9 @@ int dc_json_machine(const char *data)
     }
 
     dc_handle_doing();
+#if !OK_PATCH
     cfg_disable_version_notice();
+#endif
     nmsc_delay_op_init();
     foreach_dc_entries(dc_entry) {  
         json_object_object_foreach(root, key, val) {
@@ -187,7 +189,9 @@ int dc_json_machine(const char *data)
     }
 
 ERROR_OUT:  
+#if !OK_PATCH
     cfg_enable_version_notice();
+#endif
     dc_handle_done();
     nmsc_delay_op_release();
     json_object_put(root);

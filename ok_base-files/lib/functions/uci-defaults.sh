@@ -186,6 +186,18 @@ set network.$cfg.proto='none'
 EOF
 }
 
+ucidef_set_interface_lan_with_vlan() {
+	local ifname=$1
+    local vlan=$2
+
+	uci batch <<EOF
+set network.lan'$vlan'='interface'
+set network.lan'$vlan'.ifname='$ifname'
+set network.lan'$vlan'.type='bridge'
+set network.lan'$vlan'.proto='dhcp'
+EOF
+}
+
 ucidef_set_interface_lan() {
 	local ifname=$1
 
@@ -249,6 +261,18 @@ add network switch
 set network.@switch[-1].name='$name'
 set network.@switch[-1].reset='$reset'
 set network.@switch[-1].enable_vlan='$enable'
+EOF
+}
+
+ucidef_add_switch_vlan_with_name() {
+	local device=$1
+	local vlan=$2
+	local ports=$3
+	uci batch <<EOF
+set network.vlan'$vlan'=switch_vlan 
+set network.vlan'$vlan'.device='$device'
+set network.vlan'$vlan'.vlan='$vlan'
+set network.vlan'$vlan'.ports='$ports'
 EOF
 }
 

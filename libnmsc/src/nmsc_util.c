@@ -2,16 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "nmsc_util.h"
-#if !OK_PATCH
-#include "services/log_services.h"
-#include "services/dhcpd_services.h"
-#include "services/wds_services.h"
-#include "if/if_pub.h"
-#include "cmp/cmp_pub.h"
-#endif
-#include "cfg/cfg.h"
 
-//extern struct wlan_scan_bind_info;
 
 void log_node_pair(struct node_pair_save pair)
 {
@@ -111,20 +102,20 @@ void nmsc_delay_op_new(int (*operator)(void *reserved), void *param, int size)
 
 int nmsc_delay_op_log(void *reserved) 
 {
-#if !OK_PATCH
-    int ret = log_set_bufferlevel(*(int *)reserved);
+    int ret = 0;
+
+    if (*(int *)reserved) {
+        ret = log_apply_all();
+    }
 
     if (ret != 0) {
-        nmsc_log("Infocenter set log buffer level %d failed for %d.", *(int *)reserved, ret);
+        nmsc_log("Infocenter apply log buffer %d failed for %d.", *(int *)reserved, ret);
         goto ERROR_OUT;
     }
 
     return 0;
 ERROR_OUT:
     return dc_error_code(dc_error_commit_failed, dc_node_log, ret);
-#else
-    return 0;
-#endif
 }
 
 int nmsc_delay_op_dhcpd(void *reserved) 
@@ -207,15 +198,12 @@ ERROR_OUT:
 
 int nmsc_delay_op_version(void *reserved) 
 {
-#if !OK_PATCH
     if (reserved) {
         int version = *((int *)reserved);
         cfg_set_version(version);
-
         nmsc_log("New config version %d:%d.\n", version, cfg_get_version());
     }
 
-#endif
     return 0;
 }
 

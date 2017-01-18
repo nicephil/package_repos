@@ -27,14 +27,13 @@
 
 
 #include "CWWTP.h"
-#include "cfg/cfg.h"
 
 #ifdef DMALLOC
 #include "../dmalloc-5.5.0/dmalloc.h"
 #endif
 
-#include "if/if_pub.h"
 #include "devctrl_protocol.h"
+#include "services/cfg_services.h"
 
 #define RESERVED_VENDOR_INDENTIFIER   0
 
@@ -45,19 +44,17 @@ __inline__ int CWWTPGetDiscoveryType()
 
 __inline__ int CWWTPGetMaxRadios() 
 {
-	static int max_count = 2;
-#if !OK_PATCH   
-    int ret;
-    struct if_attrs * attrs = NULL;
+	static int max_count = 0;
+    int ret = -1;
 
 	if (!max_count) {
-		ret = if_get_interfaces(IF_PHYTYPE_WLAN, &max_count, &attrs, NULL, NULL);
+		ret = if_get_radio_count(&max_count);
 		if (ret == -1) {
 		    CWDebugLog_E("Failed to get WLAN RADIO informations");
 		    return 0;
 		}
 	}
-#endif
+
 	return max_count;
 }
 
@@ -83,26 +80,9 @@ CWBool CWWTPGetBoardData(CWWTPVendorInfos *valPtr) {
     
 	if(valPtr == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
 
-#if !OK_PATCH
     if (cfg_get_product_info(&info)) {
         return CW_FALSE;
     }
-#else
-    static struct product_info s_product_info = {
-        .company            = {"Oakridge"},
-        .production         = {"Oakridge AP"},
-        .model              = {"WL8200-IT2"},
-        .mac                = {"34:CD:6D:E0:34:6D"},
-        .bootloader_version = {"1.0.0"},
-        .software_version   = {"V200R001"},
-        .software_inner_version = {"V200"},
-        .hardware_version   = {"1.0.0"},
-        .serial             = {"32A7D16Z0151617"},
-    };
-    memcpy(&info, &s_product_info, sizeof(struct product_info));
-#endif
-
-
     
 	valPtr->vendorInfosCount = 2; // we fill 2 information (just the required ones)
 	CW_CREATE_ARRAY_ERR((valPtr->vendorInfos), valPtr->vendorInfosCount, CWWTPVendorInfoValues, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
@@ -128,27 +108,9 @@ CWBool CWWTPGetVendorInfos(CWWTPVendorInfos *valPtr) {
     
 	if(valPtr == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
 
-#if !OK_PATCH
     if (cfg_get_product_info(&info)) {
         return CW_FALSE;
     }
-#else
-    static struct product_info s_product_info = {
-        .company            = {"Oakridge"},
-        .production         = {"Oakridge AP"},
-        .model              = {"WL8200-IT2"},
-        .mac                = {"34:CD:6D:E0:34:6D"},
-        .bootloader_version = {"1.0.0"},
-        .software_version   = {"V200R001"},
-        .software_inner_version = {"V200"},
-        .hardware_version   = {"1.0.0"},
-        .serial             = {"32A7D16Z0151617"},
-    };
-    memcpy(&info, &s_product_info, sizeof(struct product_info));
-#endif
-
-
-
 	
 	valPtr->vendorInfosCount = 4; // we fill 4 information (just the required ones)
 	CW_CREATE_ARRAY_ERR((valPtr->vendorInfos), valPtr->vendorInfosCount, CWWTPVendorInfoValues, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););

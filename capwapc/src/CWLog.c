@@ -37,7 +37,7 @@ static FILE *gLogFile = NULL;
 #ifndef CW_SINGLE_THREAD
 	CWThreadMutex gFileMutex;
 #endif
-#if 1
+#ifdef LOG_FILE
 void CWLogInitFile(char *fileName) {
 	if(fileName == NULL) {
 		printf("Wrong File Name for Log File");

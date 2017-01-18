@@ -1,17 +1,10 @@
 #include <sys/sysinfo.h>
+
 #include "CWWTP.h"
 #include "devctrl_protocol.h"
-#include "cfg/cfg.h"
-#if !OK_PATCH
 #include "nmsc/nmsc.h"
-#include "services/vlan_services.h"
-#include "services/dialer_services.h"
-#include "services/route_services.h"
-#include "services/nat_services.h"
-#include "services/netifd_services.h"
-#include "services/wds_services.h"
-#include "services/wlan_services.h"
-#endif
+
+#include "services/cfg_services.h"
 
 static const int gMaxDTLSHeaderSize = 25; // see http://crypto.stanford.edu/~nagendra/papers/dtls.pdf
 static const int gMaxCAPWAPHeaderSize = 8; // note: this include optional Wireless field
@@ -107,12 +100,12 @@ static int parser_msg_seq(CWProtocolMessage *msg)
     return ctrl_header.seqNum;
 }
 
-static void init_dev_updateinfo(device_info_s info)
+static void init_dev_updateinfo(device_info_s *info)
 {
-    g_dev_updateinfo.iptype  = info.iptype;
-    g_dev_updateinfo.ip      = info.ip;
-    g_dev_updateinfo.netmask = info.netmask;
-    g_dev_updateinfo.gateway = info.gateway;
+    g_dev_updateinfo.iptype  = info->iptype;
+    g_dev_updateinfo.ip      = info->ip;
+    g_dev_updateinfo.netmask = info->netmask;
+    g_dev_updateinfo.gateway = info->gateway;
 
     gethostname(g_dev_updateinfo.hostname, sizeof(g_dev_updateinfo.hostname));
     g_dev_updateinfo.len = strlen(g_dev_updateinfo.hostname);
@@ -120,85 +113,53 @@ static void init_dev_updateinfo(device_info_s info)
 
 struct device_update_info* chk_dev_updateinfo(void)
 {
-#if !OK_PATCH
-    struct device_update_info info;
-    interface_info vlaninfo;
-    char interface_name[20];
-    int iWdsMode = 0;
+    struct device_update_info info = {0};
+    int ret, sk;
+    struct ifreq ifr;
+    struct sockaddr_in *paddr;
 
-    memset(&info, 0, sizeof(info));
-    memset(&vlaninfo, 0, sizeof(vlaninfo));
-    if (!vlan_get_manage_vlaninfo(&vlaninfo)) {
-        if (vlaninfo.type == STATICED || vlaninfo.type == DHCP || (vlaninfo.type == PPPOE)) {
-            struct in_addr addr, netmask;
+    sk = socket(PF_INET, SOCK_DGRAM, 0);
+	if (sk < 0) {
+		return -1;
+	}
+	memset(&ifr, 0, sizeof(ifr));
+	strncpy(ifr.ifr_name, "br-lan1", sizeof(ifr.ifr_name));
+	if (ioctl(sk, SIOCGIFADDR, &ifr) < 0) {
+        syslog(LOG_ERR, "no such interface: br-lan1");
+		close(sk);
+		return -1;
+	}
 
-            if_form_name(0, vlaninfo.id, IF_PHYTYPE_VLAN,  interface_name);
-            if (vlaninfo.type == STATICED) {
-                info.iptype = 1;
-                
-                inet_aton(vlaninfo.address, &addr);
-                inet_aton(vlaninfo.netmask, &netmask);
-            }
-            else {
-                struct if_addrinfo if_addr;
+    paddr = (struct sockaddr_in *) &ifr.ifr_addr;
+    info.ip = paddr->sin_addr.s_addr;
 
-                if (vlaninfo.type == DHCP) {
-                    info.iptype = 0;
-                }
-                else {
-                    info.iptype = 2;
-                }
+    if (ioctl(sk, SIOCGIFNETMASK, &ifr) < 0) {
+		close(sk);
+		return -1;
+	}
 
-                memset(&if_addr, 0, sizeof(if_addr));
-                strcpy(if_addr.ifname, interface_name);
-                dialer_get_address_ioctl(&if_addr);
-                inet_aton(if_addr.ip, &addr);
-                inet_aton(if_addr.mask, &netmask);
-            }
+    paddr = (struct sockaddr_in *) &ifr.ifr_netmask;
+    info.netmask = paddr->sin_addr.s_addr;
+    gethostname(info.hostname, HOST_NAME_MAX);
+    info.len = strlen(info.hostname);
+	close(sk);
 
-            info.ip = addr.s_addr;
-            info.netmask = netmask.s_addr;    
-        }
-
-        gethostname(info.hostname, sizeof(info.hostname));
-    
-        /* wds mode */
-        WDS_get_mode(&iWdsMode);
-        info.wds_mode = (char)iWdsMode;
-
-        if (g_dev_updateinfo.iptype != info.iptype
+    if (g_dev_updateinfo.iptype != info.iptype
             || g_dev_updateinfo.ip != info.ip
             || g_dev_updateinfo.netmask != info.netmask
             || strcmp(g_dev_updateinfo.hostname, info.hostname)
             || g_dev_updateinfo.wds_mode != info.wds_mode) {
-            g_dev_updateinfo.iptype  = info.iptype;
-            g_dev_updateinfo.ip      = info.ip;
-            g_dev_updateinfo.netmask = info.netmask;
-            g_dev_updateinfo.gateway = route_get_gw_by_interface(interface_name);
-            
-            strcpy(g_dev_updateinfo.hostname, info.hostname);
-            g_dev_updateinfo.len = strlen(g_dev_updateinfo.hostname);
-            g_dev_updateinfo.wds_mode = info.wds_mode;
-            
-            return &g_dev_updateinfo;
-        }
+        g_dev_updateinfo.iptype  = info.iptype;
+        g_dev_updateinfo.ip      = info.ip;
+        g_dev_updateinfo.netmask = info.netmask;
+        g_dev_updateinfo.gateway = info.gateway;
+
+        strcpy(g_dev_updateinfo.hostname, info.hostname);
+        g_dev_updateinfo.len = strlen(g_dev_updateinfo.hostname);
+        g_dev_updateinfo.wds_mode = info.wds_mode;
+
+        return &g_dev_updateinfo;
     }
-
-    
-#else
-    struct in_addr addr;
-
-    g_dev_updateinfo.iptype = 1;
-    inet_aton("192.168.10.1", &addr);
-    g_dev_updateinfo.ip = addr.s_addr;
-    inet_aton("255.255.255.0", &addr);
-    g_dev_updateinfo.netmask = addr.s_addr;
-    inet_aton("192.168.0.1", &addr);
-    g_dev_updateinfo.gateway = addr.s_addr;
-    g_dev_updateinfo.len = 8;
-    strcpy(g_dev_updateinfo.hostname, "oakridge");
-    g_dev_updateinfo.wds_mode = 0;
-#endif    
     return NULL;
 }
 
@@ -238,29 +199,12 @@ CWBool assemble_dev_updateinfo(char **info, int *len)
 
 static int get_device_info(device_info_s *devinfo)
 {
-#if !OK_PATCH
     struct product_info info;
     struct sysinfo sys;
-    interface_info vlaninfo;
-    /* A.B.C, update A mean uncompatible, C reserved, B can be compatible */
-    /* 
-     * init: 1.0.0
-     * 2015/8/31 M4: update to 1.1.0 
-     * 2015/10/20 M5: update to 1.2.0
-     * 2015/12/25 M7: update to 1.3.0
-     * 2015/2/22 M8: update to 1.4.0
-     * 2016/4/14 M10: update to 1.5.0
-     * 2016/6/8 M11: update to 1.6.0
-     * 2016/10/9 M12: update to 1.7.0
-     */
     char nms_version[16] = "1.7.0";     
     char *s, *e;
-    int ret, count, i;
-    struct if_attrs * attrs = NULL;    
-    struct if_address * addrs = NULL;  
-    struct netifd_link_stats * stats = NULL;
-    int iWdsMode = 0;
-    
+    int i;
+
     if (cfg_get_product_info(&info)) {
         return -1;
     }
@@ -274,44 +218,33 @@ static int get_device_info(device_info_s *devinfo)
         }
     }
 
-    memset(&vlaninfo, 0, sizeof(vlaninfo));
-    if (!vlan_get_manage_vlaninfo(&vlaninfo)) {
-        if (vlaninfo.type == STATICED || vlaninfo.type == DHCP || vlaninfo.type == PPPOE) {
-            char interface_name[20];
-            struct in_addr addr, netmask;
+    int ret, sk;
+    struct ifreq ifr;
+    struct sockaddr_in *paddr;
 
-            memset(&addr, 0, sizeof(addr));
-            memset(&netmask, 0, sizeof(netmask));
+    sk = socket(PF_INET, SOCK_DGRAM, 0);
+	if (sk < 0) {
+		return -1;
+	}
+	memset(&ifr, 0, sizeof(ifr));
+	strncpy(ifr.ifr_name, "br-lan1", sizeof(ifr.ifr_name));
+	if (ioctl(sk, SIOCGIFADDR, &ifr) < 0) {
+        syslog(LOG_ERR, "no interface: br-lan1");
+		close(sk);
+		return -1;
+	}
 
-            if_form_name(0, vlaninfo.id, IF_PHYTYPE_VLAN,  interface_name);
-            if (vlaninfo.type == STATICED) {
-                devinfo->iptype = 1;
-                
-                inet_aton(vlaninfo.address, &addr);
-                inet_aton(vlaninfo.netmask, &netmask);
-            }
-            else {
-                struct if_addrinfo if_addr;
+    paddr = (struct sockaddr_in *) &ifr.ifr_addr;
+    devinfo->ip = paddr->sin_addr.s_addr;
 
-                if (vlaninfo.type == DHCP) {
-                    devinfo->iptype = 0;
-                }
-                else {
-                    devinfo->iptype = 2;
-                }
+    if (ioctl(sk, SIOCGIFNETMASK, &ifr) < 0) {
+		close(sk);
+		return -1;
+	}
 
-                memset(&if_addr, 0, sizeof(if_addr));
-                strcpy(if_addr.ifname, interface_name);
-                dialer_get_address_ioctl(&if_addr);
-                inet_aton(if_addr.ip, &addr);
-                inet_aton(if_addr.mask, &netmask);
-            }
-
-            devinfo->ip = addr.s_addr;
-            devinfo->netmask = netmask.s_addr;    
-            devinfo->gateway = route_get_gw_by_interface(interface_name);
-        }
-    }
+    paddr = (struct sockaddr_in *) &ifr.ifr_netmask;
+    devinfo->netmask = paddr->sin_addr.s_addr;
+	close(sk);
 
     /* uptime in second unit */
     sysinfo(&sys);
@@ -353,215 +286,9 @@ static int get_device_info(device_info_s *devinfo)
     devinfo->cfg_version = cfg_get_version();
     devinfo->cfg_code = dc_get_handcode();
 
-    /* add nat vlan info */
-    ret = netifd_get_all_interfaces((IF_PHYTYPE_VLAN | IF_PHYTYPE_ETH | IF_PHYTYPE_GIGA_ETH), 
-        &count, &attrs, &addrs, &stats);        
-    if (ret) {            
-        devinfo->natlist.num = 0;
-    }
-    else {
-        struct if_address * rel_addrs = addrs;
-        
-        vlan_interface_info *info = NULL;
-        vlan_get_dialer_info(&info);
-        
-        for (i = 0; i < count; ++i) {
-            if (attrs[i].type & (IF_PHYTYPE_VLAN | IF_PHYTYPE_ETH | IF_PHYTYPE_GIGA_ETH)) {
-                if (nat_get_enable(attrs[i].name)) {
-                    if (devinfo->natlist.num == 0) {
-                        devinfo->natlist.info = (struct nat_vlan_info *)malloc(sizeof(struct nat_vlan_info));
-                    }
-                    else {
-                        devinfo->natlist.info = (struct nat_vlan_info *)realloc(devinfo->natlist.info,
-                            (devinfo->natlist.num + 1) * sizeof(struct nat_vlan_info));
-                    }
-                    if (devinfo->natlist.info == NULL) {
-                        CWLog("System error: malloc nat vlan information failed.");
-                        devinfo->natlist.num = 0;
-                        break;
-                    }
-                    else {
-                        int j;
-
-                        memset(&devinfo->natlist.info[devinfo->natlist.num], 0, 
-                            sizeof(struct nat_vlan_info));
-                        
-                        devinfo->natlist.info[devinfo->natlist.num].len = 17;
-                        devinfo->natlist.info[devinfo->natlist.num].id = attrs[i].interface;
-                        if (attrs[i].type & IF_PHYTYPE_VLAN) {
-                            for (j = 0; j < info->count; j++) {
-                                if (info->info[j].id == attrs[i].interface) {
-                                    switch (info->info[j].type) {
-                                        case DHCP:
-                                            devinfo->natlist.info[devinfo->natlist.num].type = 0;
-                                            break;
-
-                                         case STATICED:
-                                            devinfo->natlist.info[devinfo->natlist.num].type = 1;
-                                            break;
-
-                                         case PPPOE:
-                                            devinfo->natlist.info[devinfo->natlist.num].type = 2;
-                                            break;
-
-                                         default:
-                                            devinfo->natlist.info[devinfo->natlist.num].type = 0;
-                                            break;
-                                    }
-                                }
-                            }
-                        }
-                        else {
-                            int type;
-                            
-                            devinfo->natlist.info[devinfo->natlist.num].id = (0xffff0000 | attrs[i].interface);
-
-                            type = dialer_get_ethif_type(attrs[i].name);
-                            switch (type) {
-                                case DIALER_TYPE_DHCP:
-                                    devinfo->natlist.info[devinfo->natlist.num].type = 0;
-                                    break;
-
-                                case DIALER_TYPE_STATIC:
-                                    devinfo->natlist.info[devinfo->natlist.num].type = 1;
-                                    break;
-
-                                case DIALER_TYPE_PPPOE:
-                                    devinfo->natlist.info[devinfo->natlist.num].type = 2;
-                                    break;
-
-                                default:
-                                    devinfo->natlist.info[devinfo->natlist.num].type = 0;
-                                    break; 
-                            }
-                            
-                        }
-                        if (attrs[i].addr_count > 0 && rel_addrs != NULL) {
-                            devinfo->natlist.info[devinfo->natlist.num].ip = rel_addrs->u.v4.ip;
-                            devinfo->natlist.info[devinfo->natlist.num].mask = rel_addrs->u.v4.netmask;
-                        }
-                        else {
-                            devinfo->natlist.info[devinfo->natlist.num].ip = 0;
-                            devinfo->natlist.info[devinfo->natlist.num].mask = 0;
-                        }
-                            
-                        devinfo->natlist.info[devinfo->natlist.num].gw = 
-                            route_get_gw_by_interface(attrs[i].name);
-
-                        devinfo->natlist.num++;
-                    }
-                }
-            }
-            rel_addrs += attrs[i].addr_count;
-        }
-        if (info) {
-            free(info);
-        }
-    }
-    devinfo->mode = (devinfo->natlist.num == 0 ? 0 : 1);
-
-    /* wds mode */
-    WDS_get_mode(&iWdsMode);
-    devinfo->wds_mode = (char)iWdsMode;
-
-    memset(devinfo->country, 0, sizeof(devinfo->country));
-    wlan_get_system_country(devinfo->country);
-    devinfo->cn_len = strlen(devinfo->country);
-    
-    init_dev_updateinfo(*devinfo);
-
-    if (attrs) 
-    {            
-        free(attrs);        
-    }        
-    if (addrs) 
-    {           
-        free(addrs);        
-    }        
-    if (stats) 
-    {            
-        free(stats);        
-    }
-#else
-    struct sysinfo sys;
-    char nms_version[16] = "1.7.0";     
-    char *s, *e;
-    int i;
-    static struct product_info s_product_info = {
-        .company            = {"Oakridge"},
-        .production         = {"Oakridge AP"},
-        .model              = {"WL8200-IT2"},
-        .mac                = {"34:CD:6D:E0:34:6D"},
-        .bootloader_version = {"1.0.0"},
-        .software_version   = {"V200R001"},
-        .software_inner_version = {"V200"},
-        .hardware_version   = {"1.0.0"},
-        .serial             = {"32A7D16Z0151617"},
-    };
-
-    /* mac address */
-    s = s_product_info.mac;
-    for (i = 0; i < 6; i++) {
-        devinfo->mac[i] = s ? strtoul(s, &e, 16) : 0;
-        if (s) {
-            s = (*e) ? e + 1 : e;
-        }
-    }
-
-    struct in_addr addr;
-
-    devinfo->iptype = 1;
-    inet_aton("192.168.10.1", &addr);
-    devinfo->ip = addr.s_addr;
-    inet_aton("255.255.255.0", &addr);
-    devinfo->netmask = addr.s_addr;
-    inet_aton("192.168.0.1", &addr);
-    devinfo->gateway = addr.s_addr;
-    devinfo->wds_mode = 0;
-
-    /* uptime in second unit */
-    sysinfo(&sys);
-    devinfo->uptime = sys.uptime;
-
-    /* serial number */
-    devinfo->snlen = strlen(s_product_info.serial);
-    CW_CREATE_OBJECT_SIZE_ERR(devinfo->sn, devinfo->snlen, CWDebugLog_E("malloc sn failed"););
-    if (devinfo->sn == NULL) {
-        return -1;
-    }
-    else {
-        strncpy(devinfo->sn, s_product_info.serial, devinfo->snlen);
-    }
-
-    /* product name */
-    devinfo->namelen = strlen(s_product_info.model);
-    CW_CREATE_OBJECT_SIZE_ERR(devinfo->name, devinfo->namelen, CWDebugLog_E("malloc name failed"););
-    if (devinfo->name == NULL) {
-        CW_FREE_OBJECT(devinfo->sn);
-        return -1;
-    }
-    else {
-        strncpy(devinfo->name, s_product_info.model, devinfo->namelen);
-    }
-    devinfo->mtu = g_capwapc_config.mtu;
-
-    devinfo->verlen = strlen(nms_version);
-    CW_CREATE_OBJECT_SIZE_ERR(devinfo->version, devinfo->verlen, CWDebugLog_E("malloc version failed"););
-    if (devinfo->version == NULL) {
-        CW_FREE_OBJECT(devinfo->sn);
-        CW_FREE_OBJECT(devinfo->name);
-        return -1;
-    }
-    else {
-        strncpy(devinfo->version, nms_version, devinfo->verlen);
-    }
-
-    devinfo->cfg_version = 1;
-    devinfo->cfg_code = 0;
+    init_dev_updateinfo(devinfo);
 
 
-
-#endif    
     return 0;
 }
 
@@ -577,9 +304,13 @@ CWBool assemble_vendor_devinfo(char **info, int *len)
 
     memset(&msg, 0, sizeof(msg));
     memset(&devinfo, 0, sizeof(devinfo));
+#if !AH_PATCH
     if (get_device_info(&devinfo)) {
         return CW_FALSE;
     }
+#else
+    get_device_info(&devinfo);
+#endif
     size = DEVINFO_FIX_LEN + NAT_VLAN_FIX_LEN * devinfo.natlist.num;
     size += devinfo.snlen + devinfo.namelen + devinfo.verlen + devinfo.cn_len;
 

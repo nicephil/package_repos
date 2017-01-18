@@ -164,11 +164,7 @@ CWBool CWAssembleMsgElem(CWProtocolMessage *msgPtr, unsigned int type) {
 	CWProtocolMessage completeMsg;
 	
 	if(msgPtr == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
-#if 0	/* zjye: should add 4 bytes for 2bytes type and 2bytes len */
-	CW_CREATE_PROTOCOL_MESSAGE(completeMsg, 6+(msgPtr->offset), return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
-#else
     CW_CREATE_PROTOCOL_MESSAGE(completeMsg, 4+(msgPtr->offset), return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
-#endif
 	// store header
 	CWProtocolStore16(&completeMsg, type);
 	CWProtocolStore16(&completeMsg, msgPtr->offset); // size of the body

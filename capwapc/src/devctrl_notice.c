@@ -4,13 +4,8 @@
 #include "devctrl_protocol.h"
 #include "devctrl_payload.h"
 #include "devctrl_notice.h"
-#if !OK_PATCH
-#include "services/wlan_services.h"
-#include "services/vlan_services.h"
-#include "services/wds_services.h"
-#include "cmp/cmp_pub.h"
-#include "util/util.h"
-#endif
+
+#include "services/cfg_services.h"
 
 #define WLAN_STA_STAUS_TIMER    30
 
@@ -29,170 +24,124 @@ static inline rssi_level_e dc_rssi2level(int rssi)
     }
 }
 
-static int wlan_get_sta_info(struct wlan_sta_stat **stas)
+static int fetch_station_info_visitor(struct uci_package *p, void *arg)
 {
-#if !OK_PATCH
-    int count = 0, size = 0;
-    int i, j, k, ret, num;
-    struct wmac_init_param  radio_init;
-    struct wlan_radio_status   radio;
-    DOT11_RADIO_CAP_S   caps[DOT11_RADIO_NUM_MAX];
-    struct wlan_sta_stat *sta_list = NULL;
-    static char radio_count = -1;
+    struct uci_element *e1, *e2;
+    int index = 0;
+    struct wlan_sta_stat_all {
+        int count;
+        struct wlan_sta_stat **stas;
+    };
+    struct wlan_sta_stat_all *all = (struct wlan_sta_stat_all *)arg;
 
-    if(radio_count <= 0){
-        if (DOT11_GetHardwareInfo(&radio_init, &caps[0]) == DOT11_OK) {
-            radio_count = radio_init.uRadioNums;
-        }
+    struct wlan_sta_stat *stas = NULL;
+
+    uci_foreach_element(&p->sections, e1) {
+        all->count ++;
     }
-
-    for (i = 0; i < radio_count; ++i) {
-        ret = wlan_get_radio_status(i, &radio);
-        if (ret != CMP_ERR_NO_ERR) {
-            CWDebugLog("WLAN radio %d does not exist.", i);
-        }
-        else {
-            struct wlan_bss_status bss;
-            
-            if (radio.enable) {
-                struct wlan_service_template stspec, *stcur;
-                
-                for (j = 0; j < radio.bss_count; ++j) {
-                    ret = wlan_get_bss_status(radio.bss[j], &bss);
-                    if (ret == 0) {
-                        struct wlan_sta_status  * sta, *s;
-                        struct if_attrs attrs;
-                        port_vlan_info portinfo;
-                        int vlan = 1;
-                        
-                        num = wlan_get_sta_list(bss.linkname, &sta);
-                        if (num <= 0 || sta == NULL) {
-                            continue;
-                        }
-
-/* BEGIN: modified by zjye to fix bug 3617 2016-4-11 */
-#if 0
-                        vlan_get_pvid(bss.linkname, &vlan);                        
-#else
-                        portinfo.port_pvid = -1;
-                        eth_get_vlan_info(IF_PHYTYPE_WLAN_BSS, bss.id, &portinfo);
-                        if (portinfo.port_pvid <= 0) {
-                            vlan = 1;
-                        }
-                        else {
-                            vlan = portinfo.port_pvid;
-                        }
-#endif
-/* END: modified by zjye to fix bug 3617 2016-4-11 */
-                        if_get_attrs_by_linkname(bss.linkname, &attrs, NULL);
-                        
-                        memset(&stspec, 0, sizeof(stspec));
-                        strncpy(stspec.ssid, bss.ssid, sizeof(stspec.ssid) - 1);
-                        if (wlan_service_template_by_ssid(&stspec) == 0 && strlen(stspec.portal_scheme) > 0) {
-                            stcur = &stspec;
-                        }
-                        else {
-                            stcur = NULL;
-                        }
-                        s = sta;
-                        for (k = 0; k < num; ++k) {
-                            struct  timeval    tv;
-                            if (count >= size) {
-                                size += 5;
-                                if (count == 0) {
-                                    sta_list = (struct wlan_sta_stat *)malloc(size *sizeof(struct wlan_sta_stat));
-                                }
-                                else  {
-                                    sta_list = (struct wlan_sta_stat *)realloc(sta_list, size * sizeof(struct wlan_sta_stat));
-                                }
-                                if(sta_list == NULL){
-                                    CWLog("Failed to malloc station in get station.");
-                                    return -1;
-                                }
-                            }
-                            sta_list[count].auth = bss.auth;
-                            sta_list[count].cipher = bss.crypt;
-                            sta_list[count].ip = s->ipv4.s_addr;
-                            memcpy(sta_list[count].mac, s->mac, sizeof(sta_list[count].mac));
-                            sta_list[count].state = 0;
-                            sta_list[count].radioid = i;
-                            strncpy(sta_list[count].ssid, bss.ssid, sizeof(sta_list[count].ssid) - 1);
-                            sta_list[count].ssid_len = strlen(bss.ssid);
-                            sta_list[count].uptime = s->assoc_time;
-                            gettimeofday(&tv,NULL);
-                            sta_list[count].time_ms = ((unsigned long long)tv.tv_sec*1000 + tv.tv_usec/1000) - (s->assoc_time*1000);
-                            sta_list[count].updated = 0;
-                            if (stcur == NULL) {
-                                sta_list[count].portal = 0;
-                                sta_list[count].portal_mode = 0;
-                                sta_list[count].name_len = 0;
-                                sta_list[count].user[0] = 0;
-                                sta_list[count].ps_len = 0; 
-                                sta_list[count].ps_name[0] = 0;
-                            }
-                            else {
-                                sta_list[count].portal = 1;
-                                sta_list[count].portal_mode = 0;
-                                sta_list[count].name_len = 0;
-                                sta_list[count].user[0] = 0;
-                                sta_list[count].ps_len = strlen(stcur->portal_scheme);
-                                strcpy(sta_list[count].ps_name, stcur->portal_scheme);
-
-                                int fd = 0, cmd = PORTAL_IOC_GET_AUTHSTA;
-                                portal_op_arg arg;
-                                portal_auth_cfg_t auinfo;
-
-                                memset(&auinfo, 0, sizeof(portal_auth_cfg_t));
-                                memcpy(auinfo.clientmac, s->mac, ETH_ALEN);
-                                strncpy(arg.portal_scheme_name, stcur->portal_scheme, PORTAL_SCHEME_NAME_MAX);
-                                arg.datalen = sizeof(portal_auth_cfg_t);
-                                arg.pointer = &auinfo;
-                                fd = open(PORTAL_DEV_NAME, O_RDWR);
-                                if (fd >= 0)
-                                {
-                                    if (ioctl(fd, cmd, &arg) < 0) {
-#if 0
-                                        CWLog("Get portal info from %s for client %02X:%02X:%02X:%02X:%02X:%02X failed.",
-                                            stcur->portal_scheme, auinfo.clientmac[0], auinfo.clientmac[1], auinfo.clientmac[2],
-                                            auinfo.clientmac[3], auinfo.clientmac[4], auinfo.clientmac[5]);
-#endif
-                                    }
-                                    else {
-                                        sta_list[count].portal_mode = auinfo.authmode;
-                                        sta_list[count].name_len = auinfo.namelen;
-                                        strcpy(sta_list[count].user, auinfo.username);
-                                    }
-                                    close(fd);
-                                }
-                            }
-                            memcpy(sta_list[count].bssid, attrs.dev_addr.sa_data, sizeof(sta_list[count].bssid));
-                            sta_list[count].rssi = s->rssi - 95;
-                            sta_list[count].rs_level = dc_rssi2level(sta_list[count].rssi);
-                            sta_list[count].channel = bss.channel;
-                            sta_list[count].vlan = vlan;
-                            
-                            count++;
-                            ++s;
-                        }
-                        free(sta);
+    if (!all->count) {
+        stas = NULL;
+        return 0;
+    }
+    stas = (struct wlan_sta_stat *)malloc(all->count * sizeof(struct wlan_sta_stat));
+    memset(stas, 0, all->count * sizeof(struct wlan_sta_stat));
+    index = 0;
+    uci_foreach_element(&p->sections, e1) {
+        struct uci_section *s = uci_to_section(e1);
+        uci_foreach_element(&s->options, e2) {
+            struct uci_option *o = uci_to_option(e2);
+            if (!strcmp(o->e.name, "ifname")) {
+                continue;
+            }else if (!strcmp(o->e.name, "mac")) {
+                char mac[22] = {0};
+                strcpy(mac, o->v.string);
+                char *s = mac;
+                char *e;
+                int i;
+                for (i = 0; i < 6; i++) {
+                    stas[index].mac[i] = s ? strtoul(s, &e, 16) : 0;
+                    if (s) {
+                        s = (*e) ? e + 1 : e;
                     }
                 }
+            } else if (!strcmp(o->e.name, "chan")) {
+                stas[index].channel = atoi(o->v.string);
+            } else if (!strcmp(o->e.name, "rssi")) {
+                stas[index].rssi = atoi(o->v.string);
+            } else if (!strcmp(o->e.name, "assoctime")) {
+                struct  timeval    tv;
+                int hours=0, minutes=0, seconds=0;
+                if(sscanf(o->v.string, "%d:%d:%d", &hours, &minutes, &seconds)) {
+                    stas[index].uptime = hours*60*60 + minutes*60 + seconds;
+                }
+                gettimeofday(&tv,NULL);
+                stas[index].time_ms = ((unsigned long long)tv.tv_sec*1000 + tv.tv_usec/1000) - (stas[index].uptime*1000);
+            } else if (!strcmp(o->e.name, "ipaddr")) {
+                struct in_addr net;
+                inet_aton(o->v.string, &net);
+                stas[index].ip = net.s_addr;
+            } else if (!strcmp(o->e.name, "radioid")) {
+                stas[index].radioid = atoi(o->v.string);
+            } else if (!strcmp(o->e.name, "bssid")) {
+                char mac[22] = {0};
+                strcpy(mac, o->v.string);
+                char *s = mac;
+                char *e;
+                int i;
+                for (i = 0; i < 6; i++) {
+                    stas[index].bssid[i] = s ? strtoul(s, &e, 16) : 0;
+                    if (s) {
+                        s = (*e) ? e + 1 : e;
+                    }
+                }
+            } else if (!strcmp(o->e.name, "authentication")) {
+                if (!strcmp(o->e.name, "open")) {
+                    stas[index].auth = 0;
+                } else {
+                    stas[index].auth = 1;
+                }
+            } else if (!strcmp(o->e.name, "portal_scheme")) {
+                strcpy(stas[index].ps_name, o->v.string);
+                stas[index].ps_len = strlen(stas[index].ps_name);
+                stas[index].portal = 1;
+            } else if (!strcmp(o->e.name, "ssid")) {
+                strcpy(stas[index].ssid, o->v.string);
+                stas[index].ssid_len = strlen(stas[index].ssid);
+            } else if (!strcmp(o->e.name, "vlan")) {
+                stas[index].vlan = atoi(o->v.string);
             }
         }
+        index ++;
     }
-    
-    *stas = sta_list;
-
-    return count;
-#else
+    *(all->stas) = stas;
     return 0;
-#endif
+}
+
+static int wlan_get_sta_info(struct wlan_sta_stat **stas)
+{
+    struct wlan_sta_stat_all {
+        int count;
+        struct wlan_sta_stat **stas;
+    };
+
+    struct wlan_sta_stat_all all;
+    all.count = 0;
+    all.stas = stas;
+    int ret = 0;
+
+    system("/lib/getstainfo.sh");
+
+    ret = cfg_visit_package_with_path("/tmp/stationinfo", "stationinfo", fetch_station_info_visitor, (void*)&all);
+    if (ret) {
+        return -1;
+    }
+
+    return all.count;
 }
 
 static int inline dc_reserves_stas(struct wlan_sta_stat **sta_list, 
     int totalsize, int cursize, struct wlan_sta_stat *newstas, int count)
 {
-#if !OK_PATCH
     struct wlan_sta_stat * stas = *sta_list;
     
     if (cursize + count > totalsize || stas == NULL) {
@@ -217,14 +166,10 @@ static int inline dc_reserves_stas(struct wlan_sta_stat **sta_list,
     memcpy(&(stas[cursize]), newstas, (count * sizeof(struct wlan_sta_stat)));
     *sta_list = stas;
     return totalsize;
-#else
-    return 0;
-#endif
 }
 
 int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
 {
-#if !OK_PATCH
 #define UPTIME_DIFF   1 /* s */
     static struct wlan_sta_stat *pre_stas = NULL;
     static int pre_count = 0;
@@ -335,9 +280,6 @@ FREE_STAS:
     *stas = rse_stas;
     
     return res_count;
-#else
-    return 0;
-#endif
 }
  
 static void dc_sta_notice_timer_handler(void *arg) 
@@ -615,7 +557,6 @@ int WTPProcWDSBuffer(struct wds_tunnel_info **info)
 
 void get_wds_sigusr(int signo)
 {
-#if !OK_PATCH
     struct wds_tunnel_info *pWdsInfo = NULL;
     int ret = 0;
 
@@ -633,6 +574,5 @@ err:
         free(pWdsInfo);
     }
 
-#endif
     return;
 }

@@ -1,0 +1,25 @@
+config aa aa
+    option enabled enabled #enabled/.*
+    option url http://127.0.0.1/auth
+    option authip 192.168.1.1
+    option wechatip 192.168.1.1
+    option dns_set "string"
+    list iplist 192.168.0.0/24
+
+config bb bb
+    option enabled enabled #enabled/.*
+    option url http://127.0.0.1/auth
+    option authip 192.168.1.1
+    option wechatip 192.168.1.1
+    option dns_set "string"
+    list iplist 192.168.0.0/24
+
+config cc cc
+    option enabled enabled #enabled/.*
+    option url http://127.0.0.1/auth
+    option authip 192.168.1.1
+    option wechatip 192.168.1.1
+    option dns_set "string"
+    list iplist 192.168.0.0/24
+
+   

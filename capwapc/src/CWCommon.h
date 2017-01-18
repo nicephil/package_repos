@@ -53,9 +53,7 @@
 #include <sys/file.h>
 #include "wireless_copy.h"
 
-//#include "log/log.h"
 #include "services/capwapc_services.h"
-extern int log_id;
 
 // make sure the types really have the right sizes
 #define CW_COMPILE_TIME_ASSERT(name, x)               typedef int CWDummy_ ## name[(x) * 2 - 1]

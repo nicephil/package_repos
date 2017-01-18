@@ -1,0 +1,3 @@
+config DNS DNS
+    list dns '2.2.2.2'
+    list dns '4.4.4.4'

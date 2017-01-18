@@ -110,7 +110,9 @@ wzr-hp-g450h)
 	;;
 
 ap152)
-	ucidef_set_interface_lan "eth0"
+	ucidef_set_interface_lan_with_vlan "eth0.1" "1"
+    ucidef_add_switch "switch0" "1" "1"
+    ucidef_add_switch_vlan_with_name "switch0" "1" "0t 1"
     ;;
 
 rb-493g)
