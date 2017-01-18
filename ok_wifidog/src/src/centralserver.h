@@ -46,6 +46,14 @@
 /** @brief Sent after the user performed a manual log-out on the gateway  */
 #define GATEWAY_MESSAGE_ACCOUNT_LOGGED_OUT     "logged-out"
 
+#if OK_PATCH
+struct _s_ssid_config;
+
+int auth_server_request(t_authresponse * , t_client *);
+int connect_auth_server(const struct _s_ssid_config *);
+int _connect_auth_server(int level, const struct _s_ssid_config *);
+
+#else
 /** @brief Initiates a transaction with the auth server */
 t_authcode auth_server_request(t_authresponse * authresponse,
                                const char *request_type,
@@ -58,5 +66,7 @@ int connect_auth_server(void);
 
 /** @brief Helper function called by connect_auth_server() to do the actual work including recursion - DO NOT CALL DIRECTLY */
 int _connect_auth_server(int level);
+#endif
+
 
 #endif                          /* _CENTRALSERVER_H_ */
