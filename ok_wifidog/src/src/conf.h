@@ -59,14 +59,16 @@
 #if OK_PATCH
 #define DEFAULT_AUTHSERVPATH "/auth/device/"
 #define DEFAULT_AUTHSERVLOGINPATHFRAGMENT "client?"
-#else
+#define DEFAULT_AUTHSERVAUTHPATHFRAGMENT "client/authority?"
+#else /* OK_PATCH */
 #define DEFAULT_AUTHSERVPATH "/wifidog/"
 #define DEFAULT_AUTHSERVLOGINPATHFRAGMENT "login/?"
-#endif
+#define DEFAULT_AUTHSERVAUTHPATHFRAGMENT "auth/?"
+#endif /* OK_PATCH */
+
 #define DEFAULT_AUTHSERVPORTALPATHFRAGMENT "portal/?"
 #define DEFAULT_AUTHSERVMSGPATHFRAGMENT "gw_message.php?"
 #define DEFAULT_AUTHSERVPINGPATHFRAGMENT "ping/?"
-#define DEFAULT_AUTHSERVAUTHPATHFRAGMENT "auth/?"
 #define DEFAULT_AUTHSERVSSLCERTPATH "/etc/ssl/certs/"
 /** Note that DEFAULT_AUTHSERVSSLNOPEERVER must be 0 or 1, even if the config file syntax is yes or no */
 #define DEFAULT_AUTHSERVSSLPEERVER 1    /* 0 means: Enable peer verification */
@@ -84,6 +86,7 @@
 #define FWRULESET_UNKNOWN_USERS "unknown-users"
 #define FWRULESET_LOCKED_USERS "locked-users"
 /*@}*/
+
 
 /**
  * Mutex for the configuration file, used by the auth_servers related
@@ -108,6 +111,9 @@ typedef struct _auth_serv_t {
     int authserv_use_ssl;       /**< @brief Use SSL or not */
     char *last_ip;      /**< @brief Last ip used by authserver */
     struct _auth_serv_t *next;
+#if OK_PATCH
+    void * father;
+#endif
 } t_auth_serv;
 
 /**
@@ -158,6 +164,38 @@ typedef struct _popular_server_t {
     struct _popular_server_t *next;
 } t_popular_server;
 
+#if OK_PATCH
+
+struct _s_ssid_config;
+
+typedef struct _s_ath_if_list
+{
+    char * if_name;
+    char * bssid;
+
+    struct _s_ssid_config * ssid;
+
+    struct _s_ath_if_list * next;
+} t_ath_if_list;
+
+typedef struct _s_ssid_config
+{
+    unsigned int sn;
+    char * ssid;
+    char * br_name;
+    t_ath_if_list * if_list;
+
+    char * scheme_name;
+    t_auth_serv * auth_servers;
+    t_trusted_mac * mac_white_list;
+    t_firewall_ruleset * ip_white_list;
+    t_firewall_ruleset * dn_white_list;
+    
+    struct _s_ssid_config * next;
+} t_ssid_config;
+
+#endif /* OK_PATCH */
+
 /**
  * Configuration structure
  */
@@ -178,7 +216,7 @@ typedef struct {
 				     server */
     int gw_port;                /**< @brief Port the webserver will run on */
 
-    t_auth_serv *auth_servers;  /**< @brief Auth servers list */
+//    t_auth_serv *auth_servers;  /**< @brief Auth servers list */
     char *httpdname;            /**< @brief Name the web server will return when
 				     replying to a request */
     int httpdmaxconn;           /**< @brief Used by libhttpd, not sure what it
@@ -203,7 +241,46 @@ typedef struct {
     char *arp_table_path; /**< @brief Path to custom ARP table, formatted
         like /proc/net/arp */
     t_popular_server *popular_servers; /**< @brief list of popular servers */
+
+#if OK_PATCH
+
+    char * device_id;
+    char * domain_name;
+    t_ssid_config * ssid_conf;
+
+#endif /* OK_PATCH */
 } s_config;
+
+#if OK_PATCH
+
+#define okos_conf_set_str(father, son, str) {\
+    if (NULL == father->son) {\
+        father->son = safe_strdup(str);\
+    }\
+}
+#define okos_conf_set_int(father, son, num) {\
+    father->son = num;\
+}
+
+#define okos_conf_append_list_member(prev) ({\
+    typeof(prev) t = prev;\
+    typeof(prev) p = safe_malloc(sizeof(*prev));\
+    if (NULL == prev) {\
+        prev = p;\
+    } else {\
+        while (t->next) t = t->next;\
+        t->next = p;\
+    } p;})
+
+#define okos_conf_ins_list_member(prev) ({\
+    typeof(prev) p = safe_malloc(sizeof(*prev));\
+    if (NULL != prev) p->next = prev;\
+    prev = p;})
+
+#define okos_list_for_each(pos, head) \
+    for (pos = head; NULL != pos; pos = pos->next)
+
+#endif /* OK_PATCH */
 
 /** @brief Get the current gateway configuration */
 s_config *config_get_config(void);
@@ -221,7 +298,13 @@ void config_read(const char *filename);
 void config_validate(void);
 
 /** @brief Get the active auth server */
+#if OK_PATCH
+struct _t_client;
+
+t_auth_serv *get_auth_server(const struct _t_client *);
+#else /* OK_PATCH */
 t_auth_serv *get_auth_server(void);
+#endif /* OK_PATCH */
 
 /** @brief Bump server to bottom of the list */
 void mark_auth_server_bad(t_auth_serv *);
@@ -241,5 +324,19 @@ t_firewall_rule *get_ruleset(const char *);
 	pthread_mutex_unlock(&config_mutex); \
 	debug(LOG_DEBUG, "Config unlocked"); \
 } while (0)
+
+#if OK_PATCH
+
+void config_simulate(void);
+t_ssid_config * okos_conf_get_ssid_by_name(const char *);
+t_ath_if_list * okos_conf_get_ifx_by_name(const char *);
+
+struct _t_client * okos_fill_client_info(struct _t_client *);
+
+
+#define okos_conf_get_ssid_by_client(client) okos_conf_get_ssid_by_name(okos_client_get_ssid(client))
+
+#endif /* OK_PATCH */
+
 
 #endif                          /* _CONFIG_H_ */

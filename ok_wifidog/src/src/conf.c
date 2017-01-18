@@ -47,6 +47,8 @@
 #include "config.h"
 
 #include "util.h"
+#include "client_list.h"
+#include "okos_auth_param.h"
 
 /** @internal
  * Holds the current configuration of the gateway */
@@ -187,7 +189,7 @@ config_init(void)
     config.gw_interface = NULL;
     config.gw_address = NULL;
     config.gw_port = DEFAULT_GATEWAYPORT;
-    config.auth_servers = NULL;
+    //config.auth_servers = NULL;
     config.httpdname = NULL;
     config.httpdrealm = DEFAULT_HTTPDNAME;
     config.httpdusername = NULL;
@@ -251,6 +253,8 @@ Parses auth server information
 static void
 parse_auth_server(FILE * file, const char *filename, int *linenum)
 {
+#if OK_PATCH
+#else
     char *host = NULL,
         *path = NULL,
         *loginscriptpathfragment = NULL,
@@ -393,6 +397,7 @@ parse_auth_server(FILE * file, const char *filename, int *linenum)
     new->authserv_http_port = http_port;
     new->authserv_ssl_port = ssl_port;
 #if OK_PATCH
+    /* Hacking a little too much, since we can't support domain name any more. */
     new->last_ip = safe_strdup(host);
 #endif
     
@@ -406,6 +411,7 @@ parse_auth_server(FILE * file, const char *filename, int *linenum)
     }
 
     debug(LOG_DEBUG, "Auth server added");
+#endif /* OK_PATCH */
 }
 
 /**
@@ -1005,13 +1011,30 @@ parse_popular_servers(const char *ptr)
 }
 
 /** Verifies if the configuration is complete and valid.  Terminates the program if it isn't */
+#if OK_PATCH
 void
 config_validate(void)
 {
-#if OK_PATCH
-#else
+    config_notnull(config.device_id, "device id");
+    config_notnull(config.domain_name, "domain name");
+    config_notnull(config.ssid_conf, "ssid configuration");
+    t_ssid_config * ssid;
+    okos_list_for_each(ssid, config.ssid_conf) {
+        config_notnull(ssid->auth_servers, "auth server");
+    }
+    validate_popular_servers();
+
+    if (missing_parms) {
+        debug(LOG_ERR, "Configuration is not complete, exiting...");
+        exit(-1);
+    }
+}
+
+#else /* OK_PATCH */
+void
+config_validate(void)
+{
     config_notnull(config.gw_interface, "GatewayInterface");
-#endif
     config_notnull(config.auth_servers, "AuthServer");
     validate_popular_servers();
 
@@ -1020,6 +1043,7 @@ config_validate(void)
         exit(-1);
     }
 }
+#endif /* OK_PATCH */
 
 /** @internal
  * Validate that popular servers are populated or log a warning and set a default.
@@ -1049,6 +1073,20 @@ config_notnull(const void *parm, const char *parmname)
 /**
  * This function returns the current (first auth_server)
  */
+#if OK_PATCH
+t_auth_serv *
+get_auth_server(const t_client *client)
+{
+    if (NULL == client)
+        return NULL;
+
+    if (NULL == client->ssid_conf)
+        return NULL;
+
+    return client->ssid_conf->auth_servers;
+}
+
+#else /* OK_PATCH */
 t_auth_serv *
 get_auth_server(void)
 {
@@ -1057,6 +1095,8 @@ get_auth_server(void)
     return config.auth_servers;
 }
 
+#endif /* OK_PATCH */
+
 /**
  * This function marks the current auth_server, if it matches the argument,
  * as bad. Basically, the "bad" server becomes the last one on the list.
@@ -1064,6 +1104,8 @@ get_auth_server(void)
 void
 mark_auth_server_bad(t_auth_serv * bad_server)
 {
+#if OK_PATCH
+#else
     t_auth_serv *tmp;
 
     if (config.auth_servers == bad_server && bad_server->next != NULL) {
@@ -1076,5 +1118,142 @@ mark_auth_server_bad(t_auth_serv * bad_server)
         /* Set the next pointe to NULL in the last element */
         bad_server->next = NULL;
     }
-
+#endif
 }
+
+
+#if OK_PATCH
+
+
+t_client * okos_fill_client_info(t_client *client)
+{
+    debug(LOG_INFO, "Fill the client info from config..");
+    t_ssid_config *ssid;
+    okos_list_for_each(ssid, config.ssid_conf) {
+        if (0 == strcmp(client->brX, ssid->br_name)) {
+            client->ssid_conf = ssid;
+            client->ifx = ssid->if_list;
+            client->if_name = safe_strdup(client->ifx->if_name);
+            client->ssid = safe_strdup(client->ssid_conf->ssid);
+            client->scheme = safe_strdup(client->ssid_conf->scheme_name);
+            
+            /* Fake the token to cheat wifidog */
+            client->token = safe_strdup(OKOS_AUTH_FAKE_TOKEN);
+
+            debug(LOG_DEBUG, "client (%s)[%s] located in bridge {%s}, ssid:%s, scheme:%s, if name is:%s, bssid=%s", client->ip, client->mac, client->brX, client->ssid, client->scheme, client->if_name, client->ifx->bssid);
+            return client;
+        }
+    }
+
+    debug(LOG_ERR, "can not find out the basic information for client(%s)[%s] in bridge{%s}", client->ip, client->mac, client->brX);
+    return NULL;
+}
+
+void
+config_init_default_auth_server(t_auth_serv *svr)
+{
+    svr->authserv_use_ssl = DEFAULT_AUTHSERVSSLAVAILABLE;
+    svr->authserv_login_script_path_fragment = safe_strdup(DEFAULT_AUTHSERVLOGINPATHFRAGMENT);
+    svr->authserv_portal_script_path_fragment = safe_strdup(DEFAULT_AUTHSERVPORTALPATHFRAGMENT);
+
+    svr->authserv_msg_script_path_fragment = safe_strdup(DEFAULT_AUTHSERVMSGPATHFRAGMENT);    svr->authserv_ping_script_path_fragment = safe_strdup(DEFAULT_AUTHSERVPINGPATHFRAGMENT);
+    svr->authserv_auth_script_path_fragment = safe_strdup(DEFAULT_AUTHSERVAUTHPATHFRAGMENT);
+    svr->authserv_http_port = DEFAULT_AUTHSERVPORT;
+    svr->authserv_ssl_port = DEFAULT_AUTHSERVSSLPORT;
+}
+
+void
+config_simulate(void)
+{
+    s_config *my_config = &config;
+
+    okos_conf_set_str(my_config, device_id, "00:55:AA:E7:38:29");
+    okos_conf_set_str(my_config, domain_name, "D4E78543656449ABA9EC385D001BAB71");
+    okos_conf_set_str(my_config, gw_id, my_config->device_id);
+
+    t_ssid_config *ssid;
+    ssid = okos_conf_append_list_member(my_config->ssid_conf);
+    okos_conf_set_int(ssid, sn, 1);
+    okos_conf_set_str(ssid, ssid, "ok_1st");
+    okos_conf_set_str(ssid, br_name, "br-lan");
+    okos_conf_set_str(ssid, scheme_name, "1");
+
+    t_auth_serv *authsvrs;
+    authsvrs = okos_conf_append_list_member(ssid->auth_servers);
+    config_init_default_auth_server(authsvrs);
+    okos_conf_set_str(authsvrs, authserv_hostname, "60.205.207.193");
+    okos_conf_set_str(authsvrs, authserv_path, "/auth/device/");
+
+    t_trusted_mac *trusted_mac;
+    trusted_mac = okos_conf_append_list_member(ssid->mac_white_list);
+    okos_conf_set_str(trusted_mac, mac, "00:61:71:83:25:7B"); 
+    trusted_mac = okos_conf_append_list_member(trusted_mac);
+    okos_conf_set_str(trusted_mac, mac, "f4:0f:24:26:b1:59"); 
+
+    t_firewall_ruleset *dn_white_list;
+    dn_white_list = okos_conf_append_list_member(ssid->dn_white_list);
+    okos_conf_set_str(dn_white_list, name, "dn white list");
+    t_firewall_rule *dns;
+    dns = okos_conf_append_list_member(dn_white_list->rules);
+    okos_conf_set_str(dns, mask, "dangdang.com");
+    okos_conf_set_int(dns, target, TARGET_ACCEPT);
+    dns = okos_conf_append_list_member(dn_white_list->rules);
+    okos_conf_set_str(dns, mask, "a1.oakridge.io");
+    okos_conf_set_str(dns, port, "39901");
+    okos_conf_set_str(dns, protocol, "tcp");
+    okos_conf_set_int(dns, target, TARGET_ACCEPT);
+
+    t_firewall_ruleset *ip_set;
+    ip_set = okos_conf_append_list_member(ssid->ip_white_list);
+    okos_conf_set_str(ip_set, name, "ip white list");
+    t_firewall_rule * ipx;
+    ipx = okos_conf_append_list_member(ip_set->rules);
+    okos_conf_set_str(ipx, mask, "192.168.0.1");
+    okos_conf_set_int(ipx, target, TARGET_ACCEPT);
+    ipx = okos_conf_append_list_member(ip_set->rules);
+    okos_conf_set_str(ipx, mask, "192.168.100.1");
+    okos_conf_set_int(ipx, target, TARGET_ACCEPT);
+
+    t_ath_if_list *ifs;
+    ifs = okos_conf_append_list_member(ssid->if_list);
+    okos_conf_set_str(ifs, if_name, "ath0");
+    okos_conf_set_str(ifs, bssid, "00:55:AA:E7:38:29");
+    ifs = okos_conf_append_list_member(ifs);
+    okos_conf_set_str(ifs, if_name, "ath1");
+    okos_conf_set_str(ifs, bssid, "00:55:AA:E7:38:29");
+}
+
+
+
+t_ssid_config * okos_conf_get_ssid_by_name(const char *name)
+{
+    if (NULL == name)
+        return NULL;
+
+    t_ssid_config *ssid;
+    okos_list_for_each(ssid, config.ssid_conf) {
+        if (0 == strcmp(ssid->ssid, name)) {
+            return ssid;
+        }
+    }
+    return NULL;
+}
+
+t_ath_if_list * okos_conf_get_ifx_by_name(const char *name)
+{
+    if (NULL == name)
+        return NULL;
+
+    t_ssid_config *ssid;
+    okos_list_for_each(ssid, config.ssid_conf) {
+        t_ath_if_list *ifx;
+        okos_list_for_each(ifx, ssid->if_list) {
+            if (0 == strcmp(ifx->if_name, name)) {
+                return ifx;
+            }
+        }
+    }
+    return NULL;
+}
+
+#endif /* OK_PATCH */
