@@ -58,6 +58,62 @@
 #include "client_list.h"
 #include "commandline.h"
 
+#if OK_PATCH
+static int _fw_deny_raw(const char *, const char *, const int, const t_ssid_config *);
+
+int
+fw_allow(t_client * client, int new_fw_connection_state)
+{
+    int result;
+    int old_state = client->fw_connection_state;
+    t_ssid_config * ssid = okos_conf_get_ssid_by_name(okos_client_get_ssid(client));
+
+    debug(LOG_DEBUG, "Allowing %s %s with fw_connection_state %d on ssid[%s]", client->ip, client->mac, new_fw_connection_state, ssid->ssid);
+    client->fw_connection_state = new_fw_connection_state;
+
+    /* Grant first */
+    result = iptables_fw_access(FW_ACCESS_ALLOW, client->ip, client->mac, new_fw_connection_state, ssid);
+
+    /* Deny after if needed. */
+    if (old_state != FW_MARK_NONE) {
+        debug(LOG_DEBUG, "Clearing previous fw_connection_state %d", old_state);
+        _fw_deny_raw(client->ip, client->mac, old_state, ssid);
+    }
+
+    return result;
+}
+
+int
+fw_allow_host(const char *host, const t_ssid_config * ssid)
+{
+    if (NULL == ssid) {
+        debug(LOG_DEBUG, "Allowing %s on global whitelist", host);
+    } else {
+        debug(LOG_DEBUG, "Allowing %s on whitelist of  ssid[%s]", host, ssid->ssid);
+    }
+
+    return iptables_fw_access_host(FW_ACCESS_ALLOW, host, ssid);
+}
+
+int
+fw_deny(t_client * client)
+{
+    int fw_connection_state = client->fw_connection_state;
+    t_ssid_config * ssid = okos_conf_get_ssid_by_name(okos_client_get_ssid(client));
+
+    debug(LOG_DEBUG, "Denying %s %s with fw_connection_state %d on ssid[%s]", client->ip, client->mac, client->fw_connection_state, ssid->ssid);
+
+    client->fw_connection_state = FW_MARK_NONE; /* Clear */
+    return _fw_deny_raw(client->ip, client->mac, fw_connection_state, ssid);
+}
+
+static int
+_fw_deny_raw(const char *ip, const char *mac, const int mark, const t_ssid_config * ssid)
+{
+    return iptables_fw_access(FW_ACCESS_DENY, ip, mac, mark, ssid);
+}
+
+#else /* OK_PATCH */
 static int _fw_deny_raw(const char *, const char *, const int);
 
 /**
@@ -132,6 +188,9 @@ _fw_deny_raw(const char *ip, const char *mac, const int mark)
     return iptables_fw_access(FW_ACCESS_DENY, ip, mac, mark);
 }
 
+#endif /* OK_PATCH */
+
+
 /** Passthrough for clients when auth server is down */
 int
 fw_set_authdown(void)
@@ -188,7 +247,7 @@ arp_get(const char *req_ip)
 }
 
 #if OK_PATCH
-int arp_get_all(const char * req_ip, char * br_dev, unsigned char * mac)
+int arp_get_all(const char * req_ip, char ** mac, char ** br_dev)
 {
     s_config *config = config_get_config();
     FILE * proc;
@@ -200,15 +259,22 @@ int arp_get_all(const char * req_ip, char * br_dev, unsigned char * mac)
 
     char ip[16];
     char mac_addr[18];
-    unsigned int tmp[6];
-    while (!feof(proc) && (fscanf(proc, " %15[0-9.] %*s %*s %17[A-Fa-f0-9:] %*s %s", ip, mac_addr, br_dev) == 3)) {
-        if (strcmp(ip, req_ip) == 0) {
-            sscanf(mac_addr, "%2x:%2x:%2x:%2x:%2x:%2x", &tmp[0],&tmp[1],&tmp[2],&tmp[3],&tmp[4],&tmp[5]);
+    char brX[256];
 
-            debug(LOG_INFO, "Got client [%2x:%2x:%2x:%2x:%2x:%2x] from %s for ip %s",
-                         tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5], br_dev, ip);
-            int i;
-            for (i = 0; i < 6; i++) mac[i] = tmp[i] & 0xFF;
+    while (!feof(proc) && (fscanf(proc, " %15[0-9.] %*s %*s %17[A-Fa-f0-9:] %*s %s",
+                    ip, mac_addr, brX) == 3)) {
+        if (strcmp(ip, req_ip) == 0) {
+            if (*mac == NULL) {
+                *mac = safe_strdup(mac_addr);
+            } else if (strcasecmp(*mac, mac_addr)) {
+                continue;
+            }
+
+            *br_dev = safe_strdup(brX);
+
+            debug(LOG_INFO, "Got client [%s] from %s for ip %s",
+                         mac_addr, brX, ip);
+
             fclose(proc);
             return 0;
         }
@@ -251,6 +317,21 @@ fw_init(void)
     return result;
 }
 
+#if OK_PATCH
+void
+fw_clear_authservers(const t_ssid_config * ssid)
+{
+    debug(LOG_INFO, "Clearing the authservers list on ssid: %s", ssid->ssid);
+    iptables_fw_clear_authservers(ssid);
+}
+
+void
+fw_set_authservers(const t_ssid_config * ssid)
+{
+    debug(LOG_INFO, "Setting the authservers list on ssid: %s", ssid->ssid);
+    iptables_fw_set_authservers(ssid);
+}
+#else /* OK_PATCH */
 /** Remove all auth server firewall whitelist rules
  */
 void
@@ -268,6 +349,7 @@ fw_set_authservers(void)
     debug(LOG_INFO, "Setting the authservers list");
     iptables_fw_set_authservers();
 }
+#endif /* OK_PATCH */
 
 /** Remove the firewall rules
  * This is used when we do a clean shutdown of WiFiDog.
@@ -280,6 +362,94 @@ fw_destroy(void)
     debug(LOG_INFO, "Removing Firewall rules");
     return iptables_fw_destroy();
 }
+
+#if OK_PATCH
+#define okos_update_next_timer(this, next) \
+    if (this < next) {\
+        next = this;\
+    }
+
+time_t
+fw_sync_with_authserver(void)
+{
+    debug(LOG_INFO, "Start to check client status periodly. ");
+
+    t_client *p1, *p2, *worklist, *original;
+    s_config *config = config_get_config();
+    time_t current_time = time(NULL);
+    time_t next_timer = current_time + config->checkinterval; 
+    time_t this_timer;
+
+    /*
+    if (-1 == iptables_fw_counters_update()) {
+        debug(LOG_ERR, "Could not get counters from firewall!");
+    }
+    */
+
+    LOCK_CLIENT_LIST();
+
+    /* XXX Ideally, from a thread safety PoV, this function
+     * should build a list of client pointers,
+     * iterate over the list and have an explicit "client
+     * still valid" check while list is locked.
+     * That way clients can disappear during the cycle with
+     * no risk of trashing the heap or getting
+     * a SIGSEGV.
+     */
+    debug(LOG_DEBUG, "Duplicate the whole client list from a thread safety PoV.");
+    client_list_dup(&worklist);
+    UNLOCK_CLIENT_LIST();
+
+    int updateFailed;
+    t_authresponse authresponse;
+    for (p1 = p2 = worklist; NULL != p1; p1 = p2) {
+        p2 = p1->next;
+        debug(LOG_DEBUG, "Start to check client {%s, %s}.", p1->mac, p1->ip);
+
+        /* Update the counters on the remote server only if we have an auth server */
+        updateFailed = 1;
+        updateFailed = auth_server_request(&authresponse, p1);
+
+        this_timer = p1->remain_time + p1->last_flushed;
+        
+        debug(LOG_INFO,
+              "Checking client %s for timeout:  Last flushed %ld (%ld seconds ago),"
+              "remain time %ld seconds, current time %ld, %ld seconds left.",
+              p1->ip, p1->last_flushed, current_time - p1->last_flushed,
+              p1->remain_time, current_time, this_timer - current_time);
+
+        LOCK_CLIENT_LIST();
+        original = client_list_find_by_client(p1);
+        if (NULL != original) { //Client is stll there.
+            if (p1->remain_time == 0 || this_timer <= current_time) { //Client is timeout.
+                /* Timing out user */
+                debug(LOG_INFO, "%s - Inactive, removing client and denying in firewall",
+                                  p1->ip);
+
+                logout_client(original);
+            } else { //Client should be updated.
+                if (this_timer < next_timer) {
+                    next_timer = this_timer;
+                }
+                if (!updateFailed) {
+                    debug(LOG_DEBUG, "Flush the client in the list with the result from auth server.");
+                    okos_client_list_flush(original, p1->remain_time);
+                }
+                debug(LOG_DEBUG, "Client is stall active.");
+            }
+        } else { //client is gone already.
+            debug(LOG_NOTICE, "Client was already removed. Not logging out.");
+        }
+        UNLOCK_CLIENT_LIST();
+
+    }
+
+    debug(LOG_DEBUG, "Destroy the duplicated client list.");
+    client_list_destroy(worklist);
+
+    return next_timer;
+}
+#else
 
 /**Probably a misnomer, this function actually refreshes the entire client list's traffic counter, re-authenticates every client with the central server and update's the central servers traffic counters and notifies it if a client has logged-out.
  * @todo Make this function smaller and use sub-fonctions
@@ -314,6 +484,7 @@ fw_sync_with_authserver(void)
          * way to deal witht his is to keep the DHCP lease time extremely
          * short:  Shorter than config->checkinterval * config->clienttimeout */
         icmp_ping(p1->ip);
+
         /* Update the counters on the remote server only if we have an auth server */
         if (config->auth_servers != NULL) {
             auth_server_request(&authresponse, REQUEST_TYPE_COUNTERS, p1->ip, p1->mac, p1->token, p1->counters.incoming,
@@ -337,7 +508,8 @@ fw_sync_with_authserver(void)
                 debug(LOG_NOTICE, "Client was already removed. Not logging out.");
             }
             UNLOCK_CLIENT_LIST();
-        } else {
+        } else
+        {
             /*
              * This handles any change in
              * the status this allows us
@@ -375,7 +547,8 @@ fw_sync_with_authserver(void)
                         debug(LOG_INFO, "%s - Access has changed to allowed, refreshing firewall and clearing counters",
                               tmp->ip);
                         //WHY did we deny, then allow!?!? benoitg 2007-06-21
-                        //fw_deny(tmp->ip, tmp->mac, tmp->fw_connection_state); /* XXX this was possibly to avoid dupes. */
+                        //fw_deny(tmp->ip, tmp->mac, tmp->fw_connection_state);
+                        ///* XXX this was possibly to avoid dupes. */
 
                         if (tmp->fw_connection_state != FW_MARK_PROBATION) {
                             tmp->counters.incoming_delta =
@@ -383,7 +556,8 @@ fw_sync_with_authserver(void)
                              tmp->counters.incoming =
                              tmp->counters.outgoing = 0;
                         } else {
-                            //We don't want to clear counters if the user was in validation, it probably already transmitted data..
+                            //We don't want to clear counters if the user was in validation,
+                            //it probably already transmitted data..
                             debug(LOG_INFO,
                                   "%s - Skipped clearing counters after all, the user was previously in validation",
                                   tmp->ip);
@@ -416,3 +590,4 @@ fw_sync_with_authserver(void)
 
     client_list_destroy(worklist);
 }
+#endif
