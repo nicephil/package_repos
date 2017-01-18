@@ -28,6 +28,7 @@
 #ifndef _CLIENT_LIST_H_
 #define _CLIENT_LIST_H_
 
+
 /** Global mutex to protect access to the client list */
 extern pthread_mutex_t client_list_mutex;
 
@@ -46,6 +47,9 @@ typedef struct _t_counters {
 
 /** Client node for the connected client linked list.
  */
+struct _s_ssid_config;
+struct _s_ath_if_list;
+
 typedef struct _t_client {
     struct _t_client *next;             /**< @brief Pointer to the next client */
     unsigned long long id;           /**< @brief Unique ID per client */
@@ -59,6 +63,23 @@ typedef struct _t_client {
 					     _http_* function is called */
     t_counters counters;                /**< @brief Counters for input/output of
 					     the client. */
+#if OK_PATCH
+    /**<@ These are what we got from portal server. */
+    time_t last_flushed;
+    unsigned int auth_mode;
+    unsigned int remain_time;
+    char * user_name;
+
+    /**<@ These are what we got from local information. 
+     * Of course, $ip and $mac should be included.
+     */
+    char * brX;
+    char * if_name;
+    char * ssid;
+    char * scheme;
+    struct _s_ssid_config * ssid_conf;
+    struct _s_ath_if_list * ifx;
+#endif
 } t_client;
 
 /** @brief Get a new client struct, not added to the list yet */
@@ -121,5 +142,13 @@ void client_free_node(t_client *);
 	pthread_mutex_unlock(&client_list_mutex); \
 	debug(LOG_DEBUG, "Client list unlocked"); \
 } while (0)
+
+#if OK_PATCH
+
+t_client * okos_client_list_flush(t_client * , const unsigned int);
+t_client * okos_client_get_new_client(const char * );
+
+char * okos_client_get_ssid(const t_client *);
+#endif
 
 #endif                          /* _CLIENT_LIST_H_ */
