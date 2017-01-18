@@ -4,6 +4,8 @@
 
 ath_all=`ifconfig | grep -E 'ath*' | awk '{print $1}'`
 
+
+mkdir -p /tmp/stationinfo
          
 for ath in $ath_all
 do
@@ -17,5 +19,5 @@ wlanconfig $ath list sta  | awk -F' ' '$1 !~ /ADDR/{
     system("/lib/fetchipbymac.sh "$1)
     system("/lib/fetchinfobyinterface.sh '$ath'")
 }'
-done > /etc/config/stationinfo
+done > /tmp/stationinfo/stationinfo
 
