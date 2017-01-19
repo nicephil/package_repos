@@ -146,6 +146,32 @@ static int okos_http_check_whitelist_by_ssid(request *r, char *url, t_ssid_confi
     return 1;
 }
 
+static void okos_try_to_add_client_into_list(t_client *p_client)
+{
+    debug(LOG_INFO, "Trying to add client {%s,%s,%s} into list.", p_client->ip, p_client->mac, p_client->ssid);
+
+    LOCK_CLIENT_LIST();
+
+    t_client *p_old = client_list_find_by_ssid(p_client->mac, p_client->ssid);
+    if (NULL == p_old) {
+        debug(LOG_DEBUG, "New client for {%s,%s,%s}", p_client->ip, p_client->mac, p_client->ssid);
+        client_list_insert_client(p_client);
+    } else {
+        debug(LOG_WARNING, "Client for {%s,%s,%s} is already in the client list with remain time: %d", p_old->ip, p_old->mac, p_old->ssid, p_old->remain_time);
+        okos_client_list_flush(p_old, p_client->remain_time);
+        client_free_node(p_client);
+        p_client = p_old;
+    }
+
+    /* Logged in successfully as a regular account */
+    debug(LOG_INFO, "Got ALLOWED from auth server for client {%s,%s,%s} - "
+            "adding to firewall and redirecting them to portal", p_client->ip, p_client->mac, p_client->ssid);
+    fw_allow(p_client, FW_MARK_KNOWN);
+
+    UNLOCK_CLIENT_LIST();
+    served_this_session++;
+}
+
 static t_client * okos_query_auth_server(t_client *client)
 {
     debug(LOG_INFO, "Querying auth server...");
@@ -154,29 +180,28 @@ static t_client * okos_query_auth_server(t_client *client)
     int updateFailed = 1;
     updateFailed = auth_server_request(&auth_code, client);
     if (!updateFailed && AUTH_ALLOWED == auth_code.authcode) {
+
+        okos_try_to_add_client_into_list(client);
+        /*
         LOCK_CLIENT_LIST();
         
-        t_client *old = client_list_find(client->ip, client->mac);
+        t_client *old = client_list_find_by_ssid(client->mac, client->ssid);
         if (NULL == old) {
-            debug(LOG_DEBUG, "New client for {%s,%s}", client->ip, client->mac);
+            debug(LOG_DEBUG, "New client for {%s,%s,%s}", client->ip, client->mac, client->ssid);
             client_list_insert_client(client);
         } else {
-            /* This case should be a mismatch between iptables and client list.
-             * FIXME: 
-             */ 
-            debug(LOG_WARNING, "Client for {%s,%s} is already in the client list with remain time: %d", old->ip, old->mac, old->remain_time);
+            debug(LOG_WARNING, "Client for {%s,%s,%s} is already in the client list with remain time: %d", old->ip, old->mac, old->ssid, old->remain_time);
             okos_client_list_flush(old, client->remain_time);
             client_free_node(client);
             client = old;
         }
 
-        /* Logged in successfully as a regular account */
         debug(LOG_INFO, "Got ALLOWED from auth server from %s at %s - "
               "adding to firewall and redirecting them to portal", client->ip, client->mac);
         fw_allow(client, FW_MARK_KNOWN);
 
         UNLOCK_CLIENT_LIST();
-        served_this_session++;
+        served_this_session++;*/
 
         return NULL;
     }
@@ -224,7 +249,8 @@ http_callback_404(httpd *webserver, request *r, int error_code)
     debug(LOG_INFO, "Auth server won't like to authority the client(%s), client need to kickoff auth process from beginning.", r->clientAddr);
     /* For new client, check his target host in the white list.
      */
-    t_ssid_config * ssid = okos_conf_get_ssid_by_client(client);
+    //t_ssid_config * ssid = okos_conf_get_ssid_by_client(client);
+    t_ssid_config * ssid = client->ssid_conf;
     debug(LOG_DEBUG, "Start to check target host in white list...");
     int canntMatchHostInWhiteList;
     canntMatchHostInWhiteList = okos_http_check_whitelist(r, tmp_url);
@@ -490,28 +516,28 @@ void http_callback_auth(httpd *webserver, request *r)
         return;
     }
     
-    /* We have their MAC address */
+    okos_try_to_add_client_into_list(client);
+    /*
     LOCK_CLIENT_LIST();
 
-    t_client *old;
-    if (NULL == (old = client_list_find(client->ip, client->mac))) {
-        debug(LOG_DEBUG, "New client for {%s,%s}", client->ip, client->mac);
+    t_client *old = client_list_find_by_ssid(client->mac, client->ssid);
+    if (NULL == old) {
+        debug(LOG_DEBUG, "New client for {%s,%s} on ssid:%s", client->ip, client->mac, client->ssid);
         client_list_insert_client(client);
     } else {
         okos_client_list_flush(old, client->remain_time);
-        debug(LOG_DEBUG, "Client {%s,%s} is already in the list with remain time: %d",
-                client->ip, client->mac, client->remain_time);
+        debug(LOG_DEBUG, "Client {%s,%s} on ssid:%s is already in the list with remain time: %d",
+                client->ip, client->mac, client->ssid, client->remain_time);
     }
 
-    /* Logged in successfully as a regular account */
-    debug(LOG_INFO, "Got ALLOWED from central server for {%s, %s} "
+    debug(LOG_INFO, "Got ALLOWED from central server for {%s, %s, %s} "
             "adding to firewall and redirecting them to portal",
-            client->ip, client->mac);
+            client->ip, client->mac, client->ssid);
     fw_allow(client, FW_MARK_KNOWN);
 
     UNLOCK_CLIENT_LIST();
     served_this_session++;
-
+*/
     httpVar *flag = httpdGetVariableByName(r, "flag");
     int donot_redirect = 0;
     if (NULL != flag) {
