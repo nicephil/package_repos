@@ -111,7 +111,7 @@ static unsigned char * okos_http_serial_auth_info(const t_client *client, int *l
     memcpy(pt, (char *)(&(client_ip)), sizeof(client_ip));
     pt += sizeof(client_ip);
     
-	okos_http_ins_str(client->ssid_conf->ssid, &pt);
+	okos_http_ins_str(client->ssid, &pt);
 	okos_http_ins_str(pconfig->domain_name, &pt);
     okos_http_ins_str(client->ssid_conf->scheme_name, &pt);
 
