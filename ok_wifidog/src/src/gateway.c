@@ -204,6 +204,20 @@ get_clients_from_parent(void)
                             client->counters.outgoing_delta = 0;
                         } else if (strcmp(key, "counters_last_updated") == 0) {
                             client->counters.last_updated = atol(value);
+#if OK_PATCH /* Add more elements for client */
+                        } else if (strcmp(key, "auth_mode") == 0) {
+                            client->auth_mode = (unsigned int)atoi(value);
+                        } else if (strcmp(key, "user_name") == 0) {
+                            client->user_name = safe_strdup(value);
+                        } else if (strcmp(key, "remain_time") == 0) {
+                            client->remain_time = (unsigned int)atoi(value);
+                        } else if (strcmp(key, "last_flushed") == 0) {
+                            client->last_flushed = atol(value);
+                        } else if (strcmp(key, "if_name") == 0) {
+                            client->if_name = safe_strdup(value);
+                        } else if (strcmp(key, "ssid") == 0) {
+                            client->ssid = safe_strdup(value);
+#endif /* OK_PATCH */
                         } else {
                             debug(LOG_NOTICE, "I don't know how to inherit key [%s] value [%s] from parent", key,
                                   value);
@@ -212,9 +226,18 @@ get_clients_from_parent(void)
                 }
             }
 
+            client->ifx = okos_conf_get_ifx_by_name(client->if_name);
+            client->ssid_conf = okos_conf_get_ssid_by_name(client->ssid);
+            client->brX = client->ssid_conf->br_name;
+            client->scheme = client->ssid_conf->scheme_name;
+
             /* End of parsing this command */
             if (client) {
-                client_list_insert_client(client);
+                if (client->ifx && client->ssid_conf) {
+                    client_list_insert_client(client);
+                } else {
+                    client_free_node(client);
+                }
             }
 
             /* Clean up */
@@ -366,10 +389,15 @@ main_loop(void)
         started_time = time(NULL);
     }
 
+    /* OK_PATCH
+     * Since the condition could never be filled, you won't see the file recorded the pid.
+     */
 	/* save the pid file if needed */
     if ((!config) && (!config->pidfile))
         save_pid_file(config->pidfile);
 
+#if OK_PATCH
+#else /* OK_PATCH */
     /* If we don't have the Gateway IP address, get it. Can't fail. */
     if (!config->gw_address) {
         debug(LOG_DEBUG, "Finding IP address of %s", config->gw_interface);
@@ -390,22 +418,37 @@ main_loop(void)
         }
         debug(LOG_DEBUG, "%s = %s", config->gw_interface, config->gw_id);
     }
+#endif /* OK_PATCH */
 
     /* Initializes the web server */
+#if OK_PATCH
+    debug(LOG_NOTICE, "Creating web server on %s:%d", "0.0.0.0", config->gw_port);
+    if ((webserver = httpdCreate(HTTP_ANY_ADDR, config->gw_port)) == NULL) {
+#else
     debug(LOG_NOTICE, "Creating web server on %s:%d", config->gw_address, config->gw_port);
-    if ((webserver = httpdCreate(config->gw_address, config->gw_port)) == NULL) {
+    if (NULL == (webserver = httpdCreate(config->gw_address, config->gw_port))) {
+#endif
         debug(LOG_ERR, "Could not create web server: %s", strerror(errno));
         exit(1);
     }
     register_fd_cleanup_on_fork(webserver->serverSock);
 
     debug(LOG_DEBUG, "Assigning callbacks to web server");
+#if OK_PATCH
+    /* FIXME
+     * Why don't we add some funny things here?
+     */
+    httpdAddCContent(webserver, "/", "auth", 0, NULL, http_callback_wifidog);
+    httpdAddCContent(webserver, "/auth", "", 0, NULL, http_callback_wifidog);
+    httpdAddCContent(webserver, "/auth", "client", 0, NULL, http_callback_auth);
+#else
     httpdAddCContent(webserver, "/", "wifidog", 0, NULL, http_callback_wifidog);
     httpdAddCContent(webserver, "/wifidog", "", 0, NULL, http_callback_wifidog);
     httpdAddCContent(webserver, "/wifidog", "about", 0, NULL, http_callback_about);
     httpdAddCContent(webserver, "/wifidog", "status", 0, NULL, http_callback_status);
     httpdAddCContent(webserver, "/wifidog", "auth", 0, NULL, http_callback_auth);
     httpdAddCContent(webserver, "/wifidog", "disconnect", 0, NULL, http_callback_disconnect);
+#endif
 
     httpdSetErrorFunction(webserver, 404, http_callback_404);
 
@@ -433,13 +476,16 @@ main_loop(void)
     }
     pthread_detach(tid);
 
-    /* Start heartbeat thread */
+    /* Start heartbeat thread */    
+#if OK_PATCH
+#else
     result = pthread_create(&tid_ping, NULL, (void *)thread_ping, NULL);
     if (result != 0) {
         debug(LOG_ERR, "FATAL: Failed to create a new thread (ping) - exiting");
         termination_handler(0);
     }
     pthread_detach(tid_ping);
+#endif
 
     debug(LOG_NOTICE, "Waiting for connections");
     while (1) {
@@ -501,6 +547,7 @@ gw_main(int argc, char **argv)
 
     /* Initialize the config */
     config_read(config->configfile);
+    config_simulate();
     config_validate();
 
     /* Initializes the linked list of connected clients */

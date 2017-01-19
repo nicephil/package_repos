@@ -110,7 +110,7 @@ am_libgateway_a_OBJECTS = commandline.$(OBJEXT) conf.$(OBJEXT) \
 	auth.$(OBJEXT) client_list.$(OBJEXT) util.$(OBJEXT) \
 	wdctl_thread.$(OBJEXT) ping_thread.$(OBJEXT) safe.$(OBJEXT) \
 	httpd_thread.$(OBJEXT) simple_http.$(OBJEXT) pstring.$(OBJEXT) \
-	wd_util.$(OBJEXT)
+	wd_util.$(OBJEXT) okos_auth_param.$(OBJEXT)
 libgateway_a_OBJECTS = $(am_libgateway_a_OBJECTS)
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
@@ -345,7 +345,8 @@ libgateway_a_SOURCES = commandline.c \
 	httpd_thread.c \
 	simple_http.c \
 	pstring.c \
-	wd_util.c
+	wd_util.c \
+	okos_auth_param.c
 
 noinst_HEADERS = commandline.h \
 	common.h \
@@ -366,7 +367,8 @@ noinst_HEADERS = commandline.h \
 	httpd_thread.h \
 	simple_http.h \
 	pstring.h \
-	wd_util.h
+	wd_util.h \
+	okos_auth_param.h
 
 wdctl_LDADD = libgateway.a
 wdctl_SOURCES = wdctl.c
@@ -496,6 +498,7 @@ include ./$(DEPDIR)/util.Po
 include ./$(DEPDIR)/wd_util.Po
 include ./$(DEPDIR)/wdctl.Po
 include ./$(DEPDIR)/wdctl_thread.Po
+include ./$(DEPDIR)/okos_auth_param.Po
 
 .c.o:
 	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

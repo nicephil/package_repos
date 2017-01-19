@@ -51,7 +51,123 @@
 #include "firewall.h"
 #include "../config.h"
 
+#if OK_PATCH
+#include "okos_auth_param.h"
+#endif
+
 #include "simple_http.h"
+
+#if OK_PATCH
+/* This function will query Auth Server for a client login status.
+ * It will construct query by the input of client->ip.
+ * After received response from Auth Server successfully, it will
+ * UPDATE the data structure of client. There are 2 cases here:
+ * case 1: 
+ * the `client` only have an IP address, means it is a new client for
+ * this AP, but might not be new for auth server. So, we will fill
+ * the `client` with the information we got from auth server.
+ * This should be the case of roaming, called by http_callback_404().
+ * case 2:
+ * the `client` is in not new, it is in the client list. So, only the
+ * remain time should be updated.
+ * This should be the case of periodly checking in the cleanup thread.
+ * 
+ * Input =>
+ * @client: Only client->ip gets used.
+ * FIXME: I may need to consider use client->mac in case 2.
+ * 
+ * Output <=
+ * @client: client will be updated for 2 cases above.
+ * @authresponse:
+ *      AUTH_ERROR: connection to auth server failed.
+ *      AUTH_DENIED: can't parse response or remain time equalled to zero.
+ *      AUTH_ALLOWD: remain time is not equal to 0.
+ * @reture value:
+ *      0: parse the response successfully, no matter the value of remain time.
+ *         client got updated successfully.
+ *      1: could not get response from auth server.
+ *      2: get response, but couldn't parse the content.
+ *      
+ */
+int
+auth_server_request(t_authresponse *authresponse, t_client *client)
+{
+    debug(LOG_INFO, "Calling auth_server_request()...");
+
+    char *info = okos_http_insert_parameter(client);
+    //t_ssid_config * ssid = okos_conf_get_ssid_by_client(client);
+    t_ssid_config *ssid = client->ssid_conf;
+
+    int sockfd = connect_auth_server(ssid);
+    //t_auth_serv *auth_server = get_auth_server(ssid->ssid);
+    t_auth_serv *auth_server = ssid->auth_servers;
+    
+    /* Send out request to Auth server to check login status of client:
+     */
+    char buf[MAX_BUF];
+    memset(buf, 0, sizeof(buf));
+    snprintf(buf, (sizeof(buf) - 1),
+            "GET %s%sinfo=%s HTTP/1.0\r\n"
+            "Life is short, play hard!\r\n"
+            "\r\n",
+            auth_server->authserv_path,
+            auth_server->authserv_auth_script_path_fragment,
+            info);
+    free(info);
+
+    debug(LOG_DEBUG, "Sending query to auth server...[%s]", buf);
+    /* Get the response from Auth Server, then check the result.
+     */
+    char *res;
+#ifdef USE_CYASSL
+    if (auth_server->authserv_use_ssl) {
+        res = https_get(sockfd, buf, auth_server->authserv_hostname);
+    } else {
+        res = http_get(sockfd, buf);
+    }
+#endif
+#ifndef USE_CYASSL
+    res = http_get(sockfd, buf);
+#endif
+
+    int updateFailed = 0;
+    if (NULL == res) {
+        debug(LOG_ERR, "There was a problem talking to the auth server!");
+        authresponse->authcode = AUTH_ERROR;
+        updateFailed = 1;
+        return updateFailed;
+    }
+
+    /* Anyway, Auth server will reply me a string started with "auth="
+     */
+    char * parameterAuth = strstr(res, "auth=");
+    if (parameterAuth == NULL)
+        goto denied_by_default;
+
+    debug(LOG_DEBUG, "Got response from auth server: [%s]", parameterAuth);
+    parameterAuth += strlen("auth=");
+    int parseFailed = okos_http_parse_info(parameterAuth, client);
+    if (parseFailed)
+        goto denied_by_default;
+
+    if (0 == client->remain_time) {
+        authresponse->authcode = AUTH_DENIED;
+    } else {
+        authresponse->authcode = AUTH_ALLOWED;
+    }
+    debug(LOG_INFO, "Auth server returned authentication code %d", authresponse->authcode);
+    free(res);
+    return updateFailed;
+ 
+denied_by_default:
+    free(res);
+    client->remain_time = 0;
+    authresponse->authcode = AUTH_DENIED;
+    debug(LOG_WARNING, "Auth server did not return expected authentication code, Denied client.");
+    updateFailed = 2;
+    return updateFailed;
+}
+#else
 
 /** Initiates a transaction with the auth server, either to authenticate or to
  * update the traffic counters at the server
@@ -65,7 +181,8 @@
 */
 t_authcode
 auth_server_request(t_authresponse * authresponse, const char *request_type, const char *ip, const char *mac,
-                    const char *token, unsigned long long int incoming, unsigned long long int outgoing, unsigned long long int incoming_delta, unsigned long long int outgoing_delta)
+                    const char *token, unsigned long long int incoming, unsigned long long int outgoing,
+                    unsigned long long int incoming_delta, unsigned long long int outgoing_delta)
 {
     s_config *config = config_get_config();
     int sockfd;
@@ -145,16 +262,26 @@ auth_server_request(t_authresponse * authresponse, const char *request_type, con
     free(res);
     return (AUTH_ERROR);
 }
+#endif
+
 
 /* Tries really hard to connect to an auth server. Returns a file descriptor, -1 on error
  */
 int
+#if OK_PATCH
+connect_auth_server(const t_ssid_config * ssid)
+#else
 connect_auth_server()
+#endif
 {
     int sockfd;
 
     LOCK_CONFIG();
+#if OK_PATCH
+    sockfd = _connect_auth_server(0, ssid);
+#else
     sockfd = _connect_auth_server(0);
+#endif
     UNLOCK_CONFIG();
 
     if (sockfd == -1) {
@@ -172,7 +299,11 @@ connect_auth_server()
  @param level recursion level indicator must be 0 when not called by _connect_auth_server()
  */
 int
+#if OK_PATCH
+_connect_auth_server(int level, const t_ssid_config * ssid)
+#else
 _connect_auth_server(int level)
+#endif
 {
     s_config *config = config_get_config();
     t_auth_serv *auth_server = NULL;
@@ -184,18 +315,27 @@ _connect_auth_server(int level)
     struct sockaddr_in their_addr;
     int sockfd;
 
+#if OK_PATCH
+    if (NULL == ssid || NULL == ssid->auth_servers) {
+        return -1;
+    }
+#else
     /* If there are no auth servers, error out, from scan-build warning. */
     if (NULL == config->auth_servers) {
         return (-1);
     }
-
+#endif
     /* XXX level starts out at 0 and gets incremented by every iterations. */
     level++;
 
     /*
      * Let's calculate the number of servers we have
      */
+#if OK_PATCH
+    for (auth_server = ssid->auth_servers; auth_server; auth_server = auth_server->next) {
+#else
     for (auth_server = config->auth_servers; auth_server; auth_server = auth_server->next) {
+#endif
         num_servers++;
     }
     debug(LOG_DEBUG, "Level %d: Calculated %d auth servers in list", level, num_servers);
@@ -212,7 +352,11 @@ _connect_auth_server(int level)
     /*
      * Let's resolve the hostname of the top server to an IP address
      */
+#if OK_PATCH
+    auth_server = ssid->auth_servers;
+#else
     auth_server = config->auth_servers;
+#endif
     hostname = auth_server->authserv_hostname;
     debug(LOG_DEBUG, "Level %d: Resolving auth server [%s]", level, hostname);
     h_addr = wd_gethostbyname(hostname);
@@ -252,7 +396,11 @@ _connect_auth_server(int level)
                 auth_server->last_ip = NULL;
             }
             mark_auth_server_bad(auth_server);
+#if OK_PATCH
+            return _connect_auth_server(level, ssid);
+#else
             return _connect_auth_server(level);
+#endif
         } else {
             /*
              * No
@@ -284,8 +432,13 @@ _connect_auth_server(int level)
             auth_server->last_ip = ip;
 
             /* Update firewall rules */
+#if OK_PATCH
+            fw_clear_authservers(ssid);
+            fw_set_authservers(ssid);
+#else
             fw_clear_authservers();
             fw_set_authservers();
+#endif
         } else {
             /*
              * IP is the same as last time
@@ -333,7 +486,11 @@ _connect_auth_server(int level)
                   level, hostname, ntohs(port), strerror(errno));
             close(sockfd);
             mark_auth_server_bad(auth_server);
+#if OK_PATCH
+            return _connect_auth_server(level, ssid); /* Yay recursion! */
+#else
             return _connect_auth_server(level); /* Yay recursion! */
+#endif
         } else {
             /*
              * We have successfully connected
@@ -342,4 +499,5 @@ _connect_auth_server(int level)
             return sockfd;
         }
     }
+
 }
