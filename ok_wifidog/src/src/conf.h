@@ -167,6 +167,7 @@ typedef struct _popular_server_t {
 #if OK_PATCH
 
 struct _s_ssid_config;
+struct _s_bridge_conf;
 
 typedef struct _s_ath_if_list
 {
@@ -174,15 +175,26 @@ typedef struct _s_ath_if_list
     char * bssid;
 
     struct _s_ssid_config * ssid;
+    struct _s_bridge_conf * brx;
 
     struct _s_ath_if_list * next;
 } t_ath_if_list;
+
+#define OKOS_MAX_BRIDGE_IF_NUM 32
+typedef struct _s_bridge_conf
+{
+    char * br_name;
+    t_ath_if_list * ifx[OKOS_MAX_BRIDGE_IF_NUM];
+
+    struct _s_bridge_conf * next;
+} t_bridge_conf;
 
 typedef struct _s_ssid_config
 {
     unsigned int sn;
     char * ssid;
     char * br_name;
+    t_bridge_conf * brx;
     t_ath_if_list * if_list;
 
     char * scheme_name;
@@ -247,6 +259,7 @@ typedef struct {
     char * device_id;
     char * domain_name;
     t_ssid_config * ssid_conf;
+    t_bridge_conf * br_conf;
 
 #endif /* OK_PATCH */
 } s_config;
@@ -332,6 +345,8 @@ t_ssid_config * okos_conf_get_ssid_by_name(const char *);
 t_ath_if_list * okos_conf_get_ifx_by_name(const char *);
 
 struct _t_client * okos_fill_client_info(struct _t_client *);
+struct _t_client * okos_fill_client_info_by_stainfo(struct _t_client *client);
+struct _t_client * okos_fill_client_info_by_fdb(struct _t_client *client);
 
 
 #define okos_conf_get_ssid_by_client(client) okos_conf_get_ssid_by_name(okos_client_get_ssid(client))

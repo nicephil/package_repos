@@ -1125,9 +1125,153 @@ mark_auth_server_bad(t_auth_serv * bad_server)
 #if OK_PATCH
 
 
+t_client * okos_fill_client_info_by_fdb(t_client *client)
+{
+    debug(LOG_INFO, "Fill the client info from config by checking fdb.");
+
+    t_client *whatIfound = NULL;
+    debug(LOG_DEBUG, "Obtain data structure of bridge in configuration.");
+    t_bridge_conf *br = NULL;
+    okos_list_for_each(br, config.br_conf) {
+        if (0 == strcmp(br->br_name, client->brX)) {
+            debug(LOG_DEBUG, "Got bridge (%s) for client(%s)[%s]", client->brX, client->ip, client->mac);
+            break;
+        }
+    }
+    if (NULL == br) {
+        debug(LOG_ERR, "can not find out the bridge (%s) for client(%s)[%s]", client->brX, client->ip, client->mac);
+        return whatIfound;
+    }
+
+    char line[256];
+    int port;
+    char mac[18];
+    char *command = NULL;
+    debug(LOG_DEBUG, "Query iface info throug brctl");
+    safe_asprintf(&command, "brctl showmacs %s", client->brX);
+    FILE *arp = popen(command, "r");
+    if (arp) {
+        while (!feof(arp) && '\n' != fgetc(arp)) ;
+
+        while (fgets(line, sizeof(line), arp)) {
+            debug(LOG_DEBUG, "%s", line);
+            if (2 == sscanf(line, "%d %17[A-Fa-f0-9:] %*s %*s", &port, mac)) {
+                debug(LOG_DEBUG, "{port = %d; mac = %s}", port, mac);
+                if (0 == strcasecmp(mac, client->mac)) {
+                    if (port <= 0 || port > OKOS_MAX_BRIDGE_IF_NUM) {
+                        continue;
+                    }
+                    client->ifx = br->ifx[--port];
+                    client->ssid_conf = client->ifx->ssid;
+                    client->if_name = safe_strdup(client->ifx->if_name);
+                    client->ssid = safe_strdup(client->ssid_conf->ssid);
+                    client->scheme = safe_strdup(client->ssid_conf->scheme_name);
+                    client->token = safe_strdup(OKOS_AUTH_FAKE_TOKEN);
+                    whatIfound = client;
+
+                    debug(LOG_DEBUG, "client {%s, %s} reported from iface (%s) on ssid (%s) with scheme:%s", client->ip, client->mac, client->if_name, client->ssid, client->scheme);
+                    break;
+                }
+            }
+        }
+        if (NULL == whatIfound) {
+            debug(LOG_ERR, "can not find out the basic information for client(%s)[%s] in bridge{%s}", client->ip, client->mac, client->brX);
+        }
+
+        pclose(arp);
+    } else {
+        debug(LOG_ERR, "Call `brctl showmacs %s` failed.", client->brX);
+    }
+    free(command);
+    return whatIfound;
+}
+
+#define okos_cleanup_record_buf(element) \
+    if (element) {\
+        free(element); \
+        element = NULL; \
+    }
+t_client * okos_fill_client_info_by_stainfo(t_client *client)
+{
+    char *filename = "/tmp/stationinfo/stationinfo";
+    debug(LOG_INFO, "Fill the client info by checking %s.", filename);
+
+    system("/lib/getstainfo.sh");
+
+    t_client *whatIfound = NULL;
+    FILE *stainfo = fopen(filename, "r");
+    if (NULL == stainfo) {
+        debug(LOG_ERR, "Couldn't open %s", filename);
+        return whatIfound;
+    }
+
+    //while(!feof(stainfo) && '\n' != fgetc(proc));
+
+#define MAX_LINE 256
+#define OPTION_NUM 12
+#define findStartLineOfRecord(line, config, client) ((2 == sscanf(line, "%s %s", config, client))\
+        && (0 == strcmp(config, "config")) && (0 == strcmp(client, "client")))
+#define getAnOption(line, option, key, value) ((2 <= sscanf(line, " %s %s %s", option, key, value)) \
+        && (0 == strcmp(option, "option")) )
+    char line[MAX_LINE];
+    int line_num;
+    char config[8];
+    char object[8];
+    char option[8];
+    char key[128];
+    char value[128];
+    char *options[OPTION_NUM] = { NULL };
+    while (!feof(stainfo) && fgets(line, sizeof(line), stainfo)) {
+        if (! findStartLineOfRecord(line, config, object) ) {
+            debug(LOG_DEBUG, "It (%s) supposed to be a start line of a record. keep searching.", line);
+            continue;
+        }
+        debug(LOG_DEBUG, "Found a Record. {%s, %s}", config, object);
+        for (line_num = 0; !feof(stainfo) && line_num < OPTION_NUM && fgets(line, MAX_LINE, stainfo);
+            line_num++) {
+            if (!getAnOption(line, option, key, value)) {
+                debug(LOG_DEBUG, "it (%s) supposed to be an option.", line);
+                break;
+            }
+            debug(LOG_DEBUG, "{key = %s, value = %s}", key, value);
+            options[line_num] = safe_strdup(value);
+        }
+        if (OPTION_NUM != line_num) {
+            debug(LOG_DEBUG, "Record is uncompleted. ");
+        } else {
+            if (0 == strcmp(client->ip, options[5]) && 0 == strcmp(client->mac, options[1])) {
+                client->if_name = options[0];
+                options[0] = NULL;
+                client->ifx = okos_conf_get_ifx_by_name(client->if_name);
+                client->ssid_conf = client->ifx->ssid;
+                client->brX = safe_strdup(client->ifx->brx->br_name);
+                client->scheme = safe_strdup(client->ssid_conf->scheme_name);
+                client->ssid = safe_strdup(client->ssid_conf->ssid);
+                client->token = safe_strdup(OKOS_AUTH_FAKE_TOKEN);
+                whatIfound = client;
+                debug(LOG_DEBUG, "found record of client {%s, %s}. iface name:%s, ssid:%s, scheme:%s, bridge:%s", client->ip, client->mac, client->if_name, client->ssid, client->scheme, client->brX);
+
+                break;
+            } else {
+                debug(LOG_DEBUG, "Record unmatched.");
+            }
+        }
+        for (line_num = 0; line_num < OPTION_NUM; line_num++) {
+            okos_cleanup_record_buf(options[line_num]);
+        }
+    }
+    fclose(stainfo);
+    for (line_num = 0; line_num < OPTION_NUM; line_num++) {
+        okos_cleanup_record_buf(options[line_num]);
+    }
+
+    return whatIfound;
+}
+
 t_client * okos_fill_client_info(t_client *client)
 {
-    debug(LOG_INFO, "Fill the client info from config..");
+    debug(LOG_INFO, "Fill the client info from config by hand.");
+    
     t_ssid_config *ssid;
     okos_list_for_each(ssid, config.ssid_conf) {
         if (0 == strcmp(client->brX, ssid->br_name)) {
@@ -1137,14 +1281,13 @@ t_client * okos_fill_client_info(t_client *client)
             client->ssid = safe_strdup(client->ssid_conf->ssid);
             client->scheme = safe_strdup(client->ssid_conf->scheme_name);
             
-            /* Fake the token to cheat wifidog */
+            // Fake the token to cheat wifidog
             client->token = safe_strdup(OKOS_AUTH_FAKE_TOKEN);
 
             debug(LOG_DEBUG, "client (%s)[%s] located in bridge {%s}, ssid:%s, scheme:%s, if name is:%s, bssid=%s", client->ip, client->mac, client->brX, client->ssid, client->scheme, client->if_name, client->ifx->bssid);
             return client;
         }
     }
-
     debug(LOG_ERR, "can not find out the basic information for client(%s)[%s] in bridge{%s}", client->ip, client->mac, client->brX);
     return NULL;
 }
@@ -1172,28 +1315,52 @@ config_simulate(void)
     okos_conf_set_str(my_config, gw_id, my_config->device_id);
 
     t_ssid_config *ssid;
+    t_auth_serv *authsvrs;
+    t_trusted_mac *trusted_mac;
+    t_firewall_ruleset *dn_white_list;
+    t_firewall_rule *dns;
+    t_firewall_ruleset *ip_set;
+    t_firewall_rule * ipx;
+    t_ath_if_list *ifs;
+    t_bridge_conf *brX;
+
+    brX = okos_conf_append_list_member(my_config->br_conf);
+    okos_conf_set_str(brX, br_name, "br-lan1");
+
+    /* 1st ssid */
     ssid = okos_conf_append_list_member(my_config->ssid_conf);
+    ssid->brx = brX;
+    ifs = okos_conf_append_list_member(ssid->if_list);
+    ifs->ssid = ssid;
+    ifs->brx = brX;
+    brX->ifx[0] = ifs;
+    okos_conf_set_str(ifs, if_name, "ath00");
+    okos_conf_set_str(ifs, bssid, "00:55:AA:E7:38:29");
+    ifs = okos_conf_append_list_member(ifs);
+    ifs->ssid = ssid;
+    ifs->brx = brX;
+    brX->ifx[2] = ifs;
+    okos_conf_set_str(ifs, if_name, "ath10");
+    okos_conf_set_str(ifs, bssid, "00:55:AA:E7:38:29");
+
+
     okos_conf_set_int(ssid, sn, 1);
     okos_conf_set_str(ssid, ssid, "ok_1st");
-    okos_conf_set_str(ssid, br_name, "br-lan");
+    okos_conf_set_str(ssid, br_name, "br-lan1");
     okos_conf_set_str(ssid, scheme_name, "1");
 
-    t_auth_serv *authsvrs;
     authsvrs = okos_conf_append_list_member(ssid->auth_servers);
     config_init_default_auth_server(authsvrs);
     okos_conf_set_str(authsvrs, authserv_hostname, "60.205.207.193");
     okos_conf_set_str(authsvrs, authserv_path, "/auth/device/");
 
-    t_trusted_mac *trusted_mac;
     trusted_mac = okos_conf_append_list_member(ssid->mac_white_list);
     okos_conf_set_str(trusted_mac, mac, "00:61:71:83:25:7B"); 
     trusted_mac = okos_conf_append_list_member(trusted_mac);
     okos_conf_set_str(trusted_mac, mac, "f4:0f:24:26:b1:59"); 
 
-    t_firewall_ruleset *dn_white_list;
     dn_white_list = okos_conf_append_list_member(ssid->dn_white_list);
     okos_conf_set_str(dn_white_list, name, "dn white list");
-    t_firewall_rule *dns;
     dns = okos_conf_append_list_member(dn_white_list->rules);
     okos_conf_set_str(dns, mask, "dangdang.com");
     okos_conf_set_int(dns, target, TARGET_ACCEPT);
@@ -1203,10 +1370,8 @@ config_simulate(void)
     okos_conf_set_str(dns, protocol, "tcp");
     okos_conf_set_int(dns, target, TARGET_ACCEPT);
 
-    t_firewall_ruleset *ip_set;
     ip_set = okos_conf_append_list_member(ssid->ip_white_list);
     okos_conf_set_str(ip_set, name, "ip white list");
-    t_firewall_rule * ipx;
     ipx = okos_conf_append_list_member(ip_set->rules);
     okos_conf_set_str(ipx, mask, "192.168.0.1");
     okos_conf_set_int(ipx, target, TARGET_ACCEPT);
@@ -1214,13 +1379,98 @@ config_simulate(void)
     okos_conf_set_str(ipx, mask, "192.168.100.1");
     okos_conf_set_int(ipx, target, TARGET_ACCEPT);
 
-    t_ath_if_list *ifs;
+
+    /* second ssid */
+    ssid = okos_conf_append_list_member(my_config->ssid_conf);
+    ssid->brx = brX;
     ifs = okos_conf_append_list_member(ssid->if_list);
-    okos_conf_set_str(ifs, if_name, "ath0");
+    ifs->ssid = ssid;
+    ifs->brx = brX;
+    brX->ifx[1] = ifs;
+    okos_conf_set_str(ifs, if_name, "ath01");
     okos_conf_set_str(ifs, bssid, "00:55:AA:E7:38:29");
     ifs = okos_conf_append_list_member(ifs);
-    okos_conf_set_str(ifs, if_name, "ath1");
+    ifs->ssid = ssid;
+    ifs->brx = brX;
+    brX->ifx[3] = ifs;
+    okos_conf_set_str(ifs, if_name, "ath11");
     okos_conf_set_str(ifs, bssid, "00:55:AA:E7:38:29");
+
+    okos_conf_set_int(ssid, sn, 2);
+    okos_conf_set_str(ssid, ssid, "ok_2nd");
+    okos_conf_set_str(ssid, br_name, "br-lan1");
+    okos_conf_set_str(ssid, scheme_name, "1");
+
+    authsvrs = okos_conf_append_list_member(ssid->auth_servers);
+    config_init_default_auth_server(authsvrs);
+    okos_conf_set_str(authsvrs, authserv_hostname, "60.205.207.193");
+    okos_conf_set_str(authsvrs, authserv_path, "/auth/device/");
+
+    trusted_mac = okos_conf_append_list_member(ssid->mac_white_list);
+    okos_conf_set_str(trusted_mac, mac, "00:61:71:83:25:7B"); 
+    trusted_mac = okos_conf_append_list_member(trusted_mac);
+    okos_conf_set_str(trusted_mac, mac, "f4:0f:24:26:b1:59"); 
+
+    dn_white_list = okos_conf_append_list_member(ssid->dn_white_list);
+    okos_conf_set_str(dn_white_list, name, "dn white list");
+    dns = okos_conf_append_list_member(dn_white_list->rules);
+    okos_conf_set_str(dns, mask, "oakridge.io");
+    okos_conf_set_int(dns, target, TARGET_ACCEPT);
+    dns = okos_conf_append_list_member(dn_white_list->rules);
+    okos_conf_set_str(dns, mask, "apple.com.cn");
+    okos_conf_set_int(dns, target, TARGET_ACCEPT);
+    dns = okos_conf_append_list_member(dn_white_list->rules);
+    okos_conf_set_str(dns, mask, "apple.com");
+    okos_conf_set_int(dns, target, TARGET_ACCEPT);
+
+    ip_set = okos_conf_append_list_member(ssid->ip_white_list);
+    okos_conf_set_str(ip_set, name, "ip white list");
+    ipx = okos_conf_append_list_member(ip_set->rules);
+    okos_conf_set_str(ipx, mask, "192.168.0.1");
+    okos_conf_set_int(ipx, target, TARGET_ACCEPT);
+    ipx = okos_conf_append_list_member(ip_set->rules);
+    okos_conf_set_str(ipx, mask, "192.168.100.1");
+    okos_conf_set_int(ipx, target, TARGET_ACCEPT);
+
+    
+    /* Third ssid */
+    ssid = okos_conf_append_list_member(my_config->ssid_conf);
+    ssid->brx = brX;
+    ifs = okos_conf_append_list_member(ssid->if_list);
+    ifs->ssid = ssid;
+    ifs->brx = brX;
+    brX->ifx[4] = ifs;
+    okos_conf_set_str(ifs, if_name, "ath12");
+    okos_conf_set_str(ifs, bssid, "00:55:AA:E7:38:29");
+
+    okos_conf_set_int(ssid, sn, 3);
+    okos_conf_set_str(ssid, ssid, "ok_3rd");
+    okos_conf_set_str(ssid, br_name, "br-lan1");
+    okos_conf_set_str(ssid, scheme_name, "1");
+
+    authsvrs = okos_conf_append_list_member(ssid->auth_servers);
+    config_init_default_auth_server(authsvrs);
+    okos_conf_set_str(authsvrs, authserv_hostname, "60.205.207.193");
+    okos_conf_set_str(authsvrs, authserv_path, "/auth/device/");
+
+    trusted_mac = okos_conf_append_list_member(ssid->mac_white_list);
+    okos_conf_set_str(trusted_mac, mac, "f4:0f:24:26:b1:59"); 
+
+    dn_white_list = okos_conf_append_list_member(ssid->dn_white_list);
+    okos_conf_set_str(dn_white_list, name, "dn white list");
+    dns = okos_conf_append_list_member(dn_white_list->rules);
+    okos_conf_set_str(dns, mask, "ctrip.com");
+    okos_conf_set_int(dns, target, TARGET_ACCEPT);
+    dns = okos_conf_append_list_member(dn_white_list->rules);
+    okos_conf_set_str(dns, mask, "dianping.com");
+    okos_conf_set_int(dns, target, TARGET_ACCEPT);
+
+    ip_set = okos_conf_append_list_member(ssid->ip_white_list);
+    okos_conf_set_str(ip_set, name, "ip white list");
+    ipx = okos_conf_append_list_member(ip_set->rules);
+    okos_conf_set_str(ipx, mask, "192.168.0.1");
+    okos_conf_set_int(ipx, target, TARGET_ACCEPT);
+
 }
 
 
