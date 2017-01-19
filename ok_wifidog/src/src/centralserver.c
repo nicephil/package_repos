@@ -130,6 +130,7 @@ auth_server_request(t_authresponse *authresponse, t_client *client)
     res = http_get(sockfd, buf);
 #endif
 
+    authresponse->authcode = AUTH_ALLOWED;
     int updateFailed = 0;
     if (NULL == res) {
         debug(LOG_ERR, "There was a problem talking to the auth server!");
@@ -149,11 +150,8 @@ auth_server_request(t_authresponse *authresponse, t_client *client)
     int parseFailed = okos_http_parse_info(parameterAuth, client);
     if (parseFailed)
         goto denied_by_default;
-
     if (0 == client->remain_time) {
         authresponse->authcode = AUTH_DENIED;
-    } else {
-        authresponse->authcode = AUTH_ALLOWED;
     }
     debug(LOG_INFO, "Auth server returned authentication code %d", authresponse->authcode);
     free(res);
