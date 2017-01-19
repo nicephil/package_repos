@@ -122,7 +122,7 @@ okos_client_get_new_client(const char * ip)
         return NULL;
     } else {
         client->ip = safe_strdup(ip);
-        if (NULL == okos_fill_client_info(client)) {
+        if (NULL == okos_fill_client_info_by_stainfo(client)) {
             debug(LOG_ERR, "cant fill the local informaiton for client ip(%s)", ip);
             client_free_node(client);
             return NULL;
@@ -383,6 +383,20 @@ client_list_find(const char *ip, const char *mac)
 
     return NULL;
 }
+
+#if OK_PATCH
+t_client *
+client_list_find_by_ssid(const char *mac, const char *ssid)
+{
+    t_client *pclient;
+    okos_list_for_each(pclient, firstclient) {
+        if (0 == strcmp(pclient->mac, mac) && 0 == strcmp(pclient->ssid, ssid))
+            return pclient;
+    }
+
+    return NULL;
+}
+#endif
 
 /**
  * Finds a  client by its IP, returns NULL if the client could not

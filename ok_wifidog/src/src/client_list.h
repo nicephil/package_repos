@@ -149,6 +149,8 @@ t_client * okos_client_list_flush(t_client * , const unsigned int);
 t_client * okos_client_get_new_client(const char * );
 
 char * okos_client_get_ssid(const t_client *);
+t_client *client_list_find_by_ssid(const char *, const char *);
+
 #endif
 
 #endif                          /* _CLIENT_LIST_H_ */
