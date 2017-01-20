@@ -48,7 +48,7 @@ __inline__ int CWWTPGetMaxRadios()
     int ret = -1;
 
 	if (!max_count) {
-		ret = if_get_radio_count(&max_count);
+		ret = wlan_get_radio_count(&max_count);
 		if (ret == -1) {
 		    CWDebugLog_E("Failed to get WLAN RADIO informations");
 		    return 0;

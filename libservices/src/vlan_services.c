@@ -12,8 +12,8 @@ static int vlan_iterator_id(struct uci_package *p, void *arg)
 
     uci_foreach_element(&p->sections, e) {
         s = uci_to_section(e);
-        if (!strncmp(s->e.name, VLAN_BR_PREFIX, 6)) {
-            sscanf(s->e.name, VLAN_BR_PREFIX"%d", &id);
+        if (!strncmp(s->e.name, "lan", 3)) {
+            sscanf(s->e.name, "lan%d", &id);
             if (id > 0) {
                 idlist[num++] = id;
             }
@@ -49,12 +49,12 @@ int vlan_create(int vlanid, int endid)
         //network.lan1=interface
         //network.lan1.ifname='eth0.1'
         //network.lan1.type='bridge'
-        sprintf(buf, "network.lan%d", vlanid);
+        sprintf(buf, "lan%d", vlanid);
         cfg_add_section_with_name_type("network", buf, "interface");
         sprintf(tuple, "network.lan%d.ifname", vlanid);
         sprintf(buf, "eth0.%d", vlanid);
         cfg_set_option_value(tuple, buf);
-        sprintf(tuple, "network.lan%d.type");
+        sprintf(tuple, "network.lan%d.type", vlanid);
         cfg_set_option_value(tuple, "bridge");
         //network.vlan1=switch_vlan
         sprintf(buf, "vlan%d", vlanid);
@@ -66,8 +66,10 @@ int vlan_create(int vlanid, int endid)
         sprintf(tuple, "network.vlan%d.vlan", vlanid);
         cfg_set_option_value_int(tuple, vlanid);
         //network.vlan1.ports='0t 1'
-        sprintf(tuple, "network.vlan%d.ports", vlanid);
-        cfg_set_option_value(tuple, "0t 1");
+        if (vlanid == 1) {
+            sprintf(tuple, "network.vlan%d.ports", vlanid);
+            cfg_set_option_value(tuple, "0t 1");
+        }
 
         //set default value here
         //network.lan1.vlan_name
@@ -159,11 +161,19 @@ int vlan_set_type(const char *port_name, int type)
 int vlan_set_pvid(const char *port_name, int pvid, int type)
 {
     char tuple[128];
-    char buf[33];
-    //wireless.ath13.network='lan'
-    sprintf(tuple, "wireless.%s.network", port_name);
-    sprintf(buf, "lan%d", pvid);
-    cfg_set_option_value(tuple, buf);
+    char buf[128];
+    if (!strncmp(port_name, "ath", 3)) {
+        //wireless.ath13.network='lan'
+        sprintf(tuple, "wireless.%s.network", port_name);
+        sprintf(buf, "lan%d", pvid);
+        cfg_set_option_value(tuple, buf);
+    } else {
+        sprintf(tuple, "network.lan%d.ifname", pvid);
+        cfg_get_option_value(tuple, buf, sizeof(buf));
+        strcat(buf, " ");
+        strcat(buf, port_name);
+        cfg_set_option_value(tuple, buf);
+    }
 
     //sprintf(tuple, "vlan_port.VLAN%s.pvid", port_name);
     //cfg_set_option_value_int(tuple, pvid);
@@ -182,5 +192,111 @@ int vlan_undo_permit_all(const char * name)
 
 int vlan_permit(const char * name, int start, int end)
 {
+    return 0;
+}
+
+static int vlan_dialer_iterator_id(struct uci_package *p, void *arg)
+{
+    struct uci_element *e1, *e2;
+    int num = 0; 
+    int is_dialer = 0;
+    vlan_interface_info *idlist = (vlan_interface_info *)arg;
+
+    uci_foreach_element(&p->sections, e1) {
+        struct uci_section *s = uci_to_section(e1);
+        if(!sscanf(s->e.name, "lan%d", &(idlist->info[num].id))) {
+            continue;
+        }
+        is_dialer = 0;
+
+        uci_foreach_element(&s->options, e2) {
+            struct uci_option *o = uci_to_option(e2);
+            if (!strcmp(o->e.name, "proto")) {
+                is_dialer = 1;
+                if (!strcmp(o->v.string, "static")) {
+                    idlist->info[num].type = STATICED;
+                } else {
+                    idlist->info[num].type = DHCP;
+                    break;
+                }
+            } else if (!strcmp(o->e.name, "ipaddr")) {
+                strcpy(idlist->info[num].address, o->v.string);
+            } else if (!strcmp(o->e.name, "netmask")) {
+                strcpy(idlist->info[num].netmask, o->v.string);
+            }
+        }
+
+        if (is_dialer) {
+            num++;
+        }
+    }
+    idlist->count = num;
+
+    return 0;
+}
+
+
+int vlan_get_dialer_info(vlan_interface_info **info)
+{
+    *info = malloc(sizeof(vlan_interface_info));
+    if (*info == NULL) {
+        return -1;
+    }
+    
+    memset(*info, 0, sizeof(vlan_interface_info));
+    return cfg_visit_package(VLAN_CFG_PACKAGE, vlan_dialer_iterator_id, *info);
+}
+
+int vlan_get_ifname(int vlanid, char *ifname)
+{
+    sprintf(ifname, "lan%d", vlanid);
+    return 0;
+}
+
+int dialer_undo(const char *ifname, int type)
+{
+    char tuple[128];
+    char buf[33];
+
+    if (type == DHCP) {
+        //network.lan1.proto='dhcp'
+        sprintf(tuple, "network.%s.proto", ifname);
+        cfg_del_option(tuple);
+    } else if (type == STATICED) {
+        //network.lan1.proto='static'                                                 
+        //network.lan1.ipaddr='127.0.0.1'                                             
+        //network.lan1.netmask='255.0.0.0'                                            
+        sprintf(tuple, "network.%s.proto", ifname);
+        cfg_del_option(tuple);
+        sprintf(tuple, "network.%s.ipaddr", ifname);
+        cfg_del_option(tuple);
+        sprintf(tuple, "network.%s.netmask", ifname);
+        cfg_del_option(tuple);
+    }
+    return 0;
+}
+
+
+int dialer_set_dhcp(const char *ifname)
+{
+    char tuple[128];
+    sprintf(tuple, "network.%s.proto", ifname);
+    cfg_set_option_value(tuple, "dhcp");
+    return 0;
+}
+
+
+int dialer_static_set_ipv4(const char *ifname, const char *ip,
+        const char *netmask, const char *gateway)
+{
+    char tuple[128];
+    sprintf(tuple, "network.%s.proto", ifname);
+    cfg_set_option_value(tuple, "static");
+    sprintf(tuple, "network.%s.ipaddr", ifname);
+    cfg_set_option_value(tuple, ip);
+    sprintf(tuple, "network.%s.netmask", ifname);
+    cfg_set_option_value(tuple, netmask);
+    sprintf(tuple, "network.%s.gateway", ifname);
+    cfg_set_option_value(tuple, gateway);
     return 0;
 }

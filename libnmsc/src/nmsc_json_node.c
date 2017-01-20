@@ -1578,8 +1578,8 @@ static int dc_nat_vlan_reserved(struct vlan_showinfo *info)
 
 int dc_hdl_node_vlan_interface(struct json_object *obj)
 {
-    /* not supported */
 #if !OK_PATCH
+    /* not supported */
 #define DEFAULT_DHCPD_ENABLE    0   /* default disable */
     struct vlan_interface {
         int  id;
@@ -1664,24 +1664,8 @@ int dc_hdl_node_vlan_interface(struct json_object *obj)
         }
         
         CHECK_DEFAULT_INTEGER_CONFIG(vlan_interfaces.config[j].dhcpd_enable, DEFAULT_DHCPD_ENABLE);
-        /* fix bug 3193 */
-#if 0        
-        char ifName[SYS_INTF_NAME_SIZE];
-        if_form_name(0, vlan_interfaces.config[j].id, IF_PHYTYPE_VLAN,  ifName);
-        if (vlan_interfaces.config[j].dhcpd_enable) {
-            ret = dhcpd_enable_interface(ifName);
-        }
-        else {
-            ret = dhcpd_disable_interface(ifName);
-        }
-        if (ret && ret != CMP_ERR_COMMIT_FAIL && ret != CMP_ERR_WRONG_VALUE) {
-            nmsc_log("Set %s dhcpd %s failed for %d.", ifName, 
-               vlan_interfaces.config[j].dhcpd_enable ? "enable" : "disable" , ret);
-            return dc_error_code(dc_error_commit_failed, node, ret);
-        }
-#else
+
         nmsc_delay_op_new(nmsc_delay_op_dhcpd, &(vlan_interfaces.config[j]), sizeof(struct vlan_interface));
-#endif
     }
     vlan_list_all_free(&info);
 
@@ -1848,7 +1832,6 @@ int dc_hdl_node_dialer(struct json_object *obj)
 
 
 
-#if !OK_PATCH
     vlan_interface_info *info = NULL;
     if ((ret = vlan_get_dialer_info(&info)) != 0 || info == NULL) {
         nmsc_log("Get dialer failed for %d.", ret);
@@ -1862,58 +1845,33 @@ int dc_hdl_node_dialer(struct json_object *obj)
                 break;
             }
         }
+        /* existing vlan interface setting is not in config, undo it */
         if (j >= dialeres.num && info->info[i].type != NONE) {
-            /* does not config this vlan interface, we no ip address it? */
-            if(if_form_name(0, info->info[i].id, IF_PHYTYPE_VLAN,  interface_name) == 0){
-                if (nat_get_enable(interface_name)) {
-                    /* if nat enabled in this interface, do nothing */
-                    continue;
-                }
-                if (info->info[i].type == DHCP) {
-                    dialer_undo(interface_name, DIALER_TYPE_DHCP);
-                }
-                else if (info->info[i].type == PPPOE) {
-                    dialer_undo(interface_name, DIALER_TYPE_PPPOE);
-                }
-                else {
-                    dialer_undo(interface_name, DIALER_TYPE_STATIC);
-                }
+            vlan_get_ifname(info->info[i].id, interface_name);
+            if (info->info[i].type == DHCP) {
+                dialer_undo(interface_name, DIALER_TYPE_DHCP);
+            } else {
+                dialer_undo(interface_name, DIALER_TYPE_STATIC);
             }
         }
     }
 
+    /* go through config and setting it */
     for (j = 0; j < dialeres.num; j++) {
         ret = 0;
+        sscanf(dialeres.config[j].name, VLAN_INTERFACE_PREFIX"%d", &id);
+        vlan_get_ifname(id, interface_name);
         if (dialeres.config[j].dial_type == 0) { /* DHCP */
-            ret = dialer_set_dhcp(dialeres.config[j].name);
+            ret = dialer_set_dhcp(interface_name);
         }
         else if (dialeres.config[j].dial_type == 1) { /* STATIC */ 
-            ret = dialer_static_set_ipv4(dialeres.config[j].name, 
-                dialeres.config[j].sta_ip, dialeres.config[j].sta_netmask);
-            if (strlen(dialeres.config[j].gw) > 0) {
-                struct in_addr desip, nexthop;
-
-                route_delete_defroute(dialeres.config[j].name);
-                
-                inet_pton(AF_INET, dialeres.config[j].gw, &nexthop);
-                inet_pton(AF_INET, "0.0.0.0", &desip);
-                ret += route_add_wrap(desip, 0, nexthop, dialeres.config[j].name, 60);
-            }
-        }
-        else if (dialeres.config[j].dial_type == 2) { /* PPPoE */ 
-            #define DEFAULT_PPPOE_MTU   1492
-            CHECK_DEFAULT_INTEGER_CONFIG(dialeres.config[j].mtu, DEFAULT_PPPOE_MTU);
-
-            ret = dialer_set_pppoe(dialeres.config[j].name);
-            ret += dailer_set_pppoeinfo(dialeres.config[j].name, dialeres.config[j].pppoe_user,
-                dialeres.config[j].pppoe_pass, dialeres.config[j].mtu, 
-                dialeres.config[j].pppoe_servicesname, dialeres.config[j].pppoe_acname);
+            ret = dialer_static_set_ipv4(interface_name, 
+                dialeres.config[j].sta_ip, dialeres.config[j].sta_netmask, dialeres.config[i].gw);
         }
         else { /* NONE */
             /* try to undo dialer all */
             dialer_undo(dialeres.config[j].name, DIALER_TYPE_DHCP);
             dialer_undo(dialeres.config[j].name, DIALER_TYPE_STATIC);
-            dialer_undo(dialeres.config[j].name, DIALER_TYPE_PPPOE);
         }
         if (ret) {
             nmsc_log("Set the interface %s dialer type %d failed for %d.", 
@@ -1924,7 +1882,6 @@ int dc_hdl_node_dialer(struct json_object *obj)
     }
 
     free(info);
-#endif
     ret = 0;
     return ret;
 }
@@ -4967,6 +4924,7 @@ int dc_hdl_node_vlan_port(struct json_object *obj)
         }
         else {
             config->type = VLAN_PORT_TYPE_TRUNK;
+            continue;
         }
 
         if ((ret = vlan_set_type(config->name, config->type)) != 0) {
@@ -4982,6 +4940,7 @@ int dc_hdl_node_vlan_port(struct json_object *obj)
             ret = dc_error_code(dc_error_commit_failed, node, ret);
             goto ERROR_OUT;
         }
+        continue;
 
         if (!strcasecmp(config->pvlan, "all")) {
             ret = vlan_permit_all(config->name);
