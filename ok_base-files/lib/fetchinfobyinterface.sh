@@ -6,7 +6,7 @@ st="ServiceTemplate""${ath:4}"
 rd="${ath:3:1}"
 echo -e "\toption radioid "$rd
 
-bssid=`ifconfig ath12 | awk '$1 ~ /ath/{print $5;exit 0;}'`
+bssid=`ifconfig $ath | awk '$1 ~ /ath/{print $5;exit 0;}'`
 echo -e "\toption bssid "$bssid
 
 . /lib/functions.sh
