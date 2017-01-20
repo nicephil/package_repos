@@ -50,6 +50,12 @@
 #include "client_list.h"
 #include "okos_auth_param.h"
 
+
+
+#if OK_PATCH
+#include "services/wlan_services.h"
+#endif
+
 /** @internal
  * Holds the current configuration of the gateway */
 static s_config config;
@@ -1194,7 +1200,7 @@ t_client * okos_fill_client_info_by_fdb(t_client *client)
 t_client * okos_fill_client_info_by_stainfo(t_client *client)
 {
     char *filename = "/tmp/stationinfo/stationinfo";
-    debug(LOG_INFO, "Fill the client info by checking %s.", filename);
+    debug(LOG_DEBUG, "Fill the client info by checking %s.", filename);
 
     system("/lib/getstainfo.sh");
 
@@ -1293,7 +1299,7 @@ t_client * okos_fill_client_info(t_client *client)
 }
 
 void
-config_init_default_auth_server(t_auth_serv *svr)
+okos_config_init_default_auth_server(t_auth_serv *svr)
 {
     svr->authserv_use_ssl = DEFAULT_AUTHSERVSSLAVAILABLE;
     svr->authserv_login_script_path_fragment = safe_strdup(DEFAULT_AUTHSERVLOGINPATHFRAGMENT);
@@ -1305,13 +1311,25 @@ config_init_default_auth_server(t_auth_serv *svr)
     svr->authserv_ssl_port = DEFAULT_AUTHSERVSSLPORT;
 }
 
+
+void
+okos_config_read(void)
+{
+    wlan_radio_info rdcfg;
+    wlan_radio_get_all(&rdcfg);
+    debug(LOG_NOTICE, "Got %s radios configuration from uci.", rdcfg.num);
+}
+
+
 void
 config_simulate(void)
 {
+    okos_config_read();
+
     s_config *my_config = &config;
 
     okos_conf_set_str(my_config, device_id, "00:55:AA:E7:38:29");
-    okos_conf_set_str(my_config, domain_name, "D4E78543656449ABA9EC385D001BAB71");
+    okos_conf_set_str(my_config, domain_name, "76e0d05f7a6a4ae9a7d2b582c6ec74be");
     okos_conf_set_str(my_config, gw_id, my_config->device_id);
 
     t_ssid_config *ssid;
@@ -1345,13 +1363,13 @@ config_simulate(void)
 
 
     okos_conf_set_int(ssid, sn, 1);
-    okos_conf_set_str(ssid, ssid, "ok_1st");
+    okos_conf_set_str(ssid, ssid, "oakridge_test_1");
     okos_conf_set_str(ssid, br_name, "br-lan1");
     okos_conf_set_str(ssid, scheme_name, "1");
 
     authsvrs = okos_conf_append_list_member(ssid->auth_servers);
-    config_init_default_auth_server(authsvrs);
-    okos_conf_set_str(authsvrs, authserv_hostname, "60.205.207.193");
+    okos_config_init_default_auth_server(authsvrs);
+    okos_conf_set_str(authsvrs, authserv_hostname, "139.196.188.253");
     okos_conf_set_str(authsvrs, authserv_path, "/auth/device/");
 
     trusted_mac = okos_conf_append_list_member(ssid->mac_white_list);
@@ -1397,13 +1415,13 @@ config_simulate(void)
     okos_conf_set_str(ifs, bssid, "00:55:AA:E7:38:29");
 
     okos_conf_set_int(ssid, sn, 2);
-    okos_conf_set_str(ssid, ssid, "ok_2nd");
+    okos_conf_set_str(ssid, ssid, "oakridge_test_2");
     okos_conf_set_str(ssid, br_name, "br-lan1");
     okos_conf_set_str(ssid, scheme_name, "1");
 
     authsvrs = okos_conf_append_list_member(ssid->auth_servers);
-    config_init_default_auth_server(authsvrs);
-    okos_conf_set_str(authsvrs, authserv_hostname, "60.205.207.193");
+    okos_config_init_default_auth_server(authsvrs);
+    okos_conf_set_str(authsvrs, authserv_hostname, "139.196.188.253");
     okos_conf_set_str(authsvrs, authserv_path, "/auth/device/");
 
     trusted_mac = okos_conf_append_list_member(ssid->mac_white_list);
@@ -1444,13 +1462,13 @@ config_simulate(void)
     okos_conf_set_str(ifs, bssid, "00:55:AA:E7:38:29");
 
     okos_conf_set_int(ssid, sn, 3);
-    okos_conf_set_str(ssid, ssid, "ok_3rd");
+    okos_conf_set_str(ssid, ssid, "oakridge_test_3");
     okos_conf_set_str(ssid, br_name, "br-lan1");
     okos_conf_set_str(ssid, scheme_name, "1");
 
     authsvrs = okos_conf_append_list_member(ssid->auth_servers);
-    config_init_default_auth_server(authsvrs);
-    okos_conf_set_str(authsvrs, authserv_hostname, "60.205.207.193");
+    okos_config_init_default_auth_server(authsvrs);
+    okos_conf_set_str(authsvrs, authserv_hostname, "139.196.188.253");
     okos_conf_set_str(authsvrs, authserv_path, "/auth/device/");
 
     trusted_mac = okos_conf_append_list_member(ssid->mac_white_list);

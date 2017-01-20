@@ -69,14 +69,14 @@ static int okos_http_check_whitelist(request *r, char *url)
 {
     // if host is not in whitelist, maybe not in conf or domain'IP changed, it will go to here.
     // e.g. www.example.com  
-    debug(LOG_INFO, "Check host %s is in global whitelist or not", r->request.host);
+    debug(LOG_DEBUG, "Check host %s is in global whitelist or not", r->request.host);
     t_firewall_rule *rule;
     //e.g. example.com is in whitelist
     // if request http://www.example.com/, it's not equal example.com.
     for (rule = get_ruleset("global"); NULL != rule; rule = rule->next) {
-        debug(LOG_INFO, "rule mask %s", rule->mask);
+        debug(LOG_DEBUG, "rule mask %s", rule->mask);
         if (NULL == strstr(r->request.host, rule->mask)) {
-            debug(LOG_INFO, "host %s is not in %s, continue", r->request.host, rule->mask);
+            debug(LOG_DEBUG, "host %s is not in %s, continue", r->request.host, rule->mask);
             continue;
         }
         int host_length = strlen(r->request.host);
@@ -88,7 +88,7 @@ static int okos_http_check_whitelist(request *r, char *url)
             strcat(prefix, ".");    // www.
             strcat(prefix, rule->mask);     // www.example.com
             if (strcasecmp(r->request.host, prefix) == 0) {
-                debug(LOG_INFO, "allow subdomain");
+                debug(LOG_DEBUG, "allow subdomain");
                 fw_allow_host(r->request.host, NULL);
                 http_send_redirect(r, url, "allow subdomain");
                 return 0;
@@ -97,7 +97,7 @@ static int okos_http_check_whitelist(request *r, char *url)
             /* e.g. "example.com" is in conf, so it had been parse to IP and
              * added into "iptables allow" when wifidog start.
              * but then its' A record(IP) changed, it will go to here.*/
-            debug(LOG_INFO, "allow domain again, because IP changed");
+            debug(LOG_DEBUG, "allow domain again, because IP changed");
             fw_allow_host(r->request.host, NULL);
             http_send_redirect(r, url, "allow domain");
             return 0;
@@ -109,14 +109,14 @@ static int okos_http_check_whitelist_by_ssid(request *r, char *url, t_ssid_confi
 {
     // if host is not in whitelist, maybe not in conf or domain'IP changed, it will go to here.
     // e.g. www.example.com  
-    debug(LOG_INFO, "Check host %s is in whitelist or not for ssid(%s).", r->request.host, ssid->ssid);
+    debug(LOG_DEBUG, "Check host %s is in whitelist or not for ssid(%s).", r->request.host, ssid->ssid);
     t_firewall_rule *rule;
     //e.g. example.com is in whitelist
     // if request http://www.example.com/, it's not equal example.com.
     okos_list_for_each(rule, ssid->dn_white_list->rules) {
-        debug(LOG_INFO, "rule mask %s", rule->mask);
+        debug(LOG_DEBUG, "rule mask %s", rule->mask);
         if (NULL == strstr(r->request.host, rule->mask)) {
-            debug(LOG_INFO, "host %s is not in %s, continue", r->request.host, rule->mask);
+            debug(LOG_DEBUG, "host %s is not in %s, continue", r->request.host, rule->mask);
             continue;
         }
         int host_length = strlen(r->request.host);
@@ -128,7 +128,7 @@ static int okos_http_check_whitelist_by_ssid(request *r, char *url, t_ssid_confi
             strcat(prefix, ".");    // www.
             strcat(prefix, rule->mask);     // www.example.com
             if (strcasecmp(r->request.host, prefix) == 0) {
-                debug(LOG_INFO, "allow subdomain");
+                debug(LOG_DEBUG, "allow subdomain");
                 fw_allow_host(r->request.host, ssid);
                 http_send_redirect(r, url, "allow subdomain");
                 return 0;
@@ -137,7 +137,7 @@ static int okos_http_check_whitelist_by_ssid(request *r, char *url, t_ssid_confi
             /* e.g. "example.com" is in conf, so it had been parse to IP and
              * added into "iptables allow" when wifidog start.
              * but then its' A record(IP) changed, it will go to here.*/
-            debug(LOG_INFO, "allow domain again, because IP changed");
+            debug(LOG_DEBUG, "allow domain again, because IP changed");
             fw_allow_host(r->request.host, ssid);
             http_send_redirect(r, url, "allow domain");
             return 0;
@@ -148,7 +148,7 @@ static int okos_http_check_whitelist_by_ssid(request *r, char *url, t_ssid_confi
 
 static void okos_try_to_add_client_into_list(t_client *p_client)
 {
-    debug(LOG_INFO, "Trying to add client {%s,%s,%s} into list.", p_client->ip, p_client->mac, p_client->ssid);
+    debug(LOG_DEBUG, "Trying to add client {%s,%s,%s} into list.", p_client->ip, p_client->mac, p_client->ssid);
 
     LOCK_CLIENT_LIST();
 
@@ -157,14 +157,14 @@ static void okos_try_to_add_client_into_list(t_client *p_client)
         debug(LOG_DEBUG, "New client for {%s,%s,%s}", p_client->ip, p_client->mac, p_client->ssid);
         client_list_insert_client(p_client);
     } else {
-        debug(LOG_WARNING, "Client for {%s,%s,%s} is already in the client list with remain time: %d", p_old->ip, p_old->mac, p_old->ssid, p_old->remain_time);
+        debug(LOG_WARNING, "Client{%s,%s,%s} is already in the list with remain time: %d", p_old->ip, p_old->mac, p_old->ssid, p_old->remain_time);
         okos_client_list_flush(p_old, p_client->remain_time);
         client_free_node(p_client);
         p_client = p_old;
     }
 
     /* Logged in successfully as a regular account */
-    debug(LOG_INFO, "Got ALLOWED from auth server for client {%s,%s,%s} - "
+    debug(LOG_DEBUG, "Got ALLOWED from auth server for client {%s,%s,%s} - "
             "adding to firewall and redirecting them to portal", p_client->ip, p_client->mac, p_client->ssid);
     fw_allow(p_client, FW_MARK_KNOWN);
 
@@ -174,7 +174,7 @@ static void okos_try_to_add_client_into_list(t_client *p_client)
 
 static t_client * okos_query_auth_server(t_client *client)
 {
-    debug(LOG_INFO, "Querying auth server...");
+    debug(LOG_DEBUG, "Querying auth server...");
     
     t_authresponse auth_code;
     int updateFailed = 1;
@@ -196,15 +196,17 @@ static t_client * okos_query_auth_server(t_client *client)
             client = old;
         }
 
-        debug(LOG_INFO, "Got ALLOWED from auth server from %s at %s - "
+        debug(LOG_DEBUG, "Got ALLOWED from auth server from %s at %s - "
               "adding to firewall and redirecting them to portal", client->ip, client->mac);
         fw_allow(client, FW_MARK_KNOWN);
 
         UNLOCK_CLIENT_LIST();
         served_this_session++;*/
 
+        debug(LOG_DEBUG, "Auth Server recoganize {%s,%s,%s} Let it go.", client->ip, client->mac, client->ssid);
         return NULL;
     }
+    debug(LOG_DEBUG, "Auth Server won't let {%s,%s,%s} go.", client->ip, client->mac, client->ssid);
     return client;
 }
 
@@ -212,7 +214,7 @@ static t_client * okos_query_auth_server(t_client *client)
 void
 http_callback_404(httpd *webserver, request *r, int error_code)
 {
-    debug(LOG_INFO, "Calling 404() for %s", r->clientAddr);
+    debug(LOG_DEBUG, "Calling 404() for %s", r->clientAddr);
     char tmp_url[MAX_BUF];
     memset(tmp_url, 0, sizeof(tmp_url));
     /* 
@@ -231,9 +233,9 @@ http_callback_404(httpd *webserver, request *r, int error_code)
      * Then, redirect him to the original web page.
      */
     debug(LOG_DEBUG, "build a new client data structure for 404.");
-    t_client * client = okos_client_get_new_client(r->clientAddr);
+    t_client *client = okos_client_get_new_client(r->clientAddr);
     if (NULL == client) {
-        debug(LOG_ERR, "Since we can't get local infor for client(%s), we need to apologize to our client.", r->clientAddr);
+        debug(LOG_ERR, "Failed to retrieve info for client(%s), so not putting in login request.", r->clientAddr);
         /* FIXME: we may need to port some error handler here. */
         return;
     }
@@ -242,11 +244,11 @@ http_callback_404(httpd *webserver, request *r, int error_code)
     if (NULL == okos_query_auth_server(client)) {
         http_send_redirect(r, tmp_url, "Allowed");
 
-        debug(LOG_DEBUG, "Auth process completed after roaming check, no more redirection needed.");
+        debug(LOG_INFO, "Client{%s,%s,%s} login already. Let him go.", client->ip, client->mac, client->ssid);
         return;
     }
 
-    debug(LOG_INFO, "Auth server won't like to authority the client(%s), client need to kickoff auth process from beginning.", r->clientAddr);
+    debug(LOG_INFO, "Client{%s,%s,%s} hasn't been authenticated before, need to kickoff auth process from beginning.", client->ip, client->mac, client->ssid);
     /* For new client, check his target host in the white list.
      */
     //t_ssid_config * ssid = okos_conf_get_ssid_by_client(client);
@@ -255,12 +257,12 @@ http_callback_404(httpd *webserver, request *r, int error_code)
     int canntMatchHostInWhiteList;
     canntMatchHostInWhiteList = okos_http_check_whitelist(r, tmp_url);
     if (0 == canntMatchHostInWhiteList) {
-        debug(LOG_ERR, "Match target in global WhiteList, redirect client to where s/he want, exit 404 process..");
+        debug(LOG_INFO, "Match target in global WhiteList, redirect client, exit 404 process..");
         return;
     }
     canntMatchHostInWhiteList = okos_http_check_whitelist_by_ssid(r, tmp_url, ssid);
     if (0 == canntMatchHostInWhiteList) {
-        debug(LOG_ERR, "Match target in WhiteList on ssid(%s), redirect client to where s/he want, exit 404 process..", ssid->ssid);
+        debug(LOG_INFO, "Match target in WhiteList on ssid(%s), redirect client, exit 404 process..", ssid->ssid);
         return;
     }
 
@@ -275,8 +277,8 @@ http_callback_404(httpd *webserver, request *r, int error_code)
               auth_server->authserv_login_script_path_fragment, info, url);
     free(info);
     
-    debug(LOG_INFO, "Captured %s requesting [%s] and re-directing them to login page",
-                     r->clientAddr, url);
+    debug(LOG_INFO, "Captured {%s,%s,%s} requesting [%s] and re-directing them to login page",
+                     client->ip, client->mac, client->ssid, url);
     free(url);
 
     http_send_redirect_to_auth(r, urlFragment, "Redirect to login page", auth_server);
@@ -490,9 +492,10 @@ http_send_redirect(request * r, const char *url, const char *text)
 
 void http_callback_auth(httpd *webserver, request *r)
 {
-    debug(LOG_INFO, "Calling http_callback_auth...");
+    debug(LOG_DEBUG, "Calling http_callback_auth...");
     httpVar *auth = httpdGetVariableByName(r, "auth");
 	if (NULL == auth) {
+        debug(LOG_WARNING, "Cant get parameter auth from server response for client(%s)", r->clientAddr);
         send_http_page(r, "Auth Server Error", "Invalid Auth Parameter");
         return;
     }
@@ -500,7 +503,7 @@ void http_callback_auth(httpd *webserver, request *r)
     debug(LOG_DEBUG, "build a new client data structure in auth confirm.");
     t_client *client = okos_client_get_new_client(r->clientAddr);
     if (NULL == client) {
-        debug(LOG_ERR, "Since we can't get local infor for client(%s),"
+        debug(LOG_WARNING, "Since we can't get local infor for client(%s),"
                 "we need to apologize to our client.", r->clientAddr);
         /* FIXME: we may need to port some error handler here. */
         return;
@@ -510,12 +513,13 @@ void http_callback_auth(httpd *webserver, request *r)
     int parseFailed = okos_http_parse_info(auth->value, client);
     if (parseFailed) {
         send_http_page(r, "Auth Server Error", "Invalid auth parameter");
-        debug(LOG_DEBUG, "We can't parse the auth parameter correctly."
+        debug(LOG_WARNING, "We can't parse the auth parameter correctly."
                 "code: %d", parseFailed);
         client_free_node(client);
         return;
     }
     
+    debug(LOG_INFO, "Client{%s,%s,%s} got authoriated by server.", client->ip, client->mac, client->ssid);
     okos_try_to_add_client_into_list(client);
     /*
     LOCK_CLIENT_LIST();
@@ -530,7 +534,7 @@ void http_callback_auth(httpd *webserver, request *r)
                 client->ip, client->mac, client->ssid, client->remain_time);
     }
 
-    debug(LOG_INFO, "Got ALLOWED from central server for {%s, %s, %s} "
+    debug(LOG_DEBUG, "Got ALLOWED from central server for {%s, %s, %s} "
             "adding to firewall and redirecting them to portal",
             client->ip, client->mac, client->ssid);
     fw_allow(client, FW_MARK_KNOWN);
@@ -557,6 +561,8 @@ void http_callback_auth(httpd *webserver, request *r)
         debug(LOG_DEBUG, "We just need to reply to client something.");
         send_http_page(r, "Life is short, play!", "my friend");
     }
+
+
 
     return;
 }

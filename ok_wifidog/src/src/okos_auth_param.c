@@ -96,7 +96,7 @@ static inline void okos_http_ins_str(const char *desc, unsigned char **pt)
 static unsigned char * okos_http_serial_auth_info(const t_client *client, int *len)
 {
 //    okos_http_simulate_client_info(client, &info);
-	debug(LOG_INFO, "serialize the local information into buffer.");
+	debug(LOG_DEBUG, "serialize the local information into buffer.");
 
     unsigned char * urltmp = safe_malloc(sizeof(t_http_auth_info));
     unsigned char * pt = urltmp;
@@ -156,7 +156,7 @@ static unsigned char * okos_http_hex2byte(const char *hex, int *len)
 
 static char * okos_http_byte2hex(const unsigned char *bytes, const int len)
 {
-	debug(LOG_INFO, "start to transfer the date to ascii.");
+	debug(LOG_DEBUG, "start to transfer the date to ascii.");
 
     char *hex = safe_malloc(len*2+1);
     char alph[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
@@ -171,7 +171,7 @@ static char * okos_http_byte2hex(const unsigned char *bytes, const int len)
 
 static inline void okos_http_encrypt_auth_info(unsigned char *hex, const int len)
 {
-	debug(LOG_INFO, "start to encrypt the auth information.");
+	debug(LOG_DEBUG, "start to encrypt the auth information.");
     int i;
     for (i = 0; i < len; i++) hex[i] ^= 0xDA;
 }
@@ -274,7 +274,7 @@ static int _okos_http_parse_info(const unsigned char *info, const int len, t_cli
 
 char * okos_http_insert_parameter(t_client *client)
 {
-	debug(LOG_INFO, "start to insert parameter to auth info..");
+	debug(LOG_DEBUG, "start to insert parameter to auth info..");
     int len = 0;
     unsigned char * urlBytes = okos_http_serial_auth_info(client, &len);
     okos_http_encrypt_auth_info(urlBytes, len);
@@ -286,7 +286,7 @@ char * okos_http_insert_parameter(t_client *client)
 
 int okos_http_parse_info(const char *auth_value, t_client *client)
 {
-	debug(LOG_INFO, "start to parse auth value.");
+	debug(LOG_DEBUG, "start to parse auth value.");
 	int len = 0;
     unsigned char *param = okos_http_hex2byte(auth_value, &len);
 	okos_http_encrypt_auth_info(param, len);

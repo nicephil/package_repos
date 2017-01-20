@@ -112,22 +112,24 @@ client_list_insert_client(t_client * client)
 t_client *
 okos_client_get_new_client(const char * ip)
 {
-    debug(LOG_INFO, "start to build a new client by ip(%s)", ip);
+    debug(LOG_DEBUG, "start to build a new client by ip(%s)", ip);
 
     t_client * client = client_get_new();
     int getMacBrXSuccess = arp_get_all(ip, &client->mac, &client->brX);
     if (0 != getMacBrXSuccess) {
-        debug(LOG_ERR, "Can't find out match entry in arp table for client ip(%s)", ip);
+        debug(LOG_WARNING, "Can't find out match entry in arp table for client ip(%s)", ip);
         client_free_node(client);
         return NULL;
     } else {
         client->ip = safe_strdup(ip);
         if (NULL == okos_fill_client_info_by_stainfo(client)) {
-            debug(LOG_ERR, "cant fill the local informaiton for client ip(%s)", ip);
+            debug(LOG_WARNING, "cant fill the local informaiton for client ip(%s)", ip);
             client_free_node(client);
             return NULL;
         } 
     }
+    debug(LOG_INFO, "Build a new client {ip=%s,mac=%s,if_name=%s,brX=%s,scheme=%s,ssid=%s,token=%s}", client->ip, client->mac, client->if_name, client->brX, client->scheme, client->ssid, client->token);
+
     return client;
 }
 
@@ -170,7 +172,7 @@ okos_client_list_flush(t_client * client, const unsigned int remain_time)
     client->remain_time = remain_time;
     client->last_flushed = time(NULL);
 
-    debug(LOG_INFO, "Flushed an client: IP: %s Token: %s Remain Time: %d", client->ip, client->token, remain_time);
+    debug(LOG_DEBUG, "Flushed an client{%s,%s,%s} Token: %s Remain Time: %d", client->ip, client->mac, client->ssid, client->token, remain_time);
     return client;
 }
 

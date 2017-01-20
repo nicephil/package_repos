@@ -92,7 +92,7 @@
 int
 auth_server_request(t_authresponse *authresponse, t_client *client)
 {
-    debug(LOG_INFO, "Calling auth_server_request()...");
+    debug(LOG_DEBUG, "Calling auth_server_request()...");
 
     char *info = okos_http_insert_parameter(client);
     //t_ssid_config * ssid = okos_conf_get_ssid_by_client(client);
@@ -153,7 +153,7 @@ auth_server_request(t_authresponse *authresponse, t_client *client)
     if (0 == client->remain_time) {
         authresponse->authcode = AUTH_DENIED;
     }
-    debug(LOG_INFO, "Auth server returned authentication code %d", authresponse->authcode);
+    debug(LOG_DEBUG, "Auth server returned authentication code %d", authresponse->authcode);
     free(res);
     return updateFailed;
  
@@ -424,7 +424,7 @@ _connect_auth_server(int level)
              * But the IP address is different from the last one we knew
              * Update it
              */
-            debug(LOG_DEBUG, "Level %d: Updating last_ip IP of server [%s] to [%s]", level, hostname, ip);
+            debug(LOG_INFO, "Level %d: Updating last_ip IP of server [%s] to [%s]", level, hostname, ip);
             if (auth_server->last_ip)
                 free(auth_server->last_ip);
             auth_server->last_ip = ip;

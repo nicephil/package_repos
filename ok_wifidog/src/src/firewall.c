@@ -249,9 +249,12 @@ arp_get(const char *req_ip)
 #if OK_PATCH
 int arp_get_all(const char * req_ip, char ** mac, char ** br_dev)
 {
+    debug(LOG_DEBUG, "I got ip(%s), I want mac and bridge name.", req_ip);
+
     s_config *config = config_get_config();
     FILE * proc;
     if (!(proc = fopen(config->arp_table_path, "r"))) {
+        debug(LOG_ERR, "I can't open ARP file %s", config->arp_table_path);
         return -1;
     }
     /* Skip first line */
@@ -272,8 +275,7 @@ int arp_get_all(const char * req_ip, char ** mac, char ** br_dev)
 
             *br_dev = safe_strdup(brX);
 
-            debug(LOG_INFO, "Got client [%s] from %s for ip %s",
-                         mac_addr, brX, ip);
+            debug(LOG_DEBUG, "Got client [%s] from %s for ip %s", mac_addr, brX, ip);
 
             fclose(proc);
             return 0;
@@ -281,6 +283,9 @@ int arp_get_all(const char * req_ip, char ** mac, char ** br_dev)
     }
 
     fclose(proc);
+
+    debug(LOG_WARNING, "Cant' find information for client (%s) in ARP file.", req_ip);
+
     return -1;
 }
 #endif
@@ -413,9 +418,9 @@ fw_sync_with_authserver(void)
         this_timer = p1->remain_time + p1->last_flushed;
         
         debug(LOG_INFO,
-              "Checking client %s for timeout:  Last flushed %ld (%ld seconds ago),"
+              "Checking client {%s,%s,%s} for timeout:  Last flushed %ld (%ld seconds ago),"
               "remain time %ld seconds, current time %ld, %ld seconds left.",
-              p1->ip, p1->last_flushed, current_time - p1->last_flushed,
+              p1->ip, p1->mac, p1->ssid, p1->last_flushed, current_time - p1->last_flushed,
               p1->remain_time, current_time, this_timer - current_time);
 
         LOCK_CLIENT_LIST();
@@ -423,8 +428,8 @@ fw_sync_with_authserver(void)
         if (NULL != original) { //Client is stll there.
             if (p1->remain_time == 0 || this_timer <= current_time) { //Client is timeout.
                 /* Timing out user */
-                debug(LOG_INFO, "%s - Inactive, removing client and denying in firewall",
-                                  p1->ip);
+                debug(LOG_INFO, "{%s,%s,%s} - Inactive, removing client and denying in firewall",
+                                  p1->ip, p1->mac, p1->ssid);
 
                 logout_client(original);
             } else { //Client should be updated.
@@ -438,7 +443,7 @@ fw_sync_with_authserver(void)
                 debug(LOG_DEBUG, "Client is stall active.");
             }
         } else { //client is gone already.
-            debug(LOG_NOTICE, "Client was already removed. Not logging out.");
+            debug(LOG_DEBUG, "Client{%s,%s,%s} was already removed. Not logging out.", p1->ip, p1->mac, p1->ssid);
         }
         UNLOCK_CLIENT_LIST();
 
