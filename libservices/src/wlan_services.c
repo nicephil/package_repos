@@ -6,8 +6,9 @@
 #include "services/cfg_services.h"
 #include "services/wlan_services.h"
 
-int if_get_radio_count (int *count)
+int wlan_get_radio_count (int *count)
 {
+#if 0
     struct uci_context *ctx = NULL;
     struct uci_package *p = NULL;
     struct uci_element *e = NULL;
@@ -42,6 +43,10 @@ _free:
         uci_free_context(ctx);
     }
     return ret;
+#else
+    *count = 2;
+    return 0;
+#endif
 }
 
 static int wlan_radio_list(struct uci_package *p, void *arg)
@@ -1213,38 +1218,38 @@ static int wlan_fetch_stid(struct uci_package *p, void *arg)
     struct uci_element *e1, *e2;
     struct uci_section *s;
     struct uci_option *o;
-    struct wlan_ssid_stid {
-        char ssid[33];
-        int stid;
-    };
-    struct wlan_ssid_stid *ssid_stid = (struct wlan_ssid_stid *)arg;
+    int stid = -1;
+    char *ssid = (char *)arg;
+    int found = 0;
 
     uci_foreach_element(&p->sections, e1) {
         s = uci_to_section(e1);
-        sscanf(s->e.name, "ServiceTemplate%d", &(ssid_stid->stid));
+        sscanf(s->e.name, "ServiceTemplate%d", &stid);
         uci_foreach_element(&s->options, e2) {
             o = uci_to_option(e2);
             if (!strcmp(o->e.name, "ssid")) {
-                if(!strcmp(o->v.string, ssid_stid->ssid)) {
-                    break;
+                if(!strcmp(o->v.string, ssid)) {
+                    found = 1;
+                    goto _out;
                 }
             }
         }
     }
 
-    return 0;
+_out:
+    if (found) {
+        return stid;
+    } else {
+        return -1;
+    }
 }
 
 int wlan_get_stid_by_ssid(char *ssid, int *stid)
 {
-    struct wlan_ssid_stid {
-        char ssid[33];
-        int stid;
-    };
-    struct wlan_ssid_stid ssid_stid;
-    strcpy(ssid_stid.ssid, ssid);
-    cfg_visit_package(WLAN_CFG_SERVICE_TEMPLATE_PACKAGE, wlan_fetch_stid, &ssid_stid);
-    *stid = ssid_stid.stid;
+    *stid = cfg_visit_package(WLAN_CFG_SERVICE_TEMPLATE_PACKAGE, wlan_fetch_stid, ssid);
+    if (*stid == -1) {
+        return -1;
+    }
 
     return 0;
 }

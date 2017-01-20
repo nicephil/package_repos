@@ -63,8 +63,8 @@ struct wlan_radio_config {
     unsigned int    bcast_ratelimit_cir;
     unsigned int    bcast_ratelimit_cbs;
     int             rssi_access_threshold;
-    unsigned int    debug_switch;    /* lczhang add for wlan driver radio debugging */
-    unsigned int    basic_rateset;      /* lczhang add for rateset */
+    unsigned int    debug_switch;    /* for wlan driver radio debugging */
+    unsigned int    basic_rateset;      /* add for rateset */
     unsigned int    supported_rateset;
     unsigned int    disabled_rateset;
     unsigned int    basic_mcs;
@@ -137,9 +137,9 @@ struct wlan_service_template {
     char beacon_ssid_hide;
     char    cipher;     // refer enum WLAN_CIPHER
     char    auth;       // refer enum WLAN_AUTH
-	char	m2u_enabled;	//added by lsz for m2u
+	char	m2u_enabled;	//for m2u
 	
-    /* Begin: lczhang add for rate limit */
+    /* Begin: add for rate limit */
     unsigned int dynamic_uplink_rate_limit;
     unsigned int dynamic_downlink_rate_limit;
     unsigned int static_uplink_rate_limit;
@@ -288,7 +288,7 @@ struct wlan_acl_stats {
 #define WIFI_CFG_PACKAGE "wireless"
 #define WIFI_CFG_SECTION_DEVICE "wifi-device"
 #define WIFI_CFG_OPTION_COUNTRY "country"
-extern int if_get_radio_count(int *count);
+extern int wlan_get_radio_count(int *count);
 
 #define WLAN_DEFAULT_COUNTRY_CODE "CN"
 extern int wlan_get_country(char *country);
@@ -311,6 +311,9 @@ extern int wlan_undo_service_template(int stid);
 
 
 #define WLAN_CFG_RADIO_PACKAGE   "wlan_radio"
+/*
+ * fetch all radio config from /etc/config/wlan_radio
+ */
 extern int wlan_radio_get_all(struct wlan_radio_info *rdcfg);
 
 

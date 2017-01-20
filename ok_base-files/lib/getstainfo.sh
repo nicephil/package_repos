@@ -1,7 +1,5 @@
 #!/bin/sh
 
-/lib/fresharplist.sh
-
 ath_all=`ifconfig | grep -E 'ath*' | awk '{print $1}'`
 
 

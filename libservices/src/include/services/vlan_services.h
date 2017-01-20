@@ -3,7 +3,7 @@
 
 #define VLAN_MAX_COUNT 32
 #define VLAN_CFG_PACKAGE "network"
-#define VLAN_BR_PREFIX "br-lan"
+#define VLAN_INTERFACE_PREFIX "vlan"
 #define VLAN_PORT_CFG_PACKAGE "vlan_port"
 
 enum VLAN_PORT_TYPE {
@@ -65,4 +65,27 @@ extern int vlan_permit_all(const char * name);
 extern int vlan_undo_permit_all(const char * name);
 extern int vlan_permit(const char * name, int start, int end);
 
+extern int vlan_get_ifname(int vlanid, char *ifname);
+extern int vlan_get_dialer_info(vlan_interface_info **info);
+
+
+/*
+ * Global dialer interface
+ */
+enum dialer_type {
+    DIALER_TYPE_STATIC = 0,
+    DIALER_TYPE_DHCP,
+#if 1
+    DIALER_TYPE_PPPOE,
+#endif
+    DIALER_TYPE_MAX
+};
+
+#define DIALER_TYPE_NONE        (-1U)
+
+
+extern int dialer_undo(const char *ifname, int type);
+extern int dialer_set_dhcp(const char *ifname);
+extern int dialer_static_set_ipv4(const char *ifname, const char *ip,
+        const char *netmask, const char *gateway);
 #endif /* __VLAN_SERVICES_H_ */

@@ -4,10 +4,10 @@
 
 /*
  * @brief go through whole config package
- * @param [in] package the package name. e.g. portalscheme
+ * @param [in] package the package name. e.g. portal
  * @param [in] visitor the callback function
  * @param [in] arg will pass to visitor callback function
- * @return 0 means success, otherwise means failure
+ * @return -1 means failure, otherwise return code from visitor
  */
 extern int cfg_visit_package(const char *package_tuple, 
         int (*visitor)(struct uci_package *p, void *arg),
@@ -15,28 +15,28 @@ extern int cfg_visit_package(const char *package_tuple,
 
 /*
  * @brief go through whole config package in specific path
- * @param [in] path the specific path
- * @param [in] package the package name. e.g. portalscheme
+ * @param [in] path the specific path e.g. /tmp/state
+ * @param [in] package the package name. e.g. portal
  * @param [in] visitor the callback function
  * @param [in] arg will pass to visitor callback function
- * @return 0 means success, otherwise means failure
+ * @return -1 means failure, otherwise return code from visitor
  */
 extern int cfg_visit_package_with_path(const char *path, const char *package_tuple, 
         int (*visitor)(struct uci_package *p, void *arg),
         void *arg);
 /*
  * @brief go through section
- * @param [in] section_tuple e.g. portalscheme.aa
+ * @param [in] section_tuple e.g. portal.aa
  * @param [in] visitor call back function
  * @param [in] arg will pass to call back function
- * @return 0 means success, otherwise means failure
+ * @return -1 means failure, otherwise return code from visitor
  */
 extern int cfg_visit_section(const char *section_tuple, 
         int (*visitor)(struct uci_section *p, void *arg),
         void *arg);
 
 /* @brief get the value according to whole option tuple
- * @param [in] option_tuple e.g. portalscheme.bb.url
+ * @param [in] option_tuple e.g. portal.bb.url
  * @param [out] value fetched value
  * @param [in] the length of value
  * @return 0 means success, otherwise means failure
@@ -46,7 +46,7 @@ extern int cfg_get_option_value(const char *option_tuple, char *value, int len);
 /*
  * @brief set the value according to whole option tuple, will create one option
  * if not found
- * @param [in] option_tuple e.g. portalscheme.bb.url
+ * @param [in] option_tuple e.g. portal.bb.url
  * @param [in] value set to option
  * @return 0 means success, otherwise means failure
  */
@@ -55,7 +55,7 @@ extern int cfg_set_option_value(const char *option_tuple, const char *value);
 /*
  * @brief set the int value according to whole option tuple, will create one option
  * if not found
- * @param [in] option_tuple e.g. portalschemem.bb.timeslot
+ * @param [in] option_tuple e.g. portal.bb.timeslot
  * @param [in] value set to option
  * @return 0 means success, otherwise means failure
  */
@@ -63,7 +63,7 @@ extern int cfg_set_option_value_int(const char *option_tuple, int value);
 
 /*
  * @brief add the list value according to option tuple
- * @param [in] option_tuple e.g. portalscheme.bb.ip='192.168.1.1/255.255.255.0'
+ * @param [in] option_tuple e.g. portal.bb.ip='192.168.1.1/255.255.255.0'
  * @param [in] the value of list
  * @return 0 means success, otherwise means failure
  */
@@ -71,21 +71,21 @@ extern int cfg_add_option_list_value(const char *option_tuple, char *list_value)
 
 /*
  * @brief delete the list value according to option tuple
- * @param [in] option_tuple e.g. portalscheme.bb.ip='192.168.1.1/255.255.255.0'
+ * @param [in] option_tuple e.g. portal.bb.ip='192.168.1.1/255.255.255.0'
  * @return 0 means success, otherwise means failure
  */
 extern int cfg_del_option_list_value(const char *option_tuple);
 
 /*
  * @brief delete the option according to option tuple
- * @param [in] option_tuple e.g. portalscheme.bb.url
+ * @param [in] option_tuple e.g. portal.bb.url
  * @return 0 means success, otherwise means failure
  */
 extern int cfg_del_option(const char *option_tuple);
 
 /*
  * @brief add the name of section
- * @param [in] package_tuple e.g. portalscheme 
+ * @param [in] package_tuple e.g. portal.aa
  * @param [in] section_type_name e.g. config aa aa
  * @return 0 means success, otherwise means failure
  */
@@ -102,10 +102,14 @@ extern int cfg_add_section_with_name_type(const char *package_tuple, const char 
 
 /*
  * @brief delete the section
- * @param [in] section_tuple e.g. portalscheme.aa=portalscheme
+ * @param [in] section_tuple e.g. portal.aa
  * @return 0 means success, otherwise means failure
  */
 extern int cfg_del_section(const char *section_tuple);
+
+
+
+
 
 extern void cfg_disable_version_notice(void);
 extern void cfg_enable_version_notice(void);

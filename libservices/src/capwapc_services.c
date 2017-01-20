@@ -136,22 +136,26 @@ int capwapc_undo_location(void)
 
 int capwapc_set_domain(const char *domain)
 {
+#if !OK_PATCH
     if (!strcmp(g_capwapc_config.domain, domain)) {
         return 0;
     }
 
     cfg_set_option_value(CAPWAPC_CFG_OPTION_DOMAIN_TUPLE);
+#endif
 
     return 0;
 }
 
 int capwapc_undo_domain(void)
 {
+#if !OK_PATCH
     if (!g_capwapc_config.domain[0]) {
         return 0;
     }
 
     cfg_del_option(CAPWAPC_CFG_OPTION_DOMAIN_TUPLE);
+#endif
 
     return 0;
 }
