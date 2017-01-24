@@ -6,17 +6,8 @@
 
 #include "services/capwapc_services.h"
 
-static int g_capwapc_init = 0;
-
-static int g_capwapc_forceexec = 0;
-
-static struct capwapc_config g_capwapc_config;
-
-int capwapc_cfg_server_init(struct capwapc_config *cfg)
+int capwapc_get_curcfg(struct capwapc_config *cfg)
 {
-    if (g_capwapc_init) {
-        return 0;
-    }
     struct uci_context *ctx;
     struct uci_package *p;
     struct uci_element *e1;
@@ -95,16 +86,12 @@ int capwapc_cfg_server_init(struct capwapc_config *cfg)
 
     uci_unload(ctx, p);
     uci_free_context(ctx);
-    g_capwapc_init = 1;
     return 0;
 }
 
-int capwapc_get_server_pri(char *server, int *server_pri)
+int capwapc_get_server_pri(struct capwapc_config *config, char *server, int *server_pri)
 {
-    struct capwapc_config *config = &g_capwapc_config;
     int pri = 0, rel_pri = 0;
-
-    capwapc_cfg_server_init(config);
 
     /* step1: check if it's the static master server */
     if(config->mas_server[0] != 0){
@@ -163,8 +150,6 @@ int capwapc_get_server_pri(char *server, int *server_pri)
     return 0;
 }
 
-
-
 int capwapc_set_location(const char *location)
 {
     cfg_set_option_value(CAPWAPC_CFG_OPTION_LOCATION_TUPLE, location);
@@ -221,14 +206,6 @@ int capwapc_get_defcfg(capwapc_config *defcfg)
     return 0;
 }
 
-
-int capwapc_get_curcfg(capwapc_config *curcfg)
-{
-    struct capwapc_config *config = &g_capwapc_config;
-    capwapc_cfg_server_init(config);
-    memcpy(curcfg, &g_capwapc_config, sizeof(g_capwapc_config));
-    return 0;
-}
 
 int capwapc_set_slaveserver(const char *server)
 {

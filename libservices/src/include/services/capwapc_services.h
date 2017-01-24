@@ -101,7 +101,7 @@ typedef struct capwapc_config {
 
 
 
-extern int capwapc_get_server_pri(char *server, int *server_pri);
+extern int capwapc_get_server_pri(struct capwapc_config *config, char *server, int *server_pri);
 
 
 extern int capwapc_get_defcfg(capwapc_config *defcfg);

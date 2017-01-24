@@ -94,8 +94,11 @@ start() {
 	rm -f /tmp/sound.tmp
 
     ## OK_PATCH
+    # generate productinfo
     /lib/fetch_productinfo.sh > /etc/config/productinfo
     sed -i 's/option production .*$/option production \"AP4602\"/g' /etc/config/productinfo
+    # set ulimit
+    ulimt -c unlimited
     ## end OK_PATCH
 
 

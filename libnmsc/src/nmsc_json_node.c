@@ -336,7 +336,7 @@ int dc_hdl_node_type(struct json_object *obj)
 
     /* full config */
     if (type == 0) {
-        system("cp -rf /etc/defconfig/* /etc/config/");
+        system("cp -rf /etc/defcfg/* /etc/config/");
     }
     
 
