@@ -373,7 +373,7 @@ void CWWTPEvaluateAC(CWACInfoValues *ACInfoPtr)
         server = gCWACList[gCWACCount - 1].addrinfo->address;
     }
     
-    if (capwapc_get_server_pri(server, &pri) != 0) {
+    if (capwapc_get_server_pri(&g_capwapc_config, server, &pri) != 0) {
         CW_FREE_OBJECT(ACInfoPtr);
         return;
     }

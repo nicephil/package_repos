@@ -16,11 +16,10 @@ enum VLAN_PORT_TYPE {
 
 enum IP_TYPE
 {
-    INVALID = 0,
-    DHCP,
-    STATICED,
-    PPPOE,
-    NONE,
+    IP_TYPE_DHCP = 0,
+    IP_TYPE_STATIC,
+    IP_TYPE_PPPOE,
+    IP_TYPE_NONE
 };
 
 typedef struct interface_info
@@ -67,21 +66,6 @@ extern int vlan_permit(const char * name, int start, int end);
 
 extern int vlan_get_ifname(int vlanid, char *ifname);
 extern int vlan_get_dialer_info(vlan_interface_info **info);
-
-
-/*
- * Global dialer interface
- */
-enum dialer_type {
-    DIALER_TYPE_STATIC = 0,
-    DIALER_TYPE_DHCP,
-#if 1
-    DIALER_TYPE_PPPOE,
-#endif
-    DIALER_TYPE_MAX
-};
-
-#define DIALER_TYPE_NONE        (-1U)
 
 
 extern int dialer_undo(const char *ifname, int type);

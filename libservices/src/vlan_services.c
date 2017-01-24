@@ -214,9 +214,9 @@ static int vlan_dialer_iterator_id(struct uci_package *p, void *arg)
             if (!strcmp(o->e.name, "proto")) {
                 is_dialer = 1;
                 if (!strcmp(o->v.string, "static")) {
-                    idlist->info[num].type = STATICED;
+                    idlist->info[num].type = IP_TYPE_STATIC;
                 } else {
-                    idlist->info[num].type = DHCP;
+                    idlist->info[num].type = IP_TYPE_DHCP;
                     break;
                 }
             } else if (!strcmp(o->e.name, "ipaddr")) {
@@ -258,11 +258,11 @@ int dialer_undo(const char *ifname, int type)
     char tuple[128];
     char buf[33];
 
-    if (type == DHCP) {
+    if (type == IP_TYPE_DHCP) {
         //network.lan1.proto='dhcp'
         sprintf(tuple, "network.%s.proto", ifname);
         cfg_del_option(tuple);
-    } else if (type == STATICED) {
+    } else if (IP_TYPE_STATIC) {
         //network.lan1.proto='static'                                                 
         //network.lan1.ipaddr='127.0.0.1'                                             
         //network.lan1.netmask='255.0.0.0'                                            

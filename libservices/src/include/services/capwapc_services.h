@@ -77,16 +77,15 @@ typedef enum {
 typedef struct capwapc_config {
     /* globale cfg */
     int enable;
-    char location[33];
     char domain[33];
 
     /* server cfg */
     char mas_server[65];    /* master server address: maybe ip or host name */
     char sla_server[65];    /* slaver server address: maybe ip or host name */
     char def_server[65];
-    int ctrl_port;
     
     /* WTP cfg */
+    int ctrl_port;
     int mtu;
     int disc_intv;
     int maxdisc_intv;
@@ -96,12 +95,13 @@ typedef struct capwapc_config {
     int join_timeout;
     int max_disces;
     int max_retran;
+    char location[33];
 } capwapc_config;
 
 
 
 
-extern int capwapc_get_server_pri(char *server, int *server_pri);
+extern int capwapc_get_server_pri(struct capwapc_config *config, char *server, int *server_pri);
 
 
 extern int capwapc_get_defcfg(capwapc_config *defcfg);

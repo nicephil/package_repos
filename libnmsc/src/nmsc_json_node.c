@@ -333,6 +333,11 @@ int dc_hdl_node_type(struct json_object *obj)
     }
 
     log_node_pair(pair);
+
+    /* full config */
+    if (type == 0) {
+        system("cp -rf /etc/defcfg/* /etc/config/");
+    }
     
 
 
@@ -1830,8 +1835,6 @@ int dc_hdl_node_dialer(struct json_object *obj)
 
 
 
-
-
     vlan_interface_info *info = NULL;
     if ((ret = vlan_get_dialer_info(&info)) != 0 || info == NULL) {
         nmsc_log("Get dialer failed for %d.", ret);
@@ -1846,13 +1849,9 @@ int dc_hdl_node_dialer(struct json_object *obj)
             }
         }
         /* existing vlan interface setting is not in config, undo it */
-        if (j >= dialeres.num && info->info[i].type != NONE) {
+        if (j >= dialeres.num && info->info[i].type != IP_TYPE_NONE) {
             vlan_get_ifname(info->info[i].id, interface_name);
-            if (info->info[i].type == DHCP) {
-                dialer_undo(interface_name, DIALER_TYPE_DHCP);
-            } else {
-                dialer_undo(interface_name, DIALER_TYPE_STATIC);
-            }
+            dialer_undo(interface_name, info->info[i].type);
         }
     }
 
@@ -1861,17 +1860,17 @@ int dc_hdl_node_dialer(struct json_object *obj)
         ret = 0;
         sscanf(dialeres.config[j].name, VLAN_INTERFACE_PREFIX"%d", &id);
         vlan_get_ifname(id, interface_name);
-        if (dialeres.config[j].dial_type == 0) { /* DHCP */
+        if (dialeres.config[j].dial_type == IP_TYPE_DHCP) { /* DHCP */
             ret = dialer_set_dhcp(interface_name);
         }
-        else if (dialeres.config[j].dial_type == 1) { /* STATIC */ 
+        else if (dialeres.config[j].dial_type == IP_TYPE_STATIC) { /* STATIC */ 
             ret = dialer_static_set_ipv4(interface_name, 
-                dialeres.config[j].sta_ip, dialeres.config[j].sta_netmask, dialeres.config[i].gw);
+                dialeres.config[j].sta_ip, dialeres.config[j].sta_netmask, dialeres.config[j].gw);
         }
         else { /* NONE */
             /* try to undo dialer all */
-            dialer_undo(dialeres.config[j].name, DIALER_TYPE_DHCP);
-            dialer_undo(dialeres.config[j].name, DIALER_TYPE_STATIC);
+            dialer_undo(interface_name, IP_TYPE_DHCP);
+            dialer_undo(interface_name, IP_TYPE_STATIC);
         }
         if (ret) {
             nmsc_log("Set the interface %s dialer type %d failed for %d.", 

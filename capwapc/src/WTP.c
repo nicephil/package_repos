@@ -466,9 +466,9 @@ int main (int argc, const char * argv[])
 	}
 
 #ifdef CW_NO_DTLS
-	if( !CWErr(CWWTPLoadConfiguration()) ) {
+	if( !CWErr(CWWTPLoadConfiguration()) || capwapc_get_curcfg(&g_capwapc_config) ) {
 #else
-	if( !CWErr(CWSecurityInitLib())	|| !CWErr(CWWTPLoadConfiguration()) ) {
+	if( !CWErr(CWSecurityInitLib())	|| !CWErr(CWWTPLoadConfiguration()) || capwapc_get_curcfg(&g_capwapc_config)) {
 #endif
 		CWLog("Can't start WTP");
 		exit(1);

@@ -1,6 +1,6 @@
 #!/bin/sh /etc/rc.common
 # look at /lib/functions/services.sh on a running system for explanations of what other options you can use
-START=99
+START=50
 
 APP=ok_capwapc
 
@@ -84,6 +84,7 @@ generate_config () {
 }
 
 start() {
+    rm -rf /tmp/getstainfo.lock /tmp/fresharplist.lock
     generate_config
     service_start /usr/sbin/$APP &
 }

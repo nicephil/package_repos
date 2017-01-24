@@ -2,7 +2,7 @@
 
 if [[ -f /tmp/fresharplist.lock ]]
 then
-exit 0
+    exit 0
 fi
 
 touch /tmp/fresharplist.lock

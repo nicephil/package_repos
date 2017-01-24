@@ -6,17 +6,8 @@
 
 #include "services/capwapc_services.h"
 
-static int g_capwapc_init = 0;
-
-static int g_capwapc_forceexec = 0;
-
-extern struct capwapc_config g_capwapc_config;
-
-int capwapc_cfg_server_init(struct capwapc_config *cfg)
+int capwapc_get_curcfg(struct capwapc_config *cfg)
 {
-    if (g_capwapc_init) {
-        return 0;
-    }
     struct uci_context *ctx;
     struct uci_package *p;
     struct uci_element *e1;
@@ -27,15 +18,67 @@ int capwapc_cfg_server_init(struct capwapc_config *cfg)
 
     uci_foreach_element(&p->sections, e1) {
         struct uci_section *s_cur = uci_to_section(e1);
-        if (!strcmp(s_cur->e.name, CAPWAPC_CFG_SECTION_SERVER)) {
+        if (!strcmp(s_cur->e.name, CAPWAPC_CFG_SECTION_GLOBAL)) {
             uci_foreach_element(&s_cur->options, e2) {
                 struct  uci_option *o_cur = uci_to_option(e2);
+                /* capwapc.global.enable='1' */
+                if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_ENABLE)) {
+                    cfg->enable = atoi(o_cur->v.string);
+                }
+            }
+        } else if (!strcmp(s_cur->e.name, CAPWAPC_CFG_SECTION_SERVER)) {
+            uci_foreach_element(&s_cur->options, e2) {
+                struct  uci_option *o_cur = uci_to_option(e2);
+                /* capwapc.server.mas_server='139.196.188.253' */
                 if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_MASSER)) {
                     strncpy(cfg->mas_server, o_cur->v.string, sizeof(cfg->mas_server));
+                    /* capwapc.server.sla_server='139.196.188.253' */
                 } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_SLASER)) {
                     strncpy(cfg->sla_server, o_cur->v.string, sizeof(cfg->sla_server));
+                    /* capwapc.server.def_server='redirector.oakridge.io' */
                 } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_DEFSER)) {
                     strncpy(cfg->def_server, o_cur->v.string, sizeof(cfg->def_server));
+                }
+            }
+        } else if (!strcmp(s_cur->e.name, CAPWAPC_CFG_SECTION_WTP)) {
+            uci_foreach_element(&s_cur->options, e2) {
+                struct  uci_option *o_cur = uci_to_option(e2);
+                /* capwapc.wtp.ctrl_port='5246' */
+                if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_CTRLPORT)) {
+                    cfg->ctrl_port = atoi(o_cur->v.string);
+                    /* capwapc.wtp.mtu='1300' */ 
+                } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_MTU)) {
+                    cfg->mtu = atoi(o_cur->v.string);
+                    /* capwapc.wtp.disc_intv='20' */
+                } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_DISCINTV)) {
+                    cfg->disc_intv = atoi(o_cur->v.string);
+                    /* capwapc.wtp.maxdisc_intv='5' */
+                } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_MAXDISCINTV)) {
+                    cfg->maxdisc_intv = atoi(o_cur->v.string);
+                    /* capwapc.wtp.echo_intv='30' */
+                } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_ECHOINTV)) {
+                    cfg->echo_intv = atoi(o_cur->v.string);
+                    /* capwapc.wtp.retran_intv='3' */
+                } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_RETRANINTV)) {
+                    cfg->retran_intv = atoi(o_cur->v.string);
+                    /* capwapc.wtp.silent_intv='30' */
+                } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_SILENTINTV)) {
+                    cfg->silent_intv = atoi(o_cur->v.string);
+                    /* capwapc.wtp.join_timeout='60' */
+                } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_SILENTINTV)) {
+                    cfg->join_timeout = atoi(o_cur->v.string);
+                    /* capwapc.wtp.max_disces='10' */
+                } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_MAXDISCES)) {
+                    cfg->max_disces = atoi(o_cur->v.string);
+                    /* capwapc.wtp.max_retran='5' */
+                } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_MAXRETRANS)) {
+                    cfg->max_retran = atoi(o_cur->v.string);
+                    /* capwapc.wtp.location='aa' */
+                } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_LOCATION)) {
+                    strcpy(cfg->location, o_cur->v.string);
+                    /* capwapc.wtp.domain ='aa' */
+                } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_DOMAIN)) {
+                    strcpy(cfg->domain, o_cur->v.string);
                 }
             }
         }
@@ -43,16 +86,12 @@ int capwapc_cfg_server_init(struct capwapc_config *cfg)
 
     uci_unload(ctx, p);
     uci_free_context(ctx);
-    g_capwapc_init = 1;
     return 0;
 }
 
-int capwapc_get_server_pri(char *server, int *server_pri)
+int capwapc_get_server_pri(struct capwapc_config *config, char *server, int *server_pri)
 {
-    struct capwapc_config *config = &g_capwapc_config;
     int pri = 0, rel_pri = 0;
-
-    capwapc_cfg_server_init(config);
 
     /* step1: check if it's the static master server */
     if(config->mas_server[0] != 0){
@@ -113,10 +152,6 @@ int capwapc_get_server_pri(char *server, int *server_pri)
 
 int capwapc_set_location(const char *location)
 {
-    if (!strcmp(location, g_capwapc_config.location)) {
-        return 0;
-    }
-
     cfg_set_option_value(CAPWAPC_CFG_OPTION_LOCATION_TUPLE, location);
 
     return 0;
@@ -124,9 +159,6 @@ int capwapc_set_location(const char *location)
 
 int capwapc_undo_location(void)
 {
-    if (!g_capwapc_config.location[0]) {
-        return 0;
-    }
 
     cfg_del_option(CAPWAPC_CFG_OPTION_LOCATION_TUPLE);
 
@@ -137,10 +169,6 @@ int capwapc_undo_location(void)
 int capwapc_set_domain(const char *domain)
 {
 #if !OK_PATCH
-    if (!strcmp(g_capwapc_config.domain, domain)) {
-        return 0;
-    }
-
     cfg_set_option_value(CAPWAPC_CFG_OPTION_DOMAIN_TUPLE);
 #endif
 
@@ -150,10 +178,6 @@ int capwapc_set_domain(const char *domain)
 int capwapc_undo_domain(void)
 {
 #if !OK_PATCH
-    if (!g_capwapc_config.domain[0]) {
-        return 0;
-    }
-
     cfg_del_option(CAPWAPC_CFG_OPTION_DOMAIN_TUPLE);
 #endif
 
@@ -182,12 +206,6 @@ int capwapc_get_defcfg(capwapc_config *defcfg)
     return 0;
 }
 
-
-int capwapc_get_curcfg(capwapc_config *curcfg)
-{
-    memcpy(curcfg, &g_capwapc_config, sizeof(capwapc_config));
-    return 0;
-}
 
 int capwapc_set_slaveserver(const char *server)
 {
