@@ -211,7 +211,6 @@ int wlan_radio_get_all(struct wlan_radio_info *rdcfg)
     return cfg_visit_package(WLAN_CFG_RADIO_PACKAGE, wlan_radio_list, rdcfg);
 }
 
-
 int wlan_undo_service_template(int stid)
 {
     //wlan_service_template.ServiceTemplate0=ServiceTemplate0

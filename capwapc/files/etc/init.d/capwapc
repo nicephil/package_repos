@@ -84,6 +84,7 @@ generate_config () {
 }
 
 start() {
+    rm -rf /tmp/getstainfo.lock /tmp/fresharplist.lock
     generate_config
     service_start /usr/sbin/$APP &
 }
