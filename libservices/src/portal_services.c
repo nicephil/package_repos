@@ -248,6 +248,9 @@ int portal_scheme_get_all(struct portal_schemes *schemes)
 
 void portal_scheme_free_all(struct portal_schemes *schemes)
 {
+    if (schemes && schemes->config) {
+        free (schemes->config);
+    }
 }
 
 static int portal_check_iterator(struct uci_package * p, void * arg)
