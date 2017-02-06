@@ -1897,7 +1897,7 @@ detect_qcawifi() {
 		echo $nss_ol_num >/lib/wifi/wifi_nss_olnum
 		reload=1
         base_mac="$(cat /sys/class/net/eth0/address)"
-        mac="${base_mac%:*}:`printf "%x" $((0x${base_mac##*:} + $(($devidx*8+8))))`"
+        mac="${base_mac%:*}:`printf "%02x" $((0x${base_mac##*:} + $(($devidx*8+8))))`"
 		cat <<EOF
 config wifi-device  wifi$devidx
     option type	qcawifi

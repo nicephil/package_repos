@@ -4343,7 +4343,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
         }
     }
 
-    /* ge all radio information again */
+    /* get all radio information again */
     memset(rd_cur_cfg, 0, sizeof(struct wlan_radio_info));
     if ((ret = wlan_radio_get_all(rd_cur_cfg)) != 0) {
         nmsc_log("Get all radio information failed for %d.", ret);
@@ -4783,6 +4783,27 @@ int dc_hdl_node_wlan(struct json_object *obj)
                     goto ERROR_OUT;
                 }
             }
+        }
+    }
+
+    /* get all radio information again */
+    memset(rd_cur_cfg, 0, sizeof(struct wlan_radio_info));
+    if ((ret = wlan_radio_get_all(rd_cur_cfg)) != 0) {
+        nmsc_log("Get all radio information failed for %d.", ret);
+        ret = dc_error_code(dc_error_commit_failed, node, ret); 
+        goto ERROR_OUT;
+    }
+
+    for (i = 0; i < rd_cur_cfg->num; i++) {
+        struct radio_info *rd_cur = &(rd_cur_cfg->radioinfo[i]);
+        int radio_id = i;
+        for (k = 0; k < rd_cur->count; k++) {
+            int stid = rd_cur->service[k];
+            if (rd_cur->service[k] < 0) {
+                continue;
+            }
+            /* client isolation */
+            ret = wlan_set_isolation(radio_id, stid, ci_json_cfg);
         }
     }
 

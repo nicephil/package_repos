@@ -728,6 +728,10 @@ int wlan_set_wep108_key(int stid, int slot, int type, int crypt, const char * ke
 int wlan_set_psk(int stid, 
         const char * password, int crypt, int type)
 {
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate1.psk_key='123456789'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.psk_key", stid);
+    cfg_set_option_value(tuple, password);
     return 0;
 }
 
@@ -1204,6 +1208,22 @@ int wlan_set_bind(int radio_id, int stid)
         cfg_set_option_value(tuple, "1");
     }
 
+    //wireless.ath15.encryption='psk-mixed+tkip+ccmp' <-> wlan_service_template.ServiceTemplate1.authentication='wpa-psk'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.authentication", stid);
+    cfg_get_option_value(tuple, buf, 33);
+    /* not open */
+    if (strcmp(buf, "open")) {
+        sprintf(tuple, "wireless.ath%d%d.encryption", radio_id, stid);
+        cfg_set_option_value(tuple, "psk-mixed+tkip+ccmp");
+
+        //wireless.ath15.key='123456789' <-> wlan_service_template.ServiceTemplate1.psk_key='123456789'
+        sprintf(tuple, "wlan_service_template.ServiceTemplate%d.psk_key", stid);
+        cfg_get_option_value(tuple, buf, 33);
+        sprintf(tuple, "wireless.ath%d%d.key", radio_id, stid);
+        cfg_set_option_value(tuple, buf);
+    }
+
+
     //wlan_radio.WLAN_Radio1.bind='ServiceTemplate1'
     sprintf(tuple, "wlan_radio.WLAN_Radio%d.bind", radio_id);
     sprintf (buf, "ServiceTemplate%d", stid);
@@ -1256,5 +1276,16 @@ int wlan_get_stid_by_ssid(char *ssid, int *stid)
 int wlan_get_ifname_by_stid(int radioid, int stid, char *ifname)
 {
     sprintf(ifname, "ath%d%d", radioid, stid);
+    return 0;
+}
+
+int wlan_set_isolation(int radioid, int stid, int value)
+{
+    char tuple[128];
+    sprintf(tuple, "wireless.ath%d%d.isolate", radioid, stid);
+    cfg_set_option_value_int(tuple, value);
+    sprintf(tuple, "wireless.ath%d%d.l2tif", radioid, stid);
+    cfg_set_option_value_int(tuple, value);
+
     return 0;
 }
