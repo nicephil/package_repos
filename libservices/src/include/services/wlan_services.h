@@ -360,4 +360,5 @@ extern int wlan_set_dynamic_client_uplink_rate_limit_value(int stid, unsigned in
 extern int wlan_undo_dynamic_client_uplink_rate_limit_value( int stid );
 extern int wlan_get_stid_by_ssid(char *ssid, int *stid);
 extern int wlan_get_ifname_by_bssid(int bssid, char *ifname);
+extern int wlan_se_isolation(int radioid, int stid, int value);
 #endif /*__WLAN_SERVICES_H_ */
