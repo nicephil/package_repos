@@ -186,6 +186,7 @@ set network.$cfg.proto='none'
 EOF
 }
 
+#OK_PATCH
 ucidef_set_interface_lan_with_vlan() {
 	local ifname=$1
     local vlan=$2
@@ -195,8 +196,12 @@ set network.lan'$vlan'='interface'
 set network.lan'$vlan'.ifname='$ifname'
 set network.lan'$vlan'.type='bridge'
 set network.lan'$vlan'.proto='dhcp'
+set network.lan'$vlan'.dhcp_default_ip="192.168.100.20"
+set network.lan'$vlan'.dhcp_default_netmask="255.255.255.0"
+set network.lan'$vlan'.dhcp_default_gateway="192.168.100.1"
 EOF
 }
+#end of OK_PATCH
 
 ucidef_set_interface_lan() {
 	local ifname=$1
@@ -264,6 +269,7 @@ set network.@switch[-1].enable_vlan='$enable'
 EOF
 }
 
+#OK_PATCH
 ucidef_add_switch_vlan_with_name() {
 	local device=$1
 	local vlan=$2
@@ -275,6 +281,7 @@ set network.vlan'$vlan'.vlan='$vlan'
 set network.vlan'$vlan'.ports='$ports'
 EOF
 }
+#end of OK_PATCH
 
 ucidef_add_switch_vlan() {
 	local device=$1
