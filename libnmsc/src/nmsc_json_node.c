@@ -4786,7 +4786,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
         }
     }
 
-    /* get all radio information again */
+    /* get all radio information again for other config */
     memset(rd_cur_cfg, 0, sizeof(struct wlan_radio_info));
     if ((ret = wlan_radio_get_all(rd_cur_cfg)) != 0) {
         nmsc_log("Get all radio information failed for %d.", ret);

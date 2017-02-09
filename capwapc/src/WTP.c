@@ -578,7 +578,6 @@ __inline__ int CWGetFragmentID() {
 CWBool CWWTPLoadConfiguration() 
 {
 #define BROADCAST_DISCOVERY_ADDRESS   "255.255.255.255"
-#define MUITICAST_DISCOVERY_ADDRESS   "224.0.1.140"    
 	int i;
 	
 	CWLog("WTP Loads Configuration");
@@ -589,8 +588,8 @@ CWBool CWWTPLoadConfiguration()
 		exit(1);
 	}
 
-    /* one more for broadcast address, one more for multicast */
-    CW_CREATE_ARRAY_ERR(gCWACList, (gCWACCount + 2), CWACDescriptor, 
+    /* one more for broadcast address */
+    CW_CREATE_ARRAY_ERR(gCWACList, (gCWACCount + 1), CWACDescriptor, 
         return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
 
     for(i = 0; i < gCWACCount; i++) {
@@ -605,20 +604,14 @@ CWBool CWWTPLoadConfiguration()
     	CW_FREE_OBJECTS_ARRAY(gCWACAddresses, gCWACCount);
      }
 
-    /* add broadcast and multicast address to aclist automatically */
+    /* add broadcast address to aclist automatically */
     CW_CREATE_OBJECT_ERR(gCWACList[gCWACCount].addrinfo, struct ac_addressinfo, 
          return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
         
     CW_CREATE_STRING_FROM_STRING_ERR(gCWACList[gCWACCount].addrinfo->address, BROADCAST_DISCOVERY_ADDRESS,
         return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
 
-    CW_CREATE_OBJECT_ERR(gCWACList[gCWACCount+1].addrinfo, struct ac_addressinfo, 
-         return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
-        
-    CW_CREATE_STRING_FROM_STRING_ERR(gCWACList[gCWACCount+1].addrinfo->address, MUITICAST_DISCOVERY_ADDRESS,
-        return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
-
-    gCWACCount += 2;
+    gCWACCount += 1;
 
 	return CW_TRUE;
 }

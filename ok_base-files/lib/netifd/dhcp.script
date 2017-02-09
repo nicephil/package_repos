@@ -15,6 +15,11 @@ set_classless_routes() {
 }
 
 setup_interface () {
+    #OK_PATCH
+    proto_init_update "$IFNAME" 0
+    proto_send_update "$INTERFACE"
+    #end of OK_PATCH
+
 	proto_init_update "$IFNAME" 1
 	proto_add_ipv4_address "$ip" "${subnet:-255.255.255.0}"
 	# TODO: apply $broadcast
@@ -54,8 +59,21 @@ setup_interface () {
 }
 
 deconfig_interface() {
-	proto_init_update "*" 0
-	proto_send_update "$INTERFACE"
+	#proto_init_update "*" 0
+	#proto_send_update "$INTERFACE"
+    #OK_PATCH
+    config_load network
+    config_get _dhcp_default_ip $INTERFACE dhcp_default_ip
+    config_get _dhcp_default_netmask $INTERFACE dhcp_default_netmask
+    config_get _dhcp_default_gateway $INTERFACE dhcp_default_gateway
+
+    [ -n "$_dhcp_default_ip" ] && {
+    proto_init_update "$IFNAME" 1
+    proto_add_ipv4_address "$_dhcp_default_ip" "${_dhcp_default_netmask:-255.255.255.0}"
+    proto_add_ipv4_route "0.0.0.0" "0" "$_dhcp_default_gateway"
+    proto_send_update "$INTERFACE"
+    }
+    #end of OK_PATCH
 }
 
 case "$1" in
