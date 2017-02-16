@@ -847,6 +847,10 @@ enable_qcawifi() {
                 esac
 	done
 
+    #OK_PATCH
+    t_wlanaddr=${macaddr##*:}
+    t_wlanaddr=$((0x$t_wlanaddr))
+    #end of OK_PATCH
 	for vif in $vifs; do
 		local start_hostapd= vif_txpower= nosbeacon= wlanaddr=""
 		local wlanmode
@@ -855,6 +859,13 @@ enable_qcawifi() {
 		config_get eap_type "$vif" eap_type
 		config_get mode "$vif" mode
 		wlanmode=$mode
+        #OK_PATCH
+        t_wlanaddr=`printf "%02x" $t_wlanaddr`
+        wlanaddr=${macaddr%:*}:${t_wlanaddr}
+        t_wlanaddr=$((0x$t_wlanaddr))
+        t_wlanaddr=$(($t_wlanaddr+1))
+        #end of OK_PATCH
+        
 
 		if [ -f /sys/class/net/$device/ciphercaps ]
 		then

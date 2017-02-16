@@ -1192,6 +1192,10 @@ int wlan_set_bind(int radio_id, int stid)
     sprintf(tuple, "wireless.ath%d%d.mode", radio_id, stid);
     cfg_set_option_value(tuple, "ap");
 
+    //wireless.ath15.proxyarp='1'
+    sprintf(tuple, "wireless.ath%d%d.proxyarp", radio_id, stid);
+    cfg_set_option_value(tuple, "1");
+
     //wireless.ath15.ssid='oakridg-def1' <-> wlan_service_template.ServiceTemplate1.ssid="ssid"
     sprintf(tuple, "wlan_service_template.ServiceTemplate%d.ssid", stid);
     cfg_get_option_value(tuple, buf, 33);
