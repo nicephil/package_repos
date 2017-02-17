@@ -20,6 +20,10 @@
 #define CAPWAPC_CFG_OPTION_SLASER      "sla_server"
 #define CAPWAPC_CFG_OPTION_SLASER_TUPLE "capwapc.server.sla_server"
 #define CAPWAPC_CFG_OPTION_DEFSER      "def_server"
+#define CAPWAPC_CFG_OPTION_OPT43_MASSER      "opt43_mas_server"
+#define CAPWAPC_CFG_OPTION_OPT43_MASSER_TUPLE "capwapc.server.opt43_mas_server"
+#define CAPWAPC_CFG_OPTION_OPT43_SLASER      "opt43_sla_server"
+#define CAPWAPC_CFG_OPTION_OPT43_SLASER_TUPLE "capwapc.server.opt43_sla_server"
 #define CAPWAPC_CFG_OPTION_CTRLPORT    "ctrl_port"
 #define CAPWAPC_CFG_OPTION_CTRLPORT_TUPLE  "capwapc.wtp.ctrl_port"
 
@@ -83,6 +87,8 @@ typedef struct capwapc_config {
     char mas_server[65];    /* master server address: maybe ip or host name */
     char sla_server[65];    /* slaver server address: maybe ip or host name */
     char def_server[65];
+    char opt43_mas_server[65]; /* option43 master server */
+    char opt43_sla_server[65]; /* option43 slaver server */
     
     /* WTP cfg */
     int ctrl_port;

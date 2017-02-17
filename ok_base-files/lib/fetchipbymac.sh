@@ -10,4 +10,4 @@ then
   exit 0
 fi
 
-/lib/fresharplist.sh &
+#/lib/fresharplist.sh &

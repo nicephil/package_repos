@@ -40,14 +40,12 @@ setup_interface () {
 	done
 	proto_send_update "$INTERFACE"
 
-# add option43 server list into capwapc config file
+# add option43 servers into capwapc config file
     [ -n "$acaddr" ] && {
     acaddrs=`echo $acaddr | awk -F',' '{for(i=1;i <= NF; i++){ if(i%3==0)print $i}}'`;
-    uci delete capwapc.server.option43_server
-    for addr in $acaddrs
-    do
-        uci add_list capwapc.server.option43_server=$addr;
-    done
+    uci set capwapc.server.opt43_mas_server=${acaddrs%% *};
+    tmp=${acaddrs#* };
+    uci set capwapc.server.opt43_sla_server=${tmp%% *};
     uci commit capwapc;
     }
 

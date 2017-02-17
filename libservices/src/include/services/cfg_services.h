@@ -43,6 +43,15 @@ extern int cfg_visit_section(const char *section_tuple,
  */
 extern int cfg_get_option_value(const char *option_tuple, char *value, int len);
 
+/* @brief get the value according to whole option tuple
+ * @param [in] path the specific path e.g. /tmp/state
+ * @param [in] option_tuple e.g. portal.bb.url
+ * @param [out] value fetched value
+ * @param [in] the length of value
+ * @return 0 means success, otherwise means failure
+ */
+extern int cfg_get_option_value_with_path(const char *path, const char *option_tuple, char *value, int len);
+
 /*
  * @brief set the value according to whole option tuple, will create one option
  * if not found

@@ -38,6 +38,12 @@ int capwapc_get_curcfg(struct capwapc_config *cfg)
                     /* capwapc.server.def_server='redirector.oakridge.io' */
                 } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_DEFSER)) {
                     strncpy(cfg->def_server, o_cur->v.string, sizeof(cfg->def_server));
+                    /* capwapc.server.opt43_mas_server='139.196.188.253' */
+                } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_OPT43_MASSER)) {
+                    strncpy(cfg->mas_server, o_cur->v.string, sizeof(cfg->opt43_mas_server));
+                    /* capwapc.server.opt43_sla_server='139.196.188.253' */
+                } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_OPT43_SLASER)) {
+                    strncpy(cfg->sla_server, o_cur->v.string, sizeof(cfg->opt43_sla_server));
                 }
             }
         } else if (!strcmp(s_cur->e.name, CAPWAPC_CFG_SECTION_WTP)) {
@@ -121,9 +127,32 @@ int capwapc_get_server_pri(struct capwapc_config *config, char *server, int *ser
         rel_pri++;
     }
 
-    /* step3: check if it's the dhcp43 master server */
+   /* step3: check if it's the dhcp43 master server */
+    if (config->opt43_mas_server[0] != 0) {
+        if(!strcmp(server, config->opt43_mas_server)){
+            SET_STANDBY_PRI(pri, MASTER_ADDRESS);
+            SET_ABSOLUTE_PRI(pri, DHCP_NMS);
+            SET_RELATIVE_PRI(pri, rel_pri);
+            syslog(LOG_DEBUG, "Server %s is the dhcp43 master server with priority %d.\n", 
+                server, pri);
+            return pri;
+        }
+        rel_pri++;
+    }
 
     /* step4: check if it's the dhcp43 slave server */
+    if (config->opt43_sla_server[0] != 0) {
+        if(!strcmp(server, config->opt43_sla_server)){
+            SET_STANDBY_PRI(pri, SLAVE_ADDRESS);
+            SET_ABSOLUTE_PRI(pri, DHCP_NMS);
+            SET_RELATIVE_PRI(pri, rel_pri);
+            syslog(LOG_DEBUG, "Server %s is the dhcp43 slave server with priority %d.\n", 
+                server, pri);
+            return pri;
+        }
+        rel_pri++;
+    }
+
 
     /* step5: check if it's the static default server */
     if(config->def_server[0] != 0){

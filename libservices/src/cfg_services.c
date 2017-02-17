@@ -55,7 +55,9 @@ int cfg_visit_package_with_path(const char *path, const char *package_tuple,
         return -1;
     }
 
-    uci_set_confdir(ctx, path);
+    if (path) {
+        uci_set_confdir(ctx, path);
+    }
 
     uci_load(ctx, package_tuple, &p);
     if(!p) {
@@ -132,6 +134,53 @@ int cfg_get_option_value(const char *option_tuple, char *value, int len)
         return -1;
     }
 
+    if (uci_lookup_ptr(ctx, &ptr, tuple, true) != UCI_OK) {
+        syslog(LOG_ERR, "no such field:%s\n", tuple);
+        ret = -1;
+        goto _free;
+    }
+
+    if (!(ptr.flags & UCI_LOOKUP_COMPLETE)) {
+        syslog(LOG_ERR, "no such complete field:%s\n", tuple);
+        ret = -1;
+        goto _free;
+    }
+    
+    if (ptr.o->type == UCI_TYPE_STRING) {
+        strncpy(value, ptr.o->v.string, len-1);
+        value[len-1] = '\0';
+    }
+
+_free:
+    if (ctx && ptr.p) {
+        uci_unload(ctx, ptr.p);
+    }
+    if (ctx) {
+        uci_free_context(ctx);
+    }
+    if (tuple) {
+        free(tuple);
+    }
+    return ret;
+}
+
+int cfg_get_option_value_with_path(const char *path, const char *option_tuple, char *value, int len)
+{
+    struct uci_context *ctx = NULL;
+    struct uci_ptr ptr = {0};
+    int ret = 0;
+    char *tuple = strdup(option_tuple);
+
+    ctx = uci_alloc_context();
+    if (!ctx) {
+        syslog(LOG_ERR, "no enough memory\n");
+        return -1;
+    }
+
+    if (path) {
+        uci_set_confdir(ctx, path);
+    }
+    
     if (uci_lookup_ptr(ctx, &ptr, tuple, true) != UCI_OK) {
         syslog(LOG_ERR, "no such field:%s\n", tuple);
         ret = -1;
