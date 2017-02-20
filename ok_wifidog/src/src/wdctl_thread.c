@@ -64,6 +64,13 @@ static void wdctl_stop(int);
 static void wdctl_reset(int, const char *);
 static void wdctl_restart(int);
 
+#if OK_PATCH
+static int okos_judge_mac(const char *);
+static void okos_wdctl_query_mac(int, const char *, const char *);
+static void okos_wdctl_config(int);
+#endif
+
+
 static int wdctl_socket_server;
 
 static int
@@ -208,6 +215,13 @@ thread_wdctl_handler(void *arg)
         wdctl_reset(fd, (request + 6));
     } else if (strncmp(request, "restart", 7) == 0) {
         wdctl_restart(fd);
+#if OK_PATCH
+	} else if (0 == strncmp(request, "query", 5)) {
+		request[23] = 0;
+		okos_wdctl_query_mac(fd, (request + 6), (request + 24));
+	} else if (0 == strncmp(request, "config", 6)) {
+		okos_wdctl_config(fd);
+#endif
     } else {
         debug(LOG_ERR, "Request was not understood!");
     }
@@ -385,3 +399,54 @@ wdctl_reset(int fd, const char *arg)
 
     debug(LOG_DEBUG, "Exiting wdctl_reset...");
 }
+
+#if OK_PATCH
+
+static int okos_judge_mac(const char *p_mac)
+{
+	int isMac = 0;
+	unsigned int tmp[6];
+	if (6 == sscanf(p_mac, "%02X:%02X:%02X:%02X:%02X:%02X", &tmp[0], &tmp[1], &tmp[2], &tmp[3], &tmp[4], &tmp[5])) {
+		isMac = 1;
+	}
+	return isMac;
+}
+
+static void okos_wdctl_query_mac(int fd, const char *p_mac, const char *p_ssid)
+{
+	debug(LOG_DEBUG, "Entering wdctl_query_mac...");
+	debug(LOG_DEBUG, "Argument: {mac = %s; ssid = %s}", p_mac, p_ssid);
+
+	if (!okos_judge_mac(p_mac)) {
+		debug(LOG_DEBUG, "Can't query client without MAC address.");
+		write_to_socket(fd, "No", 2);
+		return;
+	}
+
+	if (0 == strcmp(p_ssid, "")) {
+		p_ssid = NULL;
+	}
+
+	char *p_client_info = okos_get_client_status_text(p_mac, p_ssid);
+	write_to_socket(fd, p_client_info, strlen(p_client_info));
+	free(p_client_info);
+}
+
+static void okos_wdctl_config(int fd)
+{
+    char *s_config = NULL;
+    size_t len = 0;
+
+	s_config = okos_conf_get_all();
+    len = strlen(s_config);
+
+    write_to_socket(fd, s_config, len);   /* XXX Not handling error because we'd just print the same log line. */
+
+    free(s_config);
+}
+
+#endif
+
+
+
+
