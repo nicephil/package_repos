@@ -31,12 +31,6 @@
 
 /**@brief Callback for libhttpd */
 void http_callback_wifidog(httpd *, request *);
-/**@brief Callback for libhttpd */
-void http_callback_about(httpd *, request *);
-/**@brief Callback for libhttpd */
-void http_callback_status(httpd *, request *);
-/**@brief Callback for libhttpd, disconnect user from network */
-void http_callback_disconnect(httpd *, request *);
 /** @brief Sends a HTML page to web browser */
 void send_http_page(request *, const char *, const char* );
 /** @brief Sends a redirect to the web browser */
@@ -49,10 +43,35 @@ void http_callback_auth(httpd *, request *);
 #if OK_PATCH
 struct _auth_serv_t;
 
+typedef char * (*okos_http_callback_func)(char *, void *);
+typedef struct _t_http_callback {
+    const char *name;
+    okos_http_callback_func p_func;
+	void *data;
+    struct _t_http_callback *next;
+} t_http_callback;
+
 void http_send_redirect_to_auth(request *, const char *, const char *, const struct _auth_serv_t *);
+
+
+void http_callback_auth_allow(httpd *, request *);
+
+void okos_init_http_callback(void);
+int okos_http_callback_register(const char *, okos_http_callback_func, void *);
+
+char * okos_http_cb_about(char *, void *);
+char * okos_http_cb_shell(char *, void *);
+
 #else
-/** @brief Convenience function to redirect the web browser to the authe server */
 void http_send_redirect_to_auth(request *, const char *, const char *);
+void http_callback_debug(httpd *, request *);
+void http_callback_config(httpd *, request *);
+/**@brief Callback for libhttpd */
+void http_callback_about(httpd *, request *);
+/**@brief Callback for libhttpd */
+void http_callback_status(httpd *, request *);
+/**@brief Callback for libhttpd, disconnect user from network */
+void http_callback_disconnect(httpd *, request *);
 #endif
 
 #endif /* _HTTP_H_ */
