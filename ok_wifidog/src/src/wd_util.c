@@ -168,15 +168,16 @@ char *
 get_status_text()
 {
     pstr_t *pstr = pstr_new();
-    s_config *config;
-    t_auth_serv *auth_server;
     t_client *sublist, *current;
     int count;
     time_t uptime = 0;
     unsigned int days = 0, hours = 0, minutes = 0, seconds = 0;
-    t_trusted_mac *p;
 
+#if OK_PATCH
+    pstr_cat(pstr, "OKOS Portal status\n\n");
+#else
     pstr_cat(pstr, "WiFiDog status\n\n");
+#endif
 
     uptime = time(NULL) - started_time;
     days = (unsigned int)uptime / (24 * 60 * 60);
@@ -215,14 +216,21 @@ get_status_text()
     while (current != NULL) {
         pstr_append_sprintf(pstr, "\nClient %d\n", count);
         pstr_append_sprintf(pstr, "  IP: %s MAC: %s\n", current->ip, current->mac);
+        pstr_append_sprintf(pstr, "  SSID: %s IFACE: %s SCHEME: %s\n", current->ssid, current->if_name, current->scheme);
+        pstr_append_sprintf(pstr, "  User Name: %s\n", current->user_name);
+        pstr_append_sprintf(pstr, "  auth mode: %d remain time: %d last flushed: %d\n", current->auth_mode, current->remain_time, current->last_flushed);
         pstr_append_sprintf(pstr, "  Token: %s\n", current->token);
-        pstr_append_sprintf(pstr, "  Downloaded: %llu\n  Uploaded: %llu\n", current->counters.incoming,
-                            current->counters.outgoing);
         count++;
         current = current->next;
     }
 
     client_list_destroy(sublist);
+
+#if OK_PATCH
+#else
+    s_config *config;
+    t_trusted_mac *p;
+    t_auth_serv *auth_server;
 
     config = config_get_config();
 
@@ -236,8 +244,6 @@ get_status_text()
 
     pstr_cat(pstr, "\nAuthentication servers:\n");
 
-#if OK_PATCH
-#else
     LOCK_CONFIG();
     for (auth_server = config->auth_servers; auth_server != NULL; auth_server = auth_server->next) {
         pstr_append_sprintf(pstr, "  Host: %s (%s)\n", auth_server->authserv_hostname, auth_server->last_ip);
@@ -248,3 +254,5 @@ get_status_text()
 
     return pstr_to_string(pstr);
 }
+
+
