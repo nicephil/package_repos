@@ -53,7 +53,19 @@
 
 
 #if OK_PATCH
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <arpa/inet.h> 
+
+#include "pstring.h"
+
 #include "services/wlan_services.h"
+#include "services/portal_services.h"
+#include "services/dnsset_services.h"
+#include "services/cfg_services.h"
+
 #endif
 
 /** @internal
@@ -1059,8 +1071,12 @@ validate_popular_servers(void)
 {
     if (config.popular_servers == NULL) {
         debug(LOG_WARNING, "PopularServers not set in config file, this will become fatal in a future version.");
+#if OK_PATCH
+        add_popular_server("www.baidu.com");
+#else
         add_popular_server("www.google.com");
         add_popular_server("www.yahoo.com");
+#endif
     }
 }
 
@@ -1130,7 +1146,7 @@ mark_auth_server_bad(t_auth_serv * bad_server)
 
 #if OK_PATCH
 
-
+/*
 t_client * okos_fill_client_info_by_fdb(t_client *client)
 {
     debug(LOG_INFO, "Fill the client info from config by checking fdb.");
@@ -1149,11 +1165,12 @@ t_client * okos_fill_client_info_by_fdb(t_client *client)
         return whatIfound;
     }
 
+    debug(LOG_DEBUG, "Query iface info throug brctl");
+
     char line[256];
     int port;
     char mac[18];
     char *command = NULL;
-    debug(LOG_DEBUG, "Query iface info throug brctl");
     safe_asprintf(&command, "brctl showmacs %s", client->brX);
     FILE *arp = popen(command, "r");
     if (arp) {
@@ -1192,12 +1209,13 @@ t_client * okos_fill_client_info_by_fdb(t_client *client)
     return whatIfound;
 }
 
+
 #define okos_cleanup_record_buf(element) \
     if (element) {\
         free(element); \
         element = NULL; \
     }
-t_client * okos_fill_client_info_by_stainfo(t_client *client)
+static t_client * okos_get_client_ifname_by_stainfo(t_client *client)
 {
     char *filename = "/tmp/stationinfo/stationinfo";
     debug(LOG_DEBUG, "Fill the client info by checking %s.", filename);
@@ -1246,17 +1264,8 @@ t_client * okos_fill_client_info_by_stainfo(t_client *client)
             debug(LOG_DEBUG, "Record is uncompleted. ");
         } else {
             if (0 == strcmp(client->ip, options[5]) && 0 == strcmp(client->mac, options[1])) {
-                client->if_name = options[0];
-                options[0] = NULL;
-                client->ifx = okos_conf_get_ifx_by_name(client->if_name);
-                client->ssid_conf = client->ifx->ssid;
-                client->brX = safe_strdup(client->ifx->brx->br_name);
-                client->scheme = safe_strdup(client->ssid_conf->scheme_name);
-                client->ssid = safe_strdup(client->ssid_conf->ssid);
-                client->token = safe_strdup(OKOS_AUTH_FAKE_TOKEN);
+                okos_client_set_str(client->if_name, options[0]);
                 whatIfound = client;
-                debug(LOG_DEBUG, "found record of client {%s, %s}. iface name:%s, ssid:%s, scheme:%s, bridge:%s", client->ip, client->mac, client->if_name, client->ssid, client->scheme, client->brX);
-
                 break;
             } else {
                 debug(LOG_DEBUG, "Record unmatched.");
@@ -1273,7 +1282,63 @@ t_client * okos_fill_client_info_by_stainfo(t_client *client)
 
     return whatIfound;
 }
+*/
 
+static char * okos_conf_get_option_value(const char *p_path, const char *p_key);
+#define okos_conf_get_option_value_from_config(key) okos_conf_get_option_value("/etc/config", key)
+
+static t_client * okos_get_client_ifname(t_client *client)
+{
+    system("/lib/getstainfo.sh");
+
+    char mac[18];
+    char *p_src = client->mac;
+    char *p_dst = mac;
+    for (p_src = client->mac; 0 != *p_src; p_src++) {
+        if (':' != *p_src) {
+            *p_dst = *p_src;
+            if ('A' <= *p_dst && *p_dst <= 'Z') {
+                *p_dst = *p_dst - 'A' + 'a';
+            }
+            p_dst++;
+        }
+    }
+    *p_dst = 0;
+
+    char tuple[OKOS_WFD_MAX_STR_LEN];
+    sprintf(tuple, "stationinfo.%s.ifname", mac);
+    debug(LOG_WARNING, "%s", tuple);
+    char *p_ifname = okos_conf_get_option_value("/tmp/stationinfo", tuple);
+    if (NULL == p_ifname) {
+        return NULL;
+    }
+    okos_client_set_str(client->if_name, p_ifname);
+    return client;
+}
+
+t_client * okos_fill_client_info_by_stainfo(t_client *client)
+{
+#if 0
+    if (NULL != okos_get_client_ifname_by_stainfo(client)) {
+#endif
+    if (NULL != okos_get_client_ifname(client)) {
+        client->ifx = okos_conf_get_ifx_by_name(client->if_name);
+        client->ssid_conf = client->ifx->ssid;
+
+        okos_client_set_strdup(client->scheme, client->ssid_conf->scheme_name);
+        okos_client_set_strdup(client->ssid, client->ssid_conf->ssid);
+        okos_client_set_strdup(client->token, OKOS_AUTH_FAKE_TOKEN);
+
+        debug(LOG_DEBUG, "found record of client {ip:%s, mac=%s, ifname:%s, ssid:%s, scheme:%s, bridge:%s}", client->ip, client->mac, client->if_name, client->ssid, client->scheme, client->brX);
+
+        return client;
+    }
+
+    return NULL;
+}
+
+
+/*
 t_client * okos_fill_client_info(t_client *client)
 {
     debug(LOG_INFO, "Fill the client info from config by hand.");
@@ -1297,40 +1362,250 @@ t_client * okos_fill_client_info(t_client *client)
     debug(LOG_ERR, "can not find out the basic information for client(%s)[%s] in bridge{%s}", client->ip, client->mac, client->brX);
     return NULL;
 }
+*/
+static int okos_get_bssid(char *p_ifname, char **pp_bssid)
+{
+    char line[256];
+    char mac[18];
+    char *p_command = NULL;
+    safe_asprintf(&p_command, "ifconfig %s", p_ifname);
+    FILE *pf_ifconfig = popen(p_command, "r");
+    free(p_command);
+    char *p_head = "HWaddr ";
+    int head_len = strlen(p_head);
+
+    if (pf_ifconfig) {
+        while (fgets(line, sizeof(line), pf_ifconfig)) {
+            debug(LOG_DEBUG, "%s", line);
+            char *p_mac = strstr(line, p_head);
+            if (p_mac && head_len + sizeof(mac) - 1 <= strlen(p_mac)) {
+                p_mac += head_len;
+                *pp_bssid = safe_malloc(sizeof(mac));
+                strncpy(*pp_bssid, p_mac, sizeof(mac) - 1);
+                (*pp_bssid)[sizeof(mac) - 1] = '\0';
+                pclose(pf_ifconfig);
+                debug(LOG_DEBUG, "iface(%s)'s bssid is:%s", p_ifname, *pp_bssid);
+                return 0;
+            }
+        }
+    }
+
+    pclose(pf_ifconfig);
+    return 1;
+}
+
 
 void
 okos_config_init_default_auth_server(t_auth_serv *svr)
 {
     svr->authserv_use_ssl = DEFAULT_AUTHSERVSSLAVAILABLE;
-    svr->authserv_login_script_path_fragment = safe_strdup(DEFAULT_AUTHSERVLOGINPATHFRAGMENT);
-    svr->authserv_portal_script_path_fragment = safe_strdup(DEFAULT_AUTHSERVPORTALPATHFRAGMENT);
 
-    svr->authserv_msg_script_path_fragment = safe_strdup(DEFAULT_AUTHSERVMSGPATHFRAGMENT);    svr->authserv_ping_script_path_fragment = safe_strdup(DEFAULT_AUTHSERVPINGPATHFRAGMENT);
-    svr->authserv_auth_script_path_fragment = safe_strdup(DEFAULT_AUTHSERVAUTHPATHFRAGMENT);
+    okos_conf_set_str(svr->authserv_login_script_path_fragment, DEFAULT_AUTHSERVLOGINPATHFRAGMENT);
+    okos_conf_set_str(svr->authserv_portal_script_path_fragment, DEFAULT_AUTHSERVPORTALPATHFRAGMENT);
+    okos_conf_set_str(svr->authserv_msg_script_path_fragment, DEFAULT_AUTHSERVMSGPATHFRAGMENT);
+    okos_conf_set_str(svr->authserv_ping_script_path_fragment, DEFAULT_AUTHSERVPINGPATHFRAGMENT);
+    okos_conf_set_str(svr->authserv_auth_script_path_fragment, DEFAULT_AUTHSERVAUTHPATHFRAGMENT);
+
     svr->authserv_http_port = DEFAULT_AUTHSERVPORT;
     svr->authserv_ssl_port = DEFAULT_AUTHSERVSSLPORT;
 }
 
+#define okos_cfg_is_empty(str) ('\0' == str[0])
 
-void
-okos_config_read(void)
+static char * okos_conf_get_option_value(const char *p_path, const char *p_key)
 {
-    wlan_radio_info rdcfg;
-    wlan_radio_get_all(&rdcfg);
-    debug(LOG_NOTICE, "Got %s radios configuration from uci.", rdcfg.num);
+    char cfg[OKOS_WFD_MAX_STR_LEN];
+    cfg[0] = 0;
+    int res = cfg_get_option_value_with_path(p_path, p_key, cfg, sizeof(cfg));
+    if (0 == res) {
+        return safe_strdup(cfg);
+    }
+    return NULL;
+}
+
+static void okos_config_read(void)
+{
+    struct wlan_radio_info *p_rdcfg = safe_malloc(sizeof(struct wlan_radio_info));
+    wlan_radio_get_all(p_rdcfg);
+    //struct service_template *p_stcfg = safe_malloc(sizeof(struct service_template));
+    //wlan_service_template_get_all(p_stcfg);
+    struct portal_schemes *p_schemes = safe_malloc(sizeof(struct portal_schemes));
+    portal_scheme_get_all(p_schemes);
+    struct dns_set_t *p_dns_list = dnsset_cfg_getall();
+    struct dns_set_t *p_dns;
+    struct key_list *p_key;
+
+    struct portal_scheme_cfg *p_schm_cfg;
+    t_ssid_config *p_ssid = NULL;
+    t_auth_serv *p_auth_svr;
+    t_trusted_mac *p_mac_wlist;
+    t_firewall_ruleset *p_ip_wlist;
+    t_firewall_ruleset *p_dn_wlist;
+    t_firewall_rule *p_ipx;
+    t_firewall_rule *p_dn_white;
+
+    char cfg[OKOS_WFD_MAX_STR_LEN];
+    char tuple[OKOS_WFD_MAX_STR_LEN];
+
+    debug(LOG_INFO, "Reading configuration from uci..."); 
+
+    config.device_id = okos_conf_get_option_value_from_config("productinfo.@productinfo[0].mac");
+    if (config.device_id) {
+        debug(LOG_DEBUG, "Parsing {device_id, %s}", config.device_id);
+    } else {
+        debug(LOG_DEBUG, "Parsing device_id uncompleted.");
+    }
+    config.domain_name = okos_conf_get_option_value_from_config("system.domain.domain");
+    if (config.domain_name) {
+        debug(LOG_DEBUG, "Parsing {domain_name, %s}", config.domain_name);
+    } else {
+        debug(LOG_DEBUG, "Parsing domain_name uncompleted.");
+    }
+
+    int i_rd, i_vap, i_svc_tmp_id, ssidLoaded;
+    char *p_tmp = NULL;
+    for (i_rd = 0; i_rd < p_rdcfg->num; i_rd++) {
+        for (i_vap = 0; i_vap < p_rdcfg->radioinfo[i_rd].count; i_vap++) {
+            i_svc_tmp_id = p_rdcfg->radioinfo[i_rd].service[i_vap];
+            ssidLoaded = 0;
+            okos_list_for_each(p_ssid, config.ssid_conf) {
+                if (i_svc_tmp_id == (int)p_ssid->sn) {
+                    debug(LOG_DEBUG, "ssid(%s) on raido[%d],vap[%d] has been loaded with sn{%d}", p_ssid->ssid, i_rd, i_vap, i_svc_tmp_id);
+                    ssidLoaded = 1;
+                    break;
+                } else {
+                    debug(LOG_DEBUG, "Checking ssid(%s) with sn[%d].", p_ssid->ssid, p_ssid->sn);
+                }
+            }
+            if (ssidLoaded) {
+                continue;
+            }
+
+            debug(LOG_DEBUG, "radio[%d], vap[%d] has been configured ssid with sn{%d}.", i_rd, i_vap, i_svc_tmp_id);
+            // all the VAP i/f is here.
+            sprintf(tuple, "wlan_service_template.ServiceTemplate%d.portal_scheme", i_svc_tmp_id);
+            p_tmp = okos_conf_get_option_value_from_config(tuple);
+            if (NULL == p_tmp) {
+                continue;
+            }
+
+            /* Got a service template enabled portal. So, should do
+             * 1) Create ssid element;
+             * 2) Polling portal schemes by scheme name got here.
+             */
+            p_ssid = okos_conf_ins_list_member(config.ssid_conf);
+            p_ssid->scheme_name = p_tmp;
+            p_ssid->sn = i_svc_tmp_id;
+            sprintf(tuple, "wlan_service_template.ServiceTemplate%d.ssid", p_ssid->sn);
+            p_ssid->ssid = okos_conf_get_option_value_from_config(tuple);
+            debug(LOG_DEBUG, "radio[%d], vap[%d] configured ssid(%s) scheme(%s) sn(%d).", i_rd, i_vap, p_ssid->ssid, p_ssid->scheme_name, p_ssid->sn);
+
+            int i_schm;
+            for (i_schm = 0, p_schm_cfg = p_schemes->config;
+                    i_schm < p_schemes->num && p_schm_cfg->enable;
+                    i_schm++, p_schm_cfg++) {
+                if (0 != strncmp(p_schm_cfg->scheme_name, p_ssid->scheme_name, strlen(p_ssid->scheme_name))) {
+                    continue;
+                }
+                
+                if (2 == sscanf(p_schm_cfg->uri_path, "http://%[A-Za-z0-9.]%s", cfg, tuple)) {
+                    p_auth_svr = okos_conf_ins_list_member(p_ssid->auth_servers);
+                    okos_conf_set_str(p_auth_svr->authserv_hostname, cfg);
+                    okos_conf_set_str(p_auth_svr->authserv_path, tuple);
+                    okos_config_init_default_auth_server(p_auth_svr);
+                    debug(LOG_DEBUG, "add auth server(%s) with path(%s) into ssid(%s)", p_auth_svr->authserv_hostname, p_auth_svr->authserv_path, p_ssid->ssid);
+                }
+
+                p_ip_wlist = okos_conf_ins_list_member(p_ssid->ip_white_list);
+                p_ip_wlist->name = safe_strdup("ip white list");
+                debug(LOG_DEBUG, "load ip white list into ssid(%s)", p_ssid->ssid);
+                int i_ip;
+                for (i_ip = 0; i_ip < p_schm_cfg->ip_num; i_ip++) {
+                    p_ipx = okos_conf_ins_list_member(p_ip_wlist->rules);
+                    struct in_addr ipaddr;
+                    ipaddr.s_addr = p_schm_cfg->ip_list[i_ip].ip;
+                    p_ipx->mask = safe_strdup(inet_ntoa(ipaddr));
+                    p_ipx->target = TARGET_ACCEPT;
+                    debug(LOG_DEBUG, "load rule for %s", p_ipx->mask);
+                }
+
+                p_dn_wlist = okos_conf_ins_list_member(p_ssid->dn_white_list);
+                p_dn_wlist->name = safe_strdup("dn white list");
+                debug(LOG_DEBUG, "load domain name white list into ssid(%s)", p_ssid->ssid);
+                okos_list_for_each(p_dns, p_dns_list) {
+                    if (!p_dns->enable || 0 != strcmp(p_dns->name, p_schm_cfg->dns_set)) {
+                        continue;
+                    }
+
+                    debug(LOG_DEBUG, "found domain name set configuration [%s].", p_schm_cfg->dns_set);
+                    int i_key;
+                    okos_list_for_each_loop(p_key, p_dns->keylist,
+                            i_key = 0, i_key < p_dns->keycount, i_key++) {
+                        p_dn_white = okos_conf_ins_list_member(p_dn_wlist->rules);
+                        p_dn_white->target = TARGET_ACCEPT;
+                        p_dn_white->mask = safe_strdup(p_key->key);
+                        debug(LOG_DEBUG, "load rule for %s", p_dn_white->mask);
+                    }
+                    break;
+                }
+
+                break;
+            }
+        }
+    }
+
+    debug(LOG_DEBUG, "Polling ATH ifaces, and attach to ssid built up.");
+    t_ath_if_list *p_iface = NULL;
+    int vapGotLost;
+    for (i_rd = 0; i_rd < p_rdcfg->num; i_rd++) {
+        for (i_vap = 0; i_vap < p_rdcfg->radioinfo[i_rd].count; i_vap++) {
+            debug(LOG_DEBUG, "Checking radio[%d], vap[%d].", i_rd, i_vap);
+            vapGotLost = 1;
+            okos_list_for_each(p_ssid, config.ssid_conf) {
+                if ((int)p_ssid->sn == p_rdcfg->radioinfo[i_rd].service[i_vap]) {
+                    p_iface = okos_conf_ins_list_member(p_ssid->if_list);
+                    safe_asprintf(&p_iface->if_name, "ath%d%d", i_rd, i_vap);
+                    int getBssidFailed = okos_get_bssid(p_iface->if_name, &p_iface->bssid);
+                    if (getBssidFailed) {
+                        p_iface->bssid = safe_strdup(config.device_id);
+                    }
+                    p_iface->ssid = p_ssid;
+
+                    debug(LOG_DEBUG, "Attach iface %s to ssid %s", p_iface->if_name, p_ssid->ssid);
+                    vapGotLost = 0;
+                    break;
+                }
+            }
+            if (vapGotLost) {
+                debug(LOG_DEBUG, "radio[%d], vap[%d] can't find corresponding ssid.", i_rd, i_vap);
+            }
+        }
+    }
+
+    free(p_rdcfg);
+    //free(p_stcfg);
+    portal_scheme_free_all(p_schemes);
+    dnsset_cfg_free(p_dns_list);
+
+    debug(LOG_INFO, "Reading configuration from uci finished...");
 }
 
 
-void
-config_simulate(void)
+void config_simulate(void)
 {
     okos_config_read();
+}
+
+
+/*
+static void okos_simulate_3ssid(void)
+{
 
     s_config *my_config = &config;
 
-    okos_conf_set_str(my_config, device_id, "00:55:AA:E7:38:29");
-    okos_conf_set_str(my_config, domain_name, "76e0d05f7a6a4ae9a7d2b582c6ec74be");
-    okos_conf_set_str(my_config, gw_id, my_config->device_id);
+    okos_conf_set_str(my_config->device_id, "00:55:AA:E7:38:29");
+    okos_conf_set_str(my_config->domain_name, "76e0d05f7a6a4ae9a7d2b582c6ec74be");
+    okos_conf_set_str(my_config->gw_id, my_config->device_id);
 
     t_ssid_config *ssid;
     t_auth_serv *authsvrs;
@@ -1343,154 +1618,154 @@ config_simulate(void)
     t_bridge_conf *brX;
 
     brX = okos_conf_append_list_member(my_config->br_conf);
-    okos_conf_set_str(brX, br_name, "br-lan1");
+    okos_conf_set_str(brX->br_name, "br-lan1");
 
-    /* 1st ssid */
+    // 1st ssid 
     ssid = okos_conf_append_list_member(my_config->ssid_conf);
     ssid->brx = brX;
     ifs = okos_conf_append_list_member(ssid->if_list);
     ifs->ssid = ssid;
     ifs->brx = brX;
     brX->ifx[0] = ifs;
-    okos_conf_set_str(ifs, if_name, "ath00");
-    okos_conf_set_str(ifs, bssid, "00:55:AA:E7:38:29");
+    okos_conf_set_str(ifs->if_name, "ath00");
+    okos_conf_set_str(ifs->bssid, "00:55:AA:E7:38:29");
     ifs = okos_conf_append_list_member(ifs);
     ifs->ssid = ssid;
     ifs->brx = brX;
     brX->ifx[2] = ifs;
-    okos_conf_set_str(ifs, if_name, "ath10");
-    okos_conf_set_str(ifs, bssid, "00:55:AA:E7:38:29");
+    okos_conf_set_str(ifs->if_name, "ath10");
+    okos_conf_set_str(ifs->bssid, "00:55:AA:E7:38:29");
 
 
     okos_conf_set_int(ssid, sn, 1);
-    okos_conf_set_str(ssid, ssid, "oakridge_test_1");
-    okos_conf_set_str(ssid, br_name, "br-lan1");
-    okos_conf_set_str(ssid, scheme_name, "1");
+    okos_conf_set_str(ssid->ssid, "oakridge_test_1");
+    okos_conf_set_str(ssid->br_name, "br-lan1");
+    okos_conf_set_str(ssid->scheme_name, "1");
 
     authsvrs = okos_conf_append_list_member(ssid->auth_servers);
     okos_config_init_default_auth_server(authsvrs);
-    okos_conf_set_str(authsvrs, authserv_hostname, "139.196.188.253");
-    okos_conf_set_str(authsvrs, authserv_path, "/auth/device/");
+    okos_conf_set_str(authsvrs->authserv_hostname, "139.196.188.253");
+    okos_conf_set_str(authsvrs->authserv_path, "/auth/device/");
 
     trusted_mac = okos_conf_append_list_member(ssid->mac_white_list);
-    okos_conf_set_str(trusted_mac, mac, "00:61:71:83:25:7B"); 
+    okos_conf_set_str(trusted_mac->mac, "00:61:71:83:25:7B"); 
     trusted_mac = okos_conf_append_list_member(trusted_mac);
-    okos_conf_set_str(trusted_mac, mac, "f4:0f:24:26:b1:59"); 
+    okos_conf_set_str(trusted_mac->mac, "f4:0f:24:26:b1:59"); 
 
     dn_white_list = okos_conf_append_list_member(ssid->dn_white_list);
-    okos_conf_set_str(dn_white_list, name, "dn white list");
+    okos_conf_set_str(dn_white_list->name, "dn white list");
     dns = okos_conf_append_list_member(dn_white_list->rules);
-    okos_conf_set_str(dns, mask, "dangdang.com");
+    okos_conf_set_str(dns->mask, "dangdang.com");
     okos_conf_set_int(dns, target, TARGET_ACCEPT);
     dns = okos_conf_append_list_member(dn_white_list->rules);
-    okos_conf_set_str(dns, mask, "a1.oakridge.io");
-    okos_conf_set_str(dns, port, "39901");
-    okos_conf_set_str(dns, protocol, "tcp");
+    okos_conf_set_str(dns->mask, "a1.oakridge.io");
+    okos_conf_set_str(dns->port, "39901");
+    okos_conf_set_str(dns->protocol, "tcp");
     okos_conf_set_int(dns, target, TARGET_ACCEPT);
 
     ip_set = okos_conf_append_list_member(ssid->ip_white_list);
-    okos_conf_set_str(ip_set, name, "ip white list");
+    okos_conf_set_str(ip_set->name, "ip white list");
     ipx = okos_conf_append_list_member(ip_set->rules);
-    okos_conf_set_str(ipx, mask, "192.168.0.1");
+    okos_conf_set_str(ipx->mask, "192.168.0.1");
     okos_conf_set_int(ipx, target, TARGET_ACCEPT);
     ipx = okos_conf_append_list_member(ip_set->rules);
-    okos_conf_set_str(ipx, mask, "192.168.100.1");
+    okos_conf_set_str(ipx->mask, "192.168.100.1");
     okos_conf_set_int(ipx, target, TARGET_ACCEPT);
 
 
-    /* second ssid */
+    // second ssid 
     ssid = okos_conf_append_list_member(my_config->ssid_conf);
     ssid->brx = brX;
     ifs = okos_conf_append_list_member(ssid->if_list);
     ifs->ssid = ssid;
     ifs->brx = brX;
     brX->ifx[1] = ifs;
-    okos_conf_set_str(ifs, if_name, "ath01");
-    okos_conf_set_str(ifs, bssid, "00:55:AA:E7:38:29");
+    okos_conf_set_str(ifs->if_name, "ath01");
+    okos_conf_set_str(ifs->bssid, "00:55:AA:E7:38:29");
     ifs = okos_conf_append_list_member(ifs);
     ifs->ssid = ssid;
     ifs->brx = brX;
     brX->ifx[3] = ifs;
-    okos_conf_set_str(ifs, if_name, "ath11");
-    okos_conf_set_str(ifs, bssid, "00:55:AA:E7:38:29");
+    okos_conf_set_str(ifs->if_name, "ath11");
+    okos_conf_set_str(ifs->bssid, "00:55:AA:E7:38:29");
 
     okos_conf_set_int(ssid, sn, 2);
-    okos_conf_set_str(ssid, ssid, "oakridge_test_2");
-    okos_conf_set_str(ssid, br_name, "br-lan1");
-    okos_conf_set_str(ssid, scheme_name, "1");
+    okos_conf_set_str(ssid->ssid, "oakridge_test_2");
+    okos_conf_set_str(ssid->br_name, "br-lan1");
+    okos_conf_set_str(ssid->scheme_name, "1");
 
     authsvrs = okos_conf_append_list_member(ssid->auth_servers);
     okos_config_init_default_auth_server(authsvrs);
-    okos_conf_set_str(authsvrs, authserv_hostname, "139.196.188.253");
-    okos_conf_set_str(authsvrs, authserv_path, "/auth/device/");
+    okos_conf_set_str(authsvrs->authserv_hostname, "139.196.188.253");
+    okos_conf_set_str(authsvrs->authserv_path, "/auth/device/");
 
     trusted_mac = okos_conf_append_list_member(ssid->mac_white_list);
-    okos_conf_set_str(trusted_mac, mac, "00:61:71:83:25:7B"); 
+    okos_conf_set_str(trusted_mac->mac, "00:61:71:83:25:7B"); 
     trusted_mac = okos_conf_append_list_member(trusted_mac);
-    okos_conf_set_str(trusted_mac, mac, "f4:0f:24:26:b1:59"); 
+    okos_conf_set_str(trusted_mac->mac, "f4:0f:24:26:b1:59"); 
 
     dn_white_list = okos_conf_append_list_member(ssid->dn_white_list);
-    okos_conf_set_str(dn_white_list, name, "dn white list");
+    okos_conf_set_str(dn_white_list->name, "dn white list");
     dns = okos_conf_append_list_member(dn_white_list->rules);
-    okos_conf_set_str(dns, mask, "oakridge.io");
+    okos_conf_set_str(dns->mask, "oakridge.io");
     okos_conf_set_int(dns, target, TARGET_ACCEPT);
     dns = okos_conf_append_list_member(dn_white_list->rules);
-    okos_conf_set_str(dns, mask, "apple.com.cn");
+    okos_conf_set_str(dns->mask, "apple.com.cn");
     okos_conf_set_int(dns, target, TARGET_ACCEPT);
     dns = okos_conf_append_list_member(dn_white_list->rules);
-    okos_conf_set_str(dns, mask, "apple.com");
+    okos_conf_set_str(dns->mask, "apple.com");
     okos_conf_set_int(dns, target, TARGET_ACCEPT);
 
     ip_set = okos_conf_append_list_member(ssid->ip_white_list);
-    okos_conf_set_str(ip_set, name, "ip white list");
+    okos_conf_set_str(ip_set->name, "ip white list");
     ipx = okos_conf_append_list_member(ip_set->rules);
-    okos_conf_set_str(ipx, mask, "192.168.0.1");
+    okos_conf_set_str(ipx->mask, "192.168.0.1");
     okos_conf_set_int(ipx, target, TARGET_ACCEPT);
     ipx = okos_conf_append_list_member(ip_set->rules);
-    okos_conf_set_str(ipx, mask, "192.168.100.1");
+    okos_conf_set_str(ipx->mask, "192.168.100.1");
     okos_conf_set_int(ipx, target, TARGET_ACCEPT);
 
     
-    /* Third ssid */
+    // Third ssid 
     ssid = okos_conf_append_list_member(my_config->ssid_conf);
     ssid->brx = brX;
     ifs = okos_conf_append_list_member(ssid->if_list);
     ifs->ssid = ssid;
     ifs->brx = brX;
     brX->ifx[4] = ifs;
-    okos_conf_set_str(ifs, if_name, "ath12");
-    okos_conf_set_str(ifs, bssid, "00:55:AA:E7:38:29");
+    okos_conf_set_str(ifs->if_name, "ath12");
+    okos_conf_set_str(ifs->bssid, "00:55:AA:E7:38:29");
 
     okos_conf_set_int(ssid, sn, 3);
-    okos_conf_set_str(ssid, ssid, "oakridge_test_3");
-    okos_conf_set_str(ssid, br_name, "br-lan1");
-    okos_conf_set_str(ssid, scheme_name, "1");
+    okos_conf_set_str(ssid->ssid, "oakridge_test_3");
+    okos_conf_set_str(ssid->br_name, "br-lan1");
+    okos_conf_set_str(ssid->scheme_name, "1");
 
     authsvrs = okos_conf_append_list_member(ssid->auth_servers);
     okos_config_init_default_auth_server(authsvrs);
-    okos_conf_set_str(authsvrs, authserv_hostname, "139.196.188.253");
-    okos_conf_set_str(authsvrs, authserv_path, "/auth/device/");
+    okos_conf_set_str(authsvrs->authserv_hostname, "139.196.188.253");
+    okos_conf_set_str(authsvrs->authserv_path, "/auth/device/");
 
     trusted_mac = okos_conf_append_list_member(ssid->mac_white_list);
-    okos_conf_set_str(trusted_mac, mac, "f4:0f:24:26:b1:59"); 
+    okos_conf_set_str(trusted_mac->mac, "f4:0f:24:26:b1:59"); 
 
     dn_white_list = okos_conf_append_list_member(ssid->dn_white_list);
-    okos_conf_set_str(dn_white_list, name, "dn white list");
+    okos_conf_set_str(dn_white_list->name, "dn white list");
     dns = okos_conf_append_list_member(dn_white_list->rules);
-    okos_conf_set_str(dns, mask, "ctrip.com");
+    okos_conf_set_str(dns->mask, "ctrip.com");
     okos_conf_set_int(dns, target, TARGET_ACCEPT);
     dns = okos_conf_append_list_member(dn_white_list->rules);
-    okos_conf_set_str(dns, mask, "dianping.com");
+    okos_conf_set_str(dns->mask, "dianping.com");
     okos_conf_set_int(dns, target, TARGET_ACCEPT);
 
     ip_set = okos_conf_append_list_member(ssid->ip_white_list);
-    okos_conf_set_str(ip_set, name, "ip white list");
+    okos_conf_set_str(ip_set->name, "ip white list");
     ipx = okos_conf_append_list_member(ip_set->rules);
-    okos_conf_set_str(ipx, mask, "192.168.0.1");
+    okos_conf_set_str(ipx->mask, "192.168.0.1");
     okos_conf_set_int(ipx, target, TARGET_ACCEPT);
 
 }
-
+*/
 
 
 t_ssid_config * okos_conf_get_ssid_by_name(const char *name)
@@ -1523,5 +1798,161 @@ t_ath_if_list * okos_conf_get_ifx_by_name(const char *name)
     }
     return NULL;
 }
+
+#define OKOS_CONF_GET_STR(element) (element ? element : "NULL")
+#define OKOS_CONF_APP_INT(msg, num) pstr_append_sprintf(p_str, "%s: %d\n", msg, num)
+#define OKOS_CONF_APP_STR(msg, str) pstr_append_sprintf(p_str, "%s: %s\n", msg, OKOS_CONF_GET_STR(str))
+
+static char * okos_conf_parse_target(int target)
+{
+    switch(target) {
+        case TARGET_DROP:
+            return "DROP";
+        case TARGET_REJECT:
+            return "REJECT";
+        case TARGET_ACCEPT:
+            return "ACCEPT";
+        case TARGET_LOG:
+            return "LOG";
+        case TARGET_ULOG:
+            return "ULOG";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+static void okos_conf_get_firewall(pstr_t * p_str, t_firewall_rule *p_head)
+{
+    t_firewall_rule *p_rule;
+    okos_list_for_each(p_rule, p_head) {
+#if 0
+        OKOS_CONF_APP_STR("  Mask", p_rule->mask);
+        OKOS_CONF_APP_STR("  Port", p_rule->port);
+        OKOS_CONF_APP_STR("  Protocol", p_rule->protocol);
+        OKOS_CONF_APP_STR("  Target", okos_conf_parse_target(p_rule->target));
+#endif
+        pstr_append_sprintf(p_str, "  {Mask = %s, Port = %s, Protocol = %s, Target = %s}\n",
+                OKOS_CONF_GET_STR(p_rule->mask), OKOS_CONF_GET_STR(p_rule->port),
+                OKOS_CONF_GET_STR(p_rule->protocol), OKOS_CONF_GET_STR(okos_conf_parse_target(p_rule->target)));
+
+        pstr_append_sprintf(p_str, "  --Mask %s IP Set.\n", p_rule->mask_is_ipset ? "is" : "isn't");
+    }
+}
+
+char *
+okos_conf_get_all(void)
+{
+    pstr_t *p_str = pstr_new();
+    pstr_cat(p_str, "\n+---------------------------+");
+    pstr_cat(p_str, "\n| OKOS Portal Configuration |");
+    pstr_cat(p_str, "\n+---------------------------+\n");
+
+    LOCK_CONFIG();
+
+    pstr_cat(p_str, ">>>>Internal file section<<<<\n");
+    OKOS_CONF_APP_STR("Configuation file", config.configfile);
+    OKOS_CONF_APP_STR("Html message file", config.htmlmsgfile);
+    OKOS_CONF_APP_STR("WDCTL socket file", config.wdctl_sock);
+    OKOS_CONF_APP_STR("Internal socket file", config.internal_sock);
+    OKOS_CONF_APP_STR("PID file", config.pidfile);
+    
+    pstr_cat(p_str, ">>>>Gateway section<<<<\n");
+    OKOS_CONF_APP_INT("Delta traffic", config.deltatraffic);
+    pstr_append_sprintf(p_str, "The program is %s a daemon\n", config.daemon ? "" : "not");
+    OKOS_CONF_APP_STR("External interface", config.external_interface);
+    OKOS_CONF_APP_STR("Gateway ID", config.gw_id);
+    OKOS_CONF_APP_STR("Gateway Interface", config.gw_interface);
+    OKOS_CONF_APP_STR("Gateway address", config.gw_address);
+    OKOS_CONF_APP_INT("Gateway port", config.gw_port);
+
+    pstr_cat(p_str, ">>>>Httpd section<<<<\n");
+    OKOS_CONF_APP_STR("Httpd Name", config.httpdname);
+    OKOS_CONF_APP_INT("Httpd Max Connections", config.httpdmaxconn);
+    OKOS_CONF_APP_STR("Httpd realm", config.httpdrealm);
+    OKOS_CONF_APP_STR("Httpd user name", config.httpdusername);
+    OKOS_CONF_APP_STR("Httpd password", config.httpdpassword);
+
+    pstr_cat(p_str, ">>>>Client Control Section<<<<\n");
+    OKOS_CONF_APP_INT("Client timeout", config.clienttimeout);
+    OKOS_CONF_APP_INT("Check Interval", config.checkinterval);
+
+    OKOS_CONF_APP_INT("Proxy Port", config.proxy_port);
+    OKOS_CONF_APP_STR("ARP table path", config.arp_table_path);
+    
+    pstr_cat(p_str, ">>>>SSL section<<<<\n");
+    OKOS_CONF_APP_INT("SSL verify", config.ssl_verify);
+    OKOS_CONF_APP_INT("SSL use sni", config.ssl_use_sni);
+    OKOS_CONF_APP_STR("SSL certs", config.ssl_certs);
+    OKOS_CONF_APP_STR("SSL cipher list", config.ssl_cipher_list);
+
+    pstr_cat(p_str, ">>>>Firewall Rules Section<<<<\n");
+    t_firewall_ruleset *p_fw;
+    okos_list_for_each(p_fw, config.rulesets) {
+        OKOS_CONF_APP_STR("@@@@", p_fw->name);
+        okos_conf_get_firewall(p_str, p_fw->rules);
+    }
+
+    pstr_cat(p_str, ">>>>Trusted MAC list Section<<<<\n");
+    t_trusted_mac *p_trusted_mac;
+    okos_list_for_each(p_trusted_mac, config.trustedmaclist) {
+        OKOS_CONF_APP_STR("  MAC", p_trusted_mac->mac);
+    }
+
+
+    pstr_cat(p_str, ">>>>Popular Servers Section<<<<\n");
+    t_popular_server *p_ps;
+    okos_list_for_each(p_ps, config.popular_servers) {
+        OKOS_CONF_APP_STR("  Host Name", p_ps->hostname);
+    }
+
+    pstr_cat(p_str, "\n\n>>>>Configuration section<<<<\n");
+    OKOS_CONF_APP_STR("Device ID", config.device_id);
+    OKOS_CONF_APP_STR("Domain Name", config.domain_name);
+    pstr_cat(p_str, ">>>>SSID Configuration<<<<\n");
+    t_ssid_config *p_ssid;
+    okos_list_for_each(p_ssid, config.ssid_conf) {
+        OKOS_CONF_APP_INT("  sn", p_ssid->sn);
+        OKOS_CONF_APP_STR("  SSID", p_ssid->ssid);
+        OKOS_CONF_APP_STR("  Scheme", p_ssid->scheme_name);
+        pstr_cat(p_str, ">>Interfaces attched to this SSID<<\n");
+        t_ath_if_list *p_if;
+        okos_list_for_each(p_if, p_ssid->if_list) {
+            OKOS_CONF_APP_STR("  Interface Name", p_if->if_name);
+            OKOS_CONF_APP_STR("  BSSID", p_if->bssid);
+        }
+        pstr_cat(p_str, ">>Authentication Server<<\n");
+        t_auth_serv *p_svr;
+        okos_list_for_each(p_svr, p_ssid->auth_servers) {
+            OKOS_CONF_APP_STR("  Host Name", p_svr->authserv_hostname);
+            OKOS_CONF_APP_STR("  Path", p_svr->authserv_path);
+            OKOS_CONF_APP_STR("  Login script path", p_svr->authserv_login_script_path_fragment);
+            OKOS_CONF_APP_STR("  Portal script path", p_svr->authserv_portal_script_path_fragment);
+            OKOS_CONF_APP_STR("  Msg script path", p_svr->authserv_msg_script_path_fragment);
+            OKOS_CONF_APP_STR("  Ping script path", p_svr->authserv_ping_script_path_fragment);
+            OKOS_CONF_APP_STR("  Auth script path", p_svr->authserv_auth_script_path_fragment);
+            OKOS_CONF_APP_INT("  Http port", p_svr->authserv_http_port);
+            OKOS_CONF_APP_INT("  SSL port", p_svr->authserv_ssl_port);
+            pstr_append_sprintf(p_str, "  SSL %s\n", p_svr->authserv_use_ssl ? "Enabled" : "Disabled");
+            pstr_cat(p_str, "------------------------\n");
+        }
+        OKOS_CONF_APP_STR("@", p_ssid->dn_white_list->name);
+        okos_conf_get_firewall(p_str, p_ssid->dn_white_list->rules);
+        OKOS_CONF_APP_STR("@", p_ssid->ip_white_list->name);
+        okos_conf_get_firewall(p_str, p_ssid->ip_white_list->rules);
+        pstr_cat(p_str, ">>MAC address white list<<\n");
+        t_trusted_mac *p_mac;
+        okos_list_for_each(p_mac, p_ssid->mac_white_list) {
+            OKOS_CONF_APP_STR("  MAC", p_mac->mac);
+        }
+    }
+    pstr_cat(p_str, "========================\n");
+
+    UNLOCK_CONFIG();
+
+    pstr_cat(p_str, "That's all.\n");
+
+    return pstr_to_string(p_str);
+}
+
 
 #endif /* OK_PATCH */
