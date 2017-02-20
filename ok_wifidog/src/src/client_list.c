@@ -44,6 +44,8 @@
 
 #if OK_PATCH
 #include "okos_auth_param.h"
+#include "firewall.h"
+#include "pstring.h"
 #endif
 
 /** @internal
@@ -108,22 +110,38 @@ client_list_insert_client(t_client * client)
     firstclient = client;
 }
 #if OK_PATCH
+static const t_client * okos_client_query_mac(const t_client *first, const char *mac)
+{
+    if (NULL == first || NULL == mac) {
+        return NULL;
+    }
+
+    const t_client *ptr = first;
+    while (NULL != ptr) {
+        if (0 == strcasecmp(ptr->mac, mac)) {
+            return ptr;
+        }
+        ptr = ptr->next;
+    }
+
+    return NULL;
+}
 
 t_client *
 okos_client_get_new_client(const char * ip)
 {
-    debug(LOG_DEBUG, "start to build a new client by ip(%s)", ip);
+    debug(LOG_DEBUG, "start to build a new client {ip:%s}.", ip);
 
     t_client * client = client_get_new();
     int getMacBrXSuccess = arp_get_all(ip, &client->mac, &client->brX);
     if (0 != getMacBrXSuccess) {
-        debug(LOG_WARNING, "Can't find out match entry in arp table for client ip(%s)", ip);
+        debug(LOG_WARNING, "Can't find out match entry in arp table for client {ip:%s}", ip);
         client_free_node(client);
         return NULL;
     } else {
-        client->ip = safe_strdup(ip);
+        okos_client_set_strdup(client->ip, ip);
         if (NULL == okos_fill_client_info_by_stainfo(client)) {
-            debug(LOG_WARNING, "cant fill the local informaiton for client ip(%s)", ip);
+            debug(LOG_WARNING, "cant fill the local informaiton for client {ip:%s}.", ip);
             client_free_node(client);
             return NULL;
         } 
@@ -328,6 +346,7 @@ client_dup(const t_client * src)
     new->counters.outgoing_history = src->counters.outgoing_history;
     new->counters.outgoing_delta = src->counters.outgoing_delta;
     new->counters.last_updated = src->counters.last_updated;
+
 #if OK_PATCH
     new->auth_mode = src->auth_mode;
     new->user_name = safe_strdup(src->user_name);
@@ -341,6 +360,7 @@ client_dup(const t_client * src)
     new->ifx = src->ifx;
     new->ssid_conf = src->ssid_conf;
 #endif /* OK_PATCH */
+
     new->next = NULL;
 
     return new;
@@ -378,7 +398,7 @@ client_list_find(const char *ip, const char *mac)
 
     ptr = firstclient;
     while (NULL != ptr) {
-        if (0 == strcmp(ptr->ip, ip) && 0 == strcmp(ptr->mac, mac))
+        if (0 == strcmp(ptr->ip, ip) && 0 == strcasecmp(ptr->mac, mac))
             return ptr;
         ptr = ptr->next;
     }
@@ -392,7 +412,7 @@ client_list_find_by_ssid(const char *mac, const char *ssid)
 {
     t_client *pclient;
     okos_list_for_each(pclient, firstclient) {
-        if (0 == strcmp(pclient->mac, mac) && 0 == strcmp(pclient->ssid, ssid))
+        if (0 == strcasecmp(pclient->mac, mac) && 0 == strcmp(pclient->ssid, ssid))
             return pclient;
     }
 
@@ -434,7 +454,7 @@ client_list_find_by_mac(const char *mac)
 
     ptr = firstclient;
     while (NULL != ptr) {
-        if (0 == strcmp(ptr->mac, mac))
+        if (0 == strcasecmp(ptr->mac, mac))
             return ptr;
         ptr = ptr->next;
     }
@@ -562,5 +582,56 @@ char * okos_client_get_ssid(const t_client *client)
 {
     return client->ssid;
 }
+#if 0
+static void okos_get_client_status_format1(const t_client *p_node, pstr_t *p_str)
+{
+    pstr_append_sprintf(p_str, "IP: %s\n", p_node->ip);
+    pstr_append_sprintf(p_str, "MAC: %s\n", p_node->mac);
+    pstr_append_sprintf(p_str, "AUTH_MODE: %s\n", p_node->auth_mode);
+    pstr_append_sprintf(p_str, "SSID: %s\n", p_node->ssid);
+    pstr_append_sprintf(p_str, "USERNAME: %s\n", p_node->user_name);
+}
+#endif
 
+static void okos_get_client_status_format2(const t_client *p_node, pstr_t *p_str)
+{
+    pstr_append_sprintf(p_str, "%15s %17s %10d [%s] [%s]", p_node->ip, p_node->mac, p_node->auth_mode, p_node->ssid, p_node->user_name);
+}
+
+static void okos_get_client_status(const t_client *p_node, pstr_t *p_str)
+{
+    okos_get_client_status_format2(p_node, p_str);
+}
+
+char *
+okos_get_client_status_text(const char *p_mac, const char *p_ssid)
+{
+    pstr_t *p_str = pstr_new();
+    pstr_append_sprintf(p_str, "Status of client [%s]", p_mac);
+    if (p_ssid) {
+        pstr_append_sprintf(p_str, " on ssid[%s]:\n", p_ssid);
+    } else {
+        pstr_cat(p_str, " on every ssid:\n");
+    }
+    pstr_cat(p_str, "IP Address      MAC Address       AUTH MODE   SSID                  User Name\n");
+
+	LOCK_CLIENT_LIST();
+	const t_client *p_node;
+    if (p_ssid) {
+        p_node = client_list_find_by_ssid(p_mac, p_ssid);
+        if (p_node) {
+            okos_get_client_status(p_node, p_str);
+        }
+    } else {
+        p_node = client_get_first_client();
+        while (NULL != p_node) {
+            p_node = okos_client_query_mac(p_node, p_mac);
+            okos_get_client_status(p_node, p_str);
+            p_node = p_node->next;
+        }
+    }
+	UNLOCK_CLIENT_LIST();
+    pstr_cat(p_str, "\nHave a good day.\n\n");
+    return pstr_to_string(p_str);
+}
 #endif
