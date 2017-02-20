@@ -213,21 +213,7 @@ static int _okos_http_parse_info(const unsigned char *info, const int len, t_cli
 	pre_parse(left, size, mac1);
 	char *mac;
 	okos_mac_bin2str(pos, &mac);
-	if (NULL == client->mac) {
-		debug(LOG_DEBUG, "Get MAC address from auth confirm informaion.");
-		client->mac = mac;
-	} else {
-		if (0 != strcasecmp(client->mac, mac)) {
-			debug(LOG_ERR, "MAC address got from auth server doesn't match,"
-					"use the new one to replace the old one.");
-			free(client->mac);
-			client->mac = mac;
-		}
-		else {
-			debug(LOG_DEBUG, "MAC address got from auth server matches.");
-			free(mac);
-		}
-	}
+	okos_client_update_str_after_casecmp(client->mac, mac);
 	post_parse(left, pos, size);
 
 	if (2 == mac_num) {
@@ -252,23 +238,10 @@ static int _okos_http_parse_info(const unsigned char *info, const int len, t_cli
 	char * username = safe_malloc(user_len + 1);
 	memcpy(username, pos, user_len);
 	username[user_len] = '\0';
-	if (NULL == client->user_name) {
-		client->user_name = username;
-		debug(LOG_DEBUG, "Yeah, you got a name! @%s@", client->user_name);
-	} else {
-		if (0 != strcmp(client->user_name, username)) {
-			free(client->user_name);
-			client->user_name = username;
-			debug(LOG_DEBUG, "Replace name by @%s@.", client->user_name);
-		} else {
-			free(username);
-		}
-	}
+	okos_client_update_str_after_cmp(client->user_name, username);
 
 	client->last_flushed = time(NULL);
-	debug(LOG_DEBUG, "Auth confirm information parse successful."
-			"client @%s@ [%s] {auth_mode = %d, remain_time = %d}",
-			client->user_name, client->mac, client->auth_mode, client->remain_time);
+	debug(LOG_DEBUG, "Auth confirm information parse successful for client {mac:%s, auth_mode:%d, remain_time:%d, user_name:%s}", client->mac, client->auth_mode, client->remain_time, client->user_name);
     return 0;
 }
 
@@ -293,11 +266,10 @@ int okos_http_parse_info(const char *auth_value, t_client *client)
     int canntParse = _okos_http_parse_info(param, len, client);
 
     if (!canntParse) {
-        debug(LOG_DEBUG, "Client @%s@ got authed with: Mac [%s];"
-				"auth mode: %d; remain seconde: %d",
+        debug(LOG_DEBUG, "Client {mac:%s, user_name:%s, auth_mode:%d, remain_time:%d} got authed.",
 		        client->user_name, client->mac, client->auth_mode, client->remain_time);
     }
-
+	debug(LOG_DEBUG, "parse auth value %s.", canntParse ? "failed" : "successfully");
     free(param);
 	return canntParse;
 }
