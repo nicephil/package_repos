@@ -165,7 +165,7 @@ denied_by_default:
     updateFailed = 2;
     return updateFailed;
 }
-#else
+#else /* OK_PATCH */
 
 /** Initiates a transaction with the auth server, either to authenticate or to
  * update the traffic counters at the server
