@@ -33,9 +33,9 @@ endef
 TARGET_CFLAGS+=-DOK_PATCH=1
 TARGET_LDFLAGS+=-lservices
 
-define Package/ok_wifidog/conffiles
-/etc/wifidog.conf
-endef
+#define Package/ok_wifidog/conffiles
+#/etc/wifidog.conf
+#endef
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
