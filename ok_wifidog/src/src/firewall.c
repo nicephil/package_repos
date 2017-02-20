@@ -406,14 +406,17 @@ fw_sync_with_authserver(void)
     UNLOCK_CLIENT_LIST();
 
     int updateFailed;
-    t_authresponse authresponse;
     for (p1 = p2 = worklist; NULL != p1; p1 = p2) {
         p2 = p1->next;
         debug(LOG_DEBUG, "Start to check client {%s, %s}.", p1->mac, p1->ip);
 
         /* Update the counters on the remote server only if we have an auth server */
         updateFailed = 1;
+
+#ifdef OKOS_AUTH_CONFIRM_PERIOD
+        t_authresponse authresponse;
         updateFailed = auth_server_request(&authresponse, p1);
+#endif
 
         this_timer = p1->remain_time + p1->last_flushed;
         
