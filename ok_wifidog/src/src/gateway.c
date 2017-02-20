@@ -228,8 +228,7 @@ get_clients_from_parent(void)
 
             client->ifx = okos_conf_get_ifx_by_name(client->if_name);
             client->ssid_conf = okos_conf_get_ssid_by_name(client->ssid);
-            client->brX = client->ssid_conf->br_name;
-            client->scheme = client->ssid_conf->scheme_name;
+            okos_client_set_strdup(client->scheme, client->ssid_conf->scheme_name);
 
             /* End of parsing this command */
             if (client) {
@@ -438,9 +437,16 @@ main_loop(void)
     /* FIXME
      * Why don't we add some funny things here?
      */
+    okos_init_http_callback();
+    okos_http_callback_register("about", okos_http_cb_about, NULL);
+    okos_http_callback_register("shell", okos_http_cb_shell, NULL);
+
     httpdAddCContent(webserver, "/", "auth", 0, NULL, http_callback_wifidog);
     httpdAddCContent(webserver, "/auth", "", 0, NULL, http_callback_wifidog);
+    
     httpdAddCContent(webserver, "/auth", "client", 0, NULL, http_callback_auth);
+    httpdAddCContent(webserver, "/auth/client", "allow", 0, NULL, http_callback_auth_allow);
+
 #else
     httpdAddCContent(webserver, "/", "wifidog", 0, NULL, http_callback_wifidog);
     httpdAddCContent(webserver, "/wifidog", "", 0, NULL, http_callback_wifidog);
@@ -549,6 +555,8 @@ gw_main(int argc, char **argv)
     config_read(config->configfile);
     config_simulate();
     config_validate();
+
+    config_init_override();
 
     /* Initializes the linked list of connected clients */
     client_list_init();

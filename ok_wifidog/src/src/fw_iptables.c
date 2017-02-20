@@ -97,11 +97,7 @@ iptables_insert_gateway_id(char **input)
         memcpy(token, "%1$s", 4);
 
     config = config_get_config();
-#if OK_PATCH
-    tmp_intf = safe_strdup("okos");
-#else
     tmp_intf = safe_strdup(config->gw_interface);
-#endif
     if (strlen(tmp_intf) > CHAIN_NAME_MAX_LEN) {
         *(tmp_intf + CHAIN_NAME_MAX_LEN) = '\0';
     }
@@ -453,15 +449,12 @@ iptables_fw_init(void)
         iptables_fw_set_authservers();
         */
         iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -m mark --mark 0x%u -j " CHAIN_LOCKED, sn, FW_MARK_LOCKED);
-        iptables_load_ruleset("filter", FWRULESET_LOCKED_USERS, CHAIN_LOCKED);
 
         iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -j " CHAIN_GLOBAL, sn);
 
         iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -m mark --mark 0x%u -j " CHAIN_VALIDATE, sn, FW_MARK_PROBATION);
-        iptables_load_ruleset("filter", FWRULESET_VALIDATING_USERS, CHAIN_VALIDATE);
 
         iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -m mark --mark 0x%u -j " CHAIN_KNOWN, sn, FW_MARK_KNOWN);
-        iptables_load_ruleset("filter", FWRULESET_KNOWN_USERS, CHAIN_KNOWN);
 
         if (got_authdown_ruleset) {
             iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -m mark --mark 0x%u -j " CHAIN_AUTH_IS_DOWN,
@@ -477,13 +470,17 @@ iptables_fw_init(void)
         iptables_push_ruleset("nat", ssid->ip_white_list, CHAIN_IP_ALLOWED_i, sn);
 
         iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -j " CHAIN_UNKNOWN, sn);
-        iptables_load_ruleset("filter", FWRULESET_UNKNOWN_USERS, CHAIN_UNKNOWN);
-        iptables_do_command("-t filter -A " CHAIN_UNKNOWN " -j REJECT --reject-with icmp-port-unreachable");
 
     }
 
-    iptables_load_ruleset("filter", FWRULESET_GLOBAL, CHAIN_GLOBAL);
     iptables_load_ruleset("nat", FWRULESET_GLOBAL, CHAIN_GLOBAL);
+    iptables_load_ruleset("filter", FWRULESET_GLOBAL, CHAIN_GLOBAL);
+
+    iptables_load_ruleset("filter", FWRULESET_LOCKED_USERS, CHAIN_LOCKED);
+    iptables_load_ruleset("filter", FWRULESET_VALIDATING_USERS, CHAIN_VALIDATE);
+    iptables_load_ruleset("filter", FWRULESET_KNOWN_USERS, CHAIN_KNOWN);
+    iptables_load_ruleset("filter", FWRULESET_UNKNOWN_USERS, CHAIN_UNKNOWN);
+    iptables_do_command("-t filter -A " CHAIN_UNKNOWN " -j REJECT --reject-with icmp-port-unreachable");
 
     UNLOCK_CONFIG();
 

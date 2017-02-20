@@ -96,7 +96,7 @@ static inline void okos_http_ins_str(const char *desc, unsigned char **pt)
 static unsigned char * okos_http_serial_auth_info(const t_client *client, int *len)
 {
 //    okos_http_simulate_client_info(client, &info);
-	debug(LOG_INFO, "serialize the local information into buffer.");
+	debug(LOG_DEBUG, "serialize the local information into buffer.");
 
     unsigned char * urltmp = safe_malloc(sizeof(t_http_auth_info));
     unsigned char * pt = urltmp;
@@ -111,7 +111,7 @@ static unsigned char * okos_http_serial_auth_info(const t_client *client, int *l
     memcpy(pt, (char *)(&(client_ip)), sizeof(client_ip));
     pt += sizeof(client_ip);
     
-	okos_http_ins_str(client->ssid_conf->ssid, &pt);
+	okos_http_ins_str(client->ssid, &pt);
 	okos_http_ins_str(pconfig->domain_name, &pt);
     okos_http_ins_str(client->ssid_conf->scheme_name, &pt);
 
@@ -156,7 +156,7 @@ static unsigned char * okos_http_hex2byte(const char *hex, int *len)
 
 static char * okos_http_byte2hex(const unsigned char *bytes, const int len)
 {
-	debug(LOG_INFO, "start to transfer the date to ascii.");
+	debug(LOG_DEBUG, "start to transfer the date to ascii.");
 
     char *hex = safe_malloc(len*2+1);
     char alph[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
@@ -171,7 +171,7 @@ static char * okos_http_byte2hex(const unsigned char *bytes, const int len)
 
 static inline void okos_http_encrypt_auth_info(unsigned char *hex, const int len)
 {
-	debug(LOG_INFO, "start to encrypt the auth information.");
+	debug(LOG_DEBUG, "start to encrypt the auth information.");
     int i;
     for (i = 0; i < len; i++) hex[i] ^= 0xDA;
 }
@@ -213,21 +213,7 @@ static int _okos_http_parse_info(const unsigned char *info, const int len, t_cli
 	pre_parse(left, size, mac1);
 	char *mac;
 	okos_mac_bin2str(pos, &mac);
-	if (NULL == client->mac) {
-		debug(LOG_DEBUG, "Get MAC address from auth confirm informaion.");
-		client->mac = mac;
-	} else {
-		if (0 != strcasecmp(client->mac, mac)) {
-			debug(LOG_ERR, "MAC address got from auth server doesn't match,"
-					"use the new one to replace the old one.");
-			free(client->mac);
-			client->mac = mac;
-		}
-		else {
-			debug(LOG_DEBUG, "MAC address got from auth server matches.");
-			free(mac);
-		}
-	}
+	okos_client_update_str_after_casecmp(client->mac, mac);
 	post_parse(left, pos, size);
 
 	if (2 == mac_num) {
@@ -252,29 +238,16 @@ static int _okos_http_parse_info(const unsigned char *info, const int len, t_cli
 	char * username = safe_malloc(user_len + 1);
 	memcpy(username, pos, user_len);
 	username[user_len] = '\0';
-	if (NULL == client->user_name) {
-		client->user_name = username;
-		debug(LOG_DEBUG, "Yeah, you got a name! @%s@", client->user_name);
-	} else {
-		if (0 != strcmp(client->user_name, username)) {
-			free(client->user_name);
-			client->user_name = username;
-			debug(LOG_DEBUG, "Replace name by @%s@.", client->user_name);
-		} else {
-			free(username);
-		}
-	}
+	okos_client_update_str_after_cmp(client->user_name, username);
 
 	client->last_flushed = time(NULL);
-	debug(LOG_DEBUG, "Auth confirm information parse successful."
-			"client @%s@ [%s] {auth_mode = %d, remain_time = %d}",
-			client->user_name, client->mac, client->auth_mode, client->remain_time);
+	debug(LOG_DEBUG, "Auth confirm information parse successful for client {mac:%s, auth_mode:%d, remain_time:%d, user_name:%s}", client->mac, client->auth_mode, client->remain_time, client->user_name);
     return 0;
 }
 
 char * okos_http_insert_parameter(t_client *client)
 {
-	debug(LOG_INFO, "start to insert parameter to auth info..");
+	debug(LOG_DEBUG, "start to insert parameter to auth info..");
     int len = 0;
     unsigned char * urlBytes = okos_http_serial_auth_info(client, &len);
     okos_http_encrypt_auth_info(urlBytes, len);
@@ -286,18 +259,17 @@ char * okos_http_insert_parameter(t_client *client)
 
 int okos_http_parse_info(const char *auth_value, t_client *client)
 {
-	debug(LOG_INFO, "start to parse auth value.");
+	debug(LOG_DEBUG, "start to parse auth value.");
 	int len = 0;
     unsigned char *param = okos_http_hex2byte(auth_value, &len);
 	okos_http_encrypt_auth_info(param, len);
     int canntParse = _okos_http_parse_info(param, len, client);
 
     if (!canntParse) {
-        debug(LOG_DEBUG, "Client @%s@ got authed with: Mac [%s];"
-				"auth mode: %d; remain seconde: %d",
+        debug(LOG_DEBUG, "Client {mac:%s, user_name:%s, auth_mode:%d, remain_time:%d} got authed.",
 		        client->user_name, client->mac, client->auth_mode, client->remain_time);
     }
-
+	debug(LOG_DEBUG, "parse auth value %s.", canntParse ? "failed" : "successfully");
     free(param);
 	return canntParse;
 }

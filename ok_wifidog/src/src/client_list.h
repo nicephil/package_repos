@@ -147,8 +147,70 @@ void client_free_node(t_client *);
 
 t_client * okos_client_list_flush(t_client * , const unsigned int);
 t_client * okos_client_get_new_client(const char * );
+char * okos_get_client_status_text(const char *, const char *);
 
 char * okos_client_get_ssid(const t_client *);
+t_client *client_list_find_by_ssid(const char *, const char *);
+
+#define okos_client_set_str(element, src) do { \
+    if (element) free(element); \
+    element = (src); \
+    src = NULL; \
+} while (0)
+
+#define okos_client_set_strdup(element, src) do { \
+    if (element) free(element); \
+    element = safe_strdup(src); \
+} while (0)
+
+
+#define okos_client_update_str_after_cmp(element, src) do { \
+    if (element && 0 != strcmp(element, src)) { \
+        free(element); \
+        element = NULL; \
+    } \
+    if (NULL == element) { \
+        element = src; \
+    } else { \
+        free(src); \
+    } \
+    src = NULL; \
+} while (0)
+
+#define okos_client_update_str_after_casecmp(element, src) do { \
+    if (element && 0 != strcasecmp(element, src)) { \
+        free(element); \
+        element = NULL; \
+    } \
+    if (NULL == element) { \
+        element = src; \
+    } else { \
+        free(src); \
+    } \
+    src = NULL; \
+} while (0)
+
+#define okos_client_update_strdup_after_cmp(element, src) do { \
+    if (element && 0 != strcmp(element, src)) { \
+        free(element); \
+        element = NULL; \
+    } \
+    if (NULL == element) { \
+        element = safe_strdup(src); \
+    } \
+} while (0)
+
+#define okos_client_update_strdup_after_casecmp(element, src) do { \
+    if (element && 0 != strcasecmp(element, src)) { \
+        free(element); \
+        element = NULL; \
+    } \
+    if (NULL == element) { \
+        element = safe_strdup(src); \
+    } \
+} while (0)
+
+
 #endif
 
 #endif                          /* _CLIENT_LIST_H_ */

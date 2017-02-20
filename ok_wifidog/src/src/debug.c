@@ -58,28 +58,28 @@ _debug(const char *filename, int line, int level, const char *format, ...)
         sigaddset(&block_chld, SIGCHLD);
         sigprocmask(SIG_BLOCK, &block_chld, NULL);
 
-        if (level <= LOG_WARNING) {
-            fprintf(stderr, "[%d][%.24s][%u](%s:%d) ", level, ctime_r(&ts, buf), getpid(),
-                filename, line);
-            va_start(vlist, format);
-            vfprintf(stderr, format, vlist);
-            va_end(vlist);
-            fputc('\n', stderr);
-        } else if (debugconf.log_stderr) {
-            fprintf(stderr, "[%d][%.24s][%u](%s:%d) ", level, ctime_r(&ts, buf), getpid(),
-                filename, line);
-            va_start(vlist, format);
-            vfprintf(stderr, format, vlist);
-            va_end(vlist);
-            fputc('\n', stderr);
-        }
-
         if (debugconf.log_syslog) {
             openlog("wifidog", LOG_PID, debugconf.syslog_facility);
             va_start(vlist, format);
             vsyslog(level, format, vlist);
             va_end(vlist);
             closelog();
+        } else {
+            if (level <= LOG_WARNING) {
+                fprintf(stderr, "[%d][%.24s][%u](%s:%d) ", level, ctime_r(&ts, buf), getpid(),
+                        filename, line);
+                va_start(vlist, format);
+                vfprintf(stderr, format, vlist);
+                va_end(vlist);
+                fputc('\n', stderr);
+            } else if (debugconf.log_stderr) {
+                fprintf(stderr, "[%d][%.24s][%u](%s:%d) ", level, ctime_r(&ts, buf), getpid(),
+                        filename, line);
+                va_start(vlist, format);
+                vfprintf(stderr, format, vlist);
+                va_end(vlist);
+                fputc('\n', stderr);
+            }
         }
         
         sigprocmask(SIG_UNBLOCK, &block_chld, NULL);

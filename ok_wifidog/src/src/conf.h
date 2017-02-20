@@ -57,9 +57,9 @@
 #define DEFAULT_AUTHSERVSSLAVAILABLE 0
 /** Note:  The path must be prefixed by /, and must be suffixed /.  Put / for the server root.*/
 #if OK_PATCH
-#define DEFAULT_AUTHSERVPATH "/auth/device/"
-#define DEFAULT_AUTHSERVLOGINPATHFRAGMENT "client?"
-#define DEFAULT_AUTHSERVAUTHPATHFRAGMENT "client/authority?"
+#define DEFAULT_AUTHSERVPATH "/auth/device/client"
+#define DEFAULT_AUTHSERVLOGINPATHFRAGMENT "?"
+#define DEFAULT_AUTHSERVAUTHPATHFRAGMENT "/authority?"
 #else /* OK_PATCH */
 #define DEFAULT_AUTHSERVPATH "/wifidog/"
 #define DEFAULT_AUTHSERVLOGINPATHFRAGMENT "login/?"
@@ -167,6 +167,7 @@ typedef struct _popular_server_t {
 #if OK_PATCH
 
 struct _s_ssid_config;
+//struct _s_bridge_conf;
 
 typedef struct _s_ath_if_list
 {
@@ -174,15 +175,28 @@ typedef struct _s_ath_if_list
     char * bssid;
 
     struct _s_ssid_config * ssid;
+//    struct _s_bridge_conf * brx;
 
     struct _s_ath_if_list * next;
 } t_ath_if_list;
+
+/*
+#define OKOS_MAX_BRIDGE_IF_NUM 32
+typedef struct _s_bridge_conf
+{
+    char * br_name;
+    t_ath_if_list * ifx[OKOS_MAX_BRIDGE_IF_NUM];
+
+    struct _s_bridge_conf * next;
+} t_bridge_conf;
+*/
 
 typedef struct _s_ssid_config
 {
     unsigned int sn;
     char * ssid;
-    char * br_name;
+//    char * br_name;
+//    t_bridge_conf * brx;
     t_ath_if_list * if_list;
 
     char * scheme_name;
@@ -247,15 +261,16 @@ typedef struct {
     char * device_id;
     char * domain_name;
     t_ssid_config * ssid_conf;
+//    t_bridge_conf * br_conf;
 
 #endif /* OK_PATCH */
 } s_config;
 
 #if OK_PATCH
 
-#define okos_conf_set_str(father, son, str) {\
-    if (NULL == father->son) {\
-        father->son = safe_strdup(str);\
+#define okos_conf_set_str(element, str) {\
+    if (NULL == element) {\
+        element = safe_strdup(str);\
     }\
 }
 #define okos_conf_set_int(father, son, num) {\
@@ -272,13 +287,19 @@ typedef struct {
         t->next = p;\
     } p;})
 
-#define okos_conf_ins_list_member(prev) ({\
-    typeof(prev) p = safe_malloc(sizeof(*prev));\
-    if (NULL != prev) p->next = prev;\
-    prev = p;})
+#define okos_conf_ins_list_member(head) ({\
+    typeof(head) p = safe_malloc(sizeof(*head));\
+    if (NULL != head) p->next = head;\
+    head = p;})
 
 #define okos_list_for_each(pos, head) \
     for (pos = head; NULL != pos; pos = pos->next)
+
+#define okos_list_for_each_cond(pos, head, cond) \
+    for (pos = head; NULL != pos && (cond); pos = pos->next)
+
+#define okos_list_for_each_loop(pos, head, pre, cond, post) \
+    for (pos = head, (pre); NULL != pos && (cond); pos = pos->next, (post))
 
 #endif /* OK_PATCH */
 
@@ -332,7 +353,10 @@ t_ssid_config * okos_conf_get_ssid_by_name(const char *);
 t_ath_if_list * okos_conf_get_ifx_by_name(const char *);
 
 struct _t_client * okos_fill_client_info(struct _t_client *);
+struct _t_client * okos_fill_client_info_by_stainfo(struct _t_client *client);
+struct _t_client * okos_fill_client_info_by_fdb(struct _t_client *client);
 
+char * okos_conf_get_all(void);
 
 #define okos_conf_get_ssid_by_client(client) okos_conf_get_ssid_by_name(okos_client_get_ssid(client))
 

@@ -3,7 +3,7 @@
 
 #if OK_PATCH
 
-
+#define OKOS_WFD_MAX_STR_LEN 255
 
 #define OKOS_AUTH_FAKE_TOKEN "TaiShangLaoJun-JiJiRuLvLing!"
 
