@@ -97,11 +97,7 @@ iptables_insert_gateway_id(char **input)
         memcpy(token, "%1$s", 4);
 
     config = config_get_config();
-#if OK_PATCH
-    tmp_intf = safe_strdup("okos");
-#else
     tmp_intf = safe_strdup(config->gw_interface);
-#endif
     if (strlen(tmp_intf) > CHAIN_NAME_MAX_LEN) {
         *(tmp_intf + CHAIN_NAME_MAX_LEN) = '\0';
     }
