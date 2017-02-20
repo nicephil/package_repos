@@ -34,10 +34,17 @@
 #define WDCTL_STOP		2
 #define WDCTL_KILL		3
 #define WDCTL_RESTART	4
+#if OK_PATCH
+#define WDCTL_QUERY		5
+#define WDCTL_CONFIG	6
+#endif
 
 typedef struct {
     char *socket;
     int command;
     char *param;
+#if OK_PATCH
+	char *param1;
+#endif
 } s_config;
 #endif

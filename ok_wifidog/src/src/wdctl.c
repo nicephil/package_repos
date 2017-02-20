@@ -71,6 +71,7 @@ usage(void)
     fprintf(stdout, "  status            Obtain the status of wifidog\n");
     fprintf(stdout, "  stop              Stop the running wifidog\n");
     fprintf(stdout, "  restart           Re-start the running wifidog (without disconnecting active users!)\n");
+	fprintf(stdout, "  query mac [ssid]  Obtain the status of a client\n");
     fprintf(stdout, "\n");
 }
 
@@ -136,6 +137,21 @@ parse_commandline(int argc, char **argv)
         config.param = strdup(*(argv + optind + 1));
     } else if (strcmp(*(argv + optind), "restart") == 0) {
         config.command = WDCTL_RESTART;
+#if OK_PATCH
+	} else if (strcmp(*(argv + optind), "query") == 0) {
+		config.command = WDCTL_QUERY;
+        if ((argc - (optind + 1)) <= 0) {
+            fprintf(stderr, "wdctl: Error: You must specify a Mac address to query\n");
+            usage();
+            exit(1);
+        }
+        config.param = strdup(*(argv + optind + 1));
+		if ((argc - (optind + 1)) == 2) {
+			config.param1 = strdup(*(argv + optind + 2));
+		}
+	} else if (strcmp(*(argv + optind), "config") == 0) {
+		config.command = WDCTL_CONFIG;
+#endif
     } else {
         fprintf(stderr, "wdctl: Error: Invalid command \"%s\"\n", *(argv + optind));
         usage();
@@ -268,6 +284,68 @@ wdctl_reset(void)
     close(sock);
 }
 
+#if OK_PATCH
+static void wdctl_config(void)
+{
+    int sock;
+    char buffer[4096];
+    char request[16];
+    ssize_t len;
+
+    sock = connect_to_server(config.socket);
+
+    strncpy(request, "config\r\n\r\n", 15);
+
+    send_request(sock, request);
+
+    // -1: need some space for \0!
+    while ((len = read(sock, buffer, sizeof(buffer) - 1)) > 0) {
+        buffer[len] = '\0';
+        fprintf(stdout, "%s", buffer);
+    }
+
+    shutdown(sock, 2);
+    close(sock);
+}
+
+
+static void wdctl_query(void)
+{
+    int sock;
+    char buffer[4096];
+    char request[64];
+    size_t len;
+    ssize_t rlen;
+
+    sock = connect_to_server(config.socket);
+
+    strncpy(request, "query ", 64);
+    strncat(request, config.param, (64 - strlen(request) - 1));
+	if (config.param1) {
+		strncat(request, " ", (64 - strlen(request) -1));
+		strncat(request, config.param1, (64 - strlen(request) - 1));
+	}
+    strncat(request, "\r\n\r\n", (64 - strlen(request) - 1));
+
+    send_request(sock, request);
+
+    len = 0;
+    memset(buffer, 0, sizeof(buffer));
+    while ((len < sizeof(buffer)) && ((rlen = read(sock, (buffer + len), (sizeof(buffer) - len))) > 0)) {
+        len += (size_t) rlen;
+    }
+
+    if (strcmp(buffer, "No") == 0) {
+        fprintf(stdout, "MAC address %s was not valid.\n", config.param);
+    } else {
+        fprintf(stdout, "%s", buffer);
+    }
+
+    shutdown(sock, 2);
+    close(sock);
+}
+#endif
+
 static void
 wdctl_restart(void)
 {
@@ -315,6 +393,14 @@ main(int argc, char **argv)
     case WDCTL_RESTART:
         wdctl_restart();
         break;
+#if OK_PATCH
+	case WDCTL_QUERY:
+		wdctl_query();
+		break;
+	case WDCTL_CONFIG:
+		wdctl_config();
+		break;
+#endif
 
     default:
         /* XXX NEVER REACHED */
