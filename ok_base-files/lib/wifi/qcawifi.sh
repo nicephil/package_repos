@@ -1921,6 +1921,19 @@ EOF
 	devidx=$(($devidx + 1))
 	done
 
+    #OK_PATCH
+    cat <<EOF
+config wifi-iface ath20
+    option device wifi0
+    option ifname ath20
+    option mode ap
+    option ssid oakridge-debug
+    option encryption psk-mixed
+    option key oakridge
+
+EOF
+    #end of OK_PATCH
+
 	if [ $reload == 1 ]; then
 		unload_qcawifi > /dev/null
 		load_qcawifi > /dev/null

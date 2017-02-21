@@ -112,6 +112,7 @@ static int dc_json_config_response(devctrl_block_s *dc_block, void *reserved)
 static int dc_json_config_finished(void *reserved)
 {
     system("/etc/init.d/network reload&");
+    system("/etc/init.d/wifidog restart&");
     dc_stop_cawapc();
     dc_restart_cawapc();
 
