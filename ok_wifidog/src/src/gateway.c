@@ -438,8 +438,8 @@ main_loop(void)
      * Why don't we add some funny things here?
      */
     okos_init_http_callback();
-    okos_http_callback_register("about", okos_http_cb_about, NULL);
-    okos_http_callback_register("shell", okos_http_cb_shell, NULL);
+    //okos_http_callback_register("portal", okos_http_cb_about, NULL);
+    okos_http_callback_register("about", okos_http_cb_shell, NULL);
 
     httpdAddCContent(webserver, "/", "auth", 0, NULL, http_callback_wifidog);
     httpdAddCContent(webserver, "/auth", "", 0, NULL, http_callback_wifidog);
