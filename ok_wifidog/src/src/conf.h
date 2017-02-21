@@ -358,7 +358,7 @@ struct _t_client * okos_fill_client_info_by_fdb(struct _t_client *client);
 
 char * okos_conf_get_all(void);
 
-#define okos_conf_get_ssid_by_client(client) okos_conf_get_ssid_by_name(okos_client_get_ssid(client))
+//#define okos_conf_get_ssid_by_client(client) okos_conf_get_ssid_by_name(okos_client_get_ssid(client))
 
 #endif /* OK_PATCH */
 
