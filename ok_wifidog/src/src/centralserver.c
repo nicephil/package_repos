@@ -97,10 +97,16 @@ auth_server_request(t_authresponse *authresponse, t_client *client)
     char *info = okos_http_insert_parameter(client);
     //t_ssid_config * ssid = okos_conf_get_ssid_by_client(client);
     t_ssid_config *ssid = client->ssid_conf;
+    int updateFailed = 0;
 
     int sockfd = connect_auth_server(ssid);
-    //t_auth_serv *auth_server = get_auth_server(ssid->ssid);
     t_auth_serv *auth_server = ssid->auth_servers;
+    if (NULL == auth_server) {
+        debug(LOG_ERR, "There is no auth server!");
+        authresponse->authcode = AUTH_ERROR;
+        updateFailed = 1;
+        return updateFailed;
+    }
     
     /* Send out request to Auth server to check login status of client:
      */
@@ -131,7 +137,6 @@ auth_server_request(t_authresponse *authresponse, t_client *client)
 #endif
 
     authresponse->authcode = AUTH_ALLOWED;
-    int updateFailed = 0;
     if (NULL == res) {
         debug(LOG_ERR, "There was a problem talking to the auth server!");
         authresponse->authcode = AUTH_ERROR;
@@ -314,7 +319,10 @@ _connect_auth_server(int level)
     int sockfd;
 
 #if OK_PATCH
-    if (NULL == ssid || NULL == ssid->auth_servers) {
+    if (NULL == ssid) {
+        return -1;
+    }
+    if (NULL == ssid->auth_servers) {
         return -1;
     }
 #else

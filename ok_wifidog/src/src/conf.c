@@ -1033,19 +1033,14 @@ parse_popular_servers(const char *ptr)
 void
 config_validate(void)
 {
-    config_notnull(config.device_id, "device id");
-    config_notnull(config.domain_name, "domain name");
-    config_notnull(config.ssid_conf, "ssid configuration");
-    t_ssid_config * ssid;
-    okos_list_for_each(ssid, config.ssid_conf) {
-        config_notnull(ssid->auth_servers, "auth server");
+    if (NULL == config.device_id) {
+        config.device_id = safe_strdup("00:4F:4B:4F:53:21");
     }
-    validate_popular_servers();
+    if (NULL == config.domain_name) {
+        config.domain_name = safe_strdup("oakridge");
+    }
 
-    if (missing_parms) {
-        debug(LOG_ERR, "Configuration is not complete, exiting...");
-        exit(-1);
-    }
+    validate_popular_servers();
 }
 
 #else /* OK_PATCH */
@@ -1323,16 +1318,22 @@ t_client * okos_fill_client_info_by_stainfo(t_client *client)
 #endif
     if (NULL != okos_get_client_ifname(client)) {
         client->ifx = okos_conf_get_ifx_by_name(client->if_name);
-        client->ssid_conf = client->ifx->ssid;
+        if (NULL != client->ifx) {
+            client->ssid_conf = client->ifx->ssid;
+            if (NULL != client->ssid_conf) {
 
-        okos_client_set_strdup(client->scheme, client->ssid_conf->scheme_name);
-        okos_client_set_strdup(client->ssid, client->ssid_conf->ssid);
-        okos_client_set_strdup(client->token, OKOS_AUTH_FAKE_TOKEN);
+                okos_client_set_strdup(client->scheme, client->ssid_conf->scheme_name);
+                okos_client_set_strdup(client->ssid, client->ssid_conf->ssid);
+                okos_client_set_strdup(client->token, OKOS_AUTH_FAKE_TOKEN);
 
-        debug(LOG_DEBUG, "found record of client {ip:%s, mac=%s, ifname:%s, ssid:%s, scheme:%s, bridge:%s}", client->ip, client->mac, client->if_name, client->ssid, client->scheme, client->brX);
+                debug(LOG_DEBUG, "found record of client {ip:%s, mac=%s, ifname:%s, ssid:%s, scheme:%s, bridge:%s}", client->ip, client->mac, client->if_name, client->ssid, client->scheme, client->brX);
 
-        return client;
+                return client;
+            }
+        }
     }
+
+    debug(LOG_DEBUG, "Configuration imcompleted. Can't find out ifx or ssid_conf.");
 
     return NULL;
 }

@@ -67,6 +67,10 @@ fw_allow(t_client * client, int new_fw_connection_state)
     int result;
     int old_state = client->fw_connection_state;
     t_ssid_config * ssid = okos_conf_get_ssid_by_name(okos_client_get_ssid(client));
+    if (NULL == ssid) {
+        debug(LOG_ERR, "Can't set iptables allow rule for state %d on ssid unknown for client {ip = %s, mac = %s}", new_fw_connection_state, client->ip, client->mac);
+        return -1;
+    }
 
     debug(LOG_DEBUG, "Allowing %s %s with fw_connection_state %d on ssid[%s]", client->ip, client->mac, new_fw_connection_state, ssid->ssid);
     client->fw_connection_state = new_fw_connection_state;
@@ -100,6 +104,10 @@ fw_deny(t_client * client)
 {
     int fw_connection_state = client->fw_connection_state;
     t_ssid_config * ssid = okos_conf_get_ssid_by_name(okos_client_get_ssid(client));
+    if (NULL == ssid) {
+        debug(LOG_ERR, "Can't set iptables deny rule on ssid unknown for client {ip = %s, mac = %s}", client->ip, client->mac);
+        return -1;
+    }
 
     debug(LOG_DEBUG, "Denying %s %s with fw_connection_state %d on ssid[%s]", client->ip, client->mac, client->fw_connection_state, ssid->ssid);
 

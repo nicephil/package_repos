@@ -199,6 +199,7 @@ static int okos_is_authenticator(request *r)
 
 static void okos_http_statistic_variables(request *r)
 {
+#if 0
     debug(LOG_DEBUG, "HTTP_READ_BUF:[%s]", r->readBuf);
 
     pstr_t *p_str = pstr_new();
@@ -214,6 +215,7 @@ static void okos_http_statistic_variables(request *r)
     char *p_header = pstr_to_string(p_str);
     debug(LOG_DEBUG, "%s", p_header);
     free(p_header);
+#endif
 }
 
 
