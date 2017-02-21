@@ -42,6 +42,10 @@
 #include "conf.h"
 #include "client_list.h"
 
+#if OK_PATCH
+#include "okos_auth_param.h"
+#endif
+
 /** @internal
  * Holds a pointer to the first element of the list 
  */
@@ -103,6 +107,132 @@ client_list_insert_client(t_client * client)
     client->next = prev_head;
     firstclient = client;
 }
+#if OK_PATCH
+
+t_client *
+okos_client_get_new_client(const char * ip)
+{
+    debug(LOG_INFO, "start to build a new client by ip(%s)", ip);
+
+    t_client * client = client_get_new();
+    int getMacBrXSuccess = arp_get_all(ip, &client->mac, &client->brX);
+    if (0 != getMacBrXSuccess) {
+        debug(LOG_ERR, "Can't find out match entry in arp table for client ip(%s)", ip);
+        client_free_node(client);
+        return NULL;
+    } else {
+        client->ip = safe_strdup(ip);
+        if (NULL == okos_fill_client_info(client)) {
+            debug(LOG_ERR, "cant fill the local informaiton for client ip(%s)", ip);
+            client_free_node(client);
+            return NULL;
+        } 
+    }
+    return client;
+}
+
+/* FIXME: if you want to use this function, you have to handle all the string element
+ *
+t_client *
+okos_client_list_add(const char *ip, const char *mac, const char *token, 
+                const unsigned int remain_time, const unsigned int auth_mode,
+                const char * username)
+{
+    t_client *curclient;
+
+    curclient = client_get_new();
+
+    curclient->ip = safe_strdup(ip);
+    curclient->mac = safe_strdup(mac);
+    curclient->token = safe_strdup(token);
+    curclient->counters.incoming_delta = curclient->counters.outgoing_delta = 
+        curclient->counters.incoming = curclient->counters.incoming_history =
+        curclient->counters.outgoing = curclient->counters.outgoing_history = 0;
+    curclient->counters.last_updated = time(NULL);
+
+    curclient->auth_mode = auth_mode;
+    curclient->user_name = safe_strdup(username);
+
+    curclient->remain_time = remain_time;
+    curclient->last_flushed = time(NULL);
+
+    client_list_insert_client(curclient);
+
+    debug(LOG_INFO, "Added a new client to linked list: IP: %s Token: %s Remain Time: %d", ip, token, remain_time);
+
+    return curclient;
+}
+*/
+
+t_client *
+okos_client_list_flush(t_client * client, const unsigned int remain_time)
+{
+    client->remain_time = remain_time;
+    client->last_flushed = time(NULL);
+
+    debug(LOG_INFO, "Flushed an client: IP: %s Token: %s Remain Time: %d", client->ip, client->token, remain_time);
+    return client;
+}
+
+/*
+t_client *
+okos_client_list_client_update(const t_auth_confirm_info *info, t_client *client)
+{
+    if (NULL == client->ip)
+        return NULL;
+
+    time_t curtime = time(NULL);
+    if (NULL == client->mac) {
+        if (0 != okos_mac_bin2str(info->mac1, &(client->mac))) {
+            return NULL;
+        }
+        client->token = safe_strdup(OKOS_AUTH_FAKE_TOKEN);
+        client->counters.incoming_delta = client->counters.outgoing_delta = 
+            client->counters.incoming = client->counters.incoming_history =
+            client->counters.outgoing = client->counters.outgoing_history = 0;
+        client->counters.last_updated = curtime;
+
+        client->auth_mode = info->auth_mode;
+        client->user_name = safe_strdup(info->user);
+        debug(LOG_DEBUG, "Set Mac [%s] to client: %s", client->mac, client->ip);
+    }
+
+    client->remain_time = info->remain_time;
+    client->last_flushed = curtime;
+    
+    debug(LOG_DEBUG, "Update remain_time: %d.", client->remain_time);
+    return client;
+}
+*/
+
+
+/*
+t_client *
+okos_client_list_update_mac(t_client *client, const char *mac, const t_auth_confirm_info *info)
+{
+    if (NULL == client->mac) {
+        client->mac = safe_strdup(mac);
+        client->token = safe_strdup(OKOS_AUTH_FAKE_TOKEN);
+        client->counters.incoming_delta = client->counters.outgoing_delta = 
+            client->counters.incoming = client->counters.incoming_history =
+            client->counters.outgoing = client->counters.outgoing_history = 0;
+        client->counters.last_updated = time(NULL);
+
+        client->auth_mode = info->auth_mode;
+        if (NULL != info->user)
+            client->user_name = safe_strdup(info->user);
+
+        client->remain_time = info->remain_time;
+        client->last_flushed = time(NULL);
+    
+        debug(LOG_DEBUG, "Set Mac [%s] to client: %s", mac, client->ip);
+    }
+    return client;
+}
+*/
+
+
+#endif
 
 /** Based on the parameters it receives, this function creates a new entry
  * in the connections list. All the memory allocation is done here.
@@ -196,6 +326,19 @@ client_dup(const t_client * src)
     new->counters.outgoing_history = src->counters.outgoing_history;
     new->counters.outgoing_delta = src->counters.outgoing_delta;
     new->counters.last_updated = src->counters.last_updated;
+#if OK_PATCH
+    new->auth_mode = src->auth_mode;
+    new->user_name = safe_strdup(src->user_name);
+    new->remain_time = src->remain_time;
+    new->last_flushed = src->last_flushed;
+
+    new->brX = safe_strdup(src->brX);
+    new->if_name = safe_strdup(src->if_name);
+    new->ssid = safe_strdup(src->ssid);
+    new->scheme = safe_strdup(src->scheme);
+    new->ifx = src->ifx;
+    new->ssid_conf = src->ssid_conf;
+#endif /* OK_PATCH */
     new->next = NULL;
 
     return new;
@@ -337,6 +480,19 @@ client_free_node(t_client * client)
     if (client->token != NULL)
         free(client->token);
 
+#if OK_PATCH
+    if (client->user_name)
+        free(client->user_name);
+    if (client->brX)
+        free(client->brX);
+    if (client->if_name)
+        free(client->if_name);
+    if (client->ssid)
+        free(client->ssid);
+    if (client->scheme)
+        free(client->scheme);
+#endif
+
     free(client);
 }
 
@@ -383,3 +539,12 @@ client_list_remove(t_client * client)
         }
     }
 }
+
+
+#if OK_PATCH
+char * okos_client_get_ssid(const t_client *client)
+{
+    return client->ssid;
+}
+
+#endif

@@ -57,6 +57,22 @@ static void iptables_load_ruleset(const char *, const char *, const char *);
 Used to supress the error output of the firewall during destruction */
 static int fw_quiet = 0;
 
+
+
+
+#if OK_PATCH
+/* Please don't forget to release the returned buffer. */
+static inline char * okos_get_chain_name(const char * prefix, const unsigned int id)
+{
+    char * chain = NULL;
+    safe_asprintf(&chain, prefix, id);
+    return chain;
+}
+#else /* OK_PATCH */
+#endif /* OK_PATCH */
+
+
+
 /** @internal
  * @brief Insert $ID$ with the gateway's id in a string.
  *
@@ -81,7 +97,11 @@ iptables_insert_gateway_id(char **input)
         memcpy(token, "%1$s", 4);
 
     config = config_get_config();
+#if OK_PATCH
+    tmp_intf = safe_strdup("okos");
+#else
     tmp_intf = safe_strdup(config->gw_interface);
+#endif
     if (strlen(tmp_intf) > CHAIN_NAME_MAX_LEN) {
         *(tmp_intf + CHAIN_NAME_MAX_LEN) = '\0';
     }
@@ -194,6 +214,39 @@ iptables_compile(const char *table, const char *chain, const t_firewall_rule * r
     return (safe_strdup(command));
 }
 
+#if OK_PATCH
+
+static void
+iptables_push_ruleset(const char * table, const t_firewall_ruleset * ruleset, const char * format, ...)
+{
+    va_list vlist;
+    char * chain;
+
+    va_start(vlist, format);
+    safe_vasprintf(&chain, format, vlist);
+    va_end(vlist);
+
+
+    debug(LOG_DEBUG, "Push ruleset %s into table %s, chain %s", ruleset->name, table, chain);
+
+    char * cmd;
+    t_firewall_rule * rule;
+    okos_list_for_each(rule, ruleset->rules) {
+        cmd = iptables_compile(table, chain, rule);
+        if (cmd != NULL) {
+            debug(LOG_DEBUG, "Loading rule \"%s\" into table %s, chain %s", cmd, table, chain);
+            iptables_do_command(cmd);
+        }
+        free(cmd);
+    }
+
+    debug(LOG_DEBUG, "Ruleset %s pushed into table %s, chain %s", ruleset->name, table, chain);
+
+    free(chain);
+}
+
+#endif /* OK_PATCH */
+
 /**
  * @internal
  * Load all the rules in a rule set.
@@ -221,6 +274,40 @@ iptables_load_ruleset(const char *table, const char *ruleset, const char *chain)
     debug(LOG_DEBUG, "Ruleset %s loaded into table %s, chain %s", ruleset, table, chain);
 }
 
+/* OK_PATCH
+ * MUTEX of config Must be holded outside.
+ * This pair of functions of authserver only be called when connect_auth_server().
+ * the config has been locked. Feel free to use config->xxx
+ */
+#if OK_PATCH
+
+void
+iptables_fw_clear_authservers(const t_ssid_config * ssid)
+{
+    //char * chain = okos_get_chain_name(CHAIN_AUTHSERVERS_i, ssid->sn);
+
+    iptables_do_command("-t filter -F " CHAIN_AUTHSERVERS_i, ssid->sn);
+    iptables_do_command("-t nat -F " CHAIN_AUTHSERVERS_i, ssid->sn);
+
+    //free(chain);
+}
+
+void
+iptables_fw_set_authservers(const t_ssid_config * ssid)
+{
+    //char * chain = okos_get_chain_name(CHAIN_AUTHSERVERS_i, ssid->sn);
+
+    t_auth_serv *auth_server;
+    okos_list_for_each(auth_server, ssid->auth_servers){
+        if (auth_server->last_ip && strcmp(auth_server->last_ip, "0.0.0.0") != 0) {
+            iptables_do_command("-t filter -A " CHAIN_AUTHSERVERS_i " -d %s -j ACCEPT", ssid->sn, auth_server->last_ip);
+            iptables_do_command("-t nat -A " CHAIN_AUTHSERVERS_i " -d %s -j ACCEPT", ssid->sn, auth_server->last_ip);
+        }
+    }
+
+    //free(chain);
+}
+#else
 void
 iptables_fw_clear_authservers(void)
 {
@@ -244,9 +331,165 @@ iptables_fw_set_authservers(void)
     }
 
 }
+#endif
 
 /** Initialize the firewall rules
 */
+#if OK_PATCH
+int
+iptables_fw_init(void)
+{
+    const s_config *config;
+    fw_quiet = 0;
+    int got_authdown_ruleset = NULL == get_ruleset(FWRULESET_AUTH_IS_DOWN) ? 0 : 1;
+
+    LOCK_CONFIG();
+    config = config_get_config();
+    int proxy_port = config->proxy_port;
+    int sn;
+
+    iptables_do_command("-t nat -N " CHAIN_GLOBAL);
+
+    iptables_do_command("-t filter -N " CHAIN_LOCKED);
+    iptables_do_command("-t filter -N " CHAIN_GLOBAL);
+    iptables_do_command("-t filter -N " CHAIN_VALIDATE);
+    iptables_do_command("-t filter -N " CHAIN_KNOWN);
+    iptables_do_command("-t filter -N " CHAIN_UNKNOWN);
+
+    if (got_authdown_ruleset) {
+        iptables_do_command("-t nat -N " CHAIN_AUTH_IS_DOWN);
+        iptables_do_command("-t filter -N " CHAIN_AUTH_IS_DOWN);
+
+        iptables_do_command("-t nat -A " CHAIN_AUTH_IS_DOWN " -m mark --mark 0x%u -j ACCEPT", FW_MARK_AUTH_IS_DOWN);
+        iptables_load_ruleset("filter", FWRULESET_AUTH_IS_DOWN, CHAIN_AUTH_IS_DOWN);
+    }
+
+    t_ssid_config * ssid;
+    okos_list_for_each(ssid, config->ssid_conf) {
+        sn = ssid->sn;
+
+        /* Create new chains */
+        /* For mangle table */
+        iptables_do_command("-t mangle -N " CHAIN_TRUSTED_i, sn);
+        iptables_do_command("-t mangle -N " CHAIN_OUTGOING_i, sn);
+        iptables_do_command("-t mangle -N " CHAIN_INCOMING_i, sn); 
+        if (got_authdown_ruleset) {
+            iptables_do_command("-t mangle -N " CHAIN_AUTH_IS_DOWN_i, sn);
+        }
+
+        /* For nat table */
+        iptables_do_command("-t nat -N " CHAIN_OUTGOING_i, sn);
+        iptables_do_command("-t nat -N " CHAIN_TO_ROUTER_i, sn);
+        iptables_do_command("-t nat -N " CHAIN_TO_INTERNET_i, sn);
+        iptables_do_command("-t nat -N " CHAIN_DN_ALLOWED_i, sn);
+        iptables_do_command("-t nat -N " CHAIN_IP_ALLOWED_i, sn);
+        iptables_do_command("-t nat -N " CHAIN_UNKNOWN_i, sn);
+        iptables_do_command("-t nat -N " CHAIN_AUTHSERVERS_i, sn);
+
+        /* For filter table */
+        iptables_do_command("-t filter -N " CHAIN_TO_INTERNET_i, sn);
+        iptables_do_command("-t filter -N " CHAIN_AUTHSERVERS_i, sn);
+        iptables_do_command("-t filter -N " CHAIN_DN_ALLOWED_i, sn);
+        iptables_do_command("-t filter -N " CHAIN_IP_ALLOWED_i, sn);
+
+        /* Assign links and rules to these new chains */
+        t_ath_if_list * ath_if;
+        okos_list_for_each(ath_if, ssid->if_list) {
+            char * if_name = ath_if->if_name;
+
+            /* For mangle table.
+             * Be careful!!!: The rules below are NOT appented after prior one,
+             * but inserted into the head of chain.
+             */
+            iptables_do_command("-t mangle -I PREROUTING 1 -m physdev --physdev-in %s -j " CHAIN_OUTGOING_i, if_name, sn);
+            iptables_do_command("-t mangle -I PREROUTING 1 -m physdev --physdev-in %s -j " CHAIN_TRUSTED_i, if_name, sn);
+            if (got_authdown_ruleset) {   //this rule must be last in the chain
+                iptables_do_command("-t mangle -I PREROUTING 1 -m physdev --physdev-in %s -j " CHAIN_AUTH_IS_DOWN_i, if_name, sn);
+            }
+            iptables_do_command("-t mangle -I POSTROUTING 1 -m physdev --physdev-out %s -j " CHAIN_INCOMING_i, if_name, sn);
+
+            /* For nat table */
+            iptables_do_command("-t nat -A PREROUTING -m physdev --physdev-in %s -j " CHAIN_OUTGOING_i, if_name, sn);
+
+            /* For filter table */
+            iptables_do_command("-t filter -I FORWARD -m physdev --physdev-in %s -j " CHAIN_TO_INTERNET_i, if_name, sn);
+        }
+
+        /* For mangle table */
+        t_trusted_mac * trusted_mac;
+        okos_list_for_each(trusted_mac, ssid->mac_white_list) {
+            iptables_do_command("-t mangle -A " CHAIN_TRUSTED_i " -m mac --mac-source %s -j MARK --set-mark %d", sn, trusted_mac->mac, FW_MARK_KNOWN);
+        }
+
+        /* For nat table */
+        /* FIXME : should use ip of brX to replace gw_address here. */
+        iptables_do_command("-t nat -A " CHAIN_OUTGOING_i " -j " CHAIN_TO_ROUTER_i, sn, sn);
+        //ptables_do_command("-t nat -A " CHAIN_TO_ROUTER_i " -d %s -j ACCEPT", sn, );
+        iptables_do_command("-t nat -A " CHAIN_OUTGOING_i " -j " CHAIN_TO_INTERNET_i, sn, sn);
+        if (proxy_port != 0) {
+            debug(LOG_DEBUG, "Proxy port set, setting proxy rule");
+            iptables_do_command("-t nat -A " CHAIN_TO_INTERNET_i " -p tcp --dport 80 -m mark --mark 0x%u -j REDIRECT --to-port %u", sn, FW_MARK_KNOWN, proxy_port);
+            iptables_do_command("-t nat -A " CHAIN_TO_INTERNET_i " -p tcp --dport 80 -m mark --mark 0x%u -j REDIRECT --to-port %u", sn, FW_MARK_PROBATION, proxy_port);
+        }
+        iptables_do_command("-t nat -A " CHAIN_TO_INTERNET_i " -m mark --mark 0x%u -j ACCEPT", sn, FW_MARK_KNOWN);
+        iptables_do_command("-t nat -A " CHAIN_TO_INTERNET_i " -m mark --mark 0x%u -j ACCEPT", sn, FW_MARK_PROBATION);
+        iptables_do_command("-t nat -A " CHAIN_TO_INTERNET_i " -j " CHAIN_UNKNOWN_i, sn, sn);
+
+        iptables_do_command("-t nat -A " CHAIN_UNKNOWN_i " -j " CHAIN_AUTHSERVERS_i, sn, sn);
+        iptables_do_command("-t nat -A " CHAIN_UNKNOWN_i " -j " CHAIN_GLOBAL, sn);
+        if (got_authdown_ruleset) {
+            iptables_do_command("-t nat -A " CHAIN_UNKNOWN_i " -j " CHAIN_AUTH_IS_DOWN, sn);
+        }
+
+        iptables_do_command("-t nat -A " CHAIN_UNKNOWN_i " -j " CHAIN_DN_ALLOWED_i, sn, sn);
+        iptables_do_command("-t nat -A " CHAIN_UNKNOWN_i " -j " CHAIN_IP_ALLOWED_i, sn, sn);
+        iptables_do_command("-t nat -A " CHAIN_UNKNOWN_i " -p tcp --dport 80 -j REDIRECT --to-ports %d", sn, config->gw_port);
+
+        /* For filter table */
+        iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -m state --state INVALID -j DROP", sn);
+
+        iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -j " CHAIN_AUTHSERVERS_i, sn, sn);
+        /* FIXME
+        iptables_fw_set_authservers();
+        */
+        iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -m mark --mark 0x%u -j " CHAIN_LOCKED, sn, FW_MARK_LOCKED);
+        iptables_load_ruleset("filter", FWRULESET_LOCKED_USERS, CHAIN_LOCKED);
+
+        iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -j " CHAIN_GLOBAL, sn);
+
+        iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -m mark --mark 0x%u -j " CHAIN_VALIDATE, sn, FW_MARK_PROBATION);
+        iptables_load_ruleset("filter", FWRULESET_VALIDATING_USERS, CHAIN_VALIDATE);
+
+        iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -m mark --mark 0x%u -j " CHAIN_KNOWN, sn, FW_MARK_KNOWN);
+        iptables_load_ruleset("filter", FWRULESET_KNOWN_USERS, CHAIN_KNOWN);
+
+        if (got_authdown_ruleset) {
+            iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -m mark --mark 0x%u -j " CHAIN_AUTH_IS_DOWN,
+                    sn, FW_MARK_AUTH_IS_DOWN);
+        }
+
+        iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -j " CHAIN_DN_ALLOWED_i, sn, sn);
+        iptables_push_ruleset("filter", ssid->dn_white_list, CHAIN_DN_ALLOWED_i, sn);
+        iptables_push_ruleset("nat", ssid->dn_white_list, CHAIN_DN_ALLOWED_i, sn);
+
+        iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -j " CHAIN_IP_ALLOWED_i, sn, sn);
+        iptables_push_ruleset("filter", ssid->ip_white_list, CHAIN_IP_ALLOWED_i, sn);
+        iptables_push_ruleset("nat", ssid->ip_white_list, CHAIN_IP_ALLOWED_i, sn);
+
+        iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -j " CHAIN_UNKNOWN, sn);
+        iptables_load_ruleset("filter", FWRULESET_UNKNOWN_USERS, CHAIN_UNKNOWN);
+        iptables_do_command("-t filter -A " CHAIN_UNKNOWN " -j REJECT --reject-with icmp-port-unreachable");
+
+    }
+
+    iptables_load_ruleset("filter", FWRULESET_GLOBAL, CHAIN_GLOBAL);
+    iptables_load_ruleset("nat", FWRULESET_GLOBAL, CHAIN_GLOBAL);
+
+    UNLOCK_CONFIG();
+
+    return 1;
+}
+#else /* OK_PATCH */
 int
 iptables_fw_init(void)
 {
@@ -408,11 +651,127 @@ iptables_fw_init(void)
     free(ext_interface);
     return 1;
 }
+#endif /* OK_PATCH */
 
 /** Remove the firewall rules
  * This is used when we do a clean shutdown of WiFiDog and when it starts to make
  * sure there are no rules left over
  */
+#if OK_PATCH
+int
+iptables_fw_destroy(void)
+{
+    const s_config *config;
+    config = config_get_config();
+    int got_authdown_ruleset = NULL == get_ruleset(FWRULESET_AUTH_IS_DOWN) ? 0 : 1;
+    fw_quiet = 1;
+
+    debug(LOG_DEBUG, "Destroying our iptables entries");
+
+    iptables_fw_destroy_mention("mangle", "PREROUTING", CHAIN_TRUSTED);
+    iptables_fw_destroy_mention("mangle", "PREROUTING", CHAIN_OUTGOING);
+    if (got_authdown_ruleset)
+        iptables_fw_destroy_mention("mangle", "PREROUTING", CHAIN_AUTH_IS_DOWN);
+    iptables_fw_destroy_mention("mangle", "POSTROUTING", CHAIN_INCOMING);
+
+    iptables_fw_destroy_mention("nat", "PREROUTING", CHAIN_OUTGOING);
+
+    iptables_fw_destroy_mention("filter", "FORWARD", CHAIN_TO_INTERNET);
+    
+
+    if (got_authdown_ruleset) {
+        iptables_do_command("-t nat -F " CHAIN_AUTH_IS_DOWN);
+        iptables_do_command("-t filter -F " CHAIN_AUTH_IS_DOWN);
+    }
+    iptables_do_command("-t nat -F " CHAIN_GLOBAL);
+    
+    iptables_do_command("-t filter -F " CHAIN_LOCKED);
+    iptables_do_command("-t filter -F " CHAIN_GLOBAL);
+    iptables_do_command("-t filter -F " CHAIN_VALIDATE);
+    iptables_do_command("-t filter -F " CHAIN_KNOWN);
+    iptables_do_command("-t filter -F " CHAIN_UNKNOWN);
+
+    LOCK_CONFIG();
+
+    int sn;
+    t_ssid_config * ssid;
+    okos_list_for_each(ssid, config->ssid_conf) {
+        sn = ssid->sn;
+
+        /*
+         *
+         * Everything in the MANGLE table
+         *
+         */
+        debug(LOG_DEBUG, "Destroying chains in the MANGLE table");
+        iptables_do_command("-t mangle -F " CHAIN_TRUSTED_i, sn);
+        iptables_do_command("-t mangle -F " CHAIN_OUTGOING_i, sn);
+        if (got_authdown_ruleset)
+            iptables_do_command("-t mangle -F " CHAIN_AUTH_IS_DOWN_i, sn);
+        iptables_do_command("-t mangle -F " CHAIN_INCOMING_i, sn);
+        iptables_do_command("-t mangle -X " CHAIN_TRUSTED_i, sn);
+        iptables_do_command("-t mangle -X " CHAIN_OUTGOING_i, sn);
+        if (got_authdown_ruleset)
+            iptables_do_command("-t mangle -X " CHAIN_AUTH_IS_DOWN_i, sn);
+        iptables_do_command("-t mangle -X " CHAIN_INCOMING_i, sn);
+
+        /*
+         *
+         * Everything in the NAT table
+         *
+         */
+        debug(LOG_DEBUG, "Destroying chains in the NAT table");
+        iptables_do_command("-t nat -F " CHAIN_DN_ALLOWED_i, sn);
+        iptables_do_command("-t nat -F " CHAIN_IP_ALLOWED_i, sn);
+        iptables_do_command("-t nat -F " CHAIN_AUTHSERVERS_i, sn);
+        iptables_do_command("-t nat -F " CHAIN_OUTGOING_i, sn);
+        iptables_do_command("-t nat -F " CHAIN_TO_ROUTER_i, sn);
+        iptables_do_command("-t nat -F " CHAIN_TO_INTERNET_i, sn);
+        iptables_do_command("-t nat -F " CHAIN_UNKNOWN_i, sn);
+        iptables_do_command("-t nat -X " CHAIN_DN_ALLOWED_i, sn);
+        iptables_do_command("-t nat -X " CHAIN_IP_ALLOWED_i, sn);
+        iptables_do_command("-t nat -X " CHAIN_AUTHSERVERS_i, sn);
+        iptables_do_command("-t nat -X " CHAIN_OUTGOING_i, sn);
+        iptables_do_command("-t nat -X " CHAIN_TO_ROUTER_i, sn);
+        iptables_do_command("-t nat -X " CHAIN_TO_INTERNET_i, sn);
+        iptables_do_command("-t nat -X " CHAIN_UNKNOWN_i, sn);
+
+        /*
+         *
+         * Everything in the FILTER table
+         *
+         */
+        debug(LOG_DEBUG, "Destroying chains in the FILTER table");
+        iptables_do_command("-t filter -F " CHAIN_TO_INTERNET_i, sn);
+        iptables_do_command("-t filter -F " CHAIN_AUTHSERVERS_i, sn);
+        iptables_do_command("-t filter -F " CHAIN_DN_ALLOWED_i, sn);
+        iptables_do_command("-t filter -F " CHAIN_IP_ALLOWED_i, sn);
+        iptables_do_command("-t filter -X " CHAIN_TO_INTERNET_i, sn);
+        iptables_do_command("-t filter -X " CHAIN_AUTHSERVERS_i, sn);
+        iptables_do_command("-t filter -X " CHAIN_DN_ALLOWED_i, sn);
+        iptables_do_command("-t filter -X " CHAIN_IP_ALLOWED_i, sn);
+
+    }
+
+    UNLOCK_CONFIG();
+
+    if (got_authdown_ruleset) {
+        iptables_do_command("-t nat -X " CHAIN_AUTH_IS_DOWN);
+        iptables_do_command("-t filter -X " CHAIN_AUTH_IS_DOWN);
+    }
+    iptables_do_command("-t nat -X " CHAIN_GLOBAL);
+
+    iptables_do_command("-t filter -X " CHAIN_LOCKED);
+    iptables_do_command("-t filter -X " CHAIN_GLOBAL);
+    iptables_do_command("-t filter -X " CHAIN_VALIDATE);
+    iptables_do_command("-t filter -X " CHAIN_KNOWN);
+    iptables_do_command("-t filter -X " CHAIN_UNKNOWN);
+
+    return 1;
+}
+
+#else /* OK_PATCH */
+
 int
 iptables_fw_destroy(void)
 {
@@ -495,6 +854,8 @@ iptables_fw_destroy(void)
 
     return 1;
 }
+#endif /* OK_PATCH */
+
 
 /*
  * Helper for iptables_fw_destroy
@@ -557,6 +918,35 @@ iptables_fw_destroy_mention(const char *table, const char *chain, const char *me
 }
 
 /** Set if a specific client has access through the firewall */
+#if OK_PATCH
+int
+iptables_fw_access(fw_access_t type, const char *ip, const char *mac, int tag, const t_ssid_config * ssid)
+{
+    int rc;
+
+    fw_quiet = 0;
+
+    //char * chain_outgoing = okos_get_chain_name(CHAIN_OUTGOING_i, ssid->sn);
+
+    switch (type) {
+    case FW_ACCESS_ALLOW:
+        rc = iptables_do_command("-t mangle -A " CHAIN_OUTGOING_i " -m mac --mac-source %s -j MARK --set-mark %d",
+                ssid->sn, mac, tag);
+        break;
+    case FW_ACCESS_DENY:
+        /* XXX Add looping to really clear? */
+        rc = iptables_do_command("-t mangle -D " CHAIN_OUTGOING_i " -m mac --mac-source %s -j MARK --set-mark %d",
+                ssid->sn, mac, tag);
+        break;
+    default:
+        rc = -1;
+        break;
+    }
+    //free(chain_outgoing);
+
+    return rc;
+}
+#else /* OK_PATCH */
 int
 iptables_fw_access(fw_access_t type, const char *ip, const char *mac, int tag)
 {
@@ -583,7 +973,51 @@ iptables_fw_access(fw_access_t type, const char *ip, const char *mac, int tag)
 
     return rc;
 }
+#endif /* OK_PATCH */
 
+
+
+#if OK_PATCH
+int
+iptables_fw_access_host(fw_access_t type, const char *host, const t_ssid_config * ssid)
+{
+    int rc;
+
+    fw_quiet = 0;
+
+    if (NULL == ssid) {
+        switch (type) {
+            case FW_ACCESS_ALLOW:
+                iptables_do_command("-t nat -A " CHAIN_GLOBAL " -d %s -j ACCEPT", host);
+                rc = iptables_do_command("-t filter -A " CHAIN_GLOBAL " -d %s -j ACCEPT", host);
+                break;
+            case FW_ACCESS_DENY:
+                iptables_do_command("-t nat -D " CHAIN_GLOBAL " -d %s -j ACCEPT", host);
+                rc = iptables_do_command("-t filter -D " CHAIN_GLOBAL " -d %s -j ACCEPT", host);
+                break;
+            default:
+                rc = -1;
+                break;
+        }
+    } else {
+        switch (type) {
+            case FW_ACCESS_ALLOW:
+                iptables_do_command("-t nat -A " CHAIN_DN_ALLOWED_i " -d %s -j ACCEPT", ssid->sn, host);
+                rc = iptables_do_command("-t filter -A " CHAIN_DN_ALLOWED_i " -d %s -j ACCEPT", ssid->sn, host);
+                break;
+            case FW_ACCESS_DENY:
+                iptables_do_command("-t nat -D " CHAIN_DN_ALLOWED_i " -d %s -j ACCEPT", ssid->sn, host);
+                rc = iptables_do_command("-t filter -D " CHAIN_DN_ALLOWED_i " -d %s -j ACCEPT", ssid->sn, host);
+                break;
+            default:
+                rc = -1;
+                break;
+        }
+    }
+
+    return rc;
+}
+#else /* OK_PATCH */
 int
 iptables_fw_access_host(fw_access_t type, const char *host)
 {
@@ -607,8 +1041,12 @@ iptables_fw_access_host(fw_access_t type, const char *host)
 
     return rc;
 }
+#endif /* OK_PATCH */
 
 /** Set a mark when auth server is not reachable */
+/* FIXME
+ * We need multiple chains in mangle table for each ssid. 
+ */
 int
 iptables_fw_auth_unreachable(int tag)
 {
@@ -634,6 +1072,8 @@ iptables_fw_auth_reachable(void)
 int
 iptables_fw_counters_update(void)
 {
+#if OK_PATCH
+#else
     FILE *output;
     char *script, ip[16], rc;
     unsigned long long int counter;
@@ -728,6 +1168,6 @@ iptables_fw_counters_update(void)
         }
     }
     pclose(output);
-
+#endif
     return 1;
 }

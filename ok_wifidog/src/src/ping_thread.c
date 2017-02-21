@@ -92,6 +92,12 @@ thread_ping(void *arg)
 /** @internal
  * This function does the actual request.
  */
+#if OK_PATCH
+static void
+ping(void)
+{
+}
+#else /* OK_PATCH */
 static void
 ping(void)
 {
@@ -204,3 +210,4 @@ ping(void)
     }
     return;
 }
+#endif /* OK_PATCH */

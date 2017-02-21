@@ -43,20 +43,34 @@ typedef enum _t_fw_marks {
 /** @brief Initialize the firewall */
 int fw_init(void);
 
+
+#if OK_PATCH
+
+struct _s_ssid_config;
+
+void fw_clear_authservers(const struct _s_ssid_config *);
+void fw_set_authservers(const struct _s_ssid_config *);
+int fw_allow_host(const char *, const struct _s_ssid_config *);
+time_t fw_sync_with_authserver(void);
+
+#else /* OK_PATCH */
+
 /** @brief Clears the authservers list */
 void fw_clear_authservers(void);
-
 /** @brief Sets the authservers list */
 void fw_set_authservers(void);
+/** @brief Allow a host through the firewall*/
+int fw_allow_host(const char *);
+/** @brief Refreshes the entire client list */
+void fw_sync_with_authserver(void);
+
+#endif /* OK_PATCH */
 
 /** @brief Destroy the firewall */
 int fw_destroy(void);
 
 /** @brief Allow a user through the firewall*/
 int fw_allow(t_client *, int);
-
-/** @brief Allow a host through the firewall*/
-int fw_allow_host(const char *);
 
 /** @brief Deny a client access through the firewall*/
 int fw_deny(t_client *);
@@ -67,10 +81,13 @@ int fw_set_authdown(void);
 /** @brief Remove passthrough for clients when auth server is up */
 int fw_set_authup(void);
 
-/** @brief Refreshes the entire client list */
-void fw_sync_with_authserver(void);
-
 /** @brief Get an IP's MAC address from the ARP cache.*/
 char *arp_get(const char *);
+
+#if OK_PATCH
+/** @brief Get MAC address and br interfaces from ARP cache. */
+int arp_get_all(const char * , char ** , char ** );
+
+#endif
 
 #endif                          /* _FIREWALL_H_ */

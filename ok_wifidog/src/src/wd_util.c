@@ -93,6 +93,10 @@ mark_offline()
 int
 is_online()
 {
+#if OK_PATCH
+    return (1);
+#else
+#endif
     if (last_online_time == 0 || (last_offline_time - last_online_time) >= (config_get_config()->checkinterval * 2)) {
         /* We're probably offline */
         return (0);
@@ -140,6 +144,10 @@ mark_auth_offline()
 int
 is_auth_online()
 {
+#if OK_PATCH
+    return (1);
+#else
+#endif
     if (!is_online()) {
         /* If we're not online auth is definately not online :) */
         return (0);
@@ -228,13 +236,15 @@ get_status_text()
 
     pstr_cat(pstr, "\nAuthentication servers:\n");
 
+#if OK_PATCH
+#else
     LOCK_CONFIG();
-
     for (auth_server = config->auth_servers; auth_server != NULL; auth_server = auth_server->next) {
         pstr_append_sprintf(pstr, "  Host: %s (%s)\n", auth_server->authserv_hostname, auth_server->last_ip);
     }
 
     UNLOCK_CONFIG();
+#endif
 
     return pstr_to_string(pstr);
 }
