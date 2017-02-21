@@ -199,7 +199,7 @@ static int okos_is_authenticator(request *r)
 
 static void okos_http_statistic_variables(request *r)
 {
-    debug(LOG_WARNING, "[%s]", r->readBuf);
+    debug(LOG_DEBUG, "HTTP_READ_BUF:[%s]", r->readBuf);
 
     pstr_t *p_str = pstr_new();
     pstr_append_sprintf(p_str, "Request:={Host=%s Path=%s Query=%s}", r->request.host, r->request.path, r->request.query);
@@ -212,7 +212,7 @@ static void okos_http_statistic_variables(request *r)
     pstr_cat(p_str, "}");
 
     char *p_header = pstr_to_string(p_str);
-    debug(LOG_WARNING, "%s", p_header);
+    debug(LOG_DEBUG, "%s", p_header);
     free(p_header);
 }
 
@@ -531,6 +531,7 @@ http_callback_wifidog(httpd * webserver, request * r)
     }
 }
 
+#if 0
 static char * okos_http_callback_about(void *data)
 {
     char *msg;
@@ -577,12 +578,14 @@ char * okos_http_cb_about(char *key, void *data)
 
     return msg;
 }
+#endif
 
 char * okos_http_cb_shell(char *key, void *data)
 {
     debug(LOG_INFO, "Admin wanna run %s.", key);
 
     char line[256];
+    int len = 0;
     char *msg = NULL;
     pstr_t *p_str = pstr_new();
     char *command = NULL;
@@ -590,7 +593,11 @@ char * okos_http_cb_shell(char *key, void *data)
     FILE *shell = popen(command, "r");
     if (shell) {
         while (fgets(line, sizeof(line), shell)) {
+            if (strlen(line) + len > 8 * 1024) {
+                break;
+            }
             pstr_cat(p_str, line);
+            len += strlen(line);
         }
         pclose(shell);
         msg = pstr_to_string(p_str);
