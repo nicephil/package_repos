@@ -11,19 +11,19 @@ body {
 }
 
 a {
-  color: #B4F663;
+  color: #46a43a;
 }
 
 a:active {
-  color: #B4F663;
+  color: #46a43a;
 }
 
 a:link {
-  color: #B4F663;
+  color: #46a43a;
 }
 
 a:visited {
-  color: #B4F663;
+  color: #46a43a;
 }
 
 #header {
@@ -41,10 +41,12 @@ a:visited {
 }
 
 #menu {
-  float: bottom;
+  width: 200px;
+  float: right;
   background-color: #B4F663;
   border: 2px solid #46a43a;
   font-size: 80%;
+  min-height: 300px;
 }
 
 #menu h2 {
@@ -58,30 +60,11 @@ a:visited {
 }
 
 #content {
-  padding: 100px;
+  padding: 20px;
   border: 2px solid #46a43a;
-  min-height: 150px;
-}
-
-#content h3 {
-  height: 20px;
-  font-size: 20pt;
-  text-align: center;
-}
-
-</style>
-
-<style type="text/css">
-.qtext
-{
-  height:40px;
-  width:500px;
-  font-size:20pt;
-  text-align: center;
+  min-height: 300px;
 }
 </style>
-
-
 
 </head>
 
@@ -91,17 +74,33 @@ a:visited {
     <h2>$title</h2>
 </div>
 
+<div id="menu">
+
+
+    <h2>Info</h2>
+    <ul>
+    <li>Version: @WIFIDOG_VERSION@
+
+    <li>Node ID: $nodeID
+    </ul>
+    <br>
+
+    <h2>Menu</h2>
+    <ul>
+    <li><a href='/wifidog/status'>WiFiDog Status</a>
+    <li><a href='/wifidog/about'>About WiFiDog</a>
+    <li><a href='http://www.wifidog.org'>WiFiDog's homepage</a>
+    </ul>
+</div>
 
 <div id="content">
-  <form>
-    <h3><input class="qtext" name=question type="text" maxlength="256" size="48"></h3>
-    <h3>$message</h3>
-  </form>
+<h2>$message</h2>
 </div>
 
-<div id="menu">
-  <h2><a href='/auth/about'>$nodeID</a></h2>
+<div id="copyright">
+Copyright (C) 2004-2015.  This software is released under the GNU GPL license.
 </div>
+
 
 </body>
 </html>
