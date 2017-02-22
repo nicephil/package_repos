@@ -13,4 +13,4 @@ else if ($1 == "MAC_ADDRESS_COUNT")
     print "\toption mac_count "$2; 
 }'
 
-
+echo -e "\toption swversion `cat /etc/issue`"
