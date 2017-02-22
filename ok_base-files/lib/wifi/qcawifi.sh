@@ -861,7 +861,7 @@ enable_qcawifi() {
 		wlanmode=$mode
         #OK_PATCH
         t_wlanaddr=`printf "%02x" $t_wlanaddr`
-        wlanaddr=${macaddr%:*}:${t_wlanaddr}
+        #wlanaddr=${macaddr%:*}:${t_wlanaddr}
         t_wlanaddr=$((0x$t_wlanaddr))
         t_wlanaddr=$(($t_wlanaddr+1))
         #end of OK_PATCH
@@ -1922,16 +1922,20 @@ EOF
 	done
 
     #OK_PATCH
+    ssid_tmp=`echo ${base_mac}|sed 's/://g'`
+    ssid_tmp=${ssid_tmp:8:12}
+    [ -n "${ssid_tmp}" ] && {
     cat <<EOF
 config wifi-iface ath20
     option device wifi0
     option ifname ath20
     option mode ap
-    option ssid oakridge-debug
+    option ssid ok_${ssid_tmp}
     option encryption psk-mixed
     option key oakridge
 
 EOF
+}
     #end of OK_PATCH
 
 	if [ $reload == 1 ]; then

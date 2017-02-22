@@ -337,6 +337,8 @@ int dc_hdl_node_type(struct json_object *obj)
     /* full config */
     if (type == 0) {
         system("cp -rf /etc/defcfg/* /etc/config/");
+        system("/etc/init.d/wifidog restart");
+        system("rm -rf /etc/config/wireless;wifi detect > /etc/config/wireless");
     }
     
 
