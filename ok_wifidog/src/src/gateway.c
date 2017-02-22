@@ -228,11 +228,11 @@ get_clients_from_parent(void)
 
             client->ifx = okos_conf_get_ifx_by_name(client->if_name);
             client->ssid_conf = okos_conf_get_ssid_by_name(client->ssid);
-            okos_client_set_strdup(client->scheme, client->ssid_conf->scheme_name);
 
             /* End of parsing this command */
             if (client) {
                 if (client->ifx && client->ssid_conf) {
+                    okos_client_set_strdup(client->scheme, client->ssid_conf->scheme_name);
                     client_list_insert_client(client);
                 } else {
                     client_free_node(client);
