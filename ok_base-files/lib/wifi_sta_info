@@ -1,0 +1,54 @@
+#!/bin/sh
+
+# why "{...}" see: http://stackoverflow.com/questions/4667509/shell-variables-set-inside-while-loop-not-visible-outside-of-it
+
+buf=`iwconfig 2&>/dev/null | grep IEEE`
+
+#1. get athXX list
+echo "$buf" | \
+{
+while read -r line || [[ -n "$line" ]]; do
+        ifname=`echo $line | awk '{print $1}'`
+        [ -z "$ath" ] && ath="$ifname" || ath="$ath $ifname"
+done
+
+#2. table header
+printf "%-6s %-16s %-10s %-7s %-3s %-3s %-7s %5s %5s\n" "IFP" "SSID" "PROTO" "CHANNEL" "STA" "AP" "Quality" "aveTX" "aveRX"
+printf "%s\n" "----------------------------------------------------------------------"
+
+#3. foreach athX
+netbuf=`cat /proc/net/wireless`
+for i in $(echo $ath | tr " " "\n"); do 
+    athbuf=`iwconfig $i`
+    link_quality="`echo "$netbuf" | grep $i | awk '{print $3}'`%"
+    proto=`echo "$athbuf" | grep ESSID | awk '{print $3}'`
+    ssid=`echo "$athbuf" | grep ESSID | awk '{print $4}' | cut -d ":" -f2 | sed 's/"//g'`
+    channel=`echo "$athbuf" | grep "Frequency:" | awk '{print $2}' | cut -d ":" -f2`
+    aps=`wlanconfig $i list ap | grep -v "BSSID" | wc -l`
+    # foreach STA 
+    wlanconfig $i list sta | grep -v "MINRSSI MAXRSSI" | \
+    {
+        cnt=0
+    	tx_total=0
+    	rx_total=0
+    	while read -r line || [[ -n "$line" ]]; do
+    	    cnt=$((cnt+1))
+	    txrate=`echo $line | awk '{print $4}' | sed 's/M//g'`
+	    rxrate=`echo $line | awk '{print $5}' | sed 's/M//g'`
+	    tx_total=$(($tx_total+$txrate))
+	    rx_total=$(($rx_total+$rxrate))
+    	done
+    	[ $cnt == 0 ] && tx_average=0 || tx_average=`expr $tx_total / $cnt`
+    	[ $cnt == 0 ] && rx_average=0 || rx_average=`expr $rx_total / $cnt`
+        printf "%-6s %-16s %-10s %-7s %-3s %-3s %-7s %5s %5s\n" $i $ssid $proto $channel $cnt $aps $link_quality $tx_average $rx_average
+    }
+    # foreach AP
+    wlanconfig $i list ap | grep -v "SSID*BSSID" | \
+    {
+        cnt=0
+    	while read -r line || [[ -n "$line" ]]; do
+    	    cnt=$((cnt+1))
+        done
+    }
+done
+}
