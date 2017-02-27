@@ -205,6 +205,12 @@ ar71xx_board_detect() {
 	*"AP152-QTSA820 board")
 		name="ap152"
 		;;
+	*"AP152-8200T2 board")
+		name="ap152"
+		;;
+	*"AP152-8200R2 board")
+		name="ap152"
+		;;
 	*AP81)
 		name="ap81"
 		;;
