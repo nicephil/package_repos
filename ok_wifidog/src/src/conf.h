@@ -51,7 +51,7 @@
 #define DEFAULT_SYSLOG_FACILITY LOG_DAEMON
 #define DEFAULT_WDCTL_SOCK "/tmp/wdctl.sock"
 #define DEFAULT_INTERNAL_SOCK "/tmp/wifidog.sock"
-#define DEFAULT_AUTHSERVPORT 80
+#define DEFAULT_AUTHSERVPORT 8080
 #define DEFAULT_AUTHSERVSSLPORT 443
 /** Note that DEFAULT_AUTHSERVSSLAVAILABLE must be 0 or 1, even if the config file syntax is yes or no */
 #define DEFAULT_AUTHSERVSSLAVAILABLE 0
@@ -87,6 +87,10 @@
 #define FWRULESET_LOCKED_USERS "locked-users"
 /*@}*/
 
+#if OK_PATCH
+#define DEFAULT_LIMIT_RATE 30
+#define DEFAULT_LIMIT_BURST 30
+#endif
 
 /**
  * Mutex for the configuration file, used by the auth_servers related
@@ -180,7 +184,7 @@ typedef struct _s_ath_if_list
     struct _s_ath_if_list * next;
 } t_ath_if_list;
 
-/*
+#if 0
 #define OKOS_MAX_BRIDGE_IF_NUM 32
 typedef struct _s_bridge_conf
 {
@@ -189,14 +193,16 @@ typedef struct _s_bridge_conf
 
     struct _s_bridge_conf * next;
 } t_bridge_conf;
-*/
+#endif
 
 typedef struct _s_ssid_config
 {
     unsigned int sn;
     char * ssid;
-//    char * br_name;
-//    t_bridge_conf * brx;
+#if 0
+    char * br_name;
+    t_bridge_conf * brx;
+#endif
     t_ath_if_list * if_list;
 
     char * scheme_name;
@@ -230,7 +236,10 @@ typedef struct {
 				     server */
     int gw_port;                /**< @brief Port the webserver will run on */
 
-//    t_auth_serv *auth_servers;  /**< @brief Auth servers list */
+#if 0
+    t_auth_serv *auth_servers;  /**< @brief Auth servers list */
+#endif 
+
     char *httpdname;            /**< @brief Name the web server will return when
 				     replying to a request */
     int httpdmaxconn;           /**< @brief Used by libhttpd, not sure what it
@@ -257,11 +266,15 @@ typedef struct {
     t_popular_server *popular_servers; /**< @brief list of popular servers */
 
 #if OK_PATCH
+    int limit_rate;
+    int limit_burst;
 
     char * device_id;
     char * domain_name;
     t_ssid_config * ssid_conf;
-//    t_bridge_conf * br_conf;
+#if 0
+    t_bridge_conf * br_conf;
+#endif
 
 #endif /* OK_PATCH */
 } s_config;
