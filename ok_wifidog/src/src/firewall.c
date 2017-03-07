@@ -385,7 +385,7 @@ fw_destroy(void)
 time_t
 fw_sync_with_authserver(void)
 {
-    debug(LOG_INFO, "Start to check client status periodly. ");
+    debug(LOG_DEBUG, "Start to check client status periodly. ");
 
     t_client *p1, *p2, *worklist, *original;
     s_config *config = config_get_config();
