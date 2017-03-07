@@ -44,6 +44,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#include <fcntl.h>
+
 #include "common.h"
 #include "httpd.h"
 #include "safe.h"
@@ -88,6 +90,8 @@ append_x_restartargv(void)
     restartargv[i++] = safe_strdup("-x");
     safe_asprintf(&(restartargv[i++]), "%d", getpid());
 }
+
+#define OKOS_CLIENT_SHOW(element) (element ? element : "NULL")
 
 /* @internal
  * @brief During gateway restart, connects to the parent process via the internal socket
@@ -226,18 +230,61 @@ get_clients_from_parent(void)
                 }
             }
 
-            client->ifx = okos_conf_get_ifx_by_name(client->if_name);
-            client->ssid_conf = okos_conf_get_ssid_by_name(client->ssid);
-
-            /* End of parsing this command */
+#if OK_PATCH
             if (client) {
-                if (client->ifx && client->ssid_conf) {
-                    okos_client_set_strdup(client->scheme, client->ssid_conf->scheme_name);
-                    client_list_insert_client(client);
-                } else {
+#if 0
+                debug(LOG_DEBUG, "Received a client {ip=%s, mac=%s, ssid=%s, ifname=%s, scheme=%s, user_name=%s, token=%s, auth_mode=%u, remain_time=%u, last_flushed=%lu,fw_connection_state=%u, fd=%d}",
+                        OKOS_CLIENT_SHOW(client->ip), OKOS_CLIENT_SHOW(client->mac),
+                        OKOS_CLIENT_SHOW(client->ssid), OKOS_CLIENT_SHOW(client->if_name),
+                        OKOS_CLIENT_SHOW(client->scheme), OKOS_CLIENT_SHOW(client->user_name),
+                        OKOS_CLIENT_SHOW(client->token), client->auth_mode,
+                        client->remain_time, client->last_flushed,
+                        client->fw_connection_state, client->fd);
+#endif
+                debug(LOG_DEBUG, "Received a client {ip=%s, mac=%s, ssid=%s, ifname=%s...",
+                        OKOS_CLIENT_SHOW(client->ip), OKOS_CLIENT_SHOW(client->mac),
+                        OKOS_CLIENT_SHOW(client->ssid), OKOS_CLIENT_SHOW(client->if_name));
+                debug(LOG_DEBUG, "Received a client {...scheme=%s, user_name=%s, token=%s, auth_mode=%u...}",
+                        OKOS_CLIENT_SHOW(client->scheme), OKOS_CLIENT_SHOW(client->user_name),
+                        OKOS_CLIENT_SHOW(client->token), client->auth_mode);
+                debug(LOG_DEBUG, "Received a client {...remain_time=%u, last_flushed=%lu,fw_connection_state=%u, fd=%d}",
+                        client->remain_time, client->last_flushed,
+                        client->fw_connection_state, client->fd);
+
+                if ((NULL == client->ip) || (NULL == client->mac) || (NULL == client->token)
+                        || (NULL == client->user_name) || (0 == client->last_flushed)
+                        || (NULL == client->if_name) || (NULL == client->ssid)
+                        || (0 == client->remain_time)) {
+                    client_free_node(client);
+                    debug(LOG_DEBUG, "Could not receive completed information from parent.");
+                }
+                client->ifx = okos_conf_get_ifx_by_name(client->if_name);
+                if (NULL == client->ifx) {
+                    debug(LOG_DEBUG, "Can't parse interface correctly.");
                     client_free_node(client);
                 }
+                client->ssid_conf = okos_conf_get_ssid_by_name(client->ssid);
+                if (NULL == client->ssid_conf) {
+                    debug(LOG_DEBUG, "Can't parse ssid correctly.");
+                    client_free_node(client);
+                }
+                okos_client_set_strdup(client->scheme, client->ssid_conf->scheme_name);
+                if (NULL == client->scheme) {
+                    debug(LOG_DEBUG, "Can't acquire scheme from local configuartion.");
+                    client_free_node(client);
+                }
+
+                debug(LOG_DEBUG, "Inheit a client {ip=%s, mac=%s, ssid=%s, ifname=%s, scheme=%s, user_name=%s, token=%s, auth_mode=%u, remain_time=%u, last_flushed=%lu,fw_connection_state=%u, fd=%d}", client->ip, client->mac, client->ssid, client->if_name, client->scheme, client->user_name, client->token, client->auth_mode, client->remain_time, client->last_flushed, client->fw_connection_state, client->fd);
+
+                client_list_insert_client(client);
             }
+
+#else /* OK_PATCH */
+            /* End of parsing this command */
+            if (client) {
+                client_free_node(client);
+            }
+#endif
 
             /* Clean up */
             command = NULL;
@@ -281,7 +328,10 @@ void
 termination_handler(int s)
 {
     static pthread_mutex_t sigterm_mutex = PTHREAD_MUTEX_INITIALIZER;
+#if OK_PATCH
+#else
     pthread_t self = pthread_self();
+#endif
 
     debug(LOG_INFO, "Handler for termination caught signal %d", s);
 
@@ -301,6 +351,8 @@ termination_handler(int s)
      * termination handler) from happening so we need to explicitly kill the threads 
      * that use that
      */
+#if OK_PATCH
+#else
     if (tid_fw_counter && self != tid_fw_counter) {
         debug(LOG_INFO, "Explicitly killing the fw_counter thread");
         pthread_kill(tid_fw_counter, SIGKILL);
@@ -309,6 +361,7 @@ termination_handler(int s)
         debug(LOG_INFO, "Explicitly killing the ping thread");
         pthread_kill(tid_ping, SIGKILL);
     }
+#endif
 
     debug(LOG_NOTICE, "Exiting...");
     exit(s == 0 ? 1 : 0);
@@ -367,6 +420,28 @@ init_signals(void)
     }
 }
 
+#if OK_PATCH
+static void reserve_fd()
+{
+    int fd;
+
+    for (fd = 0; fd < 3; fd++) {
+        int nfd;
+        nfd = open("/dev/null", O_RDWR);
+
+        if (nfd < 0) /* We're screwed. */
+            continue;
+
+        if (nfd == fd)
+            continue;
+
+        dup2(nfd, fd);
+        if (nfd > 2)
+            close(nfd);
+    }
+}
+#endif
+
 /**@internal
  * Main execution loop 
  */
@@ -421,8 +496,9 @@ main_loop(void)
 
     /* Initializes the web server */
 #if OK_PATCH
+    reserve_fd();
     debug(LOG_NOTICE, "Creating web server on %s:%d", "0.0.0.0", config->gw_port);
-    if ((webserver = httpdCreate(HTTP_ANY_ADDR, config->gw_port)) == NULL) {
+    if (NULL == (webserver = httpdCreate(HTTP_ANY_ADDR, config->gw_port))) {
 #else
     debug(LOG_NOTICE, "Creating web server on %s:%d", config->gw_address, config->gw_port);
     if (NULL == (webserver = httpdCreate(config->gw_address, config->gw_port))) {
@@ -431,6 +507,9 @@ main_loop(void)
         exit(1);
     }
     register_fd_cleanup_on_fork(webserver->serverSock);
+    debug(LOG_DEBUG, "Created web server {Host=%s, Port=%d, ServerSock=%d, StartTime=%d, LastError=%d}",
+            webserver->host, webserver->port, webserver->serverSock,
+            webserver->startTime, webserver->lastError);
 
     debug(LOG_DEBUG, "Assigning callbacks to web server");
 #if OK_PATCH
@@ -446,6 +525,7 @@ main_loop(void)
     
     httpdAddCContent(webserver, "/auth", "client", 0, NULL, http_callback_auth);
     httpdAddCContent(webserver, "/auth/client", "allow", 0, NULL, http_callback_auth_allow);
+    httpdAddCContent(webserver, "/auth/client", "qrcode", 0, NULL, http_callback_auth_qrcode);
 
 #else
     httpdAddCContent(webserver, "/", "wifidog", 0, NULL, http_callback_wifidog);
@@ -483,15 +563,12 @@ main_loop(void)
     pthread_detach(tid);
 
     /* Start heartbeat thread */    
-#if OK_PATCH
-#else
     result = pthread_create(&tid_ping, NULL, (void *)thread_ping, NULL);
     if (result != 0) {
         debug(LOG_ERR, "FATAL: Failed to create a new thread (ping) - exiting");
         termination_handler(0);
     }
     pthread_detach(tid_ping);
-#endif
 
     debug(LOG_NOTICE, "Waiting for connections");
     while (1) {
@@ -603,3 +680,4 @@ gw_main(int argc, char **argv)
 
     return (0);                 /* never reached */
 }
+
