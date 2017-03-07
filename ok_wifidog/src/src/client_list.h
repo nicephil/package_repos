@@ -73,7 +73,9 @@ typedef struct _t_client {
     /**<@ These are what we got from local information. 
      * Of course, $ip and $mac should be included.
      */
+#if 0
     char * brX;
+#endif
     char * if_name;
     char * ssid;
     char * scheme;
