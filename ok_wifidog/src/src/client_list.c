@@ -133,8 +133,11 @@ okos_client_get_new_client(const char * ip)
     debug(LOG_DEBUG, "start to build a new client {ip:%s}.", ip);
 
     t_client * client = client_get_new();
+#if 0
     int getMacBrXSuccess = arp_get_all(ip, &client->mac, &client->brX);
-    if (0 != getMacBrXSuccess) {
+#endif
+    client->mac = arp_get(ip);
+    if (NULL == client->mac) {
         debug(LOG_WARNING, "Can't find out match entry in arp table for client {ip:%s}", ip);
         client_free_node(client);
         return NULL;
@@ -146,13 +149,18 @@ okos_client_get_new_client(const char * ip)
             return NULL;
         } 
     }
+#if 0
     debug(LOG_INFO, "Build a new client {ip=%s,mac=%s,if_name=%s,brX=%s,scheme=%s,ssid=%s,token=%s}", client->ip, client->mac, client->if_name, client->brX, client->scheme, client->ssid, client->token);
+#endif
+    debug(LOG_INFO, "Build a new client {ip=%s,mac=%s,if_name=%s,scheme=%s,ssid=%s,token=%s}", client->ip, client->mac, client->if_name, client->scheme, client->ssid, client->token);
 
     return client;
 }
 
+#if 0
 /* FIXME: if you want to use this function, you have to handle all the string element
  *
+ */
 t_client *
 okos_client_list_add(const char *ip, const char *mac, const char *token, 
                 const unsigned int remain_time, const unsigned int auth_mode,
@@ -182,7 +190,7 @@ okos_client_list_add(const char *ip, const char *mac, const char *token,
 
     return curclient;
 }
-*/
+#endif
 
 t_client *
 okos_client_list_flush(t_client * client, const unsigned int remain_time)
@@ -194,7 +202,7 @@ okos_client_list_flush(t_client * client, const unsigned int remain_time)
     return client;
 }
 
-/*
+#if 0
 t_client *
 okos_client_list_client_update(const t_auth_confirm_info *info, t_client *client)
 {
@@ -223,10 +231,9 @@ okos_client_list_client_update(const t_auth_confirm_info *info, t_client *client
     debug(LOG_DEBUG, "Update remain_time: %d.", client->remain_time);
     return client;
 }
-*/
+#endif
 
-
-/*
+#if 0
 t_client *
 okos_client_list_update_mac(t_client *client, const char *mac, const t_auth_confirm_info *info)
 {
@@ -249,8 +256,7 @@ okos_client_list_update_mac(t_client *client, const char *mac, const t_auth_conf
     }
     return client;
 }
-*/
-
+#endif
 
 #endif
 
@@ -353,7 +359,9 @@ client_dup(const t_client * src)
     new->remain_time = src->remain_time;
     new->last_flushed = src->last_flushed;
 
+#if 0
     new->brX = safe_strdup(src->brX);
+#endif
     new->if_name = safe_strdup(src->if_name);
     new->ssid = safe_strdup(src->ssid);
     new->scheme = safe_strdup(src->scheme);
@@ -519,8 +527,10 @@ client_free_node(t_client * client)
 #if OK_PATCH
     if (client->user_name)
         free(client->user_name);
+#if 0
     if (client->brX)
         free(client->brX);
+#endif
     if (client->if_name)
         free(client->if_name);
     if (client->ssid)
