@@ -48,6 +48,9 @@
 #include <varargs.h>
 #endif
 
+
+#include "../src/debug.h"
+
 char *
 httpdUrlEncode(str)
 const char *str;
@@ -284,7 +287,11 @@ int port;
         free(new);
         return (NULL);
     }
-    listen(sock, 128);
+    if (listen(sock, 128) < 0) {
+        close(sock);
+        free(new);
+        return NULL;
+    }
     new->startTime = time(NULL);
     return (new);
 }
