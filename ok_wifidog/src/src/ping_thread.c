@@ -96,6 +96,19 @@ thread_ping(void *arg)
 static void
 ping(void)
 {
+    debug(LOG_DEBUG, "Entering ping()");
+    int sockfd = -1;
+    s_config *p_cfg = config_get_config();
+    
+    t_ssid_config *p_ssid;
+    okos_list_for_each(p_ssid, p_cfg->ssid_conf) {
+        sockfd = connect_auth_server(p_ssid);
+        if (-1 == sockfd) {
+            debug(LOG_DEBUG, "Ping auth server(%s) failed.", p_ssid->auth_servers ? p_ssid->auth_servers->authserv_hostname : "unknown");
+        } else {
+            close(sockfd);
+        }
+    }
 }
 #else /* OK_PATCH */
 static void
