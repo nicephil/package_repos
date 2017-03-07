@@ -329,11 +329,19 @@ wdctl_restart(int afd)
         client = client_get_first_client();
         while (client) {
             /* Send this client */
+#if OK_PATCH
             safe_asprintf(&tempstring,
                           "CLIENT|ip=%s|mac=%s|token=%s|fw_connection_state=%u|fd=%d|counters_incoming=%llu|counters_outgoing=%llu|counters_last_updated=%lu|auth_mode=%u|user_name=%s|remain_time=%u|last_flushed=%lu|if_name=%s|ssid=%s\n",
                           client->ip, client->mac, client->token, client->fw_connection_state, client->fd,
                           client->counters.incoming, client->counters.outgoing, client->counters.last_updated,
 						  client->auth_mode, client->user_name, client->remain_time, client->last_flushed, client->if_name, client->ssid);
+#else /* OK_PATCH */
+            safe_asprintf(&tempstring,
+                          "CLIENT|ip=%s|mac=%s|token=%s|fw_connection_state=%u|fd=%d|auth_mode=%u|user_name=%s|remain_time=%u|last_flushed=%lu|if_name=%s|ssid=%s\n",
+                          client->ip, client->mac, client->token, client->fw_connection_state, client->fd,
+						  client->auth_mode, client->user_name, client->remain_time, client->last_flushed, client->if_name, client->ssid);
+
+#endif
             debug(LOG_DEBUG, "Sending to child client data: %s", tempstring);
             write_to_socket(fd, tempstring, strlen(tempstring));        /* XXX Despicably not handling error. */
             free(tempstring);
