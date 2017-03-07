@@ -59,6 +59,8 @@ cleanup_fds(void)
             fd_list[i] = 0;
         }
     }
+
+    debug(LOG_DEBUG, "Clean up all the registered FDs.");
 }
 
 /** Register an fd for auto-cleanup on fork()
