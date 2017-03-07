@@ -48,7 +48,6 @@
 
 #include "util.h"
 #include "client_list.h"
-#include "okos_auth_param.h"
 
 
 
@@ -66,6 +65,8 @@
 #include "services/dnsset_services.h"
 #include "services/cfg_services.h"
 
+#include "okos_auth_param.h"
+#include "gateway.h"
 #endif
 
 /** @internal
@@ -124,6 +125,10 @@ typedef enum {
     oSSLCertPath,
     oSSLAllowedCipherList,
     oSSLUseSNI,
+#if OK_PATCH
+    oCheckLimitRate,
+    oCheckLimitBurst,
+#endif
 } OpCodes;
 
 /** @internal
@@ -171,6 +176,10 @@ static const struct {
     "sslcertpath", oSSLCertPath}, {
     "sslallowedcipherlist", oSSLAllowedCipherList}, {
     "sslusesni", oSSLUseSNI}, {
+#if OK_PATCH
+    "limitrate", oCheckLimitRate}, {
+    "limitburst", oCheckLimitBurst}, {
+#endif
 NULL, oBadOption},};
 
 static void config_notnull(const void *, const char *);
@@ -233,6 +242,11 @@ config_init(void)
     debugconf.debuglevel = DEFAULT_DEBUGLEVEL;
     debugconf.syslog_facility = DEFAULT_SYSLOG_FACILITY;
     debugconf.log_syslog = DEFAULT_LOG_SYSLOG;
+
+#if OK_PATCH
+    config.limit_rate = DEFAULT_LIMIT_RATE;
+    config.limit_burst = DEFAULT_LIMIT_BURST;
+#endif
 }
 
 /**
@@ -784,6 +798,14 @@ config_read(const char *filename)
                 case oCheckInterval:
                     sscanf(p1, "%d", &config.checkinterval);
                     break;
+#if OK_PATCH
+                case oCheckLimitRate:
+                    sscanf(p1, "%d", &config.limit_rate);
+                    break;
+                case oCheckLimitBurst:
+                    sscanf(p1, "%d", &config.limit_burst);
+                    break;
+#endif
                 case oWdctlSocket:
                     free(config.wdctl_sock);
                     config.wdctl_sock = safe_strdup(p1);
@@ -1036,6 +1058,8 @@ config_validate(void)
     if (NULL == config.device_id) {
         config.device_id = safe_strdup("00:4F:4B:4F:53:21");
     }
+    config_notnull(config.device_id, "Device ID");
+
     if (NULL == config.domain_name) {
         config.domain_name = safe_strdup("oakridge");
     }
@@ -1141,7 +1165,7 @@ mark_auth_server_bad(t_auth_serv * bad_server)
 
 #if OK_PATCH
 
-/*
+#if 0
 t_client * okos_fill_client_info_by_fdb(t_client *client)
 {
     debug(LOG_INFO, "Fill the client info from config by checking fdb.");
@@ -1277,7 +1301,8 @@ static t_client * okos_get_client_ifname_by_stainfo(t_client *client)
 
     return whatIfound;
 }
-*/
+#endif
+
 
 static char * okos_conf_get_option_value(const char *p_path, const char *p_key);
 #define okos_conf_get_option_value_from_config(key) okos_conf_get_option_value("/etc/config", key)
@@ -1302,7 +1327,7 @@ static t_client * okos_get_client_ifname(t_client *client)
 
     char tuple[OKOS_WFD_MAX_STR_LEN];
     sprintf(tuple, "stationinfo.%s.ifname", mac);
-    debug(LOG_WARNING, "%s", tuple);
+    debug(LOG_DEBUG, "%s", tuple);
     char *p_ifname = okos_conf_get_option_value("/tmp/stationinfo", tuple);
     if (NULL == p_ifname) {
         return NULL;
@@ -1326,7 +1351,7 @@ t_client * okos_fill_client_info_by_stainfo(t_client *client)
                 okos_client_set_strdup(client->ssid, client->ssid_conf->ssid);
                 okos_client_set_strdup(client->token, OKOS_AUTH_FAKE_TOKEN);
 
-                debug(LOG_DEBUG, "found record of client {ip:%s, mac=%s, ifname:%s, ssid:%s, scheme:%s, bridge:%s}", client->ip, client->mac, client->if_name, client->ssid, client->scheme, client->brX);
+                debug(LOG_DEBUG, "found record of client {ip:%s, mac=%s, ifname:%s, ssid:%s, scheme:%s}", client->ip, client->mac, client->if_name, client->ssid, client->scheme);
 
                 return client;
             }
@@ -1338,8 +1363,7 @@ t_client * okos_fill_client_info_by_stainfo(t_client *client)
     return NULL;
 }
 
-
-/*
+#if 0
 t_client * okos_fill_client_info(t_client *client)
 {
     debug(LOG_INFO, "Fill the client info from config by hand.");
@@ -1363,7 +1387,10 @@ t_client * okos_fill_client_info(t_client *client)
     debug(LOG_ERR, "can not find out the basic information for client(%s)[%s] in bridge{%s}", client->ip, client->mac, client->brX);
     return NULL;
 }
-*/
+#endif
+
+
+
 static int okos_get_bssid(char *p_ifname, char **pp_bssid)
 {
     char line[256];
@@ -1509,12 +1536,23 @@ static void okos_config_read(void)
                     continue;
                 }
                 
-                if (2 == sscanf(p_schm_cfg->uri_path, "http://%[A-Za-z0-9.]%s", cfg, tuple)) {
-                    p_auth_svr = okos_conf_ins_list_member(p_ssid->auth_servers);
-                    okos_conf_set_str(p_auth_svr->authserv_hostname, cfg);
-                    okos_conf_set_str(p_auth_svr->authserv_path, tuple);
-                    okos_config_init_default_auth_server(p_auth_svr);
-                    debug(LOG_DEBUG, "add auth server(%s) with path(%s) into ssid(%s)", p_auth_svr->authserv_hostname, p_auth_svr->authserv_path, p_ssid->ssid);
+                char host_name[OKOS_WFD_MAX_STR_LEN];
+                char host_path[OKOS_WFD_MAX_STR_LEN];
+                host_path[0] = '/';
+                int host_port = DEFAULT_AUTHSERVPORT;
+                if (1 == sscanf(p_schm_cfg->uri_path, "http://%s", cfg)) {
+                    if ((3 == sscanf(cfg, "%[a-zA-Z0-9.]:%d/%s", host_name, &host_port, &host_path[1]))
+                            || (2 == sscanf(cfg, "%[a-zA-Z0-9.]/%s", host_name, &host_path[1]))) {
+                        p_auth_svr = okos_conf_ins_list_member(p_ssid->auth_servers);
+                        okos_config_init_default_auth_server(p_auth_svr);
+                        okos_conf_set_str(p_auth_svr->authserv_hostname, host_name);
+                        okos_conf_set_str(p_auth_svr->authserv_path, host_path);
+                        p_auth_svr->authserv_http_port = host_port;
+                        debug(LOG_DEBUG, "add auth server(%s) with path(%s) into ssid(%s)",
+                                p_auth_svr->authserv_hostname, p_auth_svr->authserv_path, p_ssid->ssid);
+                    } else {
+                        debug(LOG_WARNING, "Bad auth server path configuration<%s>", p_schm_cfg->uri_path);
+                    }
                 }
 
                 p_ip_wlist = okos_conf_ins_list_member(p_ssid->ip_white_list);
@@ -1598,7 +1636,7 @@ void config_simulate(void)
 }
 
 
-/*
+#if 0
 static void okos_simulate_3ssid(void)
 {
 
@@ -1766,7 +1804,8 @@ static void okos_simulate_3ssid(void)
     okos_conf_set_int(ipx, target, TARGET_ACCEPT);
 
 }
-*/
+#endif
+
 
 
 t_ssid_config * okos_conf_get_ssid_by_name(const char *name)
@@ -1876,6 +1915,8 @@ okos_conf_get_all(void)
     pstr_cat(p_str, ">>>>Client Control Section<<<<\n");
     OKOS_CONF_APP_INT("Client timeout", config.clienttimeout);
     OKOS_CONF_APP_INT("Check Interval", config.checkinterval);
+    OKOS_CONF_APP_INT("Limit Rate", config.limit_rate);
+    OKOS_CONF_APP_INT("Limit Burst", config.limit_burst);
 
     OKOS_CONF_APP_INT("Proxy Port", config.proxy_port);
     OKOS_CONF_APP_STR("ARP table path", config.arp_table_path);
@@ -1946,6 +1987,23 @@ okos_conf_get_all(void)
             OKOS_CONF_APP_STR("  MAC", p_mac->mac);
         }
     }
+
+    pstr_cat(p_str, "\n\n>>>>Debug Section<<<<\n");
+    pstr_cat(p_str, ">>>>System<<<<\n");
+    OKOS_CONF_APP_INT("  System Start Time", started_time);
+    OKOS_CONF_APP_INT("  System Current Time", time(NULL));
+
+    pstr_cat(p_str, ">>>>Web Server<<<<\n");
+    if (NULL == webserver) {
+        pstr_cat(p_str, "Fatal Error, No Web Server here right now.\n");
+    } else {
+        OKOS_CONF_APP_STR("  Host", webserver->host);
+        OKOS_CONF_APP_INT("  Port", webserver->port);
+        OKOS_CONF_APP_INT("  Server Socket", webserver->serverSock);
+        OKOS_CONF_APP_INT("  Start Time", webserver->startTime);
+        OKOS_CONF_APP_INT("  Last Error", webserver->lastError);
+    }
+
     pstr_cat(p_str, "========================\n");
 
     UNLOCK_CONFIG();
