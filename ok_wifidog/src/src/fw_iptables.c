@@ -430,6 +430,7 @@ iptables_fw_init(void)
             iptables_do_command("-t nat -A " CHAIN_TO_INTERNET_i " -p tcp --dport 80 -m mark --mark 0x%u -j REDIRECT --to-port %u", sn, FW_MARK_KNOWN, proxy_port);
             iptables_do_command("-t nat -A " CHAIN_TO_INTERNET_i " -p tcp --dport 80 -m mark --mark 0x%u -j REDIRECT --to-port %u", sn, FW_MARK_PROBATION, proxy_port);
         }
+        iptables_do_command("-t nat -A " CHAIN_TO_INTERNET_i " -d 10.10.111.111 -p tcp -m tcp --dport 80 -j REDIRECT --to-ports %d", sn, config->gw_port);
         iptables_do_command("-t nat -A " CHAIN_TO_INTERNET_i " -m mark --mark 0x%u -j ACCEPT", sn, FW_MARK_KNOWN);
         iptables_do_command("-t nat -A " CHAIN_TO_INTERNET_i " -m mark --mark 0x%u -j ACCEPT", sn, FW_MARK_PROBATION);
         iptables_do_command("-t nat -A " CHAIN_TO_INTERNET_i " -j " CHAIN_UNKNOWN_i, sn, sn);
