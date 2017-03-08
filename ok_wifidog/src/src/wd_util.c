@@ -215,11 +215,16 @@ get_status_text()
     count = 1;
     while (current != NULL) {
         pstr_append_sprintf(pstr, "\nClient %d\n", count);
-        pstr_append_sprintf(pstr, "  IP: %s MAC: %s\n", current->ip, current->mac);
-        pstr_append_sprintf(pstr, "  SSID: %s IFACE: %s SCHEME: %s\n", current->ssid, current->if_name, current->scheme);
-        pstr_append_sprintf(pstr, "  User Name: %s\n", current->user_name);
-        pstr_append_sprintf(pstr, "  auth mode: %d remain time: %d last flushed: %d\n", current->auth_mode, current->remain_time, current->last_flushed);
-        pstr_append_sprintf(pstr, "  Token: %s\n", current->token);
+        pstr_append_sprintf(pstr, "  MAC:            %s\n", current->mac);
+        pstr_append_sprintf(pstr, "  Authenticator:  %s\n", current->ip);
+        pstr_append_sprintf(pstr, "  SSID:           %s\n", current->ssid);
+        pstr_append_sprintf(pstr, "  INTERFACE:      %s\n", current->if_name);
+        pstr_append_sprintf(pstr, "  SCHEME NAME:    %s\n", current->scheme);
+        pstr_append_sprintf(pstr, "  User Name:      %s\n", current->user_name);
+        pstr_append_sprintf(pstr, "  auth mode:      %d\n", current->auth_mode);
+        pstr_append_sprintf(pstr, "  REMAIN TIME:    %d\n", current->remain_time);
+        pstr_append_sprintf(pstr, "  LAST FLUSHED:   %d\n", current->last_flushed);
+        pstr_append_sprintf(pstr, "  Token:          %s\n", current->token);
         count++;
         current = current->next;
     }
