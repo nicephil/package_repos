@@ -192,10 +192,6 @@ static t_client * okos_query_auth_server(t_client *p_client)
 }
 #endif
 
-static int okos_is_authenticator(request *r)
-{
-    return 0;
-}
 
 #define OKOS_HTTP_STR(s) (s ? s : "nil")
 
@@ -225,13 +221,14 @@ void
 http_callback_404(httpd *webserver, request *r, int error_code)
 {
     debug(LOG_DEBUG, "Calling 404() for %s", r->clientAddr);
+
+    if (HTTP_GET != r->request.method) {
+        debug(LOG_DEBUG, "Drop HTTP request except GET method for %s", r->clientAddr);
+        goto cb_404_leave_for_bad_method;
+    }
+
     char a_tmp_url[MAX_BUF];
     memset(a_tmp_url, 0, sizeof(a_tmp_url));
-    /* 
-     * XXX Note the code below assumes that the client's request is a plain
-     * http request to a standard port. At any rate, this handler is called only
-     * if the internet/auth server is down so it's not a huge loss, but still.
-     */
     snprintf(a_tmp_url, (sizeof(a_tmp_url) - 1), "http://%s%s%s%s",
              r->request.host, r->request.path, r->request.query[0] ? "?" : "", r->request.query);
 
@@ -239,13 +236,6 @@ http_callback_404(httpd *webserver, request *r, int error_code)
     okos_http_statistic_variables(r);
 #endif
 
-    /* This part is for roaming.
-     * When a client is roaming to a new AP, it didn't register to this AP before.
-     * So, iptables won't let it go. the http request will be redirected to 404.
-     * We query auth server here to confirm his login status.
-     * If we got confirm from Auth Sever and this client is allowed, set it into iptables.
-     * Then, redirect him to the original web page.
-     */
     debug(LOG_DEBUG, "build a new client {ip:%s} for 404.", r->clientAddr);
     t_client *p_client = okos_client_get_new_client(r->clientAddr);
     if (NULL == p_client) {
@@ -255,34 +245,28 @@ http_callback_404(httpd *webserver, request *r, int error_code)
     }
     debug(LOG_DEBUG, "Client {ip=%s, mac=%s, ssid=%s, ifname=%s, scheme=%s}", p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, p_client->scheme);
 
-    int isAuthenticator = okos_is_authenticator(r);
-
-    if (!isAuthenticator) {
 #if OKOS_PORTAL_PRECHECK
-        debug(LOG_DEBUG, "Start to query for new client in 404.");
-        if (NULL == okos_query_auth_server(p_client)) {
-            http_send_redirect(r, a_tmp_url, "Allowed");
+    debug(LOG_DEBUG, "Start to query for new client in 404.");
+    if (NULL == okos_query_auth_server(p_client)) {
+        http_send_redirect(r, a_tmp_url, "Allowed");
 
-            debug(LOG_INFO, "Client{%s,%s,%s} login already. Let him go.", p_client->ip, p_client->mac, p_client->ssid);
-            goto cb_404_quick_check_failed;
-        }
-        debug(LOG_INFO, "client{%s,%s,%s} hasn't been authenticated before, need to kickoff auth process from beginning.", p_client->ip, p_client->mac, p_client->ssid);
+        debug(LOG_INFO, "Client{%s,%s,%s} login already. Let him go.", p_client->ip, p_client->mac, p_client->ssid);
+        goto cb_404_quick_check_failed;
+    }
+    debug(LOG_INFO, "client{%s,%s,%s} hasn't been authenticated before, need to kickoff auth process from beginning.", p_client->ip, p_client->mac, p_client->ssid);
 #endif
 
-        /* For new client, check his target host in the white list.
-        */
-        debug(LOG_DEBUG, "Start to check target host in white list...");
-        int canntMatchHostInWhiteList;
-        canntMatchHostInWhiteList = okos_http_check_whitelist(r, a_tmp_url);
-        if (!canntMatchHostInWhiteList) {
-            debug(LOG_INFO, "Match target in global WhiteList, redirect client, exit 404 process..");
-            goto cb_404_match_global_whitelist;
-        }
-        canntMatchHostInWhiteList = okos_http_check_whitelist_by_ssid(r, a_tmp_url, p_client->ssid_conf);
-        if (!canntMatchHostInWhiteList) {
-            debug(LOG_INFO, "Match target in WhiteList on ssid(%s), redirect client, exit 404 process..", p_client->ssid_conf->ssid);
-            goto cb_404_match_ssid_whitelist;
-        }
+    debug(LOG_DEBUG, "Start to check target host in white list...");
+    int canntMatchHostInWhiteList;
+    canntMatchHostInWhiteList = okos_http_check_whitelist(r, a_tmp_url);
+    if (!canntMatchHostInWhiteList) {
+        debug(LOG_INFO, "Match target in global WhiteList, redirect client, exit 404 process..");
+        goto cb_404_match_global_whitelist;
+    }
+    canntMatchHostInWhiteList = okos_http_check_whitelist_by_ssid(r, a_tmp_url, p_client->ssid_conf);
+    if (!canntMatchHostInWhiteList) {
+        debug(LOG_INFO, "Match target in WhiteList on ssid(%s), redirect client, exit 404 process..", p_client->ssid_conf->ssid);
+        goto cb_404_match_ssid_whitelist;
     }
 
     /* Re-direct them to auth server */
@@ -294,9 +278,9 @@ http_callback_404(httpd *webserver, request *r, int error_code)
     safe_asprintf(&s_urlFragment, "%sinfo=%s&originalurl=%s",
             auth_server->authserv_login_script_path_fragment, s_info, s_url);
 
-    debug(LOG_DEBUG, "Captured {ip=%s, mac=%s, ssid=%s, if_name=%s} requesting [%s] and re-directing them to login page",
+    debug(LOG_DEBUG, "Captured {ip=%s, mac=%s, ssid=%s, if_name=%s} requesting [%s] and re-directed.",
             p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, s_urlFragment);
-    http_send_redirect_to_auth(r, s_urlFragment, "Redirect to login page", auth_server);
+    http_send_redirect_to_auth(r, s_urlFragment, "Redirect to login page", auth_server, "");
     
     free(s_info);
     free(s_url);
@@ -306,8 +290,9 @@ cb_404_match_ssid_whitelist:
 cb_404_match_global_whitelist:
     client_free_node(p_client);
 
-cb_404_quick_check_failed:
+//cb_404_quick_check_failed:
 cb_404_cannt_get_new_client:
+cb_404_leave_for_bad_method:
     return;
 }
 
@@ -674,19 +659,6 @@ http_callback_auth_qrcode(httpd *webserver, request *r)
 {
     debug(LOG_DEBUG, "Received request for auth qrcode from %s", r->clientAddr);
 
-    httpVar *s_info = httpdGetVariableByName(r, "info");
-	if (NULL == s_info) {
-        debug(LOG_WARNING, "Cant get parameter<info> from authenticator (%s)", r->clientAddr);
-        send_http_page(r, "Whatever", "Invalid Auth Parameter");
-        return;
-    }
-    httpVar *s_url = httpdGetVariableByName(r, "originalurl");
-	if (NULL == s_url) {
-        debug(LOG_WARNING, "Cant get parameter<originalurl> from authenticator (%s)", r->clientAddr);
-        send_http_page(r, "Whatever", "Invalid Auth Parameter");
-        return;
-    }
-    
     debug(LOG_DEBUG, "build a new client {ip:%s} for 404.", r->clientAddr);
     t_client *p_client = okos_client_get_new_client(r->clientAddr);
     if (NULL == p_client) {
@@ -697,20 +669,30 @@ http_callback_auth_qrcode(httpd *webserver, request *r)
     debug(LOG_DEBUG, "Client {ip=%s, mac=%s, ssid=%s, ifname=%s, scheme=%s}",
             p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, p_client->scheme);
 
+    pstr_t *p_str = pstr_new();
+    httpVar *p_var;
+    for (p_var = r->variables; NULL != p_var; p_var = p_var->nextValue) {
+        pstr_append_sprintf(p_str, "&%s=%s", p_var->name, p_var->value);
+    }
+    char *s_variables = pstr_to_string(p_str);
+    debug(LOG_DEBUG, "Copy variables from original request. %s", s_variables);
+
     char *s_source = okos_http_insert_parameter(p_client);
     char *s_urlFragment;
 
     t_auth_serv *auth_server = get_auth_server(p_client);
-    safe_asprintf(&s_urlFragment, "%sinfo=%s&originalurl=%s&source=%s",
-            auth_server->authserv_login_script_path_fragment, s_info, s_url, s_source);
-    
-    debug(LOG_DEBUG, "Authenticator {ip=%s, mac=%s, ssid=%s, if_name=%s} requesting [%s] and re-directed them to login page",
-            p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, s_urlFragment);
-    http_send_redirect_to_auth(r, s_urlFragment, "Redirect to qrcode page", auth_server);
 
-    client_free_node(p_client);
-    free(s_source);
+    safe_asprintf(&s_urlFragment, "%ssource=%s%s",
+            auth_server->authserv_login_script_path_fragment, s_source, s_variables);
+    
+    debug(LOG_DEBUG, "Authenticator {ip=%s, mac=%s, ssid=%s, if_name=%s} requesting [%s] and re-directed.",
+            p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, s_urlFragment);
+    http_send_redirect_to_auth(r, s_urlFragment, "Redirect to qrcode page", auth_server, "/qrcode");
+
     free(s_urlFragment);
+    free(s_source);
+    free(s_variables);
+    client_free_node(p_client);
 
     return;
 }
@@ -767,7 +749,7 @@ http_callback_config(httpd *webserver, request *r)
  * @param text The text to include in the redirect header ant the mnual redirect title */
 #if OK_PATCH
 void
-http_send_redirect_to_auth(request *r, const char *urlFragment, const char *text, const t_auth_serv *auth_server)
+http_send_redirect_to_auth(request *r, const char *urlFragment, const char *text, const t_auth_serv *auth_server, const char *append)
 #else /* OK_PATCH */
 void
 http_send_redirect_to_auth(request * r, const char *urlFragment, const char *text)
@@ -789,8 +771,9 @@ http_send_redirect_to_auth(request * r, const char *urlFragment, const char *tex
     }
 
     char *url = NULL;
-    safe_asprintf(&url, "%s://%s:%d%s%s",
-                  protocol, auth_server->authserv_hostname, port, auth_server->authserv_path, urlFragment);
+    safe_asprintf(&url, "%s://%s:%d%s%s%s",
+                  protocol, auth_server->authserv_hostname, port, auth_server->authserv_path,
+                  NULL == append ? "" : append, urlFragment);
     http_send_redirect(r, url, text);
     free(url);
 }
@@ -806,9 +789,7 @@ http_send_redirect(request * r, const char *url, const char *text)
     char *header = NULL;
     char *response = NULL;
     /* Re-direct them to auth server */
-#if 0
     debug(LOG_DEBUG, "Redirecting client browser to %s", url);
-#endif
     safe_asprintf(&header, "Location: %s", url);
     safe_asprintf(&response, "302 %s\n", text ? text : "Redirecting");
     httpdSetResponse(r, response);
@@ -832,28 +813,22 @@ void http_callback_auth(httpd *webserver, request *r)
         return;
     }
 
-    debug(LOG_DEBUG, "build a new client for Authenticator {ip:%s}.", r->clientAddr);
-    t_client *client = okos_client_get_new_client(r->clientAddr);
-    if (NULL == client) {
-        debug(LOG_WARNING, "Since we can't get local infor for client(%s),"
-                "we need to apologize to our client.", r->clientAddr);
-        /* FIXME: we may need to port some error handler here. */
-        return;
-    }
-
+    t_client * client = client_get_new();
     debug(LOG_DEBUG, "Starting parse the return info from auth server.");
     int parseFailed = okos_http_parse_info(auth->value, client);
     if (parseFailed) {
-        send_http_page(r, "Auth Server Error", "Invalid auth parameter");
+        send_http_page(r, "Good Luck!", "Invalid auth parameter");
         debug(LOG_WARNING, "We can't parse the auth parameter correctly."
                 "code: %d", parseFailed);
         client_free_node(client);
         return;
     }
-    
-    debug(LOG_INFO, "Client{ip:%s, mac:%s, ssid:%s} got authoriated by server.", client->ip, client->mac, client->ssid);
-    okos_try_to_add_client_into_list(client);
-
+    client = okos_client_append_info(client, r->clientAddr);
+    if (NULL != client) {
+        debug(LOG_NOTICE, "Client{Authenticator:%s, mac:%s, ssid:%s} PASSED!",
+                client->ip, client->mac, client->ssid);
+        okos_try_to_add_client_into_list(client);
+    }
     httpVar *flag = httpdGetVariableByName(r, "flag");
     int donot_redirect = 0;
     if (NULL != flag) {
@@ -864,13 +839,12 @@ void http_callback_auth(httpd *webserver, request *r)
         donot_redirect = 1;
 
     if (!donot_redirect) {
-        debug(LOG_DEBUG, "We need to redirect client to the assigned web page.");
+        debug(LOG_DEBUG, "Redirect client to the assigned web page.");
         char *url= NULL;
         safe_asprintf(&url, "%s", redirecturl->value);
         http_send_redirect(r, url, "Redirect to portal");
         free(url);
     } else {
-        debug(LOG_DEBUG, "We just need to reply to client something.");
         send_http_page(r, "Life is short, play!", "my friend");
     }
 
