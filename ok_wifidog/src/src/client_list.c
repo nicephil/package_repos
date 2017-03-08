@@ -128,6 +128,21 @@ static const t_client * okos_client_query_mac(const t_client *first, const char 
 }
 
 t_client *
+okos_client_append_info(t_client * client, const char * ip)
+{
+    okos_client_set_strdup(client->ip, ip);
+    if (NULL == okos_fill_client_info_by_stainfo(client)) {
+        debug(LOG_WARNING, "cant fill the local informaiton for client {ip:%s}.", ip);
+        client_free_node(client);
+        return NULL;
+    } 
+    debug(LOG_DEBUG, "Complete client {Authenticator=%s,mac=%s,if_name=%s,scheme=%s,ssid=%s,token=%s}", client->ip, client->mac, client->if_name, client->scheme, client->ssid, client->token);
+
+    return client;
+}
+
+
+t_client *
 okos_client_get_new_client(const char * ip)
 {
     debug(LOG_DEBUG, "start to build a new client {ip:%s}.", ip);
