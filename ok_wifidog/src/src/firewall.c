@@ -465,7 +465,7 @@ fw_sync_with_authserver(void)
 
     return next_timer;
 }
-#else
+#else /* OK_PATCH */
 
 /**Probably a misnomer, this function actually refreshes the entire client list's traffic counter, re-authenticates every client with the central server and update's the central servers traffic counters and notifies it if a client has logged-out.
  * @todo Make this function smaller and use sub-fonctions
