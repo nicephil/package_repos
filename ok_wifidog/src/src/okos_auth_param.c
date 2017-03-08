@@ -183,9 +183,6 @@ static int _okos_http_parse_info(const unsigned char *info, const int len, t_cli
 	t_auth_confirm_info *ptemp = NULL;
 	int size;
 
-	debug(LOG_DEBUG, "start to parse info to client{%s,%s}.",
-			client->ip, NULL == client->mac ? "NULL":client->mac);
-
 #define pre_parse(left, size, element) {\
 	size = sizeof(ptemp->element); \
 	if (left < size) {\
