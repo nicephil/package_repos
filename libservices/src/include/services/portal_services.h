@@ -4,7 +4,7 @@
 /* following macro duplicate with portal_public.h because those modules does not complied now.
  * it will be replaced by including header file
  */
-#define PORTAL_NAME_MAX_LENGTH      32
+#define PORTAL_NAME_MAX_LENGTH      64
 #define PORTAL_URI_MAX              128
 #define PORTAL_MAX_IP_ACCESS_LIST   512
 #define PORTAL_MAX_HOST_ACCESS_LIST 10

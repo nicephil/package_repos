@@ -71,14 +71,11 @@ scan_qcawifi() {
 		[ $disabled = 0 ] || continue
 
 		local vifname
-        # we will use the ifname defined in vif config, it must be defined
-        # notice the ifname must be athN, otherwise wlanconfig will select random name
-        config_get _ifname "$vif" ifname
-        [ -z $_ifname ] && {
 		[ $ifidx -gt 0 ] && vifname="ath${radioidx}$ifidx" || vifname="ath${radioidx}"
-		config_set "$vif" ifname $vifname
-        }
 
+		config_get ifname "$vif" ifname
+		config_set "$vif" ifname "${ifname:-$vifname}"
+		
 		config_get mode "$vif" mode
 		case "$mode" in
 			adhoc|sta|ap|monitor|wrap|ap_monitor|ap_smart_monitor|mesh|ap_lp_iot)
@@ -847,10 +844,6 @@ enable_qcawifi() {
                 esac
 	done
 
-    #OK_PATCH
-    t_wlanaddr=${macaddr##*:}
-    t_wlanaddr=$((0x$t_wlanaddr))
-    #end of OK_PATCH
 	for vif in $vifs; do
 		local start_hostapd= vif_txpower= nosbeacon= wlanaddr=""
 		local wlanmode
@@ -859,12 +852,6 @@ enable_qcawifi() {
 		config_get eap_type "$vif" eap_type
 		config_get mode "$vif" mode
 		wlanmode=$mode
-        #OK_PATCH
-        t_wlanaddr=`printf "%02x" $t_wlanaddr`
-        #wlanaddr=${macaddr%:*}:${t_wlanaddr}
-        t_wlanaddr=$((0x$t_wlanaddr))
-        t_wlanaddr=$(($t_wlanaddr+1))
-        #end of OK_PATCH
         
 
 		if [ -f /sys/class/net/$device/ciphercaps ]
@@ -1908,7 +1895,11 @@ detect_qcawifi() {
 		echo $nss_ol_num >/lib/wifi/wifi_nss_olnum
 		reload=1
         base_mac="$(cat /sys/class/net/eth0/address)"
-        mac="${base_mac%:*}:`printf "%02x" $((0x${base_mac##*:} + $(($devidx*8+8))))`"
+        mac="${base_mac%:*}:`printf "%02x" $((0x${base_mac##*:} + $((${devidx}*8+8))))`"
+        amsdu="1"
+        if [ $devidx == "0" ]; then
+            amsdu="0"
+        fi
 		cat <<EOF
 config wifi-device  wifi$devidx
     option type	qcawifi
@@ -1916,6 +1907,20 @@ config wifi-device  wifi$devidx
     option macaddr ${mac}
     option hwmode	11${mode_11}
     option disabled 0
+    option txpower 27
+    option wmm 1
+    option bintval 100
+    option shortgi 1
+    option AMPDU 1
+    option AMPDULim 65535
+    option AMPDUFrames 32
+    option AMSDU $amsdu
+    option dtim_period 1
+    option rts 2347
+    option frag 2346
+    option maxradiosta 128
+    option abcpreq 1
+    option distance 1
 
 EOF
 	devidx=$(($devidx + 1))
