@@ -197,13 +197,15 @@ static int okos_is_authenticator(request *r)
     return 0;
 }
 
-static void okos_http_statistic_variables(request *r)
+#define OKOS_HTTP_STR(s) (s ? s : "nil")
+
+void okos_http_statistic_variables(request *r)
 {
-#if 0
     debug(LOG_DEBUG, "HTTP_READ_BUF:[%s]", r->readBuf);
 
     pstr_t *p_str = pstr_new();
-    pstr_append_sprintf(p_str, "Request:={Host=%s Path=%s Query=%s}", r->request.host, r->request.path, r->request.query);
+    pstr_append_sprintf(p_str, "Request:={Host=%s Path=%s Query=%s}",
+           OKOS_HTTP_STR(r->request.host), OKOS_HTTP_STR(r->request.path), OKOS_HTTP_STR(r->request.query));
 
     pstr_cat(p_str, "httpVars:={");
     httpVar *p_var;
@@ -215,7 +217,6 @@ static void okos_http_statistic_variables(request *r)
     char *p_header = pstr_to_string(p_str);
     debug(LOG_DEBUG, "%s", p_header);
     free(p_header);
-#endif
 }
 
 
@@ -234,7 +235,9 @@ http_callback_404(httpd *webserver, request *r, int error_code)
     snprintf(a_tmp_url, (sizeof(a_tmp_url) - 1), "http://%s%s%s%s",
              r->request.host, r->request.path, r->request.query[0] ? "?" : "", r->request.query);
 
+#if 0
     okos_http_statistic_variables(r);
+#endif
 
     /* This part is for roaming.
      * When a client is roaming to a new AP, it didn't register to this AP before.
@@ -247,8 +250,8 @@ http_callback_404(httpd *webserver, request *r, int error_code)
     t_client *p_client = okos_client_get_new_client(r->clientAddr);
     if (NULL == p_client) {
         debug(LOG_ERR, "Failed to retrieve info for client(%s), so not putting in login request.", r->clientAddr);
-        /* FIXME: we may need to port some error handler here. */
-        return;
+        send_http_page(r, "Sorry", "Do not support anonymous yet");
+        goto cb_404_cannt_get_new_client;
     }
     debug(LOG_DEBUG, "Client {ip=%s, mac=%s, ssid=%s, ifname=%s, scheme=%s}", p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, p_client->scheme);
 
@@ -261,7 +264,7 @@ http_callback_404(httpd *webserver, request *r, int error_code)
             http_send_redirect(r, a_tmp_url, "Allowed");
 
             debug(LOG_INFO, "Client{%s,%s,%s} login already. Let him go.", p_client->ip, p_client->mac, p_client->ssid);
-            return;
+            goto cb_404_quick_check_failed;
         }
         debug(LOG_INFO, "client{%s,%s,%s} hasn't been authenticated before, need to kickoff auth process from beginning.", p_client->ip, p_client->mac, p_client->ssid);
 #endif
@@ -273,12 +276,12 @@ http_callback_404(httpd *webserver, request *r, int error_code)
         canntMatchHostInWhiteList = okos_http_check_whitelist(r, a_tmp_url);
         if (!canntMatchHostInWhiteList) {
             debug(LOG_INFO, "Match target in global WhiteList, redirect client, exit 404 process..");
-            return;
+            goto cb_404_match_global_whitelist;
         }
         canntMatchHostInWhiteList = okos_http_check_whitelist_by_ssid(r, a_tmp_url, p_client->ssid_conf);
         if (!canntMatchHostInWhiteList) {
             debug(LOG_INFO, "Match target in WhiteList on ssid(%s), redirect client, exit 404 process..", p_client->ssid_conf->ssid);
-            return;
+            goto cb_404_match_ssid_whitelist;
         }
     }
 
@@ -291,14 +294,20 @@ http_callback_404(httpd *webserver, request *r, int error_code)
     safe_asprintf(&s_urlFragment, "%sinfo=%s&originalurl=%s",
             auth_server->authserv_login_script_path_fragment, s_info, s_url);
 
-    debug(LOG_INFO, "Captured {ip=%s, mac=%s, ssid=%s, if_name=%s} requesting [%s] and re-directing them to login page",
-            p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, s_url);
+    debug(LOG_DEBUG, "Captured {ip=%s, mac=%s, ssid=%s, if_name=%s} requesting [%s] and re-directing them to login page",
+            p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, s_urlFragment);
     http_send_redirect_to_auth(r, s_urlFragment, "Redirect to login page", auth_server);
-
-    client_free_node(p_client);
+    
     free(s_info);
     free(s_url);
     free(s_urlFragment);
+
+cb_404_match_ssid_whitelist:
+cb_404_match_global_whitelist:
+    client_free_node(p_client);
+
+cb_404_quick_check_failed:
+cb_404_cannt_get_new_client:
     return;
 }
 
@@ -656,8 +665,57 @@ http_callback_status(httpd * webserver, request * r)
 void 
 http_callback_auth_allow(httpd *webserver, request *r)
 {
+    send_http_page(r, "Sorry", "Do not support yet");
     return;
 }
+
+void
+http_callback_auth_qrcode(httpd *webserver, request *r)
+{
+    debug(LOG_DEBUG, "Received request for auth qrcode from %s", r->clientAddr);
+
+    httpVar *s_info = httpdGetVariableByName(r, "info");
+	if (NULL == s_info) {
+        debug(LOG_WARNING, "Cant get parameter<info> from authenticator (%s)", r->clientAddr);
+        send_http_page(r, "Whatever", "Invalid Auth Parameter");
+        return;
+    }
+    httpVar *s_url = httpdGetVariableByName(r, "originalurl");
+	if (NULL == s_url) {
+        debug(LOG_WARNING, "Cant get parameter<originalurl> from authenticator (%s)", r->clientAddr);
+        send_http_page(r, "Whatever", "Invalid Auth Parameter");
+        return;
+    }
+    
+    debug(LOG_DEBUG, "build a new client {ip:%s} for 404.", r->clientAddr);
+    t_client *p_client = okos_client_get_new_client(r->clientAddr);
+    if (NULL == p_client) {
+        debug(LOG_ERR, "Failed to retrieve info for client(%s), so not putting in login request.", r->clientAddr);
+        send_http_page(r, "Sorry", "Do not support anonymous yet");
+        return;
+    }
+    debug(LOG_DEBUG, "Client {ip=%s, mac=%s, ssid=%s, ifname=%s, scheme=%s}",
+            p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, p_client->scheme);
+
+    char *s_source = okos_http_insert_parameter(p_client);
+    char *s_urlFragment;
+
+    t_auth_serv *auth_server = get_auth_server(p_client);
+    safe_asprintf(&s_urlFragment, "%sinfo=%s&originalurl=%s&source=%s",
+            auth_server->authserv_login_script_path_fragment, s_info, s_url, s_source);
+    
+    debug(LOG_DEBUG, "Authenticator {ip=%s, mac=%s, ssid=%s, if_name=%s} requesting [%s] and re-directed them to login page",
+            p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, s_urlFragment);
+    http_send_redirect_to_auth(r, s_urlFragment, "Redirect to qrcode page", auth_server);
+
+    client_free_node(p_client);
+    free(s_source);
+    free(s_urlFragment);
+
+    return;
+}
+
+
 
 void
 http_callback_debug(httpd *webserver, request *r)
@@ -748,7 +806,9 @@ http_send_redirect(request * r, const char *url, const char *text)
     char *header = NULL;
     char *response = NULL;
     /* Re-direct them to auth server */
+#if 0
     debug(LOG_DEBUG, "Redirecting client browser to %s", url);
+#endif
     safe_asprintf(&header, "Location: %s", url);
     safe_asprintf(&response, "302 %s\n", text ? text : "Redirecting");
     httpdSetResponse(r, response);
@@ -908,7 +968,7 @@ send_http_page(request * r, const char *title, const char *message)
     int fd;
     ssize_t written;
 
-    debug(LOG_DEBUG, "start to send http page:{title:%s, message:%s", title, message);
+    debug(LOG_INFO, "start to send http page:{title:%s, message:%s", title, message);
 
     fd = open(config->htmlmsgfile, O_RDONLY);
     if (fd == -1) {

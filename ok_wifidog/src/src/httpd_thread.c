@@ -42,6 +42,7 @@
 #include "common.h"
 #include "debug.h"
 #include "httpd_thread.h"
+#include "http.h"
 
 /** Main request handling thread.
 @param args Two item array of void-cast pointers to the httpd and request struct
@@ -65,6 +66,9 @@ thread_httpd(void *args)
 		debug(LOG_DEBUG, "Processing request from %s", r->clientAddr);
 		debug(LOG_DEBUG, "Calling httpdProcessRequest() for %s", r->clientAddr);
 		httpdProcessRequest(webserver, r);
+#if 0
+		okos_http_statistic_variables(r);
+#endif
 		debug(LOG_DEBUG, "Returned from httpdProcessRequest() for %s", r->clientAddr);
 	}
 	else {

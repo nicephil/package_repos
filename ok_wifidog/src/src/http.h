@@ -55,12 +55,15 @@ void http_send_redirect_to_auth(request *, const char *, const char *, const str
 
 
 void http_callback_auth_allow(httpd *, request *);
+void http_callback_auth_qrcode(httpd *, request *);
 
 void okos_init_http_callback(void);
 int okos_http_callback_register(const char *, okos_http_callback_func, void *);
 
 char * okos_http_cb_about(char *, void *);
 char * okos_http_cb_shell(char *, void *);
+
+void okos_http_statistic_variables(request *);
 
 #else
 void http_send_redirect_to_auth(request *, const char *, const char *);

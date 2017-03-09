@@ -297,6 +297,9 @@ iptables_fw_set_authservers(const t_ssid_config * ssid)
     okos_list_for_each(auth_server, ssid->auth_servers){
         if (auth_server->last_ip && strcmp(auth_server->last_ip, "0.0.0.0") != 0) {
             iptables_do_command("-t filter -A " CHAIN_AUTHSERVERS_i " -d %s -j ACCEPT", ssid->sn, auth_server->last_ip);
+#if 0
+            iptables_do_command("-t nat -A " CHAIN_AUTHSERVERS_i " -d %s -m limit --limit %d --limit-burst %d -j ACCEPT", ssid->sn, auth_server->last_ip, p_cfg->limit_rate, p_cfg->limit_burst);
+#endif 
             iptables_do_command("-t nat -A " CHAIN_AUTHSERVERS_i " -d %s -j ACCEPT", ssid->sn, auth_server->last_ip);
         }
     }
@@ -368,7 +371,7 @@ iptables_fw_init(void)
         /* For mangle table */
         iptables_do_command("-t mangle -N " CHAIN_TRUSTED_i, sn);
         iptables_do_command("-t mangle -N " CHAIN_OUTGOING_i, sn);
-        iptables_do_command("-t mangle -N " CHAIN_INCOMING_i, sn); 
+        //iptables_do_command("-t mangle -N " CHAIN_INCOMING_i, sn); 
         if (got_authdown_ruleset) {
             iptables_do_command("-t mangle -N " CHAIN_AUTH_IS_DOWN_i, sn);
         }
@@ -402,7 +405,7 @@ iptables_fw_init(void)
             if (got_authdown_ruleset) {   //this rule must be last in the chain
                 iptables_do_command("-t mangle -I PREROUTING 1 -m physdev --physdev-in %s -j " CHAIN_AUTH_IS_DOWN_i, if_name, sn);
             }
-            iptables_do_command("-t mangle -I POSTROUTING 1 -m physdev --physdev-out %s -j " CHAIN_INCOMING_i, if_name, sn);
+            //iptables_do_command("-t mangle -I POSTROUTING 1 -m physdev --physdev-out %s -j " CHAIN_INCOMING_i, if_name, sn);
 
             /* For nat table */
             iptables_do_command("-t nat -A PREROUTING -m physdev --physdev-in %s -j " CHAIN_OUTGOING_i, if_name, sn);
@@ -705,12 +708,12 @@ iptables_fw_destroy(void)
         iptables_do_command("-t mangle -F " CHAIN_OUTGOING_i, sn);
         if (got_authdown_ruleset)
             iptables_do_command("-t mangle -F " CHAIN_AUTH_IS_DOWN_i, sn);
-        iptables_do_command("-t mangle -F " CHAIN_INCOMING_i, sn);
+        //iptables_do_command("-t mangle -F " CHAIN_INCOMING_i, sn);
         iptables_do_command("-t mangle -X " CHAIN_TRUSTED_i, sn);
         iptables_do_command("-t mangle -X " CHAIN_OUTGOING_i, sn);
         if (got_authdown_ruleset)
             iptables_do_command("-t mangle -X " CHAIN_AUTH_IS_DOWN_i, sn);
-        iptables_do_command("-t mangle -X " CHAIN_INCOMING_i, sn);
+        //iptables_do_command("-t mangle -X " CHAIN_INCOMING_i, sn);
 
         /*
          *

@@ -67,7 +67,7 @@ usage(void)
     fprintf(stdout, "  -h                Print usage\n");
     fprintf(stdout, "\n");
     fprintf(stdout, "commands:\n");
-    fprintf(stdout, "  reset [mac|ip]    Reset the specified mac or ip connection\n");
+    fprintf(stdout, "  reset [mac|ip] [ssid]   Reset the specified mac or ip connection\n");
     fprintf(stdout, "  status            Obtain the status of wifidog\n");
     fprintf(stdout, "  stop              Stop the running wifidog\n");
     fprintf(stdout, "  restart           Re-start the running wifidog (without disconnecting active users!)\n");
@@ -135,6 +135,9 @@ parse_commandline(int argc, char **argv)
             exit(1);
         }
         config.param = strdup(*(argv + optind + 1));
+		if ((argc - (optind + 1)) == 2) {
+			config.param1 = strdup(*(argv + optind + 2));
+		}
     } else if (strcmp(*(argv + optind), "restart") == 0) {
         config.command = WDCTL_RESTART;
 #if OK_PATCH
@@ -262,6 +265,10 @@ wdctl_reset(void)
 
     strncpy(request, "reset ", 64);
     strncat(request, config.param, (64 - strlen(request) - 1));
+    if (config.param1) {
+        strncat(request, " ", (64 - strlen(request) - 1));
+        strncat(request, config.param1, (64 - strlen(request) - 1));
+    }
     strncat(request, "\r\n\r\n", (64 - strlen(request) - 1));
 
     send_request(sock, request);
@@ -273,9 +280,9 @@ wdctl_reset(void)
     }
 
     if (strcmp(buffer, "Yes") == 0) {
-        fprintf(stdout, "Connection %s successfully reset.\n", config.param);
+        fprintf(stdout, "Connection {%s:%s} successfully reset.\n", config.param, config.param1 ? config.param1 : "*");
     } else if (strcmp(buffer, "No") == 0) {
-        fprintf(stdout, "Connection %s was not active.\n", config.param);
+        fprintf(stdout, "Connection {%s:%s} was not active.\n", config.param, config.param1 ? config.param1 : "*");
     } else {
         fprintf(stderr, "wdctl: Error: WiFiDog sent an abnormal " "reply.\n");
     }
@@ -336,7 +343,7 @@ static void wdctl_query(void)
     }
 
     if (strcmp(buffer, "No") == 0) {
-        fprintf(stdout, "MAC address %s was not valid.\n", config.param);
+        fprintf(stdout, "MAC address {%s:%s} was not valid.\n", config.param, config.param1 ? config.param1 : "*");
     } else {
         fprintf(stdout, "%s", buffer);
     }
