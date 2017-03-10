@@ -148,6 +148,8 @@ void client_free_node(t_client *);
 #if OK_PATCH
 
 t_client * okos_client_list_flush(t_client * , const unsigned int);
+
+t_client * okos_client_append_info(t_client *, const char * );
 t_client * okos_client_get_new_client(const char * );
 char * okos_get_client_status_text(const char *, const char *);
 

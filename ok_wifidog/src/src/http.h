@@ -51,7 +51,7 @@ typedef struct _t_http_callback {
     struct _t_http_callback *next;
 } t_http_callback;
 
-void http_send_redirect_to_auth(request *, const char *, const char *, const struct _auth_serv_t *);
+void http_send_redirect_to_auth(request *, const char *, const char *, const struct _auth_serv_t *, const char *);
 
 
 void http_callback_auth_allow(httpd *, request *);
