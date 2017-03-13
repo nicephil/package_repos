@@ -10,7 +10,24 @@ config interface 'lan1'
         option proto 'dhcp'
         option dhcp_default_ip '192.168.100.20'
         option dhcp_default_netmask '255.255.255.0'
-        option dhcp_default_gateway '192.168.100.1'
+
+config alias 'alias'
+        option interface 'lan1'
+        option proto 'static'
+        option ipaddr '169.254.165.32'
+        option netmask '255.255.0.0'
+
+config interface 'wwan'
+        option proto 'static'
+        option ifname 'ath20'
+        option ipaddr '192.168.1.100'
+        option netmask '255.255.255.0'
+       
+config alias 'alias1'
+        option interface 'wwan'
+        option proto 'static'
+        option ipaddr '169.254.165.100'
+        option netmask '255.255.0.0'
 
 config switch
         option name 'switch0'

@@ -14,9 +14,13 @@ mkdir -p /tmp/stationinfo
          
 for ath in $ath_all
 do
+    if [ "$ath" = "ath20" ]
+    then
+        continue
+    fi
 wlanconfig $ath list sta  | awk -F' ' '$1 !~ /ADDR/{
     mac=$1;
-    gusb(/:/,"",mac);
+    gsub(/:/,"",mac);
     print "config client "mac;              
     print "\toption ifname '$ath'";
     print "\toption mac "$1;
