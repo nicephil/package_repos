@@ -74,7 +74,7 @@ int portal_scheme_flush_ipacl(char * name)
 int portal_scheme_uri(char *name, char *uri)
 {
     //portal.aa.url
-    char tuple[128];
+    char tuple[256];
     sprintf(tuple, "portal.%s.url", name);
     cfg_set_option_value(tuple, uri);
     return 0;
