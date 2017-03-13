@@ -1061,7 +1061,7 @@ config_validate(void)
     config_notnull(config.device_id, "Device ID");
 
     if (NULL == config.domain_name) {
-        config.domain_name = safe_strdup("oakridge");
+        config.domain_name = safe_strdup("");
     }
 
     validate_popular_servers();
