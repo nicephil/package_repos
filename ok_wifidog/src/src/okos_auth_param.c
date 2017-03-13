@@ -20,9 +20,9 @@ typedef struct s_http_auth_info_pri {
     char br_interface[OKOS_BRIF_NAME_LEN+1];
 }t_http_auth_info_pri;
 
-#define OKOS_URLPARA_SSID_MLEN 32
-#define OKOS_URLPARA_DOMAIN_MLEN 32
-#define OKOS_URLPARA_SCHEME_MLEN 100
+#define OKOS_URLPARA_SSID_MLEN      255
+#define OKOS_URLPARA_DOMAIN_MLEN    255
+#define OKOS_URLPARA_SCHEME_MLEN    255
 typedef struct s_http_auth_info {
     unsigned char version; //version == 3
 
@@ -156,7 +156,7 @@ static unsigned char * okos_http_hex2byte(const char *hex, int *len)
 
 static char * okos_http_byte2hex(const unsigned char *bytes, const int len)
 {
-	debug(LOG_DEBUG, "start to transfer the date to ascii.");
+	debug(LOG_DEBUG, "start to transfer data to ascii.");
 
     char *hex = safe_malloc(len*2+1);
     char alph[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
