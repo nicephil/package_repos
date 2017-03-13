@@ -275,16 +275,20 @@ http_callback_404(httpd *webserver, request *r, int error_code)
     char *s_urlFragment;
 
     t_auth_serv *auth_server = get_auth_server(p_client);
-    safe_asprintf(&s_urlFragment, "%sinfo=%s&originalurl=%s",
-            auth_server->authserv_login_script_path_fragment, s_info, s_url);
+    if (NULL != auth_server) {
+        safe_asprintf(&s_urlFragment, "%sinfo=%s&originalurl=%s",
+                auth_server->authserv_login_script_path_fragment, s_info, s_url);
 
-    debug(LOG_DEBUG, "Captured {ip=%s, mac=%s, ssid=%s, if_name=%s} requesting [%s] and re-directed.",
-            p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, s_urlFragment);
-    http_send_redirect_to_auth(r, s_urlFragment, "Redirect to login page", auth_server, "");
+        debug(LOG_DEBUG, "Captured {ip=%s, mac=%s, ssid=%s, if_name=%s} requesting [%s] and re-directed.",
+                p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, s_urlFragment);
+        http_send_redirect_to_auth(r, s_urlFragment, "Redirect to login page", auth_server, "");
+        free(s_urlFragment);
+    } else {
+        send_http_page(r, "Uh oh! Internet access unavailable!", "Take it easy.");
+    }
     
     free(s_info);
     free(s_url);
-    free(s_urlFragment);
 
 cb_404_match_ssid_whitelist:
 cb_404_match_global_whitelist:
@@ -681,15 +685,19 @@ http_callback_auth_qrcode(httpd *webserver, request *r)
     char *s_urlFragment;
 
     t_auth_serv *auth_server = get_auth_server(p_client);
+    if (NULL != auth_server) {
+        safe_asprintf(&s_urlFragment, "%ssource=%s%s",
+                auth_server->authserv_login_script_path_fragment, s_source, s_variables);
 
-    safe_asprintf(&s_urlFragment, "%ssource=%s%s",
-            auth_server->authserv_login_script_path_fragment, s_source, s_variables);
-    
-    debug(LOG_DEBUG, "Authenticator {ip=%s, mac=%s, ssid=%s, if_name=%s} requesting [%s] and re-directed.",
-            p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, s_urlFragment);
-    http_send_redirect_to_auth(r, s_urlFragment, "Redirect to qrcode page", auth_server, "/qrcode");
+        debug(LOG_DEBUG, "Authenticator {ip=%s, mac=%s, ssid=%s, if_name=%s} requesting [%s] and re-directed.",
+                p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, s_urlFragment);
+        http_send_redirect_to_auth(r, s_urlFragment, "Redirect to qrcode page", auth_server, "/qrcode");
 
-    free(s_urlFragment);
+        free(s_urlFragment);
+    }
+    else {
+        send_http_page(r, "Uh oh! Internet access unavailable!", "Take it easy.");
+    }
     free(s_source);
     free(s_variables);
     client_free_node(p_client);
