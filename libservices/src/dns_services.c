@@ -31,6 +31,7 @@ int dns_undo_global_all(void)
 
 int dns_get_global(struct in_addr * dns)
 {
+    // TODO
     return 0;
 }
 

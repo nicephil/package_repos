@@ -39,3 +39,8 @@ config switch_vlan 'vlan1'
         option vlan '1'
         option ports '0t 1'
 
+config switch_vlan 'vlan2'
+    option device 'switch0'
+    option vlan '2'
+    option ports '0t 2'
+

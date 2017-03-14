@@ -102,11 +102,8 @@ void nmsc_delay_op_new(int (*operator)(void *reserved), void *param, int size)
 
 int nmsc_delay_op_log(void *reserved) 
 {
-    int ret = 0;
 
-    if (*(int *)reserved) {
-        ret = log_apply_all();
-    }
+    int ret = log_apply_all(*(int *)reserved);
 
     if (ret != 0) {
         nmsc_log("Infocenter apply log buffer %d failed for %d.", *(int *)reserved, ret);

@@ -481,7 +481,7 @@ int main (int argc, const char * argv[])
 		exit(1);
 	}
 
-#if 0 /* disabled by maldini */
+#if 0 /* disabled by */
 	CWThread thread_receiveFrame;
 	if(!CWErr(CWCreateThread(&thread_receiveFrame, CWWTPReceiveFrame, NULL))) {
 		CWLog("Error starting Thread that receive binding frame");
@@ -639,7 +639,7 @@ CWBool CWWTPInitConfiguration() {
 
 	gRadiosInfo.radioCount = CWWTPGetMaxRadios();
 	CW_CREATE_ARRAY_ERR(gRadiosInfo.radiosInfo, gRadiosInfo.radioCount, CWWTPRadioInfoValues, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
-#if 0 /* maldini disabled  */
+#if 0 /*  disabled  */
 	gRadiosInfo.radiosInfo[0].radioID= 0;
 	/* gRadiosInfo.radiosInfo[0].numEntries = 0; */
 	gRadiosInfo.radiosInfo[0].decryptErrorMACAddressList = NULL;
@@ -661,7 +661,7 @@ CWBool CWWTPInitConfiguration() {
 		/* gRadiosInfo.radiosInfo[i].numEntries = 0; */
 		gRadiosInfo.radiosInfo[i].decryptErrorMACAddressList = NULL;
 		gRadiosInfo.radiosInfo[i].reportInterval= CW_REPORT_INTERVAL_DEFAULT;
-		/* Default value for CAPWA� */
+		/* Default value for CAPWAP */
 		gRadiosInfo.radiosInfo[i].adminState= ENABLED; 
 		gRadiosInfo.radiosInfo[i].adminCause= AD_NORMAL;
 		gRadiosInfo.radiosInfo[i].operationalState= DISABLED;

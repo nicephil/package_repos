@@ -1,7 +1,7 @@
 #ifndef __VLAN_SERVICES_H_
 #define __VLAN_SERVICES_H_
 
-#define VLAN_MAX_COUNT 32
+#define VLAN_MAX_COUNT 4096
 #define VLAN_CFG_PACKAGE "network"
 #define VLAN_INTERFACE_PREFIX "vlan"
 #define VLAN_PORT_CFG_PACKAGE "vlan_port"

@@ -337,7 +337,6 @@ int dc_hdl_node_type(struct json_object *obj)
     /* full config */
     if (type == 0) {
         system("cp -rf /etc/defcfg/* /etc/config/");
-        system("/etc/init.d/wifidog restart");
         system("rm -rf /etc/config/wireless;wifi detect > /etc/config/wireless");
     }
     
@@ -639,7 +638,6 @@ int dc_hdl_node_usrmanage(struct json_object *obj)
 
 int dc_hdl_node_ntp(struct json_object *obj)
 {
-#define MAX_NTP_SERVER  3    
     struct ntpclient_info  def_cfg, json_cfg;
     struct node_pair_save paires[] = {
         {"enabled", json_type_int,    &json_cfg.enabled, 4},
@@ -700,14 +698,11 @@ int dc_hdl_node_ntp(struct json_object *obj)
     CHECK_DEFAULT_INTEGER_CONFIG(json_cfg.enabled, def_cfg.enabled);
     CHECK_DEFAULT_INTEGER_CONFIG(json_cfg.period, def_cfg.period);
 
-    ntpclient_disabled();
-    /* not supported on update period
     if ((ret = ntpclient_set_update_period(json_cfg.period)) != 0
         ) {
         nmsc_log("Ntpclient update period failed for %d.", ret);
         return dc_error_code(dc_error_commit_failed, node, ret);
-    } */
-    
+    }
 
     ntpclient_undo_all_server();
     if (!is_default_string_config(json_cfg.server[0])) {    
@@ -718,8 +713,13 @@ int dc_hdl_node_ntp(struct json_object *obj)
             }    
         }
     }
-    if (json_cfg.enabled) {
+    if (json_cfg.enabled) { 
         if ((ret = ntpclient_enabled()) != 0) {
+            nmsc_log("Ntpclient enable failed for %d.", ret);
+            return dc_error_code(dc_error_commit_failed, node, ret);
+        }
+    } else {
+        if ((ret = ntpclient_disabled()) != 0) {
             nmsc_log("Ntpclient enable failed for %d.", ret);
             return dc_error_code(dc_error_commit_failed, node, ret);
         }
@@ -730,10 +730,9 @@ int dc_hdl_node_ntp(struct json_object *obj)
 
 int dc_hdl_node_dns(struct json_object *obj)
 {
-#define MAX_DNS_COUNT   3    
     struct dnses {
         int num;
-        char server[MAX_DNS_COUNT][255];
+        char server[MAX_DNS_COUNT][65];
     }dnses;
     struct node_pair_save paires = {
         .key   = "servers",

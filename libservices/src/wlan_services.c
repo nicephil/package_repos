@@ -437,12 +437,16 @@ int wlan_set_country(const char *country)
 {
     if (!strcmp(country, "CN")) {
         //wireless.wifi0.country
+        //wireless.wifi1.country
         cfg_set_option_value("wireless.wifi0.country", "156");
         cfg_set_option_value("wireless.wifi1.country", "156");
     } else if (!strcmp(country, "US")) {
         //wireless.wifi0.country
+        //wireless.wifi1.country
         cfg_set_option_value("wireless.wifi0.country", "840");
         cfg_set_option_value("wireless.wifi1.country", "840");
+    } else {
+        syslog(LOG_ERR, "not handled country:%s\n", country);
     }
 
     return 0;
@@ -450,7 +454,8 @@ int wlan_set_country(const char *country)
 
 int wlan_undo_country(void)
 {
-    //wlan_radio.country.country='CN'
+    //wireless.wifi0.country='156'
+    //wireless.wifi1.country='156'
     cfg_set_option_value("wireless.wifi0.country", "156");
     cfg_set_option_value("wireless.wifi1.country", "156");
     return 0;

@@ -628,17 +628,7 @@ void cfg_update_notice(void)
 
 static int g_pinfo_init = 0;
 
-static struct product_info g_pinfo = {
-    .company            = {"Oakridge"},
-    .production         = {"Oakridge AP"},
-    .model              = {"AP4602"},
-    .mac                = {"34:CD:6D:E0:34:6D"},
-    .bootloader_version = {"1.0.0"},
-    .software_version   = {"V200R001"},
-    .software_inner_version = {"V200"},
-    .hardware_version   = {"1.0.0"},
-    .serial             = {"32A7D16Z0151617"},
-};
+static struct product_info g_pinfo;
 
 
 int cfg_get_product_info(struct product_info * info)
@@ -671,18 +661,17 @@ int cfg_get_product_info(struct product_info * info)
 
     uci_foreach_element(&p->sections, e1) {
         struct uci_section *s_cur = uci_to_section(e1);
-        //printf("s_cur:%s-%s\n", s_cur->e.name, s_cur->type);
         uci_foreach_element(&s_cur->options, e2) {
             struct uci_option *o_cur = uci_to_option(e2);
-            //printf("o_cur:%s-%s\n", o_cur->e.name, o_cur->v.string);
             if (!strcmp(o_cur->e.name, PRODUCTINFO_OPTION_PRODUCTION)) {
-                strncpy(info->production, o_cur->v.string, sizeof(info->production));
                 strncpy(info->production, o_cur->v.string, sizeof(info->production));
                 strncpy(info->model, o_cur->v.string, sizeof(info->model));
             } else if (!strcmp(o_cur->e.name, PRODUCTINFO_OPTION_SERIAL)) {
                 strncpy(info->serial, o_cur->v.string, sizeof(info->serial));
             } else if (!strcmp(o_cur->e.name, PRODUCTINFO_OPTION_MAC)) {
                 strncpy(info->mac, o_cur->v.string, sizeof(info->mac));
+            } else if (!strcmp(o_cur->e.name, PRODUCTINFO_OPTION_SWVERSION)) {
+                strncpy(info->software_version, o_cur->v.string, sizeof(info->software_version));
             }
         }
     }

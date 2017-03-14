@@ -37,13 +37,12 @@ int log_enable_infocenter(void)
     //system.@system[0].log_file='/var/log/messages'
     //system.@system[0].log_size='128'
     //system.@system[0].log_remote='0'
-    //system("/etc/init.d/boot restart");
     return 0;
 }
 
 int log_undo_infocenter(void)
 {
-    //system("/etc/init.d/boot stop");
+    //
     return 0;
 }
 
@@ -98,9 +97,13 @@ int log_set_bufferlevel(int level)
 }
 
 
-int log_apply_all(void)
+int log_apply_all(int enabled)
 {
-    system("/etc/init.d/boot restart");
+    if (enabled) {
+        system("/etc/init.d/boot restart&");
+    } else {
+        system("/etc/init.d/boot stop&");
+    }
     return 0;
 }
 
