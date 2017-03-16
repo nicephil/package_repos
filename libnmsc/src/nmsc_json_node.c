@@ -96,8 +96,6 @@ struct service_templates {
     struct service_template_json *config;
 };
 
-#define MAX_RADIO_COUNT  2
-#define MAX_MBSS_COUNT  8    
 struct mbss_bind {
     char ssidname[33];
 };
@@ -1471,7 +1469,7 @@ int dc_hdl_node_vlan(struct json_object *obj)
     };
     struct vlan_list {
         int num;
-        struct vlan config[16];
+        struct vlan config[VLAN_MAX_COUNT];
     } ;
     struct vlan_list vlanes;
     struct node_pair_save paires[] = {
@@ -1775,7 +1773,6 @@ int dc_hdl_node_nat(struct json_object *obj)
 
 int dc_hdl_node_dialer(struct json_object *obj)
 {
-    /* not supported yet */
     struct dialer {
         char name[33];
         int  dial_type;
@@ -1790,7 +1787,7 @@ int dc_hdl_node_dialer(struct json_object *obj)
     };
     struct dialer_list {
         int num;
-        struct dialer config[16];
+        struct dialer config[VLAN_MAX_COUNT];
     } ;
     struct dialer_list dialeres;
     struct node_pair_save paires[] = {
@@ -1806,7 +1803,7 @@ int dc_hdl_node_dialer(struct json_object *obj)
         {"ac_name",      json_type_string, NULL, sizeof(dialeres.config[0].pppoe_acname)},
     };   
     struct json_object *array;
-    char interface_name[20];
+    char interface_name[32];
     int i, j, id, ret, node = dc_node_dialers;
     
     if (json_object_get_type(obj) != json_type_array) {
@@ -4125,7 +4122,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
             }
         }
 
-        /* TODO: doman name related need to handle later  */        
+        /* TODO: domain name related need to handle later  */        
         if (ps_json->enable) {
             if ((ret = portal_scheme_enable(ps_json->scheme_name)) != 0) {
                 nmsc_log("Enable portal scheme %s failed for %d.", ps_json->scheme_name, ret);

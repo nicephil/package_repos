@@ -49,7 +49,7 @@ int portal_scheme_add_ipacl(char * name, char *ip, unsigned int cidr)
 {
     //portal.aa.iplist
     char iplist[40];
-    char tuple[128];
+    char tuple[256];
     snprintf(iplist, sizeof(iplist), "%s/%u", ip, cidr);
     sprintf(tuple, "portal.%s.iplist", name);
     cfg_add_option_list_value(tuple, iplist);

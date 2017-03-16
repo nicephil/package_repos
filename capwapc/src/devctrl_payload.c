@@ -10,6 +10,7 @@
 #include "nmsc/nmsc.h"
 
 #include "services/cfg_services.h"
+#include "services/portal_services.h"
 
 extern void log_node_paires(struct node_pair_save *paires, int size);
 
@@ -429,7 +430,6 @@ static int dc_reboot_response(devctrl_block_s *dc_block, void *reserved)
 
 static int dc_portal_offline_handler(struct tlv *payload, void **reserved)
 {
-#define PORTAL_NAME_MAX_LENGTH 64
     struct portal_cmd {
         char mac[20];
         char scheme[PORTAL_NAME_MAX_LENGTH + 1];
@@ -541,7 +541,6 @@ static int dc_portal_offline_response(devctrl_block_s *dc_block, void *reserved)
 
 static int dc_portal_authentication_handler(struct tlv *payload, void **reserved)
 {
-#define PORTAL_NAME_MAX_LENGTH 64
     struct portal_authentication_cmd {
         char mac[20];
         char scheme[PORTAL_NAME_MAX_LENGTH + 1];

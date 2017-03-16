@@ -65,11 +65,9 @@ int vlan_create(int vlanid, int endid)
         //network.vlan1.vlan='1'
         sprintf(tuple, "network.vlan%d.vlan", vlanid);
         cfg_set_option_value_int(tuple, vlanid);
-        //network.vlan1.ports='0t 1'
-        if (vlanid == 1) {
-            sprintf(tuple, "network.vlan%d.ports", vlanid);
-            cfg_set_option_value(tuple, "0t 1");
-        }
+        //network.vlan1.ports='0t 1t 2t'
+        sprintf(tuple, "network.vlan%d.ports", vlanid);
+        cfg_set_option_value(tuple, "0t 1t 2t");
 
         //set default value here
         //network.lan1.vlan_name
@@ -256,7 +254,6 @@ int vlan_get_ifname(int vlanid, char *ifname)
 int dialer_undo(const char *ifname, int type)
 {
     char tuple[128];
-    char buf[33];
 
     if (type == IP_TYPE_DHCP) {
         //network.lan1.proto='dhcp'
@@ -276,15 +273,19 @@ int dialer_undo(const char *ifname, int type)
     return 0;
 }
 
-
 int dialer_set_dhcp(const char *ifname)
 {
     char tuple[128];
     sprintf(tuple, "network.%s.proto", ifname);
     cfg_set_option_value(tuple, "dhcp");
+    sprintf(tuple, "network.%s.dhcp_default_ip", ifname);
+    cfg_set_option_value(tuple, DHCP_DEFAULT_IP);
+    sprintf(tuple, "network.%s.dhcp_default_netmask", ifname);
+    cfg_set_option_value(tuple, DHCP_DEFAULT_NETMASK);
+    cfg_set_option_value("network.alias.interface", ifname);
+
     return 0;
 }
-
 
 int dialer_static_set_ipv4(const char *ifname, const char *ip,
         const char *netmask, const char *gateway)

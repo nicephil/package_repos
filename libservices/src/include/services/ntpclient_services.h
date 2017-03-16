@@ -10,7 +10,7 @@ typedef struct ntpclient_info
     int num;
     int enabled;
     int period;
-    char server[MAX_NTP_SERVER][128];
+    char server[MAX_NTP_SERVER][65];
 } ntpclient_info;
 
 extern int ntpclient_enabled(void);

@@ -1,10 +1,13 @@
 #ifndef __VLAN_SERVICES_H_
 #define __VLAN_SERVICES_H_
 
-#define VLAN_MAX_COUNT 4096
+#define VLAN_MAX_COUNT 32
 #define VLAN_CFG_PACKAGE "network"
 #define VLAN_INTERFACE_PREFIX "vlan"
 #define VLAN_PORT_CFG_PACKAGE "vlan_port"
+
+#define DHCP_DEFAULT_IP "192.168.100.20"
+#define DHCP_DEFAULT_NETMASK "255.255.255.0"
 
 enum VLAN_PORT_TYPE {
     VLAN_PORT_TYPE_ACCESS = 0,
@@ -45,7 +48,7 @@ typedef struct interface_info
 typedef struct vlan_interface_info
 {
     int count;
-    interface_info info[20];   
+    interface_info info[VLAN_MAX_COUNT];   
 } vlan_interface_info;
 
 

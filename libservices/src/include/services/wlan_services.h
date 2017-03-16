@@ -18,6 +18,10 @@ enum RADIO_DEVICE_MODE
 };
 
 
+#define MAX_RADIO_COUNT  2
+#define MAX_MBSS_COUNT  8    
+#define ST_MAX_COUNT 16   
+
 #define WLAN_SSID_MAX_LENGTH    33
 #define WLAN_KEY_MAX_LENGTH     65
 #define ACL_NAME_MAX_LENGTH     16
@@ -89,7 +93,7 @@ typedef struct radio_info
 typedef struct wlan_radio_info
 {
     int num;
-    radio_info radioinfo[5];
+    radio_info radioinfo[MAX_RADIO_COUNT];
 }wlan_radio_info;
 
 struct wlan_wep40_key {
@@ -171,7 +175,7 @@ struct wlan_service_template {
 typedef struct service_template
 {
     int num;
-    struct wlan_service_template wlan_st_info[20];
+    struct wlan_service_template wlan_st_info[ST_MAX_COUNT];
 }service_template;
 
 
@@ -305,7 +309,6 @@ extern int wlan_set_service_template_enable(int stid, int enable);
 
 
 #define WLAN_CFG_SERVICE_TEMPLATE_PACKAGE "wlan_service_template"
-#define ST_MAX_COUNT 40    
 extern int wlan_service_template_get_all(struct service_template *stcfg);
 extern int wlan_undo_service_template(int stid);
 
