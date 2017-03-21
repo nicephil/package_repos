@@ -147,11 +147,11 @@ int dc_json_machine(const char *data)
     }
 
     dc_handle_doing();
-#if !OK_PATCH
+
     cfg_disable_version_notice();
-#endif
+
     nmsc_delay_op_init();
-    foreach_dc_entries(dc_entry) {  
+    foreach_dc_entries(dc_entry) { // go through dc_entries  
         json_object_object_foreach(root, key, val) {
             if (!strcmp(dc_entry->key, key)) {
                 nmsc_log("Tye to handle the %s entry's json config.", dc_entry->key);
@@ -189,9 +189,7 @@ int dc_json_machine(const char *data)
     }
 
 ERROR_OUT:  
-#if !OK_PATCH
     cfg_enable_version_notice();
-#endif
     dc_handle_done();
     nmsc_delay_op_release();
     json_object_put(root);

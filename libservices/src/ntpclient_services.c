@@ -42,8 +42,8 @@ int ntpclient_get_defcfg(struct ntpclient_info *defcfg)
     defcfg->num = 2; 
     defcfg->enabled = 1;
     defcfg->period = 5;
-    strcpy(defcfg->server[0], "time.nist.gov");
-    strcpy(defcfg->server[1], "time.windows.com");
+    strcpy(defcfg->server[0], DEFAULT_NTP_SERVER1);
+    strcpy(defcfg->server[1], DEFAULT_NTP_SERVER2);
     return 0;
 }
 

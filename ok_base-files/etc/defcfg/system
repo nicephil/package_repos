@@ -16,9 +16,16 @@ config timeserver ntp
 	list server	time.windows.com
 	option enable_server 1 
 
-config button 'reset'
-    option button reset
-    option action released
-    option handler 'firstboot && reboot'
-    option min 5
-    option max 30
+config button
+    option button 'reset'
+    option action 'released'
+    option handler 'reboot'
+    option min '0'
+    option max '3'
+
+config button
+    option button 'reset'
+    option action 'released'
+    option handler 'echo RESTORY FACTORY CONFIGRARION > /dev/console ; firstboot ; reboot'
+    option min '4'
+    option max '60'

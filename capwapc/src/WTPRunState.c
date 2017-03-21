@@ -155,7 +155,7 @@ CWStateTransition CWWTPEnterRun() {
 
     lock_pendingbox();
 	for (k = 0; k < MAX_PENDING_REQUEST_MSGS; k++) {
-        /* zjye: else maybe delete the timer which id is 0 during CWResetPendingMsgBox */
+        /* : else maybe delete the timer which id is 0 during CWResetPendingMsgBox */
         gPendingRequestMsgs[k].timer = -1;
 		CWResetPendingMsgBox(gPendingRequestMsgs + k);
     }

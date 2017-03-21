@@ -98,7 +98,9 @@ start() {
     /lib/fetch_productinfo.sh > /etc/config/productinfo
     sed -i 's/option production .*$/option production \"AP4602\"/g' /etc/config/productinfo
     # set ulimit
-    ulimt -c unlimited
+    ulimit -c unlimited
+    # generate tmp db
+    /lib/wifi/updatestainfo.sh
     ## end OK_PATCH
 
 

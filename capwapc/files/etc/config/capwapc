@@ -2,11 +2,7 @@ config capwapc 'global'
         option enable '1'
 
 config capwapc 'server'
-        option mas_server '139.196.188.253'
-        option sla_server '60.205.207.193'
         option def_server 'redirector.oakridge.io'
-        option opt43_mas_server
-        option opt43_sla_server
 
 config capwapc 'wtp'
         option ctrl_port '5246'

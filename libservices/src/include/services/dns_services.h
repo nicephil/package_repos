@@ -3,6 +3,8 @@
 
 #include <arpa/inet.h>
 
+#define MAX_DNS_COUNT   3    
+
 extern int dns_set_global(struct in_addr dns);
 extern int dns_undo_global(struct in_addr dns);
 extern int dns_undo_global_all(void);

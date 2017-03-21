@@ -62,7 +62,7 @@ static int signal_action(void)
     return 0;
 }
 
-static int signal_action_doen(void)
+static int signal_action_done(void)
 {
     if (g_sigusr2_count > 0) {
         get_wds_sigusr(SIGUSR2);
@@ -115,7 +115,7 @@ CW_THREAD_RETURN_TYPE task_handlereq(void *arg)
         pthread_cleanup_push(CWUnlockSafeList, g_devctrlreq_list);
 
         while (CWGetCountElementFromSafeList(g_devctrlreq_list) == 0) {
-            if (signal_action_doen() == 0) {
+            if (signal_action_done() == 0) {
                 CWWaitElementFromSafeList(g_devctrlreq_list);
             }
         }

@@ -134,6 +134,7 @@ extern int cfg_get_version(void);
 #define PRODUCTINFO_OPTION_PRODUCTION "production"
 #define PRODUCTINFO_OPTION_SERIAL "serial"
 #define PRODUCTINFO_OPTION_MAC "mac"
+#define PRODUCTINFO_OPTION_SWVERSION "swversion"
 #define PRODUCTINFO_OPTION_MAC_COUNT "mac_count"
 
 struct product_info {

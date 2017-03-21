@@ -5,9 +5,9 @@
 
 
 #define DEFAULT_HOST_IP           "0.0.0.0"
-#define DEFAULT_HOST_LEVEL        LOG_INFO
-#define DEFAULT_BUFFER_LEVEL      LOG_INFO
-#define DEFAULT_TERMINAL_LEVEL    LOG_INFO
+#define DEFAULT_HOST_LEVEL        LOG_NOTICE
+#define DEFAULT_BUFFER_LEVEL      LOG_NOTICE
+#define DEFAULT_TERMINAL_LEVEL    LOG_NOTICE
 #define DEFAULT_INFOCENTER_ENABLE 1
 #define DEFAULT_BUFFER_ENABLE     1
 #define DEFAULT_TERMINAL_ENABLE   1
@@ -50,5 +50,5 @@ extern int log_undo_hostlevel(void);
 extern int log_enable_buffer(void);
 extern int log_undo_buffer(void);
 extern int log_set_bufferlevel(int level);
-extern int log_apply_all(void);
+extern int log_apply_all(int enabled);
 #endif /* __LOG_SERVICES_H_ */

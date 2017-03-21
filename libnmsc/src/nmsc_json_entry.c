@@ -39,7 +39,7 @@ static inline const dc_json_node* dc_get_json_node(const char *key)
 {
     const dc_json_node *node;
 
-    foreach_dc_nodes(node) {
+    foreach_dc_nodes(node) { // go through dc_nodes
         if (!strcmp(node->key, key)) {
             return node;
         }

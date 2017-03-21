@@ -511,6 +511,15 @@ enable_qcawifi() {
 	config_get channel "$device" channel
 	config_get vifs "$device" vifs
 	config_get txpower "$device" txpower
+    #OK_PATCH
+    config_get _dtim_period "$device" dtim_period
+    config_get _frag "$device" frag
+    config_get _rts "$device" rts
+    config_get _shortgi "$device" shortgi
+    config_get _shpreamble "$device" shpreamble
+    config_get _protmode "$device" protmode
+    config_get _bintval "$device" bintval
+    #end of OK_PATCH
 
 	[ auto = "$channel" ] && channel=0
 
@@ -957,8 +966,15 @@ enable_qcawifi() {
 		config_get_bool hidden "$vif" hidden 0
 		iwpriv "$ifname" hide_ssid "$hidden"
 
+        #OK_PATCH
 		config_get_bool shortgi "$vif" shortgi 1
+        shortgi=${shortgi:-$_shortgi}
 		[ -n "$shortgi" ] && iwpriv "$ifname" shortgi "${shortgi}"
+
+		config_get_bool shpreamble "$vif" shpreamble 1
+        shpreamble=${shpreamble:-$_shpreamble}
+		[ -n "$shpreamble" ] && iwpriv "$ifname" shpreamble "${shortgi}"
+        #end of OK_PATCH
 
 		config_get_bool disablecoext "$vif" disablecoext
 		[ -n "$disablecoext" ] && iwpriv "$ifname" disablecoext "${disablecoext}"
@@ -976,8 +992,11 @@ enable_qcawifi() {
 		config_get TxBFCTL "$vif" TxBFCTL
 		[ -n "$TxBFCTL" ] && iwpriv "$ifname" TxBFCTL "$TxBFCTL"
 
+        #OK_PATCH
 		config_get bintval "$vif" bintval
+        bintval=${bintval:-$_bintval}
 		[ -n "$bintval" ] && iwpriv "$ifname" bintval "$bintval"
+        #end of OK_PATCH
 
 		config_get_bool countryie "$vif" countryie
 		[ -n "$countryie" ] && iwpriv "$ifname" countryie "$countryie"
@@ -1073,11 +1092,15 @@ enable_qcawifi() {
 		config_get periodicScan "$vif" periodicScan
 		[ -n "$periodicScan" ] && iwpriv "$ifname" periodicScan "${periodicScan}"
 
+        #OK_PATCH
 		config_get frag "$vif" frag
+        frag=${frag:-$_frag}
 		[ -n "$frag" ] && iwconfig "$ifname" frag "${frag%%.*}"
 
 		config_get rts "$vif" rts
+        rts=${rts:-$_rts}
 		[ -n "$rts" ] && iwconfig "$ifname" rts "${rts%%.*}"
+        #end of OK_PATCH
 
 		config_get cwmin "$vif" cwmin
 		[ -n "$cwmin" ] && iwpriv "$ifname" cwmin ${cwmin}
@@ -1109,8 +1132,11 @@ enable_qcawifi() {
 		config_get mfptest "$vif" mfptest
 		[ -n "$mfptest" ] && iwpriv "$ifname" mfptest "$mfptest"
 
+        #OK_PATCH
 		config_get dtim_period "$vif" dtim_period
+        dtim_period=${dtim_period:-$_dtim_period}
 		[ -n "$dtim_period" ] && iwpriv "$ifname" dtim_period "$dtim_period"
+        #end of OK_PATCH
 
 		config_get noedgech "$vif" noedgech
 		[ -n "$noedgech" ] && iwpriv "$ifname" noedgech "$noedgech"
@@ -1219,8 +1245,11 @@ enable_qcawifi() {
 		config_get_bool cwmenable "$vif" cwmenable
 		[ -n "$cwmenable" ] && iwpriv "$ifname" cwmenable "$cwmenable"
 
+        #OK_PATCH
 		config_get_bool protmode "$vif" protmode
+        protmode=${protmode:-$_protmode}
 		[ -n "$protmode" ] && iwpriv "$ifname" protmode "$protmode"
+        #endof OK_PATCH
 
 		config_get enablertscts "$vif" enablertscts
 		[ -n "$enablertscts" ] && iwpriv "$ifname" enablertscts "$enablertscts"
@@ -1895,17 +1924,20 @@ detect_qcawifi() {
 		echo $nss_ol_num >/lib/wifi/wifi_nss_olnum
 		reload=1
         base_mac="$(cat /sys/class/net/eth0/address)"
-        mac="${base_mac%:*}:`printf "%02x" $((0x${base_mac##*:} + $((${devidx}*8+8))))`"
+        mac="${base_mac%:*}:`printf "%02x" $((0x${base_mac##*:} + $((${devidx}*8))))`"
         amsdu="1"
+        mode_ht="HT40"
         if [ $devidx == "0" ]; then
             amsdu="0"
+            mode_ht="HT20"
         fi
 		cat <<EOF
 config wifi-device  wifi$devidx
     option type	qcawifi
     option channel	auto
     option macaddr ${mac}
-    option hwmode	11${mode_11}
+    option hwmode	${mode_11}
+    option htmode $mode_ht
     option disabled 0
     option txpower 27
     option wmm 1
@@ -1918,8 +1950,6 @@ config wifi-device  wifi$devidx
     option dtim_period 1
     option rts 2347
     option frag 2346
-    option maxradiosta 128
-    option abcpreq 1
     option distance 1
 
 EOF
@@ -1927,20 +1957,20 @@ EOF
 	done
 
     #OK_PATCH
+    [ -n "${base_mac}" ] && {
     ssid_tmp=`echo ${base_mac}|sed 's/://g'`
     ssid_tmp=${ssid_tmp:8:12}
-    [ -n "${ssid_tmp}" ] && {
     cat <<EOF
-config wifi-iface ath20
+config wifi-iface ath50
     option device wifi0
-    option ifname ath20
+    option ifname ath50
     option mode ap
     option ssid ok_${ssid_tmp}
     option encryption psk-mixed
     option key oakridge
 
 EOF
-}
+    }
     #end of OK_PATCH
 
 	if [ $reload == 1 ]; then

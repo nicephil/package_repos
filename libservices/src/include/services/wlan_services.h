@@ -13,17 +13,20 @@ enum PORT_EAABLE
 
 enum RADIO_DEVICE_MODE 
 {
-    RADIO_DEVICE_MODE_NORMAL = 1,
+    RADIO_DEVICE_MODE_NORMAL = 0,
     RADIO_DEVICE_MODE_MONITOR
 };
 
+
+#define MAX_RADIO_COUNT  2
+#define MAX_MBSS_COUNT  8    
+#define ST_MAX_COUNT 16   
 
 #define WLAN_SSID_MAX_LENGTH    33
 #define WLAN_KEY_MAX_LENGTH     65
 #define ACL_NAME_MAX_LENGTH     16
 #define PORTAL_SCHEME_NAME_MAX_LENGTH     64
 #define TIMER_NAME_MAX_LENGTH     32
-#define RADIUS_SCHEME_NAME_MAX_LENGTH   17
 #define RADIUS_SCHEME_NAME_MAX_LENGTH   17
 
 enum WLAN_STA_CIPHER {
@@ -82,14 +85,13 @@ typedef struct radio_info
     int id;
     int enable;
     int count;
-    int service[20];
-    int wlan_bss[20];
+    int service[MAX_MBSS_COUNT];
 }radio_info;
 
 typedef struct wlan_radio_info
 {
     int num;
-    radio_info radioinfo[5];
+    radio_info radioinfo[MAX_RADIO_COUNT];
 }wlan_radio_info;
 
 struct wlan_wep40_key {
@@ -171,7 +173,7 @@ struct wlan_service_template {
 typedef struct service_template
 {
     int num;
-    struct wlan_service_template wlan_st_info[20];
+    struct wlan_service_template wlan_st_info[ST_MAX_COUNT];
 }service_template;
 
 
@@ -234,12 +236,6 @@ enum WLAN_KEY_TYPE {
     WLAN_KEY_TYPE_MAX
 };
 
-#define WLAN_SSID_MAX_LENGTH    33
-#define WLAN_KEY_MAX_LENGTH     65
-#define ACL_NAME_MAX_LENGTH     16
-#define PORTAL_SCHEME_NAME_MAX_LENGTH     64
-#define TIMER_NAME_MAX_LENGTH     32
-
 enum WLAN_BSS_TYPE {
     WLAN_BSS_TYPE_VAP = 0,
     WLAN_BSS_TYPE_STA,
@@ -247,8 +243,6 @@ enum WLAN_BSS_TYPE {
 };
 
 
-
-#define ACL_NAME_MAX_LENGTH     16
 
 struct wlan_sta_status {
     unsigned int    caps;       // refer to enum WLAN_STA_CAPS 
@@ -305,12 +299,11 @@ extern int wlan_set_service_template_enable(int stid, int enable);
 
 
 #define WLAN_CFG_SERVICE_TEMPLATE_PACKAGE "wlan_service_template"
-#define ST_MAX_COUNT 40    
 extern int wlan_service_template_get_all(struct service_template *stcfg);
 extern int wlan_undo_service_template(int stid);
 
 
-#define WLAN_CFG_RADIO_PACKAGE   "wlan_radio"
+#define WLAN_CFG_RADIO_PACKAGE   "wireless"
 /*
  * fetch all radio config from /etc/config/wlan_radio
  */
@@ -335,6 +328,7 @@ extern int wlan_set_frag_threshold(int radio_id, int value);
 extern int wlan_set_rts_threshold(int radio_id, int value);
 extern int wlan_set_short_gi(int radio_id, int value);
 extern int wlan_set_ampdu(int radio_id, int enable);
+extern int wlan_set_amsdu(int radio_id, int enable);
 extern int wlan_set_dot11nonly(int radio_id, int dot11nonly);
 extern int wlan_set_dot11aconly(int radio_id, int dot11aconly);
 extern int wlan_set_bandwidth(int radio_id, int bandwidth);

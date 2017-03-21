@@ -1,12 +1,16 @@
 #ifndef __NTPCLIENT_SERVICES_H_
 #define __NTPCLIENT_SERVICES_H_
 
+#define MAX_NTP_SERVER  3   
+#define DEFAULT_NTP_SERVER1 "time.nist.gov"
+#define DEFAULT_NTP_SERVER2 "time.windows.com"
+
 typedef struct ntpclient_info
 {
     int num;
     int enabled;
     int period;
-    char server[5][128];
+    char server[MAX_NTP_SERVER][65];
 } ntpclient_info;
 
 extern int ntpclient_enabled(void);

@@ -40,10 +40,10 @@ int capwapc_get_curcfg(struct capwapc_config *cfg)
                     strncpy(cfg->def_server, o_cur->v.string, sizeof(cfg->def_server));
                     /* capwapc.server.opt43_mas_server='139.196.188.253' */
                 } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_OPT43_MASSER)) {
-                    strncpy(cfg->mas_server, o_cur->v.string, sizeof(cfg->opt43_mas_server));
+                    strncpy(cfg->opt43_mas_server, o_cur->v.string, sizeof(cfg->opt43_mas_server));
                     /* capwapc.server.opt43_sla_server='139.196.188.253' */
                 } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_OPT43_SLASER)) {
-                    strncpy(cfg->sla_server, o_cur->v.string, sizeof(cfg->opt43_sla_server));
+                    strncpy(cfg->opt43_sla_server, o_cur->v.string, sizeof(cfg->opt43_sla_server));
                 }
             }
         } else if (!strcmp(s_cur->e.name, CAPWAPC_CFG_SECTION_WTP)) {
@@ -81,10 +81,10 @@ int capwapc_get_curcfg(struct capwapc_config *cfg)
                     cfg->max_retran = atoi(o_cur->v.string);
                     /* capwapc.wtp.location='aa' */
                 } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_LOCATION)) {
-                    strcpy(cfg->location, o_cur->v.string);
+                    strncpy(cfg->location, o_cur->v.string, sizeof(cfg->location));
                     /* capwapc.wtp.domain ='aa' */
                 } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_DOMAIN)) {
-                    strcpy(cfg->domain, o_cur->v.string);
+                    strncpy(cfg->domain, o_cur->v.string, sizeof(cfg->domain));
                 }
             }
         }
@@ -197,18 +197,14 @@ int capwapc_undo_location(void)
 
 int capwapc_set_domain(const char *domain)
 {
-#if !OK_PATCH
     cfg_set_option_value(CAPWAPC_CFG_OPTION_DOMAIN_TUPLE);
-#endif
 
     return 0;
 }
 
 int capwapc_undo_domain(void)
 {
-#if !OK_PATCH
     cfg_del_option(CAPWAPC_CFG_OPTION_DOMAIN_TUPLE);
-#endif
 
     return 0;
 }
