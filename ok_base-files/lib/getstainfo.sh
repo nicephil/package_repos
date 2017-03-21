@@ -14,7 +14,7 @@ mkdir -p /tmp/stationinfo
          
 for ath in $ath_all
 do
-    if [ "$ath" = "ath20" ]
+    if [ "$ath" = "ath50" ]
     then
         continue
     fi

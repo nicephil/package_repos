@@ -1,1 +1,1 @@
-gdbserver 192.168.100.74:2345 /usr/sbin/ok_capwapc
+gdbserver 192.168.254.118:2345 /usr/sbin/ok_capwapc

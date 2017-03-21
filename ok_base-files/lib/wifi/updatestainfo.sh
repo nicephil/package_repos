@@ -4,20 +4,28 @@ mac=$2
 event=$3
 dbfile="/tmp/stationinfo.db"
 tablename="STAINFO"
+CMD=
+
+# ath50 is for debug, so ignore it
+if [ "$ath" = "ath50" ]
+then
+    exit 0
+fi
 
 #CREATE TABLE STAINFO(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN);
-if [ -f "$dbfile" ]
+if [ ! -f "$dbfile" ]
 then
-    echo sqlite3  $dbfile "BEGIN TRASACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN);COMMIT;"
+    #echo sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN);COMMIT;" | logger
+    sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN);COMMIT;"
 fi
 
 case "$event" in
     "AP-STA-CONNECTED")
     
-        chan_rssi_assoctime=`wlanconfig $ath list sta | awk '$1 ~ /'${mac}'/{print $3"'\'','\''"$6"'\'','\''"$17}'`
+        chan_rssi_assoctime=`wlanconfig $ath list sta | awk '$1 ~ /'${mac}'/{print $3"'\'','\''"$6"'\'','\''"$17;exit}'`
         
-        bssid=`ifconfig $ath | awk '$1 ~ /ath/{print $5}'`
-        ip=`awk '{if ($4 == "'$mac'") print $1}' /proc/net/arp`
+        bssid=`ifconfig $ath | awk '$1 ~ /ath/{print $5;exit}'`
+        ip=`awk '{if ($4 == "'$mac'") {print $1; exit}}' /proc/net/arp`
         
         . /lib/functions.sh
         st="ServiceTemplate""${ath:4}"
@@ -28,14 +36,23 @@ case "$event" in
         config_load wireless
         config_get _vlan $ath network
 
+        # avoid duplicated record here
+        CMD="DELETE FROM ${tablename} WHERE MAC = '$mac'"
+        #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
+        sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
+
+        # add new record
         CMD="INSERT INTO ${tablename} VALUES('$mac','$ath','$chan_rssi_assoctime','${ath:3:1}','$bssid','$ip','$_auth','$_ps','$_ssid','${_vlan:3}')"
+        #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
+        sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
     ;;
 
     "AP-STA-DISCONNECTED")
-        CMD="DELETE FROM ${tablename} WHERE MAC = $mac"
+        # delete record
+        CMD="DELETE FROM ${tablename} WHERE MAC = '$mac'"
+        #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
+        sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
     ;;
     
 esac
-
-echo sqlit3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
 

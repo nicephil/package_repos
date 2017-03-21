@@ -116,7 +116,7 @@ int portal_scheme_undo_dnsset(char *portal_scheme)
 int wlan_set_portal_scheme(int service_template, char *portal_scheme)
 {
     //wlan_service_template.ServiceTemplate1.portal_scheme='bb'
-    char tuple[128];
+    char tuple[256];
     sprintf(tuple, "wlan_service_template.ServiceTemplate%d.portal_scheme", service_template);
     cfg_set_option_value(tuple, portal_scheme);
     return 0;
@@ -125,7 +125,7 @@ int wlan_set_portal_scheme(int service_template, char *portal_scheme)
 int wlan_undo_portal_scheme(int service_template)
 {
     //wlan_service_template.ServiceTemplate1.portal_scheme='bb'
-    char tuple[128];
+    char tuple[256];
     sprintf(tuple, "wlan_service_template.ServiceTemplate%d.portal_scheme", service_template);
     /* delete it in wlan_service_template */
     cfg_del_option(tuple);

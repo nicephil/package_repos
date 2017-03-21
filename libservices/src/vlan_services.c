@@ -65,9 +65,9 @@ int vlan_create(int vlanid, int endid)
         //network.vlan1.vlan='1'
         sprintf(tuple, "network.vlan%d.vlan", vlanid);
         cfg_set_option_value_int(tuple, vlanid);
-        //network.vlan1.ports='0t 1t 2t'
+        //network.vlan1.ports='0t 1t'
         sprintf(tuple, "network.vlan%d.ports", vlanid);
-        cfg_set_option_value(tuple, "0t 1t 2t");
+        cfg_set_option_value(tuple, "0t 1t");
 
         //set default value here
         //network.lan1.vlan_name

@@ -27,12 +27,6 @@
 #define SCHEME_TIME_RANGE_NAME_MAXSIZE 32
 
 #if OK_PATCH
-#define WLAN_SSID_MAX_LENGTH 33
-#define RADIUS_SCHEME_NAME_MAX_LENGTH   16
-#define PORTAL_SCHEME_NAME_MAX_LENGTH     64
-#define ACL_NAME_MAX_LENGTH     16
-#define DNS_KEY_MAXLEN 32
-#define DNS_SETNAME_MAXLEN 32
 struct bandsteering_config {
         int enable;
             int retry_threshold;
@@ -54,8 +48,6 @@ struct vlan_showinfo {
     int num;
     struct vlan_shownode *nodes;
 };
-
-
 #endif
 
 
@@ -3869,7 +3861,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
         .dot11nonly = 0,
         .dot11aconly = 0,
         .ampdu = 1,
-        .bandwidth = 80,
+        .bandwidth = 40,
         .distance = 1,
         .preamble = 0,
         .protection_mode = 1,
