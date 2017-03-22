@@ -328,6 +328,7 @@ int dc_hdl_node_type(struct json_object *obj)
     if (type == 0) {
         system("cp -rf /etc/defcfg/* /etc/config/");
         system("rm -rf /etc/config/wireless;wifi detect > /etc/config/wireless");
+        system("rm -rf /etc/config/network;/rom/etc/uci-defautls/network");
     }
     
 
