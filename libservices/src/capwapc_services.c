@@ -135,7 +135,8 @@ int capwapc_get_server_pri(struct capwapc_config *config, char *server, int *ser
             SET_RELATIVE_PRI(pri, rel_pri);
             syslog(LOG_DEBUG, "Server %s is the dhcp43 master server with priority %d.\n", 
                 server, pri);
-            return pri;
+            *server_pri = pri;
+            return 0;
         }
         rel_pri++;
     }
@@ -148,7 +149,8 @@ int capwapc_get_server_pri(struct capwapc_config *config, char *server, int *ser
             SET_RELATIVE_PRI(pri, rel_pri);
             syslog(LOG_DEBUG, "Server %s is the dhcp43 slave server with priority %d.\n", 
                 server, pri);
-            return pri;
+            *server_pri = pri;
+            return 0;
         }
         rel_pri++;
     }
