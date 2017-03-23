@@ -84,6 +84,7 @@ start() {
 	/sbin/wifi detect > /tmp/wireless.tmp
 	[ -s /tmp/wireless.tmp ] && {
 		cat /tmp/wireless.tmp >> /etc/config/wireless
+		cat /tmp/wireless.tmp > /etc/defcfg/wireless
 	}
 	rm -f /tmp/wireless.tmp
 
