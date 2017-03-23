@@ -42,11 +42,11 @@ setup_interface () {
 
 # add option43 servers into capwapc config file
     [ -n "$acaddr" ] && {
-        server=`echo $acaddr | awk -F',' '{print $3}'`
+        server=`echo $acaddr | awk -F',' '{print $1}'`
         [ -n "$server" ] && {
             uci set capwapc.server.opt43_mas_server=$server
         }
-        server=`echo $acaddr | awk -F',' '{print $6}'`
+        server=`echo $acaddr | awk -F',' '{print $2}'`
         [ -n "$server" ] && {
             uci set capwapc.server.opt43_sla_server=$server
         }
