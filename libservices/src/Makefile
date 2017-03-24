@@ -9,6 +9,7 @@ LIBOBJS = util_services.o \
 		  dns_services.o \
 		  vlan_services.o \
 		  dnsset_services.o \
+		  time_range_services.o \
 		  network_services.o
 
 

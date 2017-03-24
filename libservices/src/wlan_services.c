@@ -6,6 +6,8 @@
 #include "services/cfg_services.h"
 #include "services/wlan_services.h"
 
+#define DEBUG(...)
+
 int wlan_get_radio_count (int *count)
 {
 #if 0
@@ -1267,6 +1269,199 @@ int wlan_set_isolation(int radioid, int stid, int value)
     cfg_set_option_value_int(tuple, value);
     sprintf(tuple, "wireless.ath%d%d.l2tif", radioid, stid);
     cfg_set_option_value_int(tuple, value);
+
+    return 0;
+}
+
+
+/* mac acl */
+static const char * ether_printf(const unsigned char * mac) {
+    static char    buf[18];
+
+    sprintf(buf, "%02X:%02X:%02X:%02X:%02X:%02X", 
+            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    return buf;
+}
+
+static int acl_iterator(struct uci_package *p, void *arg)
+{
+    struct uci_element *e, *e1, *e2;
+    struct wlan_acl_status *acl=NULL, *a;
+    struct wlan_acl_stats **acls=(struct wlan_acl_stats **)arg;
+    int c=0;
+    unsigned int cfg = 0;
+    int mac_spec = MAX_MACLIST_COUNT;
+    int acl_scheme = MAX_ACL_SCHEME_COUNT;
+    
+    *acls=(struct wlan_acl_stats *)malloc(sizeof(struct wlan_acl_stats));
+    if (*acls == NULL){
+        DEBUG("malloc fail\n");
+        return -1;
+    }
+
+    acl = (struct wlan_acl_status *)malloc(acl_scheme * sizeof(struct wlan_acl_status));
+    if(acl == NULL){
+        free(acls);
+        return -1;
+    }
+
+    a = acl;
+    memset(*acls, 0, sizeof(struct wlan_acl_stats));
+    uci_foreach_element(&p->sections, e) {
+        if (c >= acl_scheme){
+            DEBUG("acl scheme reaches max count! \n");
+            break;
+        }
+        memset(acl, 0, sizeof(struct wlan_acl_status));
+        struct uci_section *s = uci_to_section(e);
+        strncpy(acl->name, s->e.name, sizeof(acl->name)-1);
+        
+        acl->maclist=(struct wlan_acl_mac *) malloc(mac_spec*sizeof(struct wlan_acl_mac));
+        if (acl->maclist == NULL){
+            //free(acls);
+            //free(a);
+            DEBUG("malloc fail\n");
+            break;
+        }
+        struct wlan_acl_mac *mac=acl->maclist;
+        
+        uci_foreach_element(&s->options, e1) {
+            struct uci_option * o = uci_to_option(e1);
+            
+            if (strcmp(o->e.name, CFG_WLAN_ACL_POLICY_OPTION) == 0) {
+                if (strcmp(o->v.string, CFG_WLAN_ACL_POLICY_PERMIT) && 
+                    strcmp(o->v.string, CFG_WLAN_ACL_POLICY_DENY)) {
+                    DEBUG("Invalid value %s of option %s in section %s\n",
+                    o->v.string, o->e.name, s->e.name);
+                    break;
+                } else {
+                    if(!strcmp(o->v.string, CFG_WLAN_ACL_POLICY_PERMIT))
+                        acl->policy = WLAN_ACL_POLICY_ALLOW;
+                    else 
+                        acl->policy = WLAN_ACL_POLICY_DENY;
+                    cfg=1;
+                }
+            }
+            else if (strcmp(o->e.name, CFG_WLAN_ACL_MACLIST_OPTION) == 0
+                                    && o->type == UCI_TYPE_LIST) {
+                uci_foreach_element(&o->v.list, e2) {
+                    if (acl->count >= mac_spec){
+                        DEBUG("MAC list reaches max count! \n");
+                        break;
+                    }
+     				if(if_ether_aton(e2->name, mac->mac)<0){
+     				    DEBUG("Invalid maclist %s of field %s in row %s\n",
+                            e2->name, o->e.name, s->e.name);
+     				} else {
+     				    mac++;
+     				    acl->count++;
+     				    DEBUG("maclist add %s\n", ether_printf(mac->mac));
+    				}
+     				
+    			}
+            }
+            
+        }
+        c++;
+        acl++;
+    }
+    (*acls)->acl = a;
+    (*acls)->acl_count = c;
+    
+    return 0;
+}
+
+int wlan_get_acl_all(struct wlan_acl_stats **acls)
+{
+    return cfg_visit_package(CFG_WLAN_ACL_PACKAGE, acl_iterator, (void *)acls );
+}
+
+int wlan_free_acl_all(struct wlan_acl_stats *acls)
+{   
+    int i;
+    struct wlan_acl_status *acl=acls->acl, *tmp;
+    
+    for (i=0; i<acls->acl_count; i++){
+        if (i<acls->acl_count-1)
+            tmp=acl+1;
+            
+        if(acl->maclist)
+            free(acl->maclist);
+            
+        acl=tmp;
+    }
+    free(acls->acl);
+    free(acls);
+    return 0;
+}
+
+
+int wlan_undo_acl_scheme(int stid)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate0.acl='acl_name'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.acl", stid);
+    cfg_del_option(tuple);
+    return 0;
+}
+
+int acl_scheme_undo_maclistall(const char *name)
+{
+    char tuple[128];
+    //wlan_acl.name.maclist='00:11:22:33:44'
+    sprintf(tuple, CFG_WLAN_ACL_PACKAGE".%s."CFG_WLAN_ACL_MACLIST_OPTION, name);
+    cfg_del_option(tuple);
+    return 0;
+}
+
+int acl_scheme_delete(const char *name)
+{
+    char tuple[128];
+    //wlan_acl.name=name
+    sprintf(tuple, CFG_WLAN_ACL_PACKAGE".%s", name);
+    cfg_del_section(tuple);
+    return 0;
+}
+
+int acl_scheme_create(const char *name)
+{
+    char tuple[128];
+    //wlan_acl.name=name
+    cfg_add_section(CFG_WLAN_ACL_PACKAGE, name);
+
+    //wlan_acl.name.policy='permit'
+    sprintf(tuple, CFG_WLAN_ACL_PACKAGE".%s."CFG_WLAN_ACL_POLICY_OPTION, name);
+    cfg_set_option_value(tuple, CFG_WLAN_ACL_POLICY_PERMIT);
+
+    return 0;
+}
+
+int acl_scheme_set_policy(const char *name, int policy)
+{
+    char tuple[128];
+    //wlan_acl.name.policy=''
+    sprintf(tuple, CFG_WLAN_ACL_PACKAGE".%s."CFG_WLAN_ACL_POLICY_OPTION, name);
+    cfg_set_option_value(tuple, policy?CFG_WLAN_ACL_POLICY_PERMIT:CFG_WLAN_ACL_POLICY_DENY);
+
+    return 0;
+}
+
+int acl_scheme_set_maclist(const char *name, char *mac)
+{
+    char tuple[128];
+    //wlan_acl.name.maclist="00:11:22:33:44"
+    sprintf(tuple, CFG_WLAN_ACL_PACKAGE".%s."CFG_WLAN_ACL_MACLIST_OPTION, name);
+    cfg_add_option_list_value(tuple, mac);
+
+    return 0;
+}
+
+int wlan_set_acl_scheme(int stid, const char *acl_scheme)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate1.acl='name'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.acl", stid);
+    cfg_set_option_value(tuple, acl_scheme);
 
     return 0;
 }
