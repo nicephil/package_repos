@@ -45,10 +45,10 @@ if __name__ == '__main__':
     fdata[3] = new_checksum >> 8
     fdata[2] = new_checksum & 0xFF
     # 5. verify
-    sum_all = cal_checksum(fdata)
-    if sum_all != 0xFFFF:
-        print "change failure!"
-        sys.exit(-2)
+    #sum_all = cal_checksum(fdata)
+    #if sum_all != 0xFFFF:
+    #    print "change failure!"
+    #    sys.exit(-2)
     # 6. write into bin
     f2 = open('wifi1.caldata', 'wb+')
     print "fdata.len: " + str(len(fdata))

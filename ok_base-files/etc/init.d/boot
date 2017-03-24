@@ -67,7 +67,7 @@ start() {
 	touch /var/log/lastlog
 	touch /tmp/resolv.conf.auto
 	ln -sf /tmp/resolv.conf.auto /tmp/resolv.conf
-	grep -q debugfs /proc/filesystems && [ `mount | grep -q debugfs` ] && mount -t debugfs debugfs /sys/kernel/debug
+	grep -q debugfs /proc/filesystems && [ -z "`mount | grep debugfs`" ] && mount -t debugfs debugfs /sys/kernel/debug
 	[ "$FAILSAFE" = "true" ] && touch /tmp/.failsafe
 
 	config_load system
@@ -127,3 +127,16 @@ stop() {
 	service_stop /sbin/klogd
 	service_stop /sbin/syslogd
 }
+
+restart() {
+
+    stop
+
+    sleep 1
+	config_load system
+	config_foreach system_config system
+    sleep 1
+	echo -17 > /proc/$(pgrep syslogd)/oom_score_adj
+}
+
+
