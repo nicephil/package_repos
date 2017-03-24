@@ -5,9 +5,9 @@
 
 
 #define CFG_TIME_RANGE_PACKAGE "time_range"
-#define CFG_TIME_RANGE_PERIOD_LIST "period_list"
-#define CFG_TIME_RANGE_ABSTIME "abstime"
-#define CFG_TIME_RANGE_SSID "ssid_time_range"
+#define CFG_TIME_RANGE_PERIOD_LIST_OPTION "period_list"
+#define CFG_TIME_RANGE_ABSTIME_OPTION "abstime"
+#define CFG_TIME_RANGE_SSID_OPTION "ssid_time_range"
 
 //#define SCHEME_TIME_RANGE_MAXSIZE 16
 //#define PERIODIC_TIME_RANGE_MAXSIZE 16

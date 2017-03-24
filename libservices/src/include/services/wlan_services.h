@@ -268,8 +268,8 @@ struct wlan_sta_status {
 #define MAX_MACLIST_COUNT 128
 #define MAX_ACL_SCHEME_COUNT 16
 
-#define CFG_WLAN_ACL_POLICY_PERMIT  "permit"
-#define CFG_WLAN_ACL_POLICY_DENY    "deny"
+#define CFG_WLAN_ACL_POLICY_PERMIT_VALUE  "permit"
+#define CFG_WLAN_ACL_POLICY_DENY_VALUE    "deny"
 
 enum {
     WLAN_ACL_POLICY_OPEN,

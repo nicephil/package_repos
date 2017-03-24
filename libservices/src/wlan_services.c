@@ -1329,13 +1329,13 @@ static int acl_iterator(struct uci_package *p, void *arg)
             struct uci_option * o = uci_to_option(e1);
             
             if (strcmp(o->e.name, CFG_WLAN_ACL_POLICY_OPTION) == 0) {
-                if (strcmp(o->v.string, CFG_WLAN_ACL_POLICY_PERMIT) && 
-                    strcmp(o->v.string, CFG_WLAN_ACL_POLICY_DENY)) {
+                if (strcmp(o->v.string, CFG_WLAN_ACL_POLICY_PERMIT_VALUE) && 
+                    strcmp(o->v.string, CFG_WLAN_ACL_POLICY_DENY_VALUE)) {
                     DEBUG("Invalid value %s of option %s in section %s\n",
                     o->v.string, o->e.name, s->e.name);
                     break;
                 } else {
-                    if(!strcmp(o->v.string, CFG_WLAN_ACL_POLICY_PERMIT))
+                    if(!strcmp(o->v.string, CFG_WLAN_ACL_POLICY_PERMIT_VALUE))
                         acl->policy = WLAN_ACL_POLICY_ALLOW;
                     else 
                         acl->policy = WLAN_ACL_POLICY_DENY;
@@ -1431,7 +1431,7 @@ int acl_scheme_create(const char *name)
 
     //wlan_acl.name.policy='permit'
     sprintf(tuple, CFG_WLAN_ACL_PACKAGE".%s."CFG_WLAN_ACL_POLICY_OPTION, name);
-    cfg_set_option_value(tuple, CFG_WLAN_ACL_POLICY_PERMIT);
+    cfg_set_option_value(tuple, CFG_WLAN_ACL_POLICY_PERMIT_VALUE);
 
     return 0;
 }
@@ -1441,7 +1441,7 @@ int acl_scheme_set_policy(const char *name, int policy)
     char tuple[128];
     //wlan_acl.name.policy=''
     sprintf(tuple, CFG_WLAN_ACL_PACKAGE".%s."CFG_WLAN_ACL_POLICY_OPTION, name);
-    cfg_set_option_value(tuple, policy?CFG_WLAN_ACL_POLICY_PERMIT:CFG_WLAN_ACL_POLICY_DENY);
+    cfg_set_option_value(tuple, policy?CFG_WLAN_ACL_POLICY_PERMIT_VALUE:CFG_WLAN_ACL_POLICY_DENY_VALUE);
 
     return 0;
 }
