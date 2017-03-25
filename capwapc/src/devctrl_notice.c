@@ -112,8 +112,8 @@ static int fetch_station_info_visitor(struct uci_package *p, void *arg)
             } else if (!strcmp(o->e.name, "portal_mode")) {
                 stas[index].portal_mode = atoi(o->v.string);
             } else if (!strcmp(o->e.name, "portal_user")) {
-                strncpy(stas[index].name, o->v.string, sizeof(stas[index].name)-1);
-                stas[index].name_len = strlen(stas[index].name);
+                strncpy(stas[index].user, o->v.string, sizeof(stas[index].user)-1);
+                stas[index].name_len = strlen(stas[index].user);
             }
         }
         index ++;
