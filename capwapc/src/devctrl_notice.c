@@ -95,10 +95,10 @@ static int fetch_station_info_visitor(struct uci_package *p, void *arg)
                     }
                 }
             } else if (!strcmp(o->e.name, "authentication")) {
-                if (!strcmp(o->e.name, "open")) {
+                if (!strcmp(o->v.string, "open")) {
                     stas[index].auth = 0;
                 } else {
-                    stas[index].auth = 1;
+                    stas[index].auth = 5;
                 }
             } else if (!strcmp(o->e.name, "portal_scheme")) {
                 strcpy(stas[index].ps_name, o->v.string);
@@ -109,6 +109,11 @@ static int fetch_station_info_visitor(struct uci_package *p, void *arg)
                 stas[index].ssid_len = strlen(stas[index].ssid);
             } else if (!strcmp(o->e.name, "vlan")) {
                 stas[index].vlan = atoi(o->v.string);
+            } else if (!strcmp(o->e.name, "portal_mode")) {
+                stas[index].portal_mode = atoi(o->v.string);
+            } else if (!strcmp(o->e.name, "portal_user")) {
+                strncpy(stas[index].user, o->v.string, sizeof(stas[index].user)-1);
+                stas[index].name_len = strlen(stas[index].user);
             }
         }
         index ++;

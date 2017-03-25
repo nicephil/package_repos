@@ -21,6 +21,8 @@
 #include "services/vlan_services.h"
 #include "services/dnsset_services.h"
 #include "services/cfg_services.h"
+#include "services/util_services.h"
+#include "services/time_range_services.h"
 
 #define SCHEME_TIME_RANGE_MAXSIZE 16
 #define PERIODIC_TIME_RANGE_MAXSIZE 16
@@ -2202,7 +2204,6 @@ static int dc_parse_node_client_isolation(struct json_object *obj,
 
 static int dc_parse_node_acl_scheme(struct json_object *obj, void *jsoncfg)
 {
-#if !OK_PATCH
     struct wlan_acl_schemes *acl_schemes = (struct wlan_acl_schemes *)jsoncfg;
     struct wlan_acl_status *acl_scheme = (struct wlan_acl_status *)0;
     struct node_pair_save paires[] = {
@@ -2294,7 +2295,6 @@ static int dc_parse_node_acl_scheme(struct json_object *obj, void *jsoncfg)
         
         acl_schemes->num++;
     }
-#endif
     return 0;
 }
 
@@ -2888,7 +2888,6 @@ static int dc_hdl_node_acl_scheme(int step,
     struct service_template *oldst, struct service_templates *newst, 
     struct wlan_acl_stats *oldas, struct wlan_acl_schemes *newas)
 {
-#if !OK_PATCH
     int i, j, ret, node = dc_node_acl_scheme;;
      
     if (STEP_UNBIND == step) {
@@ -2911,7 +2910,7 @@ static int dc_hdl_node_acl_scheme(int step,
         for (i = 0; i < newas->num; i++) {
             ret = 0;
             ret = acl_scheme_create(newas->config[i].name);
-            if (ret && ret != CMP_ERR_COMMIT_FAIL) {
+            if (ret) {
                 nmsc_log("Create acl scheme %s failed for %d.", newas->config[i].name, ret);
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 return ret;
@@ -2919,7 +2918,7 @@ static int dc_hdl_node_acl_scheme(int step,
             
             ret = acl_scheme_set_policy(newas->config[i].name, 
                 newas->config[i].policy);
-            if (ret && ret != CMP_ERR_COMMIT_FAIL) {
+            if (ret) {
                 nmsc_log("Set acl scheme %s policy %d failed for %d.", 
                     newas->config[i].name, newas->config[i].policy, ret);
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
@@ -2951,7 +2950,7 @@ static int dc_hdl_node_acl_scheme(int step,
             if (strlen(newst->config[i].acl_scheme) > 0) {
                 ret = wlan_set_acl_scheme(newst->config[i].stid, 
                     newst->config[i].acl_scheme);
-                if (ret && ret != CMP_ERR_COMMIT_FAIL) {
+                if (ret) {
                     nmsc_log("Bind acl scheme %s to the service template %s with stid %d for %d.", 
                         newst->config[i].acl_scheme, newst->config[i].ssid,
                         newst->config[i].stid, ret);
@@ -2963,7 +2962,6 @@ static int dc_hdl_node_acl_scheme(int step,
         
     }
     
-#endif
     return 0;
 }
 
@@ -3174,7 +3172,6 @@ static int dc_hdl_node_time_limit(int step,
     struct service_template *oldst, struct service_templates *newst, 
      struct scheme_time_range *oldtl, struct time_limit_schemes *newtl)
 {
-#if !OK_PATCH
 #define SECONDS_PER_HOUR    3600
 #define SECONDS_PER_MINUTE  60
 #define HOURS_PER_DAY       24
@@ -3206,7 +3203,7 @@ static int dc_hdl_node_time_limit(int step,
         for (i = 0; i < newtl->num; i++) {
             ret = 0;
             ret = time_range_scheme_create(newtl->config[i].name);
-            if (ret != CMP_ERR_NO_ERR) {
+            if (ret) {
                 nmsc_log("Create time limit %s failed for %d.", newtl->config[i].name, ret);
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 return ret;
@@ -3223,7 +3220,7 @@ static int dc_hdl_node_time_limit(int step,
                     
                     ret = time_range_scheme_add_periodic(newtl->config[i].name, WEEK_DAILY, start_hour, start_minute,\
                         WEEK_DAILY, stop_hour, stop_minute);
-                    if (ret && ret != CMP_ERR_COMMIT_FAIL) {
+                    if (ret) {
                         nmsc_log("Time limit %s add periodic satrt %02d:%02d to end %02d:%02d failed for %d.", \
                         newtl->config[i].name, start_hour, start_minute, stop_hour, stop_minute, ret);
                         ret = dc_error_code(dc_error_commit_failed, node, ret);
@@ -3250,7 +3247,7 @@ static int dc_hdl_node_time_limit(int step,
 
                     ret = time_range_scheme_add_periodic(newtl->config[i].name, start_day, start_hour, start_minute,\
                             stop_day, stop_hour, stop_minute);
-                    if (ret && ret != CMP_ERR_COMMIT_FAIL) {
+                    if (ret) {
                         nmsc_log("Time limit %s add periodic satrt %02d:%02d:%02d to end %02d:%02d:%02d failed for %d.", \
                         newtl->config[i].name, start_day, start_hour, start_minute, stop_day, stop_hour, stop_minute, ret);
                         ret = dc_error_code(dc_error_commit_failed, node, ret);
@@ -3265,7 +3262,7 @@ static int dc_hdl_node_time_limit(int step,
             if (strlen(newst->config[i].time_scheme) > 0) {
                 ret = wlan_set_timer_scheme(newst->config[i].stid, 
                     newst->config[i].time_scheme);
-                if (ret && ret != CMP_ERR_COMMIT_FAIL) {
+                if (ret) {
                     nmsc_log("Bind time limit %s to the service template %s with stid %d for %d.", 
                         newst->config[i].time_scheme, newst->config[i].ssid,
                         newst->config[i].stid, ret);
@@ -3276,7 +3273,6 @@ static int dc_hdl_node_time_limit(int step,
         }  
     }
     
-#endif
     return 0;
 }
 
@@ -3971,6 +3967,37 @@ int dc_hdl_node_wlan(struct json_object *obj)
         ret = dc_error_code(dc_error_commit_failed, node, ret); 
         goto ERROR_OUT;
     }
+
+    /* no cfg from NMS for the as, need to do nothing */
+    if (as_json_cfg.configed) {
+        if ((ret = wlan_get_acl_all(&as_cur_cfg)) != 0) {
+            nmsc_log("Get all acl scheme failed for %d.", ret);
+            ret = dc_error_code(dc_error_commit_failed, node, ret); 
+            goto ERROR_OUT;
+        }
+
+        ret = dc_hdl_node_acl_scheme(STEP_UNBIND, st_cur_cfg, &st_json_cfg,
+            as_cur_cfg, &as_json_cfg);
+        if (ret) {
+            nmsc_log("Handle acl scheme failed for %d.", ret);
+            goto ERROR_OUT;
+        }
+    }
+
+    if(tl_json_cfg.configed) {
+        tl_cur_cfg = get_time_range_byname(NULL);
+
+        if(tl_cur_cfg){
+            ret = dc_hdl_node_time_limit(STEP_UNBIND, st_cur_cfg, &st_json_cfg,
+                tl_cur_cfg, &tl_json_cfg);
+            if (ret) {
+                nmsc_log("Handle time limit failed for %d.", ret);
+                goto ERROR_OUT;
+            }
+        }
+    }
+
+
 
     /* Try to delete service template */
     for (i = 0; i < st_cur_cfg->num; i++) {
@@ -4793,6 +4820,31 @@ int dc_hdl_node_wlan(struct json_object *obj)
             ret = wlan_set_isolation(radio_id, stid, ci_json_cfg);
         }
     }
+
+    /* no cfg from NMS for the as, need to do nothing */
+    if (as_json_cfg.configed) {
+        ret = dc_hdl_node_acl_scheme(STEP_OTHERS, st_cur_cfg, &st_json_cfg,
+            as_cur_cfg, &as_json_cfg);
+        if (ret) {
+            nmsc_log("Handle acl scheme failed for %d.", ret);
+            goto ERROR_OUT;
+        }
+    }
+
+    if(tl_json_cfg.configed){
+        ret = dc_hdl_node_time_limit(STEP_OTHERS, st_cur_cfg, &st_json_cfg,
+            tl_cur_cfg, &tl_json_cfg);
+        if (ret) {
+            nmsc_log("Handle time limit failed for %d.", ret);
+            goto ERROR_OUT;
+        }
+    }
+
+
+
+
+
+
 
     ret = 0;
 ERROR_OUT:

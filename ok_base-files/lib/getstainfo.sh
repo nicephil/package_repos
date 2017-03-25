@@ -7,29 +7,23 @@ fi
 
 touch /tmp/getstainfo.lock
 
-ath_all=`ifconfig | grep -E 'ath*' | awk '{print $1}'`
-
-
 mkdir -p /tmp/stationinfo
          
-for ath in $ath_all
-do
-    if [ "$ath" = "ath50" ]
-    then
-        continue
-    fi
-wlanconfig $ath list sta  | awk -F' ' '$1 !~ /ADDR/{
+sqlite3 /tmp/stationinfo.db 'SELECT * FROM STAINFO' | awk -F'|' '{
     mac=$1;
     gsub(/:/,"",mac);
     print "config client "mac;              
-    print "\toption ifname '$ath'";
     print "\toption mac "$1;
+    print "\toption ifname "$2;
     print "\toption chan "$3;  
-    print "\toption rssi "$6;
-    print "\toption assoctime "$17;
-    system("/lib/fetchipbymac.sh "$1);
-    system("/lib/fetchinfobyinterface.sh '$ath'");
-}'
-done > /tmp/stationinfo/stationinfo
+    print "\toption rssi "$4;
+    print "\toption radioid "$6;
+    print "\toption bssid "$7;
+    print "\toption authentication "$9;
+    print "\toption portal_scheme "$10;
+    print "\toption ssid "$11;
+    print "\toption vlan "$12;
+    system("/lib/updatefields.sh "$1" "$2" "$11" "$12" "$8);
+}' > /tmp/stationinfo/stationinfo
 
 rm -rf /tmp/getstainfo.lock

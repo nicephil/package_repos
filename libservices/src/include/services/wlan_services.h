@@ -262,6 +262,24 @@ struct wlan_sta_status {
     unsigned char mac[6];
 };
 
+#define CFG_WLAN_ACL_PACKAGE  "wlan_acl"
+#define CFG_WLAN_ACL_POLICY_OPTION    "policy"
+#define CFG_WLAN_ACL_MACLIST_OPTION   "maclist"
+#define MAX_MACLIST_COUNT 128
+#define MAX_ACL_SCHEME_COUNT 16
+
+#define CFG_WLAN_ACL_POLICY_PERMIT_VALUE  "permit"
+#define CFG_WLAN_ACL_POLICY_DENY_VALUE    "deny"
+
+enum {
+    WLAN_ACL_POLICY_OPEN,
+    WLAN_ACL_POLICY_ALLOW = 1,
+    WLAN_ACL_POLICY_DENY,
+    WLAN_ACL_POLICY_FLUSH,
+    
+    WLAN_ACL_POLICY_MAX
+};
+
 struct wlan_acl_mac {
     unsigned char mac[6];
 };
@@ -270,12 +288,12 @@ struct wlan_acl_status {
     char name[ACL_NAME_MAX_LENGTH + 1];
     int policy;
     int count;
-    struct wlan_acl_mac * maclist; 
+    struct wlan_acl_mac *maclist; 
 };
 
 struct wlan_acl_stats {
     int acl_count;
-    struct wlan_acl_status * acl; 
+    struct wlan_acl_status *acl; 
 };
 
 
@@ -355,4 +373,13 @@ extern int wlan_undo_dynamic_client_uplink_rate_limit_value( int stid );
 extern int wlan_get_stid_by_ssid(char *ssid, int *stid);
 extern int wlan_get_ifname_by_bssid(int bssid, char *ifname);
 extern int wlan_se_isolation(int radioid, int stid, int value);
+extern int wlan_get_acl_all(struct wlan_acl_stats **acls);
+extern int wlan_free_acl_all(struct wlan_acl_stats *acls);
+extern int wlan_undo_acl_scheme(int stid);
+extern int acl_scheme_undo_maclistall(const char *name);
+extern int acl_scheme_delete(const char *name);
+extern int acl_scheme_create(const char *name);
+extern int acl_scheme_set_policy(const char *name, int policy);
+extern int acl_scheme_set_maclist(const char *name, char *mac);
+extern int wlan_set_acl_scheme(int stid, const char *acl_scheme);
 #endif /*__WLAN_SERVICES_H_ */

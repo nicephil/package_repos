@@ -12,11 +12,11 @@ then
     exit 0
 fi
 
-#CREATE TABLE STAINFO(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN);
+#CREATE TABLE STAINFO(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER);
 if [ ! -f "$dbfile" ]
 then
-    #echo sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN);COMMIT;" | logger
-    sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN);COMMIT;"
+    #echo sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_HMODE,PORTAL_USER);COMMIT;" | logger
+    sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER);COMMIT;"
 fi
 
 case "$event" in
@@ -42,7 +42,7 @@ case "$event" in
         sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
 
         # add new record
-        CMD="INSERT INTO ${tablename} VALUES('$mac','$ath','$chan_rssi_assoctime','${ath:3:1}','$bssid','$ip','$_auth','$_ps','$_ssid','${_vlan:3}')"
+        CMD="INSERT INTO ${tablename} VALUES('$mac','$ath','$chan_rssi_assoctime','${ath:3:1}','$bssid','$ip','$_auth','$_ps','$_ssid','${_vlan:3}','','')"
         #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
         sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
     ;;
