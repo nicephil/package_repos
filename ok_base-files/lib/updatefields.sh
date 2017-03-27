@@ -18,9 +18,13 @@ else
     _ip=$ip
 fi
 
-_assoctime=`wlanconfig $ath list sta | awk '/'"$mac"'/{print $17;exit}'`
+_assoctime_rssi=`wlanconfig $ath list sta | awk '/'"$mac"'/{print $17"|"$6;exit}'`
+_assoctime=${_assoctime_rssi%%|*}
+_rssi=${_assoctime_rssi##*|}
 
 echo -e "\toption assoctime $_assoctime"
 echo -e "\toption ipaddr $_ip"
+echo -e "\toption rssi $_rssi"
 echo -e "\toption portal_mode $_portal_mode"
-echo -e "\topton portal_user $_portal_user"
+echo -e "\toption portal_user $_portal_user"
+
