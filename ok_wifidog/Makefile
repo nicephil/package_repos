@@ -19,7 +19,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/ok_wifidog
   SECTION:=Oakridge
   CATEGORY:=Oakridge Software
-  DEPENDS:=+iptables-mod-extra +iptables-mod-ipopt +kmod-ipt-nat +iptables-mod-nat-extra +libpthread +libservices
+  DEPENDS:=+iptables-mod-extra +iptables-mod-ipopt +kmod-ipt-nat +iptables-mod-nat-extra +libpthread +libservices +libsqlite3
   TITLE:=A wireless captive portal solution
 endef
 
@@ -31,7 +31,7 @@ define Package/ok_wifidog/description
 endef
 
 TARGET_CFLAGS+=-DOK_PATCH=1
-TARGET_LDFLAGS+=-lservices
+TARGET_LDFLAGS+=-lservices -lsqlite3
 
 #define Package/ok_wifidog/conffiles
 #/etc/wifidog.conf

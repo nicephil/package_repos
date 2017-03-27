@@ -37,6 +37,11 @@ extern time_t started_time;
 /** @brief The internal web server */
 extern httpd *webserver;
 
+#if OK_PATCH
+extern const char *station_info_db_file;
+extern const char *station_info_table;
+#endif
+
 /** @brief actual program entry point. */
 int gw_main(int, char **);
 
