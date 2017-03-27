@@ -348,15 +348,15 @@ t_firewall_rule *get_ruleset(const char *);
 
 
 #define LOCK_CONFIG() do { \
-	debug(LOG_DEBUG, "Locking config"); \
+	debug(LOG_DEBUG, "____Locking config____"); \
 	pthread_mutex_lock(&config_mutex); \
-	debug(LOG_DEBUG, "Config locked"); \
+	debug(LOG_DEBUG, "____Config locked____"); \
 } while (0)
 
 #define UNLOCK_CONFIG() do { \
-	debug(LOG_DEBUG, "Unlocking config"); \
+	debug(LOG_DEBUG, "____Unlocking config____"); \
 	pthread_mutex_unlock(&config_mutex); \
-	debug(LOG_DEBUG, "Config unlocked"); \
+	debug(LOG_DEBUG, "____Config unlocked____"); \
 } while (0)
 
 #if OK_PATCH
