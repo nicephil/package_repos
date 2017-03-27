@@ -92,20 +92,22 @@
 int
 auth_server_request(t_authresponse *authresponse, t_client *client)
 {
-    debug(LOG_DEBUG, "Calling auth_server_request()...");
+    debug(LOG_DEBUG, ".. Querying Client {%s, %s, %s}",
+            client->ip, client->mac, client->ssid);
 
     char *info = okos_http_insert_parameter(client);
     //t_ssid_config * ssid = okos_conf_get_ssid_by_client(client);
     t_ssid_config *ssid = client->ssid_conf;
     int updateFailed = 0;
-
-    int sockfd = connect_auth_server(ssid);
     t_auth_serv *auth_server = ssid->auth_servers;
-    if (NULL == auth_server) {
-        debug(LOG_ERR, "There is no auth server!");
+
+    //int sockfd = connect_auth_server(ssid);
+    int sockfd = _access_auth_server(auth_server);
+    if (-1 == sockfd) {
+        debug(LOG_DEBUG, "Auth server is unreachable.");
         authresponse->authcode = AUTH_ERROR;
-        updateFailed = 1;
-        return updateFailed;
+        updateFailed = -1;
+        goto asr_cant_access_authsvr;
     }
     
     /* Send out request to Auth server to check login status of client:
@@ -119,9 +121,8 @@ auth_server_request(t_authresponse *authresponse, t_client *client)
             auth_server->authserv_path,
             auth_server->authserv_auth_script_path_fragment,
             info);
-    free(info);
 
-    debug(LOG_DEBUG, "Sending query to auth server...[%s]", buf);
+    debug(LOG_DEBUG, ".. Sending query [%s]", buf);
     /* Get the response from Auth Server, then check the result.
      */
     char *res;
@@ -141,33 +142,44 @@ auth_server_request(t_authresponse *authresponse, t_client *client)
         debug(LOG_ERR, "There was a problem talking to the auth server!");
         authresponse->authcode = AUTH_ERROR;
         updateFailed = 1;
-        return updateFailed;
+        goto asr_can_not_get_response;
     }
 
     /* Anyway, Auth server will reply me a string started with "auth="
      */
     char * parameterAuth = strstr(res, "auth=");
-    if (parameterAuth == NULL)
-        goto denied_by_default;
+    if (parameterAuth == NULL) {
+        client->remain_time = 0;
+        authresponse->authcode = AUTH_DENIED;
+        updateFailed = 2;
+        debug(LOG_WARNING, "Can't get expected authentication code, Denied client {%s, %s, %s}.",
+                client->ip, client->mac, client->ssid);
+        goto asr_response_without_auth;
+    }
 
-    debug(LOG_DEBUG, "Got response from auth server: [%s]", parameterAuth);
+    debug(LOG_DEBUG, ".. Got response [%s]", parameterAuth);
     parameterAuth += strlen("auth=");
     int parseFailed = okos_http_parse_info(parameterAuth, client);
-    if (parseFailed)
-        goto denied_by_default;
+    if (parseFailed) {
+        client->remain_time = 0;
+        authresponse->authcode = AUTH_DENIED;
+        updateFailed = 3;
+        debug(LOG_WARNING, "Can't parse authentication code returned, Denied client {%s, %s, %s}.",
+                client->ip, client->mac, client->ssid);
+        goto asr_response_without_auth;
+    }
+
     if (0 == client->remain_time) {
         authresponse->authcode = AUTH_DENIED;
     }
-    debug(LOG_DEBUG, "Auth server returned authentication code %d", authresponse->authcode);
+    debug(LOG_DEBUG, ".. Auth server returned authentication code %d", authresponse->authcode);
+
+asr_response_without_auth:
     free(res);
-    return updateFailed;
- 
-denied_by_default:
-    free(res);
-    client->remain_time = 0;
-    authresponse->authcode = AUTH_DENIED;
-    debug(LOG_WARNING, "Auth server did not return expected authentication code, Denied client.");
-    updateFailed = 2;
+    
+asr_can_not_get_response:
+asr_cant_access_authsvr:
+    free(info);
     return updateFailed;
 }
 #else /* OK_PATCH */
@@ -291,7 +303,7 @@ connect_auth_server()
         debug(LOG_ERR, "Failed to connect to any of the auth servers");
         mark_auth_offline();
     } else {
-        debug(LOG_DEBUG, "Connected to auth server");
+        debug(LOG_DEBUG, "Connected to auth server successfully.");
         mark_auth_online();
     }
     return (sockfd);
@@ -315,7 +327,7 @@ _connect_auth_server(int level)
     int num_servers = 0;
     char *hostname = NULL;
     char *ip;
-    struct sockaddr_in their_addr;
+    //struct sockaddr_in their_addr;
     int sockfd;
 
 #if OK_PATCH
@@ -344,7 +356,8 @@ _connect_auth_server(int level)
 #endif
         num_servers++;
     }
-    debug(LOG_DEBUG, "Level %d: Calculated %d auth servers in list", level, num_servers);
+    debug(LOG_DEBUG, "Level %d: Calculated %d auth servers in list on ssid:%s",
+            level, num_servers, ssid->ssid);
 
     if (level > num_servers) {
         /*
@@ -452,6 +465,17 @@ _connect_auth_server(int level)
             free(ip);
         }
 
+        sockfd = _access_auth_server(auth_server);
+        if (-2 == sockfd) {
+#if OK_PATCH
+            return _connect_auth_server(level, ssid); /* Yay recursion! */
+#else
+            return _connect_auth_server(level); /* Yay recursion! */
+#endif
+        } else {
+            return sockfd;
+        }
+#if 0
         /*
          * Connect to it
          */
@@ -504,6 +528,62 @@ _connect_auth_server(int level)
             debug(LOG_DEBUG, "Level %d: Successfully connected to auth server %s:%d", level, hostname, ntohs(port));
             return sockfd;
         }
+#endif
+    }
+}
+
+
+#if OK_PATCH
+int
+_access_auth_server(t_auth_serv *auth_server)
+{
+    if (NULL == auth_server || NULL == auth_server->last_ip) {
+        return -1;
     }
 
+    char *hostname = auth_server->authserv_hostname ? auth_server->authserv_hostname : auth_server->last_ip;
+    struct sockaddr_in their_addr;
+    int sockfd = -1;
+    int port = 0;
+
+#ifdef USE_CYASSL
+    if (auth_server->authserv_use_ssl) {
+        debug(LOG_DEBUG, "Connecting to SSL auth server %s:%d",
+                hostname, auth_server->authserv_ssl_port);
+        port = htons(auth_server->authserv_ssl_port);
+    } else {
+        debug(LOG_DEBUG, "Connecting to auth server %s:%d",
+                hostname, auth_server->authserv_http_port);
+        port = htons(auth_server->authserv_http_port);
+    }
+#endif
+#ifndef USE_CYASSL
+    debug(LOG_DEBUG, "Connecting to auth server %s:%d", hostname, auth_server->authserv_http_port);
+    port = htons(auth_server->authserv_http_port);
+#endif
+    their_addr.sin_port = port;
+    their_addr.sin_family = AF_INET;
+    their_addr.sin_addr.s_addr = inet_addr(auth_server->last_ip);
+    memset(&(their_addr.sin_zero), '\0', sizeof(their_addr.sin_zero));
+
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        debug(LOG_ERR, "Failed to create a new SOCK_STREAM socket: %s", strerror(errno));
+        return (-1);
+    }
+
+    if (connect(sockfd, (struct sockaddr *)&their_addr, sizeof(struct sockaddr)) == -1) {
+        debug(LOG_DEBUG,
+                "Failed to connect to auth server %s{%s}:%d (%s). Marking it as bad.",
+                hostname, auth_server->last_ip, ntohs(port), strerror(errno));
+        close(sockfd);
+        mark_auth_server_bad(auth_server);
+        return (-2);
+    } else {
+        debug(LOG_DEBUG, "Successfully connected to auth server %s{%s}:%d",
+                hostname, auth_server->last_ip, ntohs(port));
+        return sockfd;
+    }
 }
+
+
+#endif
