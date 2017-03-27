@@ -60,7 +60,7 @@ cleanup_fds(void)
         }
     }
 
-    debug(LOG_DEBUG, "Clean up all the registered FDs.");
+    debug(LOG_DEBUG, "__Clean up all the registered FDs.");
 }
 
 /** Register an fd for auto-cleanup on fork()

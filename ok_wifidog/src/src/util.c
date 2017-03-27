@@ -61,15 +61,15 @@
 #include "../config.h"
 
 #define LOCK_GHBN() do { \
-	debug(LOG_DEBUG, "Locking wd_gethostbyname()"); \
+	debug(LOG_DEBUG, "____Locking wd_gethostbyname()____"); \
 	pthread_mutex_lock(&ghbn_mutex); \
-	debug(LOG_DEBUG, "wd_gethostbyname() locked"); \
+	debug(LOG_DEBUG, "____wd_gethostbyname() locked____"); \
 } while (0)
 
 #define UNLOCK_GHBN() do { \
-	debug(LOG_DEBUG, "Unlocking wd_gethostbyname()"); \
+	debug(LOG_DEBUG, "____Unlocking wd_gethostbyname()____"); \
 	pthread_mutex_unlock(&ghbn_mutex); \
-	debug(LOG_DEBUG, "wd_gethostbyname() unlocked"); \
+	debug(LOG_DEBUG, "____wd_gethostbyname() unlocked____"); \
 } while (0)
 
 #include "../config.h"
@@ -109,20 +109,20 @@ execute(const char *cmd_line, int quiet)
         if (quiet)
             close(2);
         if (execvp(WD_SHELL_PATH, (char *const *)new_argv) == -1) { /* execute the command  */
-            debug(LOG_ERR, "execvp(): %s", strerror(errno));
+            debug(LOG_ERR, "**** execvp(): %s", strerror(errno));
         } else {
-            debug(LOG_ERR, "execvp() failed");
+            debug(LOG_ERR, "**** execvp() failed");
         }
         exit(1);
     }
 
     /* for the parent:      */
-    debug(LOG_DEBUG, "Waiting for PID %d to exit", pid);
+    debug(LOG_DEBUG, "____Waiting for PID %d to exit", pid);
     rc = waitpid(pid, &status, 0);
-    debug(LOG_DEBUG, "Process PID %d exited", rc);
+    debug(LOG_DEBUG, "____Process PID %d exited", rc);
     
     if (-1 == rc) {
-        debug(LOG_ERR, "waitpid() failed (%s)", strerror(errno));
+        debug(LOG_ERR, "**** waitpid() failed (%s)", strerror(errno));
         return 1; /* waitpid failed. */
     }
 
@@ -130,7 +130,7 @@ execute(const char *cmd_line, int quiet)
         return (WEXITSTATUS(status));
     } else {
         /* If we get here, child did not exit cleanly. Will return non-zero exit code to caller*/
-        debug(LOG_DEBUG, "Child may have been killed.");
+        debug(LOG_DEBUG, "____Child may have been killed.");
         return 1;
     }
 }
