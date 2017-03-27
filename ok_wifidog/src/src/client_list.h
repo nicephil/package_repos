@@ -53,34 +53,31 @@ struct _s_ath_if_list;
 typedef struct _t_client {
     struct _t_client *next;             /**< @brief Pointer to the next client */
     unsigned long long id;           /**< @brief Unique ID per client */
-    char *ip;                           /**< @brief Client Ip address */
-    char *mac;                          /**< @brief Client Mac address */
-    char *token;                        /**< @brief Client token */
     int fw_connection_state;     /**< @brief Connection state in the
 						     firewall */
     int fd;                             /**< @brief Client HTTP socket (valid only
 					     during login before one of the
 					     _http_* function is called */
-    t_counters counters;                /**< @brief Counters for input/output of
-					     the client. */
-#if OK_PATCH
-    /**<@ These are what we got from portal server. */
-    time_t last_flushed;
-    unsigned int auth_mode;
-    unsigned int remain_time;
-    char * user_name;
+    t_counters counters;                /**< @brief Counters for input/output of the client. */
 
-    /**<@ These are what we got from local information. 
-     * Of course, $ip and $mac should be included.
-     */
-#if 0
-    char * brX;
-#endif
+    /** Client Local informaion **/
+    char *ip;
+    char *mac;
     char * if_name;
     char * ssid;
     char * scheme;
     struct _s_ssid_config * ssid_conf;
     struct _s_ath_if_list * ifx;
+
+    /** These are what we got from portal server. */
+    time_t last_flushed;
+    unsigned int auth_mode;
+    unsigned int remain_time;
+    char * user_name;
+    char *token;                        /**< @brief Client token */
+
+#if 0
+    char * brX;
 #endif
 } t_client;
 
@@ -134,24 +131,30 @@ void client_list_remove(t_client *);
 void client_free_node(t_client *);
 
 #define LOCK_CLIENT_LIST() do { \
-	debug(LOG_DEBUG, "Locking client list"); \
+	debug(LOG_DEBUG, "____Locking client list____"); \
 	pthread_mutex_lock(&client_list_mutex); \
-	debug(LOG_DEBUG, "Client list locked"); \
+	debug(LOG_DEBUG, "____Client list locked____"); \
 } while (0)
 
 #define UNLOCK_CLIENT_LIST() do { \
-	debug(LOG_DEBUG, "Unlocking client list"); \
+	debug(LOG_DEBUG, "____Unlocking client list____"); \
 	pthread_mutex_unlock(&client_list_mutex); \
-	debug(LOG_DEBUG, "Client list unlocked"); \
+	debug(LOG_DEBUG, "____Client list unlocked____"); \
 } while (0)
 
 #if OK_PATCH
 
+int okos_client_list_should_be_checked(void);
+void okos_client_list_checked(void);
+int okos_client_list_is_empty(t_client * );
 t_client * okos_client_list_flush(t_client * , const unsigned int);
 
+t_client * client_get_new_validation(t_client * , const char *);
 t_client * okos_client_append_info(t_client *, const char * );
 t_client * okos_client_get_new_client(const char * );
+t_client * okos_client_get_new_client_v1(const char * );
 char * okos_get_client_status_text(const char *, const char *);
+char * okos_delete_clients(const char *, const char *);
 
 char * okos_client_get_ssid(const t_client *);
 t_client *client_list_find_by_ssid(const char *, const char *);
