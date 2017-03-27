@@ -4863,7 +4863,7 @@ ERROR_OUT:
     }
 
     if (as_cur_cfg) {
-        free(as_cur_cfg);
+        wlan_free_acl_all(as_cur_cfg);
     }
 
     if(tl_cur_cfg){
