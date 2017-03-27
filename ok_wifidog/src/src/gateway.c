@@ -46,6 +46,8 @@
 
 #include <fcntl.h>
 
+#include "sqlite3.h"
+
 #include "common.h"
 #include "httpd.h"
 #include "safe.h"
@@ -62,6 +64,7 @@
 #include "httpd_thread.h"
 #include "util.h"
 
+
 /** XXX Ugly hack 
  * We need to remember the thread IDs of threads that simulate wait with pthread_cond_timedwait
  * so we can explicitly kill them in the termination handler
@@ -73,6 +76,11 @@ time_t started_time = 0;
 
 /* The internal web server */
 httpd * webserver = NULL;
+
+#if OK_PATCH
+const char *station_info_db_file = "/tmp/stationinfo.db";
+const char *station_info_table = "STAINFO";
+#endif
 
 /* Appends -x, the current PID, and NULL to restartargv
  * see parse_commandline in commandline.c for details
@@ -313,11 +321,11 @@ sigchld_handler(int s)
     int status;
     pid_t rc;
 
-    debug(LOG_DEBUG, "Handler for SIGCHLD called. Trying to reap a child");
+    debug(LOG_DEBUG, "____Handler for SIGCHLD called. Trying to reap a child");
 
     rc = waitpid(-1, &status, WNOHANG);
 
-    debug(LOG_DEBUG, "Handler for SIGCHLD reaped child PID %d", rc);
+    debug(LOG_DEBUG, "____Handler for SIGCHLD reaped child PID %d", rc);
 }
 
 /** Exits cleanly after cleaning up the firewall.  
@@ -333,17 +341,17 @@ termination_handler(int s)
     pthread_t self = pthread_self();
 #endif
 
-    debug(LOG_INFO, "Handler for termination caught signal %d", s);
+    debug(LOG_INFO, "____Handler for termination caught signal %d", s);
 
     /* Makes sure we only call fw_destroy() once. */
     if (pthread_mutex_trylock(&sigterm_mutex)) {
-        debug(LOG_INFO, "Another thread already began global termination handler. I'm exiting");
+        debug(LOG_INFO, "____Another thread already began global termination handler. I'm exiting");
         pthread_exit(NULL);
     } else {
-        debug(LOG_INFO, "Cleaning up and exiting");
+        debug(LOG_INFO, "____Cleaning up and exiting");
     }
 
-    debug(LOG_INFO, "Flushing firewall rules...");
+    debug(LOG_INFO, "____Flushing firewall rules...");
     fw_destroy();
 
     /* XXX Hack
@@ -363,7 +371,7 @@ termination_handler(int s)
     }
 #endif
 
-    debug(LOG_NOTICE, "Exiting...");
+    debug(LOG_NOTICE, "____Exiting...");
     exit(s == 0 ? 1 : 0);
 }
 
@@ -442,6 +450,7 @@ static void reserve_fd()
 }
 #endif
 
+
 /**@internal
  * Main execution loop 
  */
@@ -456,10 +465,10 @@ main_loop(void)
 
     /* Set the time when wifidog started */
     if (!started_time) {
-        debug(LOG_INFO, "Setting started_time");
+        debug(LOG_INFO, "<DAEMON> Setting started_time");
         started_time = time(NULL);
     } else if (started_time < MINIMUM_STARTED_TIME) {
-        debug(LOG_WARNING, "Detected possible clock skew - re-setting started_time");
+        debug(LOG_WARNING, "<DAEMON> Detected possible clock skew - re-setting started_time");
         started_time = time(NULL);
     }
 
@@ -497,21 +506,21 @@ main_loop(void)
     /* Initializes the web server */
 #if OK_PATCH
     reserve_fd();
-    debug(LOG_NOTICE, "Creating web server on %s:%d", "0.0.0.0", config->gw_port);
+    debug(LOG_NOTICE, "<DAEMON> Creating web server on %s:%d", "0.0.0.0", config->gw_port);
     if (NULL == (webserver = httpdCreate(HTTP_ANY_ADDR, config->gw_port))) {
 #else
     debug(LOG_NOTICE, "Creating web server on %s:%d", config->gw_address, config->gw_port);
     if (NULL == (webserver = httpdCreate(config->gw_address, config->gw_port))) {
 #endif
-        debug(LOG_ERR, "Could not create web server: %s", strerror(errno));
+        debug(LOG_ERR, "<DAEMON> Could not create web server: %s", strerror(errno));
         exit(1);
     }
     register_fd_cleanup_on_fork(webserver->serverSock);
-    debug(LOG_DEBUG, "Created web server {Host=%s, Port=%d, ServerSock=%d, StartTime=%d, LastError=%d}",
+    debug(LOG_DEBUG, "<DAEMON> Created web server {Host=%s, Port=%d, ServerSock=%d, StartTime=%d, LastError=%d}",
             webserver->host, webserver->port, webserver->serverSock,
             webserver->startTime, webserver->lastError);
 
-    debug(LOG_DEBUG, "Assigning callbacks to web server");
+    debug(LOG_DEBUG, "<DAEMON> Assigning callbacks to web server");
 #if OK_PATCH
     /* FIXME
      * Why don't we add some funny things here?
@@ -570,7 +579,7 @@ main_loop(void)
     }
     pthread_detach(tid_ping);
 
-    debug(LOG_NOTICE, "Waiting for connections");
+    debug(LOG_NOTICE, "<DAEMON> Waiting for connections");
     while (1) {
         r = httpdGetConnection(webserver, NULL);
 

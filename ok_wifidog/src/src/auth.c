@@ -77,11 +77,11 @@ thread_client_timeout_check(const void *arg)
         /* No longer needs to be locked */
         pthread_mutex_unlock(&cond_mutex);
 
-        debug(LOG_DEBUG, "Running client checking...");
+        debug(LOG_DEBUG, "<ClientTimeout>: Running client checking...");
 
         timeout.tv_sec = fw_sync_with_authserver() + 3;
 
-        debug(LOG_DEBUG, "See you in %ld seconds", timeout.tv_sec);
+        debug(LOG_DEBUG, "<ClientTimeout>: See you in %ld seconds", timeout.tv_sec);
     }
 #else
     while (1) {

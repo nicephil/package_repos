@@ -67,7 +67,7 @@ usage(void)
     fprintf(stdout, "  -h                Print usage\n");
     fprintf(stdout, "\n");
     fprintf(stdout, "commands:\n");
-    fprintf(stdout, "  reset [mac|ip] [ssid]   Reset the specified mac or ip connection\n");
+    fprintf(stdout, "  reset mac [ssid]  Reset the specified mac or ip connection\n");
     fprintf(stdout, "  status            Obtain the status of wifidog\n");
     fprintf(stdout, "  stop              Stop the running wifidog\n");
     fprintf(stdout, "  restart           Re-start the running wifidog (without disconnecting active users!)\n");
@@ -283,8 +283,10 @@ wdctl_reset(void)
         fprintf(stdout, "Connection {%s:%s} successfully reset.\n", config.param, config.param1 ? config.param1 : "*");
     } else if (strcmp(buffer, "No") == 0) {
         fprintf(stdout, "Connection {%s:%s} was not active.\n", config.param, config.param1 ? config.param1 : "*");
+    } else if (strcmp(buffer, "Bad") == 0) {
+        fprintf(stdout, "MAC address {%s:%s} couldn't be recoganized.\n", config.param, config.param1 ? config.param1 : "*");
     } else {
-        fprintf(stderr, "wdctl: Error: WiFiDog sent an abnormal " "reply.\n");
+        fprintf(stdout, "%s", buffer);
     }
 
     shutdown(sock, 2);

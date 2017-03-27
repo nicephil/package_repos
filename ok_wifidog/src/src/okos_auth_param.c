@@ -96,7 +96,7 @@ static inline void okos_http_ins_str(const char *desc, unsigned char **pt)
 static unsigned char * okos_http_serial_auth_info(const t_client *client, int *len)
 {
 //    okos_http_simulate_client_info(client, &info);
-	debug(LOG_DEBUG, "serialize the local information into buffer.");
+	debug(LOG_DEBUG, ".... serialize the local information into buffer.");
 
     unsigned char * urltmp = safe_malloc(sizeof(t_http_auth_info));
     unsigned char * pt = urltmp;
@@ -156,7 +156,7 @@ static unsigned char * okos_http_hex2byte(const char *hex, int *len)
 
 static char * okos_http_byte2hex(const unsigned char *bytes, const int len)
 {
-	debug(LOG_DEBUG, "start to transfer data to ascii.");
+	debug(LOG_DEBUG, ".... start to transfer data to ascii.");
 
     char *hex = safe_malloc(len*2+1);
     char alph[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
@@ -171,7 +171,7 @@ static char * okos_http_byte2hex(const unsigned char *bytes, const int len)
 
 static inline void okos_http_encrypt_auth_info(unsigned char *hex, const int len)
 {
-	debug(LOG_DEBUG, "start to encrypt the auth information.");
+	debug(LOG_DEBUG, ".... start to encrypt the auth information.");
     int i;
     for (i = 0; i < len; i++) hex[i] ^= 0xDA;
 }
@@ -230,7 +230,7 @@ static int _okos_http_parse_info(const unsigned char *info, const int len, t_cli
 	typeof(ptemp->user_len) user_len = *((typeof(ptemp->user_len) *)pos);
 	post_parse(left, pos, size);
 
-	debug(LOG_DEBUG, "Compare&Adjust the user name length from msg content (%d) to buffer left %d", user_len, left);
+	debug(LOG_DEBUG, ".... Compare&Adjust the user name length from msg content (%d) to buffer left %d", user_len, left);
 	user_len = user_len <= left ? user_len : left;
 	char * username = safe_malloc(user_len + 1);
 	memcpy(username, pos, user_len);
@@ -238,13 +238,13 @@ static int _okos_http_parse_info(const unsigned char *info, const int len, t_cli
 	okos_client_update_str_after_cmp(client->user_name, username);
 
 	client->last_flushed = time(NULL);
-	debug(LOG_DEBUG, "Auth confirm information parse successful for client {mac:%s, auth_mode:%d, remain_time:%d, user_name:%s}", client->mac, client->auth_mode, client->remain_time, client->user_name);
+	debug(LOG_DEBUG, ".... Auth confirm information parse successful for client {mac:%s, auth_mode:%d, remain_time:%d, user_name:%s}", client->mac, client->auth_mode, client->remain_time, client->user_name);
     return 0;
 }
 
 char * okos_http_insert_parameter(t_client *client)
 {
-	debug(LOG_DEBUG, "start to insert parameter to auth info..");
+	debug(LOG_DEBUG, ".. start to insert parameter to auth info ..");
     int len = 0;
     unsigned char * urlBytes = okos_http_serial_auth_info(client, &len);
     okos_http_encrypt_auth_info(urlBytes, len);
@@ -256,17 +256,17 @@ char * okos_http_insert_parameter(t_client *client)
 
 int okos_http_parse_info(const char *auth_value, t_client *client)
 {
-	debug(LOG_DEBUG, "start to parse auth value.");
+	debug(LOG_DEBUG, ".. start to parse auth value.");
 	int len = 0;
     unsigned char *param = okos_http_hex2byte(auth_value, &len);
 	okos_http_encrypt_auth_info(param, len);
     int canntParse = _okos_http_parse_info(param, len, client);
 
     if (!canntParse) {
-        debug(LOG_DEBUG, "Client {mac:%s, user_name:%s, auth_mode:%d, remain_time:%d} got authed.",
+        debug(LOG_DEBUG, ".. Client {mac:%s, user_name:%s, auth_mode:%d, remain_time:%d} got authed.",
 		        client->user_name, client->mac, client->auth_mode, client->remain_time);
     }
-	debug(LOG_DEBUG, "parse auth value %s.", canntParse ? "failed" : "successfully");
+	debug(LOG_DEBUG, ".. parse auth value %s.", canntParse ? "failed" : "successfully");
     free(param);
 	return canntParse;
 }

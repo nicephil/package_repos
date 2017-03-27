@@ -52,7 +52,7 @@ struct _s_ssid_config;
 int auth_server_request(t_authresponse * , t_client *);
 int connect_auth_server(const struct _s_ssid_config *);
 int _connect_auth_server(int level, const struct _s_ssid_config *);
-
+int _access_auth_server(t_auth_serv *);
 #else
 /** @brief Initiates a transaction with the auth server */
 t_authcode auth_server_request(t_authresponse * authresponse,

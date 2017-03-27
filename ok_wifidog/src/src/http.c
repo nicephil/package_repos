@@ -64,6 +64,7 @@
 #endif
 
 
+#define OKOS_MAKE_JOKE_WITH_CLIENT
 
 #if OK_PATCH
 static int okos_http_check_whitelist(request *r, char *url)
@@ -147,31 +148,56 @@ static int okos_http_check_whitelist_by_ssid(request *r, char *url, t_ssid_confi
     return 1;
 }
 
+static void okos_add_validation_client(t_client *client)
+{
+    debug(LOG_DEBUG, "Trying to add VALIDATION client {%s, %s, %s} into list.",
+            client->ip, client->mac, client->ssid);
+    LOCK_CLIENT_LIST();
+    t_client *old = client_list_find_by_ssid(client->mac, client->ssid);
+    if (NULL == old) {
+        client_list_insert_client(client);
+        //fw_allow(client, FW_MARK_PROBATION);
+        fw_allow(client, FW_MARK_KNOWN);
+        debug(LOG_DEBUG, "Insert a new VALIDATION client {%s, %s, %s, remain_time:%ld}.",
+                client->ip, client->mac, client->ssid, client->remain_time);
+    } else {
+        debug(LOG_DEBUG, "VALIDATION client {%s, %s, %s, remain_time:%ld} is already in.",
+                client->ip, client->mac, client->ssid, client->remain_time);
+    }
+    UNLOCK_CLIENT_LIST();
+    served_this_session++;
+}
+
+
 static void okos_try_to_add_client_into_list(t_client *p_client)
 {
-    debug(LOG_DEBUG, "Trying to add client {%s,%s,%s} into list.", p_client->ip, p_client->mac, p_client->ssid);
+    debug(LOG_DEBUG, "Trying to add ALLOWED client {%s, %s, %s} into list.",
+            p_client->ip, p_client->mac, p_client->ssid);
 
     LOCK_CLIENT_LIST();
 
     t_client *p_old = client_list_find_by_ssid(p_client->mac, p_client->ssid);
     if (NULL == p_old) {
-        debug(LOG_DEBUG, "New client for {%s,%s,%s}", p_client->ip, p_client->mac, p_client->ssid);
+        debug(LOG_DEBUG, "Insert New ALLOWED client {%s, %s, %s}", p_client->ip, p_client->mac, p_client->ssid);
         client_list_insert_client(p_client);
+        fw_allow(p_client, FW_MARK_KNOWN);
     } else {
-        debug(LOG_WARNING, "Client{%s,%s,%s} is already in the list with remain time: %d", p_old->ip, p_old->mac, p_old->ssid, p_old->remain_time);
+        debug(LOG_INFO, "ALLOWED Client {%s, %s, %s, remain_time:%ld} is already in.",
+                p_old->ip, p_old->mac, p_old->ssid, p_old->remain_time);
         okos_client_list_flush(p_old, p_client->remain_time);
         client_free_node(p_client);
         p_client = p_old;
     }
 
     /* Logged in successfully as a regular account */
-    debug(LOG_DEBUG, "Got ALLOWED from auth server for client {%s,%s,%s} - "
-            "adding to firewall and redirecting them to portal", p_client->ip, p_client->mac, p_client->ssid);
-    fw_allow(p_client, FW_MARK_KNOWN);
+    debug(LOG_DEBUG, "Got ALLOWED from auth server for client {%s,%s,%s}",
+            p_client->ip, p_client->mac, p_client->ssid);
 
     UNLOCK_CLIENT_LIST();
     served_this_session++;
 }
+
+
 #if OKOS_PORTAL_PRECHECK
 static t_client * okos_query_auth_server(t_client *p_client)
 {
@@ -220,10 +246,11 @@ void okos_http_statistic_variables(request *r)
 void
 http_callback_404(httpd *webserver, request *r, int error_code)
 {
-    debug(LOG_DEBUG, "Calling 404() for %s", r->clientAddr);
+    debug(LOG_DEBUG, "<HTTPD_404> Client {%s} request...", r->clientAddr);
 
     if (HTTP_GET != r->request.method) {
-        debug(LOG_DEBUG, "Drop HTTP request except GET method for %s", r->clientAddr);
+        debug(LOG_DEBUG, "<HTTPD_404> Drop HTTP request(%d) for Client {%s}, only GET method allowed.",
+                r->request.method, r->clientAddr);
         goto cb_404_leave_for_bad_method;
     }
 
@@ -236,36 +263,43 @@ http_callback_404(httpd *webserver, request *r, int error_code)
     okos_http_statistic_variables(r);
 #endif
 
-    debug(LOG_DEBUG, "build a new client {ip:%s} for 404.", r->clientAddr);
-    t_client *p_client = okos_client_get_new_client(r->clientAddr);
+    debug(LOG_DEBUG, "<HTTPD_404> build a new client {ip:%s}.", r->clientAddr);
+    t_client *p_client = okos_client_get_new_client_v1(r->clientAddr);
     if (NULL == p_client) {
-        debug(LOG_ERR, "Failed to retrieve info for client(%s), so not putting in login request.", r->clientAddr);
-        send_http_page(r, "Sorry", "Do not support anonymous yet");
+        debug(LOG_ERR, "<HTTPD_404> Failed to retrieve info for client(%s).", r->clientAddr);
+#ifdef OKOS_MAKE_JOKE_WITH_CLIENT
+        send_http_page(r, "Login", "Do not support anonymous yet");
+#endif
         goto cb_404_cannt_get_new_client;
     }
-    debug(LOG_DEBUG, "Client {ip=%s, mac=%s, ssid=%s, ifname=%s, scheme=%s}", p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, p_client->scheme);
+    debug(LOG_DEBUG, "<HTTPD_404> Client {%s, %s, %s, %s, scheme:%s}",
+            p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, p_client->scheme);
 
 #if OKOS_PORTAL_PRECHECK
-    debug(LOG_DEBUG, "Start to query for new client in 404.");
+    debug(LOG_DEBUG, "<HTTPD_404> Start to query for new client in 404.");
     if (NULL == okos_query_auth_server(p_client)) {
         http_send_redirect(r, a_tmp_url, "Allowed");
 
-        debug(LOG_INFO, "Client{%s,%s,%s} login already. Let him go.", p_client->ip, p_client->mac, p_client->ssid);
+        debug(LOG_INFO, "<HTTPD_404> Client{%s, %s, %s} login already. Let him go.",
+                p_client->ip, p_client->mac, p_client->ssid);
         goto cb_404_quick_check_failed;
     }
-    debug(LOG_INFO, "client{%s,%s,%s} hasn't been authenticated before, need to kickoff auth process from beginning.", p_client->ip, p_client->mac, p_client->ssid);
+    debug(LOG_INFO, "<HTPPD_404> Client{%s, %s, %s} hasn't been authenticated before"
+            "need to kickoff auth process from beginning.",
+            p_client->ip, p_client->mac, p_client->ssid);
 #endif
 
-    debug(LOG_DEBUG, "Start to check target host in white list...");
+    debug(LOG_DEBUG, "<HTTPD_404> Start to check target host in white list...");
     int canntMatchHostInWhiteList;
     canntMatchHostInWhiteList = okos_http_check_whitelist(r, a_tmp_url);
     if (!canntMatchHostInWhiteList) {
-        debug(LOG_INFO, "Match target in global WhiteList, redirect client, exit 404 process..");
+        debug(LOG_INFO, "<HTTPD_404> Match target in global WhiteList, redirect client, exit 404 process..");
         goto cb_404_match_global_whitelist;
     }
     canntMatchHostInWhiteList = okos_http_check_whitelist_by_ssid(r, a_tmp_url, p_client->ssid_conf);
     if (!canntMatchHostInWhiteList) {
-        debug(LOG_INFO, "Match target in WhiteList on ssid(%s), redirect client, exit 404 process..", p_client->ssid_conf->ssid);
+        debug(LOG_INFO, "<HTTPD_404> Match target in WhiteList on ssid(%s), redirect client, exit 404 process..",
+                p_client->ssid_conf->ssid);
         goto cb_404_match_ssid_whitelist;
     }
 
@@ -279,12 +313,16 @@ http_callback_404(httpd *webserver, request *r, int error_code)
         safe_asprintf(&s_urlFragment, "%sinfo=%s&originalurl=%s",
                 auth_server->authserv_login_script_path_fragment, s_info, s_url);
 
-        debug(LOG_DEBUG, "Captured {ip=%s, mac=%s, ssid=%s, if_name=%s} requesting [%s] and re-directed.",
-                p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, s_urlFragment);
+        debug(LOG_DEBUG, "<HTTPD_404> Captured {%s, %s, %s, %s}",
+                p_client->ip, p_client->mac, p_client->ssid, p_client->if_name);
+        debug(LOG_DEBUG, "<HTTPD_404> Build <info>=[%s]", s_info);
+        debug(LOG_DEBUG, "<HTTPD_404> Build <originalurl>=[%s]", s_url);
         http_send_redirect_to_auth(r, s_urlFragment, "Redirect to login page", auth_server, "");
         free(s_urlFragment);
     } else {
-        send_http_page(r, "Uh oh! Internet access unavailable!", "Take it easy.");
+#ifdef OKOS_MAKE_JOKE_WITH_CLIENT
+        send_http_page(r, "Login", "Uh oh! Internet access unavailable! Take it easy.");
+#endif
     }
     
     free(s_info);
@@ -425,14 +463,14 @@ static t_http_callback *s_http_cb[64];
 
 void okos_init_http_callback(void)
 {
-    debug(LOG_INFO, "Initialize http callback metric.");
+    debug(LOG_INFO, "<HTTPD_callback> Initialize http callback metric.");
 
     bzero(s_http_cb, sizeof(t_http_callback *) * 64);
 }
 
 int okos_http_callback_register(const char *name, okos_http_callback_func p_func, void *data)
 {
-    debug(LOG_DEBUG, "Register http callback for %s.", name);
+    debug(LOG_DEBUG, "<HTTPD_callback> Register http callback for %s.", name);
 
     int i;
     for (i = 0; i < 64; i++) {
@@ -456,7 +494,7 @@ static void okos_http_callback_exec(httpd *webserver, request *r, char *key, cha
     for (i = 0; i < 64; i++) {
         if (NULL != s_http_cb[i]) {
             if (0 == strcasecmp(s_http_cb[i]->name, key)) {
-                debug(LOG_DEBUG, "HTTP callback %s called with %s.", key, value);
+                debug(LOG_DEBUG, "<HTTPD_callback> :%s called with %s.", key, value);
 
                 buf = s_http_cb[i]->p_func(value, s_http_cb[i]->data);
                 if (NULL != buf) {
@@ -654,23 +692,61 @@ http_callback_status(httpd * webserver, request * r)
 void 
 http_callback_auth_allow(httpd *webserver, request *r)
 {
-    send_http_page(r, "Sorry", "Do not support yet");
+    /* They just got validated for X minutes to check their email */
+    debug(LOG_DEBUG, "<HTTPD_allow> Got VALIDATION from central server from %s.",
+            r->clientAddr);
+
+    httpVar *time = httpdGetVariableByName(r, "time");
+    if (NULL == time) {
+#ifdef OKOS_MAKE_JOKE_WITH_CLIENT
+        send_http_page(r, "Auth Allowed", "I'd like to let you go, but I don't know how long.");
+#endif
+        debug(LOG_INFO, "<HTTPD_allow> Receive code 'allow' without 'time'.");
+        return;
+    }
+
+    t_client *client = okos_client_get_new_client_v1(r->clientAddr);
+    if (NULL == client) {
+#ifdef OKOS_MAKE_JOKE_WITH_CLIENT
+        send_http_page(r, "Auth Allowed", "Don't give up! To be strong.");
+#endif
+        debug(LOG_INFO, "<HTTPD_allow> Cant create new client for allow code.");
+        return;
+    }
+    client = client_get_new_validation(client, time->value);
+    if (NULL == client) {
+#ifdef OKOS_MAKE_JOKE_WITH_CLIENT
+        send_http_page(r, "Auth Allowed", "Can't let you go.");
+#endif
+        debug(LOG_WARNING, "<HTTPD_allow> We can't add a new validation correctly.");
+        return;
+    }
+
+    debug(LOG_INFO, "<HTTPD_allow> Client {%s, %s, %s} VALIDATED!",
+            client->ip, client->mac, client->ssid);
+    okos_add_validation_client(client);
+
+#ifdef OKOS_MAKE_JOKE_WITH_CLIENT
+    send_http_page(r, "Auth Allowed", "Move on!");
+#endif
     return;
 }
 
 void
 http_callback_auth_qrcode(httpd *webserver, request *r)
 {
-    debug(LOG_DEBUG, "Received request for auth qrcode from %s", r->clientAddr);
+    debug(LOG_DEBUG, "<HTTPD_qrcode> Received request for auth qrcode from %s", r->clientAddr);
 
-    debug(LOG_DEBUG, "build a new client {ip:%s} for 404.", r->clientAddr);
-    t_client *p_client = okos_client_get_new_client(r->clientAddr);
+    debug(LOG_DEBUG, "<HTTPD_qrcode> build a new client {ip:%s} for 404.", r->clientAddr);
+    t_client *p_client = okos_client_get_new_client_v1(r->clientAddr);
     if (NULL == p_client) {
-        debug(LOG_ERR, "Failed to retrieve info for client(%s), so not putting in login request.", r->clientAddr);
-        send_http_page(r, "Sorry", "Do not support anonymous yet");
+        debug(LOG_ERR, "<HTTPD_qrcode> Failed to retrieve info for client(%s), so not putting in login request.", r->clientAddr);
+#ifdef OKOS_MAKE_JOKE_WITH_CLIENT
+        send_http_page(r, "Auth qrcode", "Do not support anonymous yet");
+#endif
         return;
     }
-    debug(LOG_DEBUG, "Client {ip=%s, mac=%s, ssid=%s, ifname=%s, scheme=%s}",
+    debug(LOG_DEBUG, "<HTTPD_qrcode> Client {%s, %s, %s, %s, scheme:%s}",
             p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, p_client->scheme);
 
     pstr_t *p_str = pstr_new();
@@ -679,7 +755,7 @@ http_callback_auth_qrcode(httpd *webserver, request *r)
         pstr_append_sprintf(p_str, "&%s=%s", p_var->name, p_var->value);
     }
     char *s_variables = pstr_to_string(p_str);
-    debug(LOG_DEBUG, "Copy variables from original request. %s", s_variables);
+    debug(LOG_DEBUG, "<HTTPD_qrcode> Copy variables from original request. %s", s_variables);
 
     char *s_source = okos_http_insert_parameter(p_client);
     char *s_urlFragment;
@@ -689,14 +765,16 @@ http_callback_auth_qrcode(httpd *webserver, request *r)
         safe_asprintf(&s_urlFragment, "%ssource=%s%s",
                 auth_server->authserv_login_script_path_fragment, s_source, s_variables);
 
-        debug(LOG_DEBUG, "Authenticator {ip=%s, mac=%s, ssid=%s, if_name=%s} requesting [%s] and re-directed.",
+        debug(LOG_DEBUG, "<HTTPD_qrcode> Authenticator {%s, %s, %s, %s} requesting [%s] and re-directed.",
                 p_client->ip, p_client->mac, p_client->ssid, p_client->if_name, s_urlFragment);
         http_send_redirect_to_auth(r, s_urlFragment, "Redirect to qrcode page", auth_server, "/qrcode");
 
         free(s_urlFragment);
     }
     else {
-        send_http_page(r, "Uh oh! Internet access unavailable!", "Take it easy.");
+#ifdef OKOS_MAKE_JOKE_WITH_CLIENT
+        send_http_page(r, "Auth qrcode", "Uh oh! Internet access unavailable! Take it easy.");
+#endif
     }
     free(s_source);
     free(s_variables);
@@ -797,7 +875,7 @@ http_send_redirect(request * r, const char *url, const char *text)
     char *header = NULL;
     char *response = NULL;
     /* Re-direct them to auth server */
-    debug(LOG_DEBUG, "Redirecting client browser to %s", url);
+    debug(LOG_DEBUG, "Redirect >> %s", url);
     safe_asprintf(&header, "Location: %s", url);
     safe_asprintf(&response, "302 %s\n", text ? text : "Redirecting");
     httpdSetResponse(r, response);
@@ -813,27 +891,31 @@ http_send_redirect(request * r, const char *url, const char *text)
 
 void http_callback_auth(httpd *webserver, request *r)
 {
-    debug(LOG_DEBUG, "Calling http_callback_auth...");
+    debug(LOG_DEBUG, "<HTTPD_auth> Calling http_callback_auth...");
     httpVar *auth = httpdGetVariableByName(r, "auth");
 	if (NULL == auth) {
-        debug(LOG_WARNING, "Cant get parameter auth from server response for client(%s)", r->clientAddr);
-        send_http_page(r, "Auth Server Error", "Invalid Auth Parameter");
+        debug(LOG_WARNING, "<HTTPD_auth> Cant get parameter auth from server for client(%s)", r->clientAddr);
+#ifdef OKOS_MAKE_JOKE_WITH_CLIENT
+        send_http_page(r, "Auth Confirm", "Invalid Auth Parameter");
+#endif
         return;
     }
 
     t_client * client = client_get_new();
-    debug(LOG_DEBUG, "Starting parse the return info from auth server.");
+    debug(LOG_DEBUG, "<HTTPD_auth> Starting parse the return info from auth server.");
     int parseFailed = okos_http_parse_info(auth->value, client);
     if (parseFailed) {
-        send_http_page(r, "Good Luck!", "Invalid auth parameter");
-        debug(LOG_WARNING, "We can't parse the auth parameter correctly."
+#ifdef OKOS_MAKE_JOKE_WITH_CLIENT
+        send_http_page(r, "Auth Confirm", "Uncompleted auth parameter");
+#endif
+        debug(LOG_WARNING, "<HTTPD_auth> We can't parse the auth parameter correctly."
                 "code: %d", parseFailed);
         client_free_node(client);
         return;
     }
     client = okos_client_append_info(client, r->clientAddr);
     if (NULL != client) {
-        debug(LOG_NOTICE, "Client{Authenticator:%s, mac:%s, ssid:%s} PASSED!",
+        debug(LOG_NOTICE, "<HTTPD_auth> Client{%s, %s, %s} PASSED!",
                 client->ip, client->mac, client->ssid);
         okos_try_to_add_client_into_list(client);
     }
@@ -847,13 +929,15 @@ void http_callback_auth(httpd *webserver, request *r)
         donot_redirect = 1;
 
     if (!donot_redirect) {
-        debug(LOG_DEBUG, "Redirect client to the assigned web page.");
+        debug(LOG_DEBUG, "<HTTPD_auth> Redirect client to the assigned web page.");
         char *url= NULL;
         safe_asprintf(&url, "%s", redirecturl->value);
         http_send_redirect(r, url, "Redirect to portal");
         free(url);
     } else {
-        send_http_page(r, "Life is short, play!", "my friend");
+#ifdef OKOS_MAKE_JOKE_WITH_CLIENT
+        send_http_page(r, "Auth Confirm", "Life is short, play! my friend");
+#endif
     }
 
     return;
@@ -950,16 +1034,16 @@ send_http_page(request * r, const char *title, const char *message)
     int fd;
     ssize_t written;
 
-    debug(LOG_INFO, "start to send http page:{title:%s, message:%s", title, message);
+    debug(LOG_INFO, ">> {title:%s, message:%s}", title, message);
 
     fd = open(config->htmlmsgfile, O_RDONLY);
     if (fd == -1) {
-        debug(LOG_CRIT, "Failed to open HTML message file %s: %s", config->htmlmsgfile, strerror(errno));
+        debug(LOG_CRIT, ">> Failed to open HTML message file %s: %s", config->htmlmsgfile, strerror(errno));
         return;
     }
 
     if (fstat(fd, &stat_info) == -1) {
-        debug(LOG_CRIT, "Failed to stat HTML message file: %s", strerror(errno));
+        debug(LOG_CRIT, ">> Failed to stat HTML message file: %s", strerror(errno));
         close(fd);
         return;
     }
@@ -967,7 +1051,7 @@ send_http_page(request * r, const char *title, const char *message)
     buffer = (char *)safe_malloc((size_t) stat_info.st_size + 1);
     written = read(fd, buffer, (size_t) stat_info.st_size);
     if (written == -1) {
-        debug(LOG_CRIT, "Failed to read HTML message file: %s", strerror(errno));
+        debug(LOG_CRIT, ">> Failed to read HTML message file: %s", strerror(errno));
         free(buffer);
         close(fd);
         return;
