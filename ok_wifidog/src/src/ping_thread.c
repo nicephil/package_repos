@@ -68,14 +68,16 @@ thread_ping(void *arg)
     pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
     pthread_mutex_t cond_mutex = PTHREAD_MUTEX_INITIALIZER;
     struct timespec timeout;
+    //s_config * config = config_get_config();
 
     while (1) {
         /* Make sure we check the servers at the very begining */
-        debug(LOG_DEBUG, "Running ping()");
+        debug(LOG_DEBUG, "<PING> Running ping()");
         ping();
 
         /* Sleep for config.checkinterval seconds... */
-        timeout.tv_sec = time(NULL) + config_get_config()->checkinterval;
+
+        timeout.tv_sec = time(NULL) + 300;
         timeout.tv_nsec = 0;
 
         /* Mutex must be locked for pthread_cond_timedwait... */
@@ -96,7 +98,7 @@ thread_ping(void *arg)
 static void
 ping(void)
 {
-    debug(LOG_DEBUG, "Entering ping()");
+    debug(LOG_DEBUG, "<PING> Checking auth server connection periodly.");
     int sockfd = -1;
     s_config *p_cfg = config_get_config();
     
@@ -104,8 +106,11 @@ ping(void)
     okos_list_for_each(p_ssid, p_cfg->ssid_conf) {
         sockfd = connect_auth_server(p_ssid);
         if (-1 == sockfd) {
-            debug(LOG_DEBUG, "Ping auth server(%s) failed.", p_ssid->auth_servers ? p_ssid->auth_servers->authserv_hostname : "unknown");
+            debug(LOG_DEBUG, "<PING> auth server(%s) connect failed.",
+                    p_ssid->auth_servers ? p_ssid->auth_servers->authserv_hostname : "unknown");
         } else {
+            debug(LOG_DEBUG, "<PING> auth server(%s) is reachable. Enjoy your time.", 
+                    p_ssid->auth_servers ? p_ssid->auth_servers->authserv_hostname : "unknown");
             close(sockfd);
         }
     }
