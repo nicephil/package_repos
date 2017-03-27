@@ -217,6 +217,7 @@ fw_set_authup(void)
     return iptables_fw_auth_reachable();
 }
 
+
 /* XXX DCY */
 /**
  * Get an IP's MAC address from the ARP cache.
@@ -296,6 +297,7 @@ int arp_get_all(const char * req_ip, char ** mac, char ** br_dev)
 
     return -1;
 }
+
 #endif
 
 /** Initialize the firewall rules
@@ -377,27 +379,34 @@ fw_destroy(void)
 }
 
 #if OK_PATCH
-#define okos_update_next_timer(this, next) \
-    if (this < next) {\
-        next = this;\
-    }
-
 time_t
 fw_sync_with_authserver(void)
 {
-    debug(LOG_DEBUG, "Start to check client status periodly. ");
+    static time_t expired_time = 0;
 
-    t_client *p1, *p2, *worklist, *original;
-    s_config *config = config_get_config();
     time_t current_time = time(NULL);
-    time_t next_timer = current_time + config->checkinterval; 
-    time_t this_timer;
+    debug(LOG_DEBUG, "<ClientTimeout>: "
+            "Start to check client status periodly (%ld). ", current_time);
 
-    /*
+#if 0
     if (-1 == iptables_fw_counters_update()) {
         debug(LOG_ERR, "Could not get counters from firewall!");
     }
-    */
+#endif
+
+    s_config *config = config_get_config();
+    time_t low_threshold = current_time + config->checkinterval; 
+    if (!okos_client_list_should_be_checked() && current_time < expired_time) {
+        debug(LOG_DEBUG, "<ClientTimeout>: "
+                "No new client and it's too early to expried time.");
+        return low_threshold;
+    }
+
+    if (okos_client_list_is_empty(NULL)) {
+        debug(LOG_DEBUG, "<ClientTimeout>: "
+                "The client list is empty. Check it over.");
+        return low_threshold; 
+    }
 
     LOCK_CLIENT_LIST();
 
@@ -409,18 +418,24 @@ fw_sync_with_authserver(void)
      * no risk of trashing the heap or getting
      * a SIGSEGV.
      */
-    debug(LOG_DEBUG, "Duplicate the whole client list from a thread safety PoV.");
+    debug(LOG_DEBUG, "<ClientTimeout>: " 
+            "Duplicate the whole client list from a thread safety PoV.");
+    t_client *worklist;
     client_list_dup(&worklist);
     UNLOCK_CLIENT_LIST();
 
-    int updateFailed;
+    time_t next_timer = current_time + config->checkinterval * config->clienttimeout; 
+    time_t this_timer;
+    t_client *p1, *p2, *original;
     for (p1 = p2 = worklist; NULL != p1; p1 = p2) {
         p2 = p1->next;
-        debug(LOG_DEBUG, "Start to check client {%s, %s}.", p1->mac, p1->ip);
+        debug(LOG_DEBUG, "<ClientTimeout>: "
+                "Start to check client {%s, %s}.", p1->mac, p1->ip);
 
         /* Update the counters on the remote server only if we have an auth server */
-        updateFailed = 1;
+        int updateFailed = 1;
 
+#define  OKOS_AUTH_CONFIRM_PERIOD
 #ifdef OKOS_AUTH_CONFIRM_PERIOD
         t_authresponse authresponse;
         updateFailed = auth_server_request(&authresponse, p1);
@@ -428,40 +443,61 @@ fw_sync_with_authserver(void)
 
         this_timer = p1->remain_time + p1->last_flushed;
         
-        debug(LOG_INFO,
-              "Checking client {%s,%s,%s} for timeout:  Last flushed %ld (%ld seconds ago),"
-              "remain time %ld seconds, current time %ld, %ld seconds left.",
-              p1->ip, p1->mac, p1->ssid, p1->last_flushed, current_time - p1->last_flushed,
-              p1->remain_time, current_time, this_timer - current_time);
+        debug(LOG_DEBUG, "<ClientTimeout>: "
+                "Checking client {%s,%s,%s} for timeout:  Last flushed %ld (%ld seconds ago),"
+                "remain time %ld seconds, current time %ld, %ld seconds left.",
+                p1->ip, p1->mac, p1->ssid, p1->last_flushed, current_time - p1->last_flushed,
+                p1->remain_time, current_time, this_timer - current_time);
 
-        LOCK_CLIENT_LIST();
-        original = client_list_find_by_client(p1);
-        if (NULL != original) { //Client is stll there.
-            if (p1->remain_time == 0 || this_timer <= current_time) { //Client is timeout.
-                /* Timing out user */
-                debug(LOG_INFO, "{%s,%s,%s} - Inactive, removing client and denying in firewall",
-                                  p1->ip, p1->mac, p1->ssid);
-
+        if (p1->remain_time == 0 || this_timer <= current_time) { //Client is timeout.
+            debug(LOG_INFO, "<ClientTimeout>: "
+                    "Client {%s, %s, %s} - Inactive, removing client and denying in firewall",
+                    p1->ip, p1->mac, p1->ssid);
+            
+            LOCK_CLIENT_LIST();
+            original = client_list_find_by_client(p1);
+            if (NULL != original) {
                 logout_client(original);
-            } else { //Client should be updated.
-                if (this_timer < next_timer) {
-                    next_timer = this_timer;
-                }
-                if (!updateFailed) {
-                    debug(LOG_DEBUG, "Flush the client in the list with the result from auth server.");
-                    okos_client_list_flush(original, p1->remain_time);
-                }
-                debug(LOG_DEBUG, "Client is stall active.");
+            } else { //client is gone already.
+                debug(LOG_DEBUG, "<ClientTimeout>: "
+                        "Client {%s, %s, %s} was already removed. Not logging out.",
+                        p1->ip, p1->mac, p1->ssid);
             }
-        } else { //client is gone already.
-            debug(LOG_DEBUG, "Client{%s,%s,%s} was already removed. Not logging out.", p1->ip, p1->mac, p1->ssid);
+            UNLOCK_CLIENT_LIST();
+
+        } else { //Client should be updated.
+            debug(LOG_DEBUG, "<ClientTimeout>: "
+                    "Client {%s, %s, %s} is still active.",
+                    p1->ip, p1->mac, p1->ssid);
+            if (this_timer < next_timer) {
+                next_timer = this_timer;
+            }
+            if (!updateFailed) {
+                debug(LOG_DEBUG, "<ClientTimeout>: "
+                        "Flush Client {%s, %s, %s} remain time:%ld.",
+                        p1->ip, p1->mac, p1->ssid, p1->remain_time);
+
+                LOCK_CLIENT_LIST();
+                original = client_list_find_by_client(p1);
+                if (NULL != original) {
+                    okos_client_list_flush(original, p1->remain_time);
+                } else { //client is gone already.
+                    debug(LOG_DEBUG, "<ClientTimeout>: "
+                            "Client{%s, %s, %s} was already removed. Not logging out.",
+                            p1->ip, p1->mac, p1->ssid);
+                }
+                UNLOCK_CLIENT_LIST();
+            }
         }
-        UNLOCK_CLIENT_LIST();
-
     }
-
-    debug(LOG_DEBUG, "Destroy the duplicated client list.");
+    debug(LOG_DEBUG, "<ClientTimeout>: Destroy the duplicated client list.");
     client_list_destroy(worklist);
+    okos_client_list_checked();
+
+    expired_time = next_timer;
+    if (next_timer > low_threshold) { // We should come in early to check new client.
+        next_timer = low_threshold;
+    }
 
     return next_timer;
 }
