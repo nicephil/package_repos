@@ -18,8 +18,9 @@ else
     _ip=$ip
 fi
 
-_assoctime=`wlanconfig $ath list sta | awk '/'"$mac"'/{print $17;exit}'`
-_rssi=`wlanconfig $ath list sta | awk '/'"$mac"'/{print $6;exit}'`
+_assoctime_rssi=`wlanconfig $ath list sta | awk '/'"$mac"'/{print $17"|"$6;exit}'`
+_assoctime=${_assoctime_rssi%%|*}
+_rssi=${_assoctime_rssi##*|}
 
 echo -e "\toption assoctime $_assoctime"
 echo -e "\toption ipaddr $_ip"
