@@ -762,6 +762,102 @@ int wlan_set_gtk_lifetime_enable(int stid, int value)
     return 0;
 }
 
+int wlan_set_static_client_uplink_rate_limit_value(int stid, unsigned int value)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate%d.static_uplink_ratelimit='20'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.static_uplink_ratelimit", stid);
+    cfg_set_option_value_int(tuple, value);
+
+    if (value !=0) {
+        //wlan_service_template.ServiceTemplate%d.dynamic_uplink_ratelimit='0'
+        sprintf(tuple, "wlan_service_template.ServiceTemplate%d.dymanic_uplink_ratelimit", stid);
+        cfg_set_option_value_int(tuple, 0);
+    }
+    return 0;
+}
+
+int wlan_set_dynamic_client_uplink_rate_limit_value(int stid, unsigned int value)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate%d.dynamic_uplink_ratelimit='20'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.dynamic_uplink_ratelimit", stid);
+    cfg_set_option_value_int(tuple, value);
+
+    if (value !=0) {
+        //wlan_service_template.ServiceTemplate%d.static_uplink_ratelimit='0'
+        sprintf(tuple, "wlan_service_template.ServiceTemplate%d.static_uplink_ratelimit", stid);
+        cfg_set_option_value_int(tuple, 0);
+    }
+    return 0;
+}
+
+int wlan_undo_dynamic_client_uplink_rate_limit_value(int stid)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate%d.dynamic_uplink_ratelimit='0'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.dymanic_uplink_ratelimit", stid);
+    cfg_set_option_value_int(tuple, 0);
+    return 0;
+}
+
+int wlan_undo_static_client_uplink_rate_limit_value(int stid)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate%d.static_uplink_ratelimit='0'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.static_uplink_ratelimit", stid);
+    cfg_set_option_value_int(tuple, 0);
+    return 0;
+}
+
+int wlan_set_static_client_downlink_rate_limit_value(int stid, unsigned int value)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate%d.static_downlink_ratelimit='20'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.static_downlink_ratelimit", stid);
+    cfg_set_option_value_int(tuple, value);
+
+    if (value != 0) {
+        //wlan_service_template.ServiceTemplate%d.dynamic_downlink_ratelimit='0'
+        sprintf(tuple, "wlan_service_template.ServiceTemplate%d.dynamic_downlink_ratelimit", stid);
+        cfg_set_option_value_int(tuple, 0);
+    }
+    return 0;
+}
+
+int wlan_set_dynamic_client_downlink_rate_limit_value(int stid, unsigned int value)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate%d.dynamic_downlink_ratelimit='20'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.dynamic_downlink_ratelimit", stid);
+    cfg_set_option_value_int(tuple, value);
+
+    if (value != 0) {
+        //wlan_service_template.ServiceTemplate%d.static_downlink_ratelimit='0'
+        sprintf(tuple, "wlan_service_template.ServiceTemplate%d.static_downlink_ratelimit", stid);
+        cfg_set_option_value_int(tuple, 0);
+    }
+    return 0;
+}
+
+int wlan_undo_dynamic_client_downlink_rate_limit_value(int stid)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate%d.dynamic_downlink_ratelimit='0'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.dynamic_downlink_ratelimit", stid);
+    cfg_set_option_value_int(tuple, 0);
+    return 0;
+}
+
+int wlan_undo_static_client_downlink_rate_limit_value(int stid)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate%d.static_downlink_ratelimit='0'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.static_downlink_ratelimit", stid);
+    cfg_set_option_value_int(tuple, 0);
+    return ;
+}
+
 
 
 

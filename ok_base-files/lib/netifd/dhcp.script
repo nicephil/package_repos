@@ -41,6 +41,7 @@ setup_interface () {
 	proto_send_update "$INTERFACE"
 
 # add option43 servers into capwapc config file
+    echo "==>option43 $acaddr" | logger
     [ -n "$acaddr" ] && {
         server=`echo $acaddr | awk -F',' '{print $1}'`
         [ -n "$server" ] && {
