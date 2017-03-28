@@ -125,24 +125,14 @@ static int dc_json_config_finished(void *reserved)
 
 static inline int dc_kickoff_sta(const char *ssid, char *mac)
 {
-#if !OK_PATCH
-    struct wlan_bss_status bss;
-    int rdid, bssid, ret; 
-    
-    for (rdid = 0; rdid < DOT11_RADIO_NUM_MAX; rdid++) {
-        if ((bssid = wlan_get_bssid_by_ssid(ssid, rdid)) >= 0) {
-            ret = wlan_get_bss_status(bssid, &bss);
-            if (ret) {
-                return ret;
-            }
-            else {
-                if (DOT11_Setkickmac(bss.linkname, mac) != DOT11_OK) {
-                    return -1;
-                }
-            }
-        }
-    }
-#endif
+    int ret;
+    int stid;
+    char buf[128];
+    wlan_get_stid_by_ssid(ssid, &stid);
+    sprintf(buf, "iwpriv ath0%d kickmac %s", stid, mac);
+    system(buf);
+    sprintf(buf, "iwpriv ath1%d kickmac %s", stid, mac);
+    system(buf);
 
     return 0;
 }
@@ -188,14 +178,12 @@ static int dc_sta_kickoff_handler(struct tlv *payload, void **reserved)
 
                 log_node_paires(paires, sizeof(paires)/sizeof(paires[0]));
                 
-#if !OK_PATCH
                 if ((ret = dc_kickoff_sta(json_cfg.ssid, json_cfg.mac)) != 0) {
                     CWLog("Try to kick off sta %s attached the ssid %s failed for %d.", 
                         json_cfg.mac, json_cfg.ssid, ret);
                     ret = dc_error_commit_failed;
                     goto ERROR_OUT;
                 }
-#endif
             }
         }
     }
