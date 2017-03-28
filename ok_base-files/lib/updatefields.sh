@@ -28,3 +28,5 @@ echo -e "\toption rssi $_rssi"
 echo -e "\toption portal_mode $_portal_mode"
 echo -e "\toption portal_user $_portal_user"
 
+#CREATE TABLE STAINFO(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER);
+sqlite3 /tmp/stationinfo.db "BEGIN TRANSACTION;UPDATE STAINFO set ASSOCTIME=\"$_assoctime\", IPADDR=\"$_ip\", RSSI=\"$_rssi\", PORTAL_MODE=\"$_portal_mode\", PORTAL_USER=\"$_portal_user\" WHERE MAC=\"$mac\";COMMIT;" &
