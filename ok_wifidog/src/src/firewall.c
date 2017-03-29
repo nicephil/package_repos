@@ -68,11 +68,11 @@ fw_allow(t_client * client, int new_fw_connection_state)
     int old_state = client->fw_connection_state;
     t_ssid_config * ssid = okos_conf_get_ssid_by_name(okos_client_get_ssid(client));
     if (NULL == ssid) {
-        debug(LOG_ERR, "Can't set iptables allow rule for state %d on ssid unknown for client {ip = %s, mac = %s}", new_fw_connection_state, client->ip, client->mac);
+        debug(LOG_ERR, "  &&!! Can't set iptables allow rule for state %d on ssid unknown for client {ip = %s, mac = %s}", new_fw_connection_state, client->ip, client->mac);
         return -1;
     }
 
-    debug(LOG_DEBUG, "Allowing %s %s with fw_connection_state %d on ssid[%s]", client->ip, client->mac, new_fw_connection_state, ssid->ssid);
+    debug(LOG_DEBUG, "  && Allowing %s %s with fw_connection_state %d on ssid[%s]", client->ip, client->mac, new_fw_connection_state, ssid->ssid);
     client->fw_connection_state = new_fw_connection_state;
 
     /* Grant first */
@@ -80,7 +80,7 @@ fw_allow(t_client * client, int new_fw_connection_state)
 
     /* Deny after if needed. */
     if (old_state != FW_MARK_NONE) {
-        debug(LOG_DEBUG, "Clearing previous fw_connection_state %d", old_state);
+        debug(LOG_DEBUG, "  && Clearing previous fw_connection_state %d", old_state);
         _fw_deny_raw(client->ip, client->mac, old_state, ssid);
     }
 
@@ -91,9 +91,9 @@ int
 fw_allow_host(const char *host, const t_ssid_config * ssid)
 {
     if (NULL == ssid) {
-        debug(LOG_DEBUG, "Allowing %s on global whitelist", host);
+        debug(LOG_DEBUG, "  && Allowing %s on global whitelist", host);
     } else {
-        debug(LOG_DEBUG, "Allowing %s on whitelist of  ssid[%s]", host, ssid->ssid);
+        debug(LOG_DEBUG, "  && Allowing %s on whitelist of  ssid[%s]", host, ssid->ssid);
     }
 
     return iptables_fw_access_host(FW_ACCESS_ALLOW, host, ssid);
@@ -105,11 +105,11 @@ fw_deny(t_client * client)
     int fw_connection_state = client->fw_connection_state;
     t_ssid_config * ssid = okos_conf_get_ssid_by_name(okos_client_get_ssid(client));
     if (NULL == ssid) {
-        debug(LOG_ERR, "Can't set iptables deny rule on ssid unknown for client {ip = %s, mac = %s}", client->ip, client->mac);
+        debug(LOG_ERR, "  &&!! Can't set iptables deny rule on ssid unknown for client {ip = %s, mac = %s}", client->ip, client->mac);
         return -1;
     }
 
-    debug(LOG_DEBUG, "Denying %s %s with fw_connection_state %d on ssid[%s]", client->ip, client->mac, client->fw_connection_state, ssid->ssid);
+    debug(LOG_DEBUG, "  && Denying %s %s with fw_connection_state %d on ssid[%s]", client->ip, client->mac, client->fw_connection_state, ssid->ssid);
 
     client->fw_connection_state = FW_MARK_NONE; /* Clear */
     return _fw_deny_raw(client->ip, client->mac, fw_connection_state, ssid);
@@ -313,11 +313,11 @@ fw_init(void)
         return 0;
     }
 
-    debug(LOG_INFO, "Initializing Firewall");
+    debug(LOG_INFO, "&& Initializing Firewall");
     result = iptables_fw_init();
 
     if (restart_orig_pid) {
-        debug(LOG_INFO, "Restoring firewall rules for clients inherited from parent");
+        debug(LOG_INFO, "&& Restoring firewall rules for clients inherited from parent");
         LOCK_CLIENT_LIST();
         client = client_get_first_client();
         while (client) {
@@ -336,14 +336,14 @@ fw_init(void)
 void
 fw_clear_authservers(const t_ssid_config * ssid)
 {
-    debug(LOG_INFO, "Clearing the authservers list on ssid: %s", ssid->ssid);
+    debug(LOG_INFO, "&& Clearing the authservers list on ssid: %s", ssid->ssid);
     iptables_fw_clear_authservers(ssid);
 }
 
 void
 fw_set_authservers(const t_ssid_config * ssid)
 {
-    debug(LOG_INFO, "Setting the authservers list on ssid: %s", ssid->ssid);
+    debug(LOG_INFO, "&& Setting the authservers list on ssid: %s", ssid->ssid);
     iptables_fw_set_authservers(ssid);
 }
 #else /* OK_PATCH */
@@ -352,7 +352,7 @@ fw_set_authservers(const t_ssid_config * ssid)
 void
 fw_clear_authservers(void)
 {
-    debug(LOG_INFO, "Clearing the authservers list");
+    debug(LOG_INFO, "&& Clearing the authservers list");
     iptables_fw_clear_authservers();
 }
 
@@ -361,7 +361,7 @@ fw_clear_authservers(void)
 void
 fw_set_authservers(void)
 {
-    debug(LOG_INFO, "Setting the authservers list");
+    debug(LOG_INFO, "&& Setting the authservers list");
     iptables_fw_set_authservers();
 }
 #endif /* OK_PATCH */

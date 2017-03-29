@@ -72,7 +72,7 @@ thread_ping(void *arg)
 
     while (1) {
         /* Make sure we check the servers at the very begining */
-        debug(LOG_DEBUG, "<PING> Running ping()");
+        debug(LOG_DEBUG, "<PING> ## Running ping()");
         ping();
 
         /* Sleep for config.checkinterval seconds... */
@@ -98,7 +98,7 @@ thread_ping(void *arg)
 static void
 ping(void)
 {
-    debug(LOG_DEBUG, "<PING> Checking auth server connection periodly.");
+    debug(LOG_DEBUG, "<PING> ## Checking auth server connection periodly.");
     int sockfd = -1;
     s_config *p_cfg = config_get_config();
     
@@ -106,10 +106,10 @@ ping(void)
     okos_list_for_each(p_ssid, p_cfg->ssid_conf) {
         sockfd = connect_auth_server(p_ssid);
         if (-1 == sockfd) {
-            debug(LOG_DEBUG, "<PING> auth server(%s) connect failed.",
+            debug(LOG_DEBUG, "<PING> ## auth server(%s) connect failed.",
                     p_ssid->auth_servers ? p_ssid->auth_servers->authserv_hostname : "unknown");
         } else {
-            debug(LOG_DEBUG, "<PING> auth server(%s) is reachable. Enjoy your time.", 
+            debug(LOG_DEBUG, "<PING> ## auth server(%s) is reachable. Enjoy your time.", 
                     p_ssid->auth_servers ? p_ssid->auth_servers->authserv_hostname : "unknown");
             close(sockfd);
         }

@@ -1343,14 +1343,14 @@ static int okos_show_station_info(void *data, int col_n, char **col_v, char **co
     t_client *client = (t_client *)data;
     int i = 0;
     for (i = 0; i < col_n; i++) {
-        debug(LOG_DEBUG, "---- sqlite >>>> key:%s, value:%s.", col_name[i], col_v[i] ? col_v[i] : "Nil");
+        debug(LOG_DEBUG, "  ++ sqlite: key:%s, value:%s.", col_name[i], col_v[i] ? col_v[i] : "Nil");
         if (0 == strcasecmp(col_name[i], "IFNAME") && NULL != col_v[i]) {
 
             okos_client_set_strdup(client->if_name, col_v[i]);
         } else if (0 == strcasecmp(col_name[i], "MAC")) {
             okos_client_set_strdup(client->mac, col_v[i]);
         } else {
-            debug(LOG_DEBUG, "---- sqlite >>>> Got value unrequired.");
+            debug(LOG_DEBUG, "++!! sqlite: Got value UNREQUIRED.");
         }
     }
     return 0;
@@ -1359,40 +1359,59 @@ static int okos_show_station_info(void *data, int col_n, char **col_v, char **co
 
 static t_client * okos_get_client_iface(t_client *client)
 {
-    char *sql_query = NULL;
-    if (NULL != client->mac) { /* mac => if_name */
-        debug(LOG_DEBUG, "-- sqlite >> query if_name by mac [%s]", client->mac);
-        safe_asprintf(&sql_query, "SELECT IFNAME from STAINFO WHERE MAC = '%s';", client->mac);
-    } else if (NULL != client->ip) { /* ip => mac, if_name */
-        debug(LOG_DEBUG, "-- sqlite >> query mac & if_name by ip [%s]", client->ip);
-        safe_asprintf(&sql_query, "SELECT MAC, IFNAME from STAINFO WHERE IPADDR = '%s';", client->ip);
-    } else {
+    char *sql = NULL;
+    if (NULL == client->ip) { /* ip => mac */
         return NULL;
     }
+    client->mac = arp_get(client->ip);
+    debug(LOG_DEBUG, "++ sqlite: Query ARP table for (%s) => [%s]",
+            client->ip, client->mac ? client->mac : "NULL");
+    if (NULL != client->mac) { /* mac => if_name */
+        safe_asprintf(&sql, "SELECT IFNAME from STAINFO " \
+                "WHERE MAC = '%s';" \
+                ,
+                client->mac
+                );
+    } else { /* ip => mac, ifname */
+        safe_asprintf(&sql, "SELECT MAC, IFNAME from STAINFO " \
+                "WHERE IPADDR = '%s';" \
+                ,
+                client->ip
+                );
+    }
+    debug(LOG_DEBUG, "++ sqlite: '%s'", sql);
 
     sqlite3 *sta_info_db = NULL;
     int db_result = sqlite3_open(station_info_db_file, &sta_info_db);
     if (0 != db_result) {
-        debug(LOG_ERR, "Fail to open database %s:%s.",
+        debug(LOG_ERR, "++!! Fail to open database %s:%s.",
                 station_info_db_file, sqlite3_errmsg(sta_info_db));
-        free(sql_query);
+        free(sql);
         return NULL;
     }
-    debug(LOG_DEBUG, "-- sqliet >> Open database %s successfully.", station_info_db_file);
+    debug(LOG_DEBUG, "++ sqliet: Open database %s successfully.", station_info_db_file);
     
     char *err_msg = NULL;
-    int rc = sqlite3_exec(sta_info_db, sql_query, okos_show_station_info, client, &err_msg);
+    int rc = sqlite3_exec(sta_info_db, sql, okos_show_station_info, client, &err_msg);
     if (SQLITE_OK != rc) {
-        debug(LOG_WARNING, "---- sqlite >>>> Query ( %s ) Failed for %s.",
-                sql_query, err_msg);
+        debug(LOG_WARNING, "++!! sqlite: Query ( %s ) Failed for %s.",
+                sql, err_msg);
         sqlite3_free(err_msg);
         client = NULL;
     } else {
-        debug(LOG_DEBUG, "---- sqlite >>>> Query ( %s ) successfully.", sql_query);
+        if (NULL == client->if_name) {
+            debug(LOG_DEBUG, "++!! sqlite return without error but if_name is NULL)");
+        } else if (NULL == client->mac) {
+            debug(LOG_DEBUG, "++!! sqlite return without error but mac is NULL)");
+        } else {
+            debug(LOG_DEBUG, "++++ sqlite: Query ( %s ) successfully.", sql);
+        }
     }
 
     sqlite3_close(sta_info_db);
-    free(sql_query);
+    free(sql);
+    debug(LOG_DEBUG, "++ sqliet: Close database.");
+    
     return client;
 }
 
@@ -1422,7 +1441,7 @@ t_client * okos_fill_client_info_by_stainfo(t_client *client)
     }
 
     client_free_node(client);
-    debug(LOG_DEBUG, "Configuration imcompleted. Can't find out ifx or ssid_conf.");
+    debug(LOG_DEBUG, "..!! Configuration imcompleted. Can't find out ifx or ssid_conf.");
 
     return NULL;
 }
@@ -1476,7 +1495,7 @@ static int okos_get_bssid(char *p_ifname, char **pp_bssid)
                 strncpy(*pp_bssid, p_mac, sizeof(mac) - 1);
                 (*pp_bssid)[sizeof(mac) - 1] = '\0';
                 pclose(pf_ifconfig);
-                debug(LOG_DEBUG, "iface(%s)'s bssid is:%s", p_ifname, *pp_bssid);
+                debug(LOG_DEBUG, "      >> iface(%s)'s bssid is:%s", p_ifname, *pp_bssid);
                 return 0;
             }
         }
@@ -1539,32 +1558,39 @@ static void okos_config_read(void)
     char cfg[OKOS_WFD_MAX_STR_LEN];
     char tuple[OKOS_WFD_MAX_STR_LEN];
 
-    debug(LOG_INFO, "<CFG> Reading configuration from uci...\n"); 
+    debug(LOG_INFO, "<CFG> >> Reading configuration from uci...\n"); 
 
     config.device_id = okos_conf_get_option_value_from_config("productinfo.@productinfo[0].mac");
     if (config.device_id) {
         debug(LOG_DEBUG, ">> Parsing {device_id, %s}", config.device_id);
     } else {
-        debug(LOG_DEBUG, "Parsing device_id uncompleted.");
+        int r = rand() % 0x10000;
+        safe_asprintf(&config.device_id, "00:4f:61:6b:%02x:%02x", (r>>8)&0xff, r&0xff);
+        debug(LOG_DEBUG, ">>!! Parsing device_id UNCOMPLETED. Filled by [%s]", config.device_id);
     }
     config.domain_name = okos_conf_get_option_value_from_config("system.domain.domain");
     if (config.domain_name) {
         debug(LOG_DEBUG, ">> Parsing {domain_name, %s}", config.domain_name);
     } else {
-        debug(LOG_DEBUG, "Parsing domain_name uncompleted.");
+        debug(LOG_DEBUG, ">>!! Parsing domain_name UNCOMPLETED.");
     }
 
     int i_rd, i_vap, i_svc_tmp_id, ssidLoaded;
     char *p_tmp = NULL;
-    debug(LOG_DEBUG, ">> Checking Radio Configuration No. [%d]", p_rdcfg->num);
+    debug(LOG_DEBUG, ">> Checking configuration of total %d Radioes.", p_rdcfg->num);
     for (i_rd = 0; i_rd < p_rdcfg->num; i_rd++) {
-        debug(LOG_DEBUG, ">>>> Checking VAP Configuration No. [%d]", p_rdcfg->radioinfo[i_rd].count);
+        if (1 != p_rdcfg->radioinfo[i_rd].enable) {
+            debug(LOG_DEBUG,">>>> Radio.%d is DISABLED", i_rd);
+            continue;
+        }
+        debug(LOG_DEBUG, ">>>> Checking configuration of total %d VAP, on Radio.%d.",
+                p_rdcfg->radioinfo[i_rd].count, i_rd);
         for (i_vap = 0; i_vap < p_rdcfg->radioinfo[i_rd].count; i_vap++) {
             i_svc_tmp_id = p_rdcfg->radioinfo[i_rd].service[i_vap];
             ssidLoaded = 0;
             okos_list_for_each(p_ssid, config.ssid_conf) {
                 if (i_svc_tmp_id == (int)p_ssid->sn) {
-                    debug(LOG_DEBUG, ">>>> ssid(%s) on raido[%d],vap[%d] has been loaded with sn{%d}",
+                    debug(LOG_DEBUG, ">>>> ssid(%s) on {raido.%d,vap.%d} has been loaded with sn[%d]",
                             p_ssid->ssid, i_rd, i_vap, i_svc_tmp_id);
                     ssidLoaded = 1;
                     break;
@@ -1576,7 +1602,7 @@ static void okos_config_read(void)
                 continue;
             }
 
-            debug(LOG_DEBUG, ">>>> radio[%d], vap[%d] has been configured ssid with sn{%d}.",
+            debug(LOG_DEBUG, ">>>> {radio.%d, vap.%d} has been configured ssid with sn[%d].",
                     i_rd, i_vap, i_svc_tmp_id);
             // all the VAP i/f is here.
             sprintf(tuple, "wlan_service_template.ServiceTemplate%d.portal_scheme", i_svc_tmp_id);
@@ -1594,7 +1620,7 @@ static void okos_config_read(void)
             p_ssid->sn = i_svc_tmp_id;
             sprintf(tuple, "wlan_service_template.ServiceTemplate%d.ssid", p_ssid->sn);
             p_ssid->ssid = okos_conf_get_option_value_from_config(tuple);
-            debug(LOG_DEBUG, ">>>> radio[%d], vap[%d] configured ssid(%s) scheme(%s) sn(%d).",
+            debug(LOG_DEBUG, ">>>> {radio.%d, vap.%d} configured ssid(%s) scheme(%s) sn(%d).",
                     i_rd, i_vap, p_ssid->ssid, p_ssid->scheme_name, p_ssid->sn);
 
             int i_schm;
@@ -1617,16 +1643,16 @@ static void okos_config_read(void)
                         okos_conf_set_str(p_auth_svr->authserv_hostname, host_name);
                         okos_conf_set_str(p_auth_svr->authserv_path, host_path);
                         p_auth_svr->authserv_http_port = host_port;
-                        debug(LOG_DEBUG, ">>>>>> add auth server(%s) with path(%s) into ssid(%s)",
+                        debug(LOG_DEBUG, "  >>>> add auth server(%s) with path(%s) into ssid(%s)",
                                 p_auth_svr->authserv_hostname, p_auth_svr->authserv_path, p_ssid->ssid);
                     } else {
-                        debug(LOG_WARNING, "Bad auth server path configuration<%s>", p_schm_cfg->uri_path);
+                        debug(LOG_WARNING, "  >>!! Bad auth server path configuration<%s>", p_schm_cfg->uri_path);
                     }
                 }
 
                 p_ip_wlist = okos_conf_ins_list_member(p_ssid->ip_white_list);
                 p_ip_wlist->name = safe_strdup("ip white list");
-                debug(LOG_DEBUG, ">>>>>> load ip white list into ssid(%s)", p_ssid->ssid);
+                debug(LOG_DEBUG, "  >>>> load ip white list into ssid(%s)", p_ssid->ssid);
                 int i_ip;
                 for (i_ip = 0; i_ip < p_schm_cfg->ip_num; i_ip++) {
                     p_ipx = okos_conf_ins_list_member(p_ip_wlist->rules);
@@ -1634,25 +1660,25 @@ static void okos_config_read(void)
                     ipaddr.s_addr = p_schm_cfg->ip_list[i_ip].ip;
                     p_ipx->mask = safe_strdup(inet_ntoa(ipaddr));
                     p_ipx->target = TARGET_ACCEPT;
-                    debug(LOG_DEBUG, "       load rule for %s", p_ipx->mask);
+                    debug(LOG_DEBUG, "    >> load rule for %s", p_ipx->mask);
                 }
 
                 p_dn_wlist = okos_conf_ins_list_member(p_ssid->dn_white_list);
                 p_dn_wlist->name = safe_strdup("dn white list");
-                debug(LOG_DEBUG, ">>>>>> load domain name white list into ssid(%s)", p_ssid->ssid);
+                debug(LOG_DEBUG, "  >>>> load domain name white list into ssid(%s)", p_ssid->ssid);
                 okos_list_for_each(p_dns, p_dns_list) {
                     if (!p_dns->enable || 0 != strcmp(p_dns->name, p_schm_cfg->dns_set)) {
                         continue;
                     }
 
-                    debug(LOG_DEBUG, "       found domain name set configuration [%s].", p_schm_cfg->dns_set);
+                    debug(LOG_DEBUG, "    >> found domain name set configuration [%s].", p_schm_cfg->dns_set);
                     int i_key;
                     okos_list_for_each_loop(p_key, p_dns->keylist,
                             i_key = 0, i_key < p_dns->keycount, i_key++) {
                         p_dn_white = okos_conf_ins_list_member(p_dn_wlist->rules);
                         p_dn_white->target = TARGET_ACCEPT;
                         p_dn_white->mask = safe_strdup(p_key->key);
-                        debug(LOG_DEBUG, "       load rule for %s", p_dn_white->mask);
+                        debug(LOG_DEBUG, "    >> load rule for %s", p_dn_white->mask);
                     }
                     break;
                 }
@@ -1666,8 +1692,12 @@ static void okos_config_read(void)
     t_ath_if_list *p_iface = NULL;
     int vapGotLost;
     for (i_rd = 0; i_rd < p_rdcfg->num; i_rd++) {
+        if (1 != p_rdcfg->radioinfo[i_rd].enable) {
+            debug(LOG_DEBUG,">>>> Radio.%d is DISABLED", i_rd);
+            continue;
+        }
         for (i_vap = 0; i_vap < p_rdcfg->radioinfo[i_rd].count; i_vap++) {
-            debug(LOG_DEBUG, ">>>> Checking radio[%d], vap[%d].", i_rd, i_vap);
+            debug(LOG_DEBUG, ">>>> Checking {radio.%d, vap.%d}.", i_rd, i_vap);
             vapGotLost = 1;
             okos_list_for_each(p_ssid, config.ssid_conf) {
                 if ((int)p_ssid->sn == p_rdcfg->radioinfo[i_rd].service[i_vap]) {
@@ -1685,7 +1715,7 @@ static void okos_config_read(void)
                 }
             }
             if (vapGotLost) {
-                debug(LOG_DEBUG, "radio[%d], vap[%d] can't find corresponding ssid.", i_rd, i_vap);
+                debug(LOG_DEBUG, ">>!! {radio.%d, vap.%d} can't find corresponding ssid.", i_rd, i_vap);
             }
         }
     }
@@ -1695,7 +1725,7 @@ static void okos_config_read(void)
     portal_scheme_free_all(p_schemes);
     dnsset_cfg_free(p_dns_list);
 
-    debug(LOG_INFO, "<CFG> Reading configuration from uci finished...\n");
+    debug(LOG_INFO, "<CFG> >> Reading configuration from uci finished...\n");
 }
 
 
@@ -2016,12 +2046,13 @@ okos_conf_get_all(void)
         OKOS_CONF_APP_STR("  Host Name", p_ps->hostname);
     }
 
-    pstr_cat(p_str, "\n\n>>>>Configuration section<<<<\n");
+    pstr_cat(p_str, "\n\n>>>> Configuration section <<<<\n");
     OKOS_CONF_APP_STR("Device ID", config.device_id);
     OKOS_CONF_APP_STR("Domain Name", config.domain_name);
-    pstr_cat(p_str, ">>>>SSID Configuration<<<<\n");
+    pstr_cat(p_str, ">>>> SSID Configuration <<<<\n");
     t_ssid_config *p_ssid;
     okos_list_for_each(p_ssid, config.ssid_conf) {
+        pstr_cat(p_str, "----------------------------\n");
         OKOS_CONF_APP_INT("  sn", p_ssid->sn);
         OKOS_CONF_APP_STR("  SSID", p_ssid->ssid);
         OKOS_CONF_APP_STR("  Scheme", p_ssid->scheme_name);
@@ -2044,7 +2075,6 @@ okos_conf_get_all(void)
             OKOS_CONF_APP_INT("  Http port", p_svr->authserv_http_port);
             OKOS_CONF_APP_INT("  SSL port", p_svr->authserv_ssl_port);
             pstr_append_sprintf(p_str, "  SSL %s\n", p_svr->authserv_use_ssl ? "Enabled" : "Disabled");
-            pstr_cat(p_str, "------------------------\n");
         }
         OKOS_CONF_APP_STR("@", p_ssid->dn_white_list->name);
         okos_conf_get_firewall(p_str, p_ssid->dn_white_list->rules);
