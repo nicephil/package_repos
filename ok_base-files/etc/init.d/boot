@@ -98,7 +98,7 @@ start() {
     ## OK_PATCH
     # generate productinfo
     [ ! -f /etc/config/productinfo ] && {
-        /lib/fetch_productinfo.sh > /etc/config/productinfo
+        /lib/okos/fetch_productinfo.sh > /etc/config/productinfo
         sed -i 's/option production .*$/option production \"AP4602\"/g' /etc/config/productinfo
     }
     # set ulimit

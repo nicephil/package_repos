@@ -1,11 +1,15 @@
 #!/bin/sh /etc/rc.common
 # look at /lib/functions/services.sh on a running system for explanations of what other options you can use
 START=50
+STOP=89
 
 APP=ok_capwapc
 
-SERVICE_WRITE_PID=1
-SERVICE_DEAMONIZE=1
+SERVICE_DAEMONIZE=1
+#SERVICE_WRITE_PID=1
+#SERVICE_USE_PID=1
+SERVICE_STOP_TIME=3
+
 
 CONFIG_FILE="/etc/capwapc/config.wtp"
 
@@ -84,9 +88,10 @@ generate_config () {
 }
 
 start() {
+    stop
     rm -rf /tmp/getstainfo.lock /tmp/fresharplist.lock
     generate_config
-    service_start /usr/sbin/$APP &
+    service_start /usr/sbin/$APP
 }
 
 
@@ -95,8 +100,6 @@ stop() {
 }
 
 restart() {
-    stop
-    sleep 1
     start
 }
 

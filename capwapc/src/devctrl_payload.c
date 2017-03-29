@@ -112,7 +112,7 @@ static int dc_json_config_response(devctrl_block_s *dc_block, void *reserved)
 
 static int dc_json_config_finished(void *reserved)
 {
-    system("/lib/restartservices.sh&");
+    system("/lib/okos/restartservices.sh&");
     dc_stop_cawapc();
     dc_restart_cawapc();
 
@@ -319,8 +319,8 @@ static int dc_image_upgrade_handler(struct tlv *payload, void **reserved)
         goto ERROR_OUT;
     }
     ret = cfg_upgrade_image(CST_IMG_TMP_FILE);
-    sprintf(cmd, "rm -rf %s", CST_IMG_TMP_FILE);
-    system(cmd);
+    //sprintf(cmd, "rm -rf %s", CST_IMG_TMP_FILE);
+    //system(cmd);
     CWDebugLog("Upgrade image result %d.", ret);
     if (ret == VERSION_MATCH_FAILED) {
         ret = dc_error_invalid_imgversion;
