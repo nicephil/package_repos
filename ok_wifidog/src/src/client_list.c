@@ -220,7 +220,7 @@ client_get_new_validation(t_client * client, const char *time_value)
     client->last_flushed = time(NULL);
     client->user_name = safe_strdup("");
 
-    debug(LOG_DEBUG, "Created a validation client {Authenticator=%s, mac=%s, if_name=%s, scheme=%s, ssid=%s, token=%s, username=%s, remain_time=%ld}",
+    debug(LOG_DEBUG, "    .. Created a validation client {Authenticator=%s, mac=%s, if_name=%s, scheme=%s, ssid=%s, token=%s, username=%s, remain_time=%ld}",
             client->ip, client->mac, client->if_name, client->scheme, client->ssid, client->token,
             client->user_name, client->remain_time);
     return client;
@@ -317,7 +317,7 @@ okos_client_list_flush(t_client * client, const unsigned int remain_time)
 
     okos_client_list_updated();
 
-    debug(LOG_DEBUG, "Flushed an client{%s,%s,%s} Token: %s Remain Time: %d", client->ip, client->mac, client->ssid, client->token, remain_time);
+    debug(LOG_DEBUG, "    .. Flushed an client{%s,%s,%s} Token: %s Remain Time: %d", client->ip, client->mac, client->ssid, client->token, remain_time);
     return client;
 }
 

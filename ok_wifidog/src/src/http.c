@@ -66,8 +66,8 @@
 #endif
 
 
-#define OKOS_MAKE_JOKE_WITH_CLIENT
-#define OKOS_PORTAL_PRECHECK
+//#define OKOS_MAKE_JOKE_WITH_CLIENT
+//#define OKOS_PORTAL_PRECHECK
 
 #if OK_PATCH
 static int okos_http_check_whitelist(request *r, char *url)
@@ -155,7 +155,7 @@ static int okos_http_check_whitelist_by_ssid(request *r, char *url, t_ssid_confi
 
 static void okos_add_validation_client(t_client *client)
 {
-    debug(LOG_DEBUG, "Trying to add VALIDATION client {%s, %s, %s} into list.",
+    debug(LOG_DEBUG, "  .. Trying to add VALIDATION client {%s, %s, %s} into list.",
             client->ip, client->mac, client->ssid);
     LOCK_CLIENT_LIST();
     t_client *old = client_list_find_by_ssid(client->mac, client->ssid);
@@ -163,10 +163,10 @@ static void okos_add_validation_client(t_client *client)
         client_list_insert_client(client);
         //fw_allow(client, FW_MARK_PROBATION);
         fw_allow(client, FW_MARK_KNOWN);
-        debug(LOG_DEBUG, "Insert a new VALIDATION client {%s, %s, %s, remain_time:%ld}.",
+        debug(LOG_DEBUG, "  .. Insert a new VALIDATION client {%s, %s, %s, remain_time:%ld}.",
                 client->ip, client->mac, client->ssid, client->remain_time);
     } else {
-        debug(LOG_DEBUG, "VALIDATION client {%s, %s, %s, remain_time:%ld} is already in.",
+        debug(LOG_DEBUG, "  .. VALIDATION client {%s, %s, %s, remain_time:%ld} is already in.",
                 client->ip, client->mac, client->ssid, client->remain_time);
     }
     UNLOCK_CLIENT_LIST();
@@ -917,7 +917,7 @@ static void okos_update_station_info(t_client *client)
                 "PORTAL_SCHEME='%s', PORTAL_MODE='%d'," \
                 "PORTAL_USER='%s', IPADDR='%s' " \
                 "WHERE MAC='%s';" \
-                "SELECT * from STAINFO where MAC='%s';" \
+                /* "SELECT * from STAINFO where MAC='%s';" \ */
                 ,
                 client->scheme, client->auth_mode,
                 client->user_name, client->ip,
@@ -973,9 +973,9 @@ void http_callback_auth(httpd *webserver, request *r)
     t_client *res = okos_client_append_info(client, r->clientAddr);
     if (NULL != res) {
         okos_update_station_info(client);
-        okos_try_to_add_client_into_list(client);
         debug(LOG_NOTICE, "<HTTPD_auth> Client{%s, %s, %s} PASSED!",
                 client->ip, client->mac, client->ssid);
+        okos_try_to_add_client_into_list(client);
     } else {
         client_free_node(client);
 #ifdef OKOS_MAKE_JOKE_WITH_CLIENT
