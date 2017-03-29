@@ -771,7 +771,7 @@ int wlan_set_static_client_uplink_rate_limit_value(int stid, unsigned int value)
 
     if (value !=0) {
         //wlan_service_template.ServiceTemplate%d.dynamic_uplink_ratelimit='0'
-        sprintf(tuple, "wlan_service_template.ServiceTemplate%d.dymanic_uplink_ratelimit", stid);
+        sprintf(tuple, "wlan_service_template.ServiceTemplate%d.dynamic_uplink_ratelimit", stid);
         cfg_set_option_value_int(tuple, 0);
     }
     return 0;
@@ -796,7 +796,7 @@ int wlan_undo_dynamic_client_uplink_rate_limit_value(int stid)
 {
     char tuple[128];
     //wlan_service_template.ServiceTemplate%d.dynamic_uplink_ratelimit='0'
-    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.dymanic_uplink_ratelimit", stid);
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.dynamic_uplink_ratelimit", stid);
     cfg_set_option_value_int(tuple, 0);
     return 0;
 }
