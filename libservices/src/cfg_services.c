@@ -135,13 +135,13 @@ int cfg_get_option_value(const char *option_tuple, char *value, int len)
     }
 
     if (uci_lookup_ptr(ctx, &ptr, tuple, true) != UCI_OK) {
-        syslog(LOG_WARNING, "no such field:%s\n", option_tuple);
+        syslog(LOG_NOTICE, "no such field:%s\n", option_tuple);
         ret = -1;
         goto _free;
     }
 
     if (!(ptr.flags & UCI_LOOKUP_COMPLETE)) {
-        syslog(LOG_WARNING, "no such complete field:%s\n", option_tuple);
+        syslog(LOG_NOTICE, "no such complete field:%s\n", option_tuple);
         ret = -1;
         goto _free;
     }
@@ -182,13 +182,13 @@ int cfg_get_option_value_with_path(const char *path, const char *option_tuple, c
     }
     
     if (uci_lookup_ptr(ctx, &ptr, tuple, true) != UCI_OK) {
-        syslog(LOG_WARNING, "no such field:%s@%s\n", option_tuple, path);
+        syslog(LOG_NOTICE, "no such field:%s@%s\n", option_tuple, path);
         ret = -1;
         goto _free;
     }
 
     if (!(ptr.flags & UCI_LOOKUP_COMPLETE)) {
-        syslog(LOG_WARNING, "no such complete field:%s@%s\n", option_tuple, path);
+        syslog(LOG_NOTICE, "no such complete field:%s@%s\n", option_tuple, path);
         ret = -1;
         goto _free;
     }
@@ -694,11 +694,9 @@ int cfg_upgrade_image(const char *imagefile)
 {
     int ret = 0;
     char buf[128];
-    sprintf(buf, "sysupgrade -n %s", imagefile);
-    ret = system(buf);
-    if (ret) {
-        return IMG_UPGRADE_FAILED;
-    }
+    sprintf(buf, "(sleep 5;sysupgrade %s)&", imagefile);
+    system(buf);
+
     return 0;
 }
 

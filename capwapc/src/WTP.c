@@ -355,56 +355,11 @@ int main (int argc, const char * argv[])
 {
 #define CAPWAPC_WORKING_DIR           "/tmp/wtp"
 
-	/* Daemon Mode */ 
-	pid_t pid;
-
 #if 0
-
-	if ((pid = fork()) < 0) {
+    if (daemon(1,0) != 0) {
+        CWLog("daemon failed: %s\n", strerror(errno));
         exit(1);
     }
-	else if (pid != 0) {
-        exit(0);
-    }
-	else {
-        pid_t cpid;
-        int status, ret;
-
-        cpid = fork();
-        if (cpid > 0) {
-            waitpid(cpid, &status, 0);
-            if (WIFEXITED(status)) {
-                ret = WEXITSTATUS(status);
-                CWLog("Chind process %d exited on code %d.", cpid, ret);
-            }
-            else if (WIFSIGNALED(status)) {
-                ret = WTERMSIG(status);
-                CWLog("Chind process %d exited on signal %d.", cpid, ret);
-            }
-            else if (WIFSTOPPED(status)) {
-                ret = WSTOPSIG(status);
-                CWLog("Chind process %d exited on signal %d.", cpid, ret);
-            }
-            else {
-                CWLog("Chind process %d exited abnormally.", cpid);
-            }
-            exit(0);
-        }
-        
-        CWDebugLog("Main task pid %d.", getpid());
-        
-        setsid();
-		fclose(stdout);
-#if 0
-        if (chdir(argv[1]) != 0) {
-            exit(1);
-        }
-#else
-        if (chdir(CAPWAPC_WORKING_DIR) != 0) {
-            exit(1);
-        }
-#endif
-	}	
 #endif
     
 	CWStateTransition nextState = CW_ENTER_DISCOVERY;

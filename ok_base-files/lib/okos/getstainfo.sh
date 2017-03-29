@@ -24,7 +24,7 @@ sqlite3 /tmp/stationinfo.db 'SELECT * FROM STAINFO' | awk -F'|' '{
     print "\toption vlan "$12;
     print "\toption portal_mode "$13;
     print "\toption portal_user "$14;
-    system("/lib/updatefields.sh "$1" "$2" "$11" "$12" "$8);
+    system("/lib/okos/updatefields.sh "$1" "$2" "$11" "$12" "$8);
 }' > /tmp/stationinfo/stationinfo
 
 rm -rf /tmp/getstainfo.lock
