@@ -70,21 +70,21 @@ http_get(const int sockfd, const char *req)
 
     if (sockfd == -1) {
         /* Could not connect to server */
-        debug(LOG_ERR, "Could not open socket to server!");
+        debug(LOG_ERR, "  ->!! Could not open socket to server!");
         goto error;
     }
 
-    debug(LOG_DEBUG, "Sending HTTP request to auth server: [%s]\n", req);
+    debug(LOG_DEBUG, "  -> Sending HTTP request to auth server: [%s]\n", req);
     numbytes = send(sockfd, req, reqlen, 0);
     if (numbytes <= 0) {
-        debug(LOG_ERR, "send failed: %s", strerror(errno));
+        debug(LOG_ERR, "  ->!! send failed: %s", strerror(errno));
         goto error;
     } else if ((size_t) numbytes != reqlen) {
-        debug(LOG_ERR, "send failed: only %d bytes out of %d bytes sent!", numbytes, reqlen);
+        debug(LOG_ERR, "  ->!! send failed: only %d bytes out of %d bytes sent!", numbytes, reqlen);
         goto error;
     }
 
-    debug(LOG_DEBUG, "Reading response");
+    debug(LOG_DEBUG, "  <- Reading response");
     done = 0;
     do {
         FD_ZERO(&readfds);
@@ -101,27 +101,27 @@ http_get(const int sockfd, const char *req)
             memset(readbuf, 0, MAX_BUF);
             numbytes = read(sockfd, readbuf, MAX_BUF - 1);
             if (numbytes < 0) {
-                debug(LOG_ERR, "An error occurred while reading from server: %s", strerror(errno));
+                debug(LOG_ERR, "  <-!! An error occurred while reading from server: %s", strerror(errno));
                 goto error;
             } else if (numbytes == 0) {
                 done = 1;
             } else {
                 readbuf[numbytes] = '\0';
                 pstr_cat(response, readbuf);
-                debug(LOG_DEBUG, "Read %d bytes", numbytes);
+                debug(LOG_DEBUG, "  <- Read %d bytes", numbytes);
             }
         } else if (nfds == 0) {
-            debug(LOG_ERR, "Timed out reading data via select() from auth server");
+            debug(LOG_ERR, "  <-!! Timed out reading data via select() from auth server");
             goto error;
         } else if (nfds < 0) {
-            debug(LOG_ERR, "Error reading data via select() from auth server: %s", strerror(errno));
+            debug(LOG_ERR, "  <-!! Error reading data via select() from auth server: %s", strerror(errno));
             goto error;
         }
     } while (!done);
 
     close(sockfd);
     retval = pstr_to_string(response);
-    debug(LOG_DEBUG, "HTTP Response from Server: [%s]", retval);
+    debug(LOG_DEBUG, "  <- HTTP Response from Server: [%s]", retval);
     return retval;
 
  error:
@@ -250,19 +250,19 @@ https_get(const int sockfd, const char *req, const char *hostname)
 
     ctx = get_cyassl_ctx(hostname);
     if (NULL == ctx) {
-        debug(LOG_ERR, "Could not get CyaSSL Context!");
+        debug(LOG_ERR, "  ->!! Could not get CyaSSL Context!");
         goto error;
     }
 
     if (sockfd == -1) {
         /* Could not connect to server */
-        debug(LOG_ERR, "Could not open socket to server!");
+        debug(LOG_ERR, "  ->!! Could not open socket to server!");
         goto error;
     }
 
     /* Create CYASSL object */
     if ((ssl = CyaSSL_new(ctx)) == NULL) {
-        debug(LOG_ERR, "Could not create CyaSSL context.");
+        debug(LOG_ERR, "  ->!! Could not create CyaSSL context.");
         goto error;
     }
     if (config->ssl_verify) {
@@ -273,19 +273,19 @@ https_get(const int sockfd, const char *req, const char *hostname)
     }
     CyaSSL_set_fd(ssl, sockfd);
 
-    debug(LOG_DEBUG, "Sending HTTPS request to auth server: [%s]\n", req);
+    debug(LOG_DEBUG, "  -> Sending HTTPS request to auth server: [%s]\n", req);
     numbytes = CyaSSL_send(ssl, req, (int)reqlen, 0);
     if (numbytes <= 0) {
         sslerr = (unsigned long)CyaSSL_get_error(ssl, numbytes);
         CyaSSL_ERR_error_string(sslerr, sslerrmsg);
-        debug(LOG_ERR, "CyaSSL_send failed: %s", sslerrmsg);
+        debug(LOG_ERR, "  ->!! CyaSSL_send failed: %s", sslerrmsg);
         goto error;
     } else if ((size_t) numbytes != reqlen) {
-        debug(LOG_ERR, "CyaSSL_send failed: only %d bytes out of %d bytes sent!", numbytes, reqlen);
+        debug(LOG_ERR, "  ->!! CyaSSL_send failed: only %d bytes out of %d bytes sent!", numbytes, reqlen);
         goto error;
     }
 
-    debug(LOG_DEBUG, "Reading response");
+    debug(LOG_DEBUG, "  <- Reading response");
     done = 0;
     do {
         FD_ZERO(&readfds);
@@ -304,7 +304,7 @@ https_get(const int sockfd, const char *req, const char *hostname)
             if (numbytes < 0) {
                 sslerr = (unsigned long)CyaSSL_get_error(ssl, numbytes);
                 CyaSSL_ERR_error_string(sslerr, sslerrmsg);
-                debug(LOG_ERR, "An error occurred while reading from server: %s", sslerrmsg);
+                debug(LOG_ERR, "  <-!! An error occurred while reading from server: %s", sslerrmsg);
                 goto error;
             } else if (numbytes == 0) {
                 /* CyaSSL_read returns 0 on a clean shutdown or if the peer closed the
@@ -313,13 +313,13 @@ https_get(const int sockfd, const char *req, const char *hostname)
             } else {
                 readbuf[numbytes] = '\0';
                 pstr_cat(response, readbuf);
-                debug(LOG_DEBUG, "Read %d bytes", numbytes);
+                debug(LOG_DEBUG, "  <- Read %d bytes", numbytes);
             }
         } else if (nfds == 0) {
-            debug(LOG_ERR, "Timed out reading data via select() from auth server");
+            debug(LOG_ERR, "  <-!! Timed out reading data via select() from auth server");
             goto error;
         } else if (nfds < 0) {
-            debug(LOG_ERR, "Error reading data via select() from auth server: %s", strerror(errno));
+            debug(LOG_ERR, "  <-!! Error reading data via select() from auth server: %s", strerror(errno));
             goto error;
         }
     } while (!done);
@@ -329,7 +329,7 @@ https_get(const int sockfd, const char *req, const char *hostname)
     CyaSSL_free(ssl);
 
     retval = pstr_to_string(response);
-    debug(LOG_DEBUG, "HTTPS Response from Server: [%s]", retval);
+    debug(LOG_DEBUG, "  <- HTTPS Response from Server: [%s]", retval);
     return retval;
 
  error:

@@ -92,7 +92,7 @@
 int
 auth_server_request(t_authresponse *authresponse, t_client *client)
 {
-    debug(LOG_DEBUG, ".. Querying Client {%s, %s, %s}",
+    debug(LOG_DEBUG, "~~ Querying Client {%s, %s, %s}",
             client->ip, client->mac, client->ssid);
 
     char *info = okos_http_insert_parameter(client);
@@ -104,7 +104,7 @@ auth_server_request(t_authresponse *authresponse, t_client *client)
     //int sockfd = connect_auth_server(ssid);
     int sockfd = _access_auth_server(auth_server);
     if (-1 == sockfd) {
-        debug(LOG_DEBUG, "Auth server is unreachable.");
+        debug(LOG_DEBUG, "~~ Auth server is unreachable.");
         authresponse->authcode = AUTH_ERROR;
         updateFailed = -1;
         goto asr_cant_access_authsvr;
@@ -122,7 +122,7 @@ auth_server_request(t_authresponse *authresponse, t_client *client)
             auth_server->authserv_auth_script_path_fragment,
             info);
 
-    debug(LOG_DEBUG, ".. Sending query [%s]", buf);
+    debug(LOG_DEBUG, "~~ Sending query [%s]", buf);
     /* Get the response from Auth Server, then check the result.
      */
     char *res;
@@ -139,7 +139,7 @@ auth_server_request(t_authresponse *authresponse, t_client *client)
 
     authresponse->authcode = AUTH_ALLOWED;
     if (NULL == res) {
-        debug(LOG_ERR, "There was a problem talking to the auth server!");
+        debug(LOG_ERR, "~~!! There was a problem talking to the auth server!");
         authresponse->authcode = AUTH_ERROR;
         updateFailed = 1;
         goto asr_can_not_get_response;
@@ -152,19 +152,19 @@ auth_server_request(t_authresponse *authresponse, t_client *client)
         client->remain_time = 0;
         authresponse->authcode = AUTH_DENIED;
         updateFailed = 2;
-        debug(LOG_WARNING, "Can't get expected authentication code, Denied client {%s, %s, %s}.",
+        debug(LOG_WARNING, "~~!! Can't get expected authentication code, Denied client {%s, %s, %s}.",
                 client->ip, client->mac, client->ssid);
         goto asr_response_without_auth;
     }
 
-    debug(LOG_DEBUG, ".. Got response [%s]", parameterAuth);
+    debug(LOG_DEBUG, "~~ Got response [%s]", parameterAuth);
     parameterAuth += strlen("auth=");
     int parseFailed = okos_http_parse_info(parameterAuth, client);
     if (parseFailed) {
         client->remain_time = 0;
         authresponse->authcode = AUTH_DENIED;
         updateFailed = 3;
-        debug(LOG_WARNING, "Can't parse authentication code returned, Denied client {%s, %s, %s}.",
+        debug(LOG_WARNING, "~~!! Can't parse authentication code returned, Denied client {%s, %s, %s}.",
                 client->ip, client->mac, client->ssid);
         goto asr_response_without_auth;
     }
@@ -172,7 +172,7 @@ auth_server_request(t_authresponse *authresponse, t_client *client)
     if (0 == client->remain_time) {
         authresponse->authcode = AUTH_DENIED;
     }
-    debug(LOG_DEBUG, ".. Auth server returned authentication code %d", authresponse->authcode);
+    debug(LOG_DEBUG, "~~ Auth server returned authentication code %d", authresponse->authcode);
 
 asr_response_without_auth:
     free(res);
@@ -259,17 +259,17 @@ auth_server_request(t_authresponse * authresponse, const char *request_type, con
     res = http_get(sockfd, buf);
 #endif
     if (NULL == res) {
-        debug(LOG_ERR, "There was a problem talking to the auth server!");
+        debug(LOG_ERR, "~~!! There was a problem talking to the auth server!");
         return (AUTH_ERROR);
     }
 
     if ((tmp = strstr(res, "Auth: "))) {
         if (sscanf(tmp, "Auth: %d", (int *)&authresponse->authcode) == 1) {
-            debug(LOG_INFO, "Auth server returned authentication code %d", authresponse->authcode);
+            debug(LOG_INFO, "~~ Auth server returned authentication code %d", authresponse->authcode);
             free(res);
             return (authresponse->authcode);
         } else {
-            debug(LOG_WARNING, "Auth server did not return expected authentication code");
+            debug(LOG_WARNING, "~~ Auth server did not return expected authentication code");
             free(res);
             return (AUTH_ERROR);
         }
@@ -300,10 +300,10 @@ connect_auth_server()
     UNLOCK_CONFIG();
 
     if (sockfd == -1) {
-        debug(LOG_ERR, "Failed to connect to any of the auth servers");
+        debug(LOG_ERR, "##!! Failed to connect to any of the auth servers");
         mark_auth_offline();
     } else {
-        debug(LOG_DEBUG, "Connected to auth server successfully.");
+        debug(LOG_DEBUG, "## Connected to auth server successfully.");
         mark_auth_online();
     }
     return (sockfd);
@@ -356,7 +356,7 @@ _connect_auth_server(int level)
 #endif
         num_servers++;
     }
-    debug(LOG_DEBUG, "Level %d: Calculated %d auth servers in list on ssid:%s",
+    debug(LOG_DEBUG, "  ## Level %d: Calculated %d auth servers in list on ssid:%s",
             level, num_servers, ssid->ssid);
 
     if (level > num_servers) {
@@ -377,23 +377,23 @@ _connect_auth_server(int level)
     auth_server = config->auth_servers;
 #endif
     hostname = auth_server->authserv_hostname;
-    debug(LOG_DEBUG, "Level %d: Resolving auth server [%s]", level, hostname);
+    debug(LOG_DEBUG, "  ## Level %d: Resolving auth server [%s]", level, hostname);
     h_addr = wd_gethostbyname(hostname);
     if (!h_addr) {
         /*
          * DNS resolving it failed
          */
-        debug(LOG_DEBUG, "Level %d: Resolving auth server [%s] failed", level, hostname);
+        debug(LOG_DEBUG, "  ##!! Level %d: Resolving auth server [%s] failed", level, hostname);
 
         for (popular_server = config->popular_servers; popular_server; popular_server = popular_server->next) {
-            debug(LOG_DEBUG, "Level %d: Resolving popular server [%s]", level, popular_server->hostname);
+            debug(LOG_DEBUG, "  ## Level %d: Resolving popular server [%s]", level, popular_server->hostname);
             h_addr = wd_gethostbyname(popular_server->hostname);
             if (h_addr) {
-                debug(LOG_DEBUG, "Level %d: Resolving popular server [%s] succeeded = [%s]", level, popular_server->hostname,
+                debug(LOG_DEBUG, "  ## Level %d: Resolving popular server [%s] succeeded = [%s]", level, popular_server->hostname,
                       inet_ntoa(*h_addr));
                 break;
             } else {
-                debug(LOG_DEBUG, "Level %d: Resolving popular server [%s] failed", level, popular_server->hostname);
+                debug(LOG_DEBUG, "  ##!! Level %d: Resolving popular server [%s] failed", level, popular_server->hostname);
             }
         }
 
@@ -409,7 +409,7 @@ _connect_auth_server(int level)
              *
              * The auth server's DNS server is probably dead. Try the next auth server
              */
-            debug(LOG_DEBUG, "Level %d: Marking auth server [%s] as bad and trying next if possible", level, hostname);
+            debug(LOG_DEBUG, "  ##!! Level %d: Marking auth server [%s] as bad and trying next if possible", level, hostname);
             if (auth_server->last_ip) {
                 free(auth_server->last_ip);
                 auth_server->last_ip = NULL;
@@ -428,7 +428,7 @@ _connect_auth_server(int level)
              * and nothing we can do will make it work
              */
             mark_offline();
-            debug(LOG_DEBUG, "Level %d: Failed to resolve auth server and all popular servers. "
+            debug(LOG_DEBUG, "  ##!! Level %d: Failed to resolve auth server and all popular servers. "
                   "The internet connection is probably down", level);
             return (-1);
         }
@@ -438,7 +438,7 @@ _connect_auth_server(int level)
          */
         mark_online();
         ip = safe_strdup(inet_ntoa(*h_addr));
-        debug(LOG_DEBUG, "Level %d: Resolving auth server [%s] succeeded = [%s]", level, hostname, ip);
+        debug(LOG_DEBUG, "  ## Level %d: Resolving auth server [%s] succeeded = [%s]", level, hostname, ip);
 
         if (!auth_server->last_ip || strcmp(auth_server->last_ip, ip) != 0) {
             /*
@@ -482,17 +482,17 @@ _connect_auth_server(int level)
         int port = 0;
 #ifdef USE_CYASSL
         if (auth_server->authserv_use_ssl) {
-            debug(LOG_DEBUG, "Level %d: Connecting to SSL auth server %s:%d", level, hostname,
+            debug(LOG_DEBUG, "  ## Level %d: Connecting to SSL auth server %s:%d", level, hostname,
                   auth_server->authserv_ssl_port);
             port = htons(auth_server->authserv_ssl_port);
         } else {
-            debug(LOG_DEBUG, "Level %d: Connecting to auth server %s:%d", level, hostname,
+            debug(LOG_DEBUG, "  ## Level %d: Connecting to auth server %s:%d", level, hostname,
                   auth_server->authserv_http_port);
             port = htons(auth_server->authserv_http_port);
         }
 #endif
 #ifndef USE_CYASSL
-        debug(LOG_DEBUG, "Level %d: Connecting to auth server %s:%d", level, hostname, auth_server->authserv_http_port);
+        debug(LOG_DEBUG, "  ## Level %d: Connecting to auth server %s:%d", level, hostname, auth_server->authserv_http_port);
         port = htons(auth_server->authserv_http_port);
 #endif
         their_addr.sin_port = port;
@@ -502,7 +502,7 @@ _connect_auth_server(int level)
         free(h_addr);
 
         if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-            debug(LOG_ERR, "Level %d: Failed to create a new SOCK_STREAM socket: %s", level, strerror(errno));
+            debug(LOG_ERR, "  ##!! Level %d: Failed to create a new SOCK_STREAM socket: %s", level, strerror(errno));
             return (-1);
         }
 
@@ -512,7 +512,7 @@ _connect_auth_server(int level)
              * Mark the server as bad and try the next one
              */
             debug(LOG_DEBUG,
-                  "Level %d: Failed to connect to auth server %s:%d (%s). Marking it as bad and trying next if possible",
+                  "  ##!! Level %d: Failed to connect to auth server %s:%d (%s). Marking it as bad and trying next if possible",
                   level, hostname, ntohs(port), strerror(errno));
             close(sockfd);
             mark_auth_server_bad(auth_server);
@@ -525,7 +525,7 @@ _connect_auth_server(int level)
             /*
              * We have successfully connected
              */
-            debug(LOG_DEBUG, "Level %d: Successfully connected to auth server %s:%d", level, hostname, ntohs(port));
+            debug(LOG_DEBUG, "  ##!! Level %d: Successfully connected to auth server %s:%d", level, hostname, ntohs(port));
             return sockfd;
         }
 #endif
@@ -548,17 +548,17 @@ _access_auth_server(t_auth_serv *auth_server)
 
 #ifdef USE_CYASSL
     if (auth_server->authserv_use_ssl) {
-        debug(LOG_DEBUG, "Connecting to SSL auth server %s:%d",
+        debug(LOG_DEBUG, "## Connecting to SSL auth server %s:%d",
                 hostname, auth_server->authserv_ssl_port);
         port = htons(auth_server->authserv_ssl_port);
     } else {
-        debug(LOG_DEBUG, "Connecting to auth server %s:%d",
+        debug(LOG_DEBUG, "## Connecting to auth server %s:%d",
                 hostname, auth_server->authserv_http_port);
         port = htons(auth_server->authserv_http_port);
     }
 #endif
 #ifndef USE_CYASSL
-    debug(LOG_DEBUG, "Connecting to auth server %s:%d", hostname, auth_server->authserv_http_port);
+    debug(LOG_DEBUG, "## Connecting to auth server %s:%d", hostname, auth_server->authserv_http_port);
     port = htons(auth_server->authserv_http_port);
 #endif
     their_addr.sin_port = port;
@@ -567,19 +567,19 @@ _access_auth_server(t_auth_serv *auth_server)
     memset(&(their_addr.sin_zero), '\0', sizeof(their_addr.sin_zero));
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        debug(LOG_ERR, "Failed to create a new SOCK_STREAM socket: %s", strerror(errno));
+        debug(LOG_ERR, "##!! Failed to create a new SOCK_STREAM socket: %s", strerror(errno));
         return (-1);
     }
 
     if (connect(sockfd, (struct sockaddr *)&their_addr, sizeof(struct sockaddr)) == -1) {
         debug(LOG_DEBUG,
-                "Failed to connect to auth server %s{%s}:%d (%s). Marking it as bad.",
+                "##!! Failed to connect to auth server %s{%s}:%d (%s). Marking it as bad.",
                 hostname, auth_server->last_ip, ntohs(port), strerror(errno));
         close(sockfd);
         mark_auth_server_bad(auth_server);
         return (-2);
     } else {
-        debug(LOG_DEBUG, "Successfully connected to auth server %s{%s}:%d",
+        debug(LOG_DEBUG, "## Successfully connected to auth server %s{%s}:%d",
                 hostname, auth_server->last_ip, ntohs(port));
         return sockfd;
     }
