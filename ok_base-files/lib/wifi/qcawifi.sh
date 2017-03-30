@@ -1176,6 +1176,28 @@ enable_qcawifi() {
 
 		config_get_bool stafwd "$vif" stafwd 0
 		[ -n "$stafwd" ] && iwpriv "$ifname" stafwd "$stafwd"
+		
+		{
+		    config_set "$vif" maclist " "
+		    config_set "$vif" macfilter " "
+		    config_load wlan_service_template
+		    config_get _acl ServiceTemplate${vif:4} acl
+		    [ -n $_acl ] && {
+		        config_load wlan_acl
+		        config_get _maclist "$_acl" maclist
+		        config_get _policy "$_acl" policy
+		        if [ "$_policy" = "permit" ]
+		        then
+		            _policy="allow"
+		        else
+		            _policy="deny"
+		        fi
+		        config_load wireless
+		        config_set "$vif" maclist "$_maclist"
+		        config_set "$vif" macfilter "$_policy"
+		        echo "xxxx>$_maclist $vif $_policy"
+		    }
+		}
 
 		config_get maclist "$vif" maclist
 		[ -n "$maclist" ] && {
