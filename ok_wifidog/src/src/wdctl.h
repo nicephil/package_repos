@@ -37,6 +37,7 @@
 #if OK_PATCH
 #define WDCTL_QUERY		5
 #define WDCTL_CONFIG	6
+#define WDCTL_OFFLINE   7
 #endif
 
 typedef struct {

@@ -534,6 +534,20 @@ client_list_find(const char *ip, const char *mac)
 }
 
 #if OK_PATCH
+
+t_client *
+client_list_find_by_scheme(const char *mac, const char *scheme)
+{
+    t_client *pclient;
+    okos_list_for_each(pclient, firstclient) {
+        if (0 == strcasecmp(pclient->mac, mac) && 0 == strcmp(pclient->scheme, scheme))
+            return pclient;
+    }
+
+    return NULL;
+}
+
+
 t_client *
 client_list_find_by_ssid(const char *mac, const char *ssid)
 {
@@ -545,6 +559,7 @@ client_list_find_by_ssid(const char *mac, const char *ssid)
 
     return NULL;
 }
+
 #endif
 
 /**
@@ -733,7 +748,44 @@ static void okos_get_client_status(const t_client *p_node, pstr_t *p_str)
 }
 
 char *
-okos_delete_clients(const char *mac, const char *ssid)
+okos_delete_clients_by_scheme(const char *mac, const char *scheme)
+{
+    pstr_t *p_str = pstr_new();
+    pstr_append_sprintf(p_str, "Offline client [%s]", mac);
+    if (scheme) {
+        pstr_append_sprintf(p_str, " with scheme[%s]:\n", scheme);
+    } else {
+        pstr_cat(p_str, " all:\n");
+    }
+    pstr_cat(p_str, "IP Address      MAC Address       AUTH MODE   SSID                  User Name\n");
+	LOCK_CLIENT_LIST();
+	t_client *node;
+    t_client *tmp = 0;
+    if (scheme) {
+        node = client_list_find_by_scheme(mac, scheme);
+        if (node) {
+            okos_get_client_status(node, p_str);
+            logout_client(node);
+            //client_list_delete(node);
+        }
+    } else {
+        node = client_get_first_client();
+        while (NULL != node) {
+            node = okos_client_query_mac(node, mac);
+            okos_get_client_status(node, p_str);
+            tmp = node;
+            node = node->next;
+            logout_client(tmp);
+            //client_list_delete(tmp);
+        }
+    }
+	UNLOCK_CLIENT_LIST();
+    pstr_cat(p_str, "\nSee you later.\n\n");
+    return pstr_to_string(p_str);
+}
+
+char *
+okos_delete_clients_by_ssid(const char *mac, const char *ssid)
 {
     pstr_t *p_str = pstr_new();
     pstr_append_sprintf(p_str, "Reset client [%s]", mac);

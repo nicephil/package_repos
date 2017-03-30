@@ -63,17 +63,17 @@ typedef struct _t_client {
     /** Client Local informaion **/
     char *ip;
     char *mac;
-    char * if_name;
-    char * ssid;
-    char * scheme;
-    struct _s_ssid_config * ssid_conf;
-    struct _s_ath_if_list * ifx;
+    char *if_name;
+    char *ssid;
+    char *scheme;
+    struct _s_ssid_config *ssid_conf;
+    struct _s_ath_if_list *ifx;
 
     /** These are what we got from portal server. */
     time_t last_flushed;
     unsigned int auth_mode;
     unsigned int remain_time;
-    char * user_name;
+    char *user_name;
     char *token;                        /**< @brief Client token */
 
 #if 0
@@ -154,10 +154,12 @@ t_client * okos_client_append_info(t_client *, const char * );
 t_client * okos_client_get_new_client(const char * );
 t_client * okos_client_get_new_client_v1(const char * );
 char * okos_get_client_status_text(const char *, const char *);
-char * okos_delete_clients(const char *, const char *);
+char * okos_delete_clients_by_ssid(const char *, const char *);
+char * okos_delete_clients_by_scheme(const char *, const char *);
 
 char * okos_client_get_ssid(const t_client *);
 t_client *client_list_find_by_ssid(const char *, const char *);
+t_client *client_list_find_by_scheme(const char *, const char *);
 
 #define okos_client_set_str(element, src) do { \
     if (element) free(element); \

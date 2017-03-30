@@ -66,6 +66,7 @@ static void wdctl_restart(int);
 #if OK_PATCH
 static int okos_judge_mac(const char *);
 static void okos_wdctl_reset(int, const char *, const char *);
+static void okos_wdctl_offline(int, const char *, const char *);
 static void okos_wdctl_query_mac(int, const char *, const char *);
 static void okos_wdctl_config(int);
 #endif
@@ -215,6 +216,9 @@ thread_wdctl_handler(void *arg)
     } else if (strncmp(request, "reset", 5) == 0) {
         request[23] = 0;
         okos_wdctl_reset(fd, (request + 6), (request + 24));
+    } else if (strncmp(request, "offline", 7) == 0) {
+        request[25] = 0;
+        okos_wdctl_offline(fd, (request + 8), (request + 26));
 #endif
     } else if (strncmp(request, "restart", 7) == 0) {
         wdctl_restart(fd);
@@ -380,24 +384,56 @@ wdctl_restart(int afd)
 
 #if OK_PATCH
 static void
-okos_wdctl_reset(int fd, const char *mac, const char *ssid)
+okos_wdctl_offline(
+        int fd,
+        const char *mac,
+        const char *scheme
+        )
 {
-    debug(LOG_DEBUG, "<WDCTL> Entering wdctl_reset...");
-    debug(LOG_DEBUG, "<WDCTL> Argument: {mac = %s, ssid:[%s]}", mac, ssid);
+    debug(LOG_DEBUG, "<WDCTL> Entering wdctl_offline.");
+    debug(LOG_DEBUG, "<WDCTL> Argument: {mac = %s, scheme:[%s]}", mac, scheme);
 
 	if (!okos_judge_mac(mac)) {
-		debug(LOG_DEBUG, "<WDCTL> Can't query client without MAC address.");
+		debug(LOG_DEBUG, "<WDCTL> Can't offline client without MAC address.");
 		write_to_socket(fd, "Bad", 3);
 		return;
 	}
 
-	if (0 == strcmp(ssid, "")) {
+	if (0 == strlen(scheme)) {
+		scheme = NULL;
+	}
+
+	char *clients_info = okos_delete_clients_by_scheme(mac, scheme);
+
+    debug(LOG_DEBUG, "<WDCTL> Output all the clients offlined.");
+	write_to_socket(fd, clients_info, strlen(clients_info));
+	free(clients_info);
+    debug(LOG_DEBUG, "<WDCTL> Existing wdctl_offline.");
+}
+
+
+static void
+okos_wdctl_reset(int fd, const char *mac, const char *ssid)
+{
+    debug(LOG_DEBUG, "<WDCTL> Entering wdctl_reset.");
+    debug(LOG_DEBUG, "<WDCTL> Argument: {mac = %s, ssid:[%s]}", mac, ssid);
+
+	if (!okos_judge_mac(mac)) {
+		debug(LOG_DEBUG, "<WDCTL> Can't reset client without MAC address.");
+		write_to_socket(fd, "Bad", 3);
+		return;
+	}
+
+	if (0 == strlen(ssid)) {
 		ssid = NULL;
 	}
 
-	char *clients_info = okos_delete_clients(mac, ssid);
+	char *clients_info = okos_delete_clients_by_ssid(mac, ssid);
+
+    debug(LOG_DEBUG, "<WDCTL> Output all the clients reset.");
 	write_to_socket(fd, clients_info, strlen(clients_info));
 	free(clients_info);
+    debug(LOG_DEBUG, "<WDCTL> Existing wdctl_reset.");
 }
 
 #else /* OK_PATCH */
@@ -406,7 +442,7 @@ wdctl_reset(int fd, const char *arg)
 {
     t_client *node;
 
-    debug(LOG_DEBUG, "<WDCTL> Entering wdctl_reset...");
+    debug(LOG_DEBUG, "<WDCTL> Entering wdctl_reset.");
 
     LOCK_CLIENT_LIST();
     debug(LOG_DEBUG, "<WDCTL> Argument: %s (@%x)", arg, arg);
@@ -431,7 +467,7 @@ wdctl_reset(int fd, const char *arg)
 
     write_to_socket(fd, "Yes", 3);
 
-    debug(LOG_DEBUG, "<WDCTL> Exiting wdctl_reset...");
+    debug(LOG_DEBUG, "<WDCTL> Exiting wdctl_reset.");
 }
 #endif
 
