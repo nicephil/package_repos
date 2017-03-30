@@ -1178,10 +1178,28 @@ enable_qcawifi() {
 		[ -n "$stafwd" ] && iwpriv "$ifname" stafwd "$stafwd"
 		
 		{
-		    config_set "$vif" maclist " "
-		    config_set "$vif" macfilter " "
-		    config_load wlan_service_template
-		    config_get _acl ServiceTemplate${vif:4} acl
+            config_set "$vif" maclist " "                     
+            config_set "$vif" macfilter " "                   
+            config_load wlan_service_template                      
+            [ "$vif" != "ath50" ] && st_name="ServiceTemplate${vif:4}"                      
+            config_get _acl "$st_name" acl                       
+            config_get _static_uprate "$st_name" static_uplink_ratelimit
+            config_get _static_downrate "$st_name" static_downlink_ratelimit
+            config_get _dynamic_uprate "$st_name" dynamic_uplink_ratelimit  
+            config_get _dynamic_downrate "$st_name" dynamic_downlink_ratelimit
+
+            /lib/okos/ratelimit.sh -r $vif &                             
+            [ "$_static_uprate" != "0" -a "$_static_downrate" != "0" ] && {   
+                #echo "Static==>$vif $_static_uprate $_static_downrate"        
+                /lib/okos/ratelimit.sh -i $vif -b $_static_uprate $_static_downrate &
+            }                                                                        
+
+            [ "$_dynamic_uprate" != "0" -a "$_dynamic_downrate" != "0" ] && {
+                #echo "Dynamic==>$vif $_dynamic_uprate $_dynamic_downrate"
+                /lib/okos/ratelimit.sh -i $vif -l $_dynamic_uprate $_dynamic_downrate &
+            }                                                                          
+
+
 		    [ -n $_acl ] && {
 		        config_load wlan_acl
 		        config_get _maclist "$_acl" maclist
@@ -1195,7 +1213,7 @@ enable_qcawifi() {
 		        config_load wireless
 		        config_set "$vif" maclist "$_maclist"
 		        config_set "$vif" macfilter "$_policy"
-		        echo "xxxx>$_maclist $vif $_policy"
+		        #echo "xxxx>$_maclist $vif $_policy"
 		    }
 		}
 
