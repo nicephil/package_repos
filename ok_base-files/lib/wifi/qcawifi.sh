@@ -1188,19 +1188,18 @@ enable_qcawifi() {
             config_get _dynamic_uprate "$st_name" dynamic_uplink_ratelimit  
             config_get _dynamic_downrate "$st_name" dynamic_downlink_ratelimit
 
-            /lib/okos/ratelimit.sh -r $vif &                             
-            [ "$_static_uprate" != "0" -a "$_static_downrate" != "0" ] && {   
+            [ -n "$_static_uprate" -a -n "$_static_downrate" ] && [ "$_static_uprate" != "0" -a "$_static_downrate" != "0" ] && {   
                 #echo "Static==>$vif $_static_uprate $_static_downrate"        
-                /lib/okos/ratelimit.sh -i $vif -b $_static_uprate $_static_downrate &
+                /lib/okos/ratelimit.sh -i $vif -b "${_static_uprate}k" "${_static_downrate}k"
             }                                                                        
 
-            [ "$_dynamic_uprate" != "0" -a "$_dynamic_downrate" != "0" ] && {
+            [ -n "$_dynamic_uprate" -a -n "$_dynamic_downrate" ] && [ "$_dynamic_uprate" != "0" -a "$_dynamic_downrate" != "0" ] && {
                 #echo "Dynamic==>$vif $_dynamic_uprate $_dynamic_downrate"
-                /lib/okos/ratelimit.sh -i $vif -l $_dynamic_uprate $_dynamic_downrate &
+                /lib/okos/ratelimit.sh -i $vif -l "${_dynamic_uprate}k" "${_dynamic_downrate}k"
             }                                                                          
 
 
-		    [ -n $_acl ] && {
+		    [ -n "$_acl" ] && {
 		        config_load wlan_acl
 		        config_get _maclist "$_acl" maclist
 		        config_get _policy "$_acl" policy
