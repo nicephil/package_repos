@@ -1118,7 +1118,9 @@ config_notnull(const void *parm, const char *parmname)
  */
 #if OK_PATCH
 t_auth_serv *
-get_auth_server(const t_client *client)
+get_auth_server(
+        const t_client *client
+        )
 {
     if (NULL == client)
         return NULL;
@@ -1307,8 +1309,24 @@ static t_client * okos_get_client_ifname_by_stainfo(t_client *client)
 
 
 static char * okos_conf_get_option_value(const char *p_path, const char *p_key);
-#define okos_conf_get_option_value_from_config(key) okos_conf_get_option_value("/etc/config", key)
+//#define okos_conf_get_option_value_from_config(key) okos_conf_get_option_value("/etc/config", key)
+static char *
+okos_conf_get_option_value_from_config(
+        const char *key_fmt,
+        ...
+        )
+{
+    char key[OKOS_WFD_MAX_STR_LEN];
+    va_list ap;
 
+    va_start(ap, key_fmt);
+    vsprintf(key, key_fmt, ap);
+    va_end(ap);
+    
+    //debug(LOG_DEBUG, "[CFG]\t\t\t Query '%s' from UCI.", key);
+    return okos_conf_get_option_value("/etc/config", key);
+}
+/*
 static t_client * okos_get_client_ifname(t_client *client)
 {
     system("/lib/getstainfo.sh");
@@ -1337,34 +1355,43 @@ static t_client * okos_get_client_ifname(t_client *client)
     okos_client_set_str(client->if_name, p_ifname);
     return client;
 }
+*/
 
-static int okos_show_station_info(void *data, int col_n, char **col_v, char **col_name)
+static int
+okos_show_station_info(
+        void *data,
+        int col_n,
+        char **col_v,
+        char **col_name
+        )
 {
     t_client *client = (t_client *)data;
     int i = 0;
     for (i = 0; i < col_n; i++) {
-        debug(LOG_DEBUG, "  ++ sqlite: key:%s, value:%s.", col_name[i], col_v[i] ? col_v[i] : "Nil");
+        debug(LOG_DEBUG, "<sqlite>\t\t key:%s, value:%s.", col_name[i], col_v[i] ? col_v[i] : "Nil");
         if (0 == strcasecmp(col_name[i], "IFNAME") && NULL != col_v[i]) {
-
             okos_client_set_strdup(client->if_name, col_v[i]);
-        } else if (0 == strcasecmp(col_name[i], "MAC")) {
+        } else if (0 == strcasecmp(col_name[i], "MAC") && NULL != col_v[i]) {
             okos_client_set_strdup(client->mac, col_v[i]);
         } else {
-            debug(LOG_DEBUG, "++!! sqlite: Got value UNREQUIRED.");
+            debug(LOG_DEBUG, "<sqlite>!! Got value[%s] UNREQUIRED.", col_name[i]);
         }
     }
     return 0;
 }
 
 
-static t_client * okos_get_client_iface(t_client *client)
+static t_client *
+okos_get_client_iface(
+        t_client *client
+        )
 {
     char *sql = NULL;
     if (NULL == client->ip) { /* ip => mac */
         return NULL;
     }
     client->mac = arp_get(client->ip);
-    debug(LOG_DEBUG, "++ sqlite: Query ARP table for (%s) => [%s]",
+    debug(LOG_DEBUG, "<sqlite>\t Query ARP table for (%s) => [%s]",
             client->ip, client->mac ? client->mac : "NULL");
     if (NULL != client->mac) { /* mac => if_name */
         safe_asprintf(&sql, "SELECT IFNAME from STAINFO " \
@@ -1379,43 +1406,46 @@ static t_client * okos_get_client_iface(t_client *client)
                 client->ip
                 );
     }
-    debug(LOG_DEBUG, "++ sqlite: '%s'", sql);
+    debug(LOG_DEBUG, "<sqlite>\t '%s'", sql);
 
     sqlite3 *sta_info_db = NULL;
     int db_result = sqlite3_open(station_info_db_file, &sta_info_db);
     if (0 != db_result) {
-        debug(LOG_ERR, "++!! Fail to open database %s:%s.",
+        debug(LOG_ERR, "<sqlite>!! Fail to open database %s:%s.",
                 station_info_db_file, sqlite3_errmsg(sta_info_db));
         free(sql);
         return NULL;
     }
-    debug(LOG_DEBUG, "++ sqliet: Open database %s successfully.", station_info_db_file);
+    debug(LOG_DEBUG, "<sqlite>\t Open database %s successfully.", station_info_db_file);
     
     char *err_msg = NULL;
     int rc = sqlite3_exec(sta_info_db, sql, okos_show_station_info, client, &err_msg);
     if (SQLITE_OK != rc) {
-        debug(LOG_WARNING, "++!! sqlite: Query ( %s ) Failed for %s.",
+        debug(LOG_WARNING, "<sqlite>!! Query ( %s ) Failed for %s.",
                 sql, err_msg);
         sqlite3_free(err_msg);
         client = NULL;
     } else {
         if (NULL == client->if_name) {
-            debug(LOG_DEBUG, "++!! sqlite return without error but if_name is NULL)");
+            debug(LOG_DEBUG, "<sqlite>!! Return without error but if_name is NULL)");
         } else if (NULL == client->mac) {
-            debug(LOG_DEBUG, "++!! sqlite return without error but mac is NULL)");
+            debug(LOG_DEBUG, "<sqlite>!! Return without error but mac is NULL)");
         } else {
-            debug(LOG_DEBUG, "++++ sqlite: Query ( %s ) successfully.", sql);
+            debug(LOG_DEBUG, "<sqlite>\t Query ( %s ) successfully.", sql);
         }
     }
 
     sqlite3_close(sta_info_db);
     free(sql);
-    debug(LOG_DEBUG, "++ sqliet: Close database.");
+    debug(LOG_DEBUG, "<sqlite>\t Close database.");
     
     return client;
 }
 
-t_client * okos_fill_client_info_by_stainfo(t_client *client)
+t_client *
+okos_fill_client_info_by_stainfo(
+        t_client *client
+        )
 {
 #if 0
     if (NULL != okos_get_client_ifname_by_stainfo(client)) {
@@ -1447,7 +1477,10 @@ t_client * okos_fill_client_info_by_stainfo(t_client *client)
 }
 
 #if 0
-t_client * okos_fill_client_info(t_client *client)
+t_client *
+okos_fill_client_info(
+        t_client *client
+        )
 {
     debug(LOG_INFO, "Fill the client info from config by hand.");
     
@@ -1474,7 +1507,11 @@ t_client * okos_fill_client_info(t_client *client)
 
 
 
-static int okos_get_bssid(char *p_ifname, char **pp_bssid)
+static int
+okos_get_bssid(
+        char *p_ifname,
+        char **pp_bssid
+        )
 {
     char line[256];
     char mac[18];
@@ -1495,7 +1532,7 @@ static int okos_get_bssid(char *p_ifname, char **pp_bssid)
                 strncpy(*pp_bssid, p_mac, sizeof(mac) - 1);
                 (*pp_bssid)[sizeof(mac) - 1] = '\0';
                 pclose(pf_ifconfig);
-                debug(LOG_DEBUG, "      >> iface(%s)'s bssid is:%s", p_ifname, *pp_bssid);
+                debug(LOG_DEBUG, "[CFG]\t\t\t iface(%s)'s bssid is:%s", p_ifname, *pp_bssid);
                 return 0;
             }
         }
@@ -1507,7 +1544,9 @@ static int okos_get_bssid(char *p_ifname, char **pp_bssid)
 
 
 void
-okos_config_init_default_auth_server(t_auth_serv *svr)
+okos_config_init_default_auth_server(
+        t_auth_serv *svr
+        )
 {
     svr->authserv_use_ssl = DEFAULT_AUTHSERVSSLAVAILABLE;
 
@@ -1523,7 +1562,11 @@ okos_config_init_default_auth_server(t_auth_serv *svr)
 
 #define okos_cfg_is_empty(str) ('\0' == str[0])
 
-static char * okos_conf_get_option_value(const char *p_path, const char *p_key)
+static char *
+okos_conf_get_option_value(
+        const char *p_path,
+        const char *p_key
+        )
 {
     char cfg[OKOS_WFD_MAX_STR_LEN];
     cfg[0] = 0;
@@ -1534,209 +1577,328 @@ static char * okos_conf_get_option_value(const char *p_path, const char *p_key)
     return NULL;
 }
 
-static void okos_config_read(void)
+static int
+okos_attach_vap_to_ssid(
+        int radio,
+        int vap,
+        t_ssid_config *p_ssid
+        )
+{
+    t_ath_if_list *p_iface = NULL;
+    p_iface = okos_conf_ins_list_member(p_ssid->if_list);
+    safe_asprintf(&p_iface->if_name, "ath%d%d", radio, vap);
+    int getBssidFailed = okos_get_bssid(p_iface->if_name, &p_iface->bssid);
+    if (getBssidFailed) {
+        p_iface->bssid = safe_strdup(config.device_id);
+    }
+    p_iface->ssid = p_ssid;
+
+    debug(LOG_DEBUG, "[CFG]\t\t\t Attach iface %s to ssid %s",
+            p_iface->if_name, p_ssid->ssid);
+    return getBssidFailed;
+}
+
+static int
+okos_load_authsvr_to_ssid(
+        struct portal_scheme_cfg *p_schm_cfg,
+        t_ssid_config *p_ssid
+        )
+{
+    t_auth_serv *p_auth_svr;
+    char cfg[OKOS_WFD_MAX_STR_LEN];
+    char host_name[OKOS_WFD_MAX_STR_LEN];
+    char host_path[OKOS_WFD_MAX_STR_LEN];
+    host_path[0] = '/';
+    int host_port = DEFAULT_AUTHSERVPORT;
+    if (1 == sscanf(p_schm_cfg->uri_path, "http://%s", cfg)) {
+        if ((3 == sscanf(cfg, "%[a-zA-Z0-9.]:%d/%s", host_name, &host_port, &host_path[1]))
+                || (2 == sscanf(cfg, "%[a-zA-Z0-9.]/%s", host_name, &host_path[1]))) {
+            p_auth_svr = okos_conf_ins_list_member(p_ssid->auth_servers);
+            okos_config_init_default_auth_server(p_auth_svr);
+            okos_conf_set_str(p_auth_svr->authserv_hostname, host_name);
+            okos_conf_set_str(p_auth_svr->authserv_path, host_path);
+            p_auth_svr->authserv_http_port = host_port;
+            debug(LOG_DEBUG, "[CFG]\t\t\t add auth server(%s) with path(%s) into ssid(%s)",
+                    p_auth_svr->authserv_hostname, p_auth_svr->authserv_path, p_ssid->ssid);
+            return 0;
+        }
+    }
+    debug(LOG_WARNING, "[CFG]!! Bad auth server path configuration<%s>", p_schm_cfg->uri_path);
+    return 1;
+}
+
+static int
+okos_load_ip_whitelist_to_ssid(
+        struct portal_scheme_cfg *p_schm_cfg,
+        t_ssid_config *p_ssid
+        )
+{
+    t_firewall_ruleset *p_ip_wlist;
+    t_firewall_rule *p_ipx;
+    p_ip_wlist = okos_conf_ins_list_member(p_ssid->ip_white_list);
+    p_ip_wlist->name = safe_strdup("ip white list");
+    debug(LOG_DEBUG, "[CFG]\t\t load ip white list into ssid(%s)", p_ssid->ssid);
+    int i_ip;
+    for (i_ip = 0; i_ip < p_schm_cfg->ip_num; i_ip++) {
+        p_ipx = okos_conf_ins_list_member(p_ip_wlist->rules);
+        struct in_addr ipaddr;
+        ipaddr.s_addr = p_schm_cfg->ip_list[i_ip].ip;
+        p_ipx->mask = safe_strdup(inet_ntoa(ipaddr));
+        p_ipx->target = TARGET_ACCEPT;
+        debug(LOG_DEBUG, "[CFG]\t\t\t load rule for %s", p_ipx->mask);
+    }
+    return 0;
+}
+
+static int
+okos_load_dn_whitelist_to_ssid(
+        struct portal_scheme_cfg *p_schm_cfg,
+        t_ssid_config *p_ssid
+        )
+{
+    struct dns_set_t *p_tmp, *p_dns = NULL;
+    t_firewall_ruleset *p_dn_wlist;
+    t_firewall_rule *p_dn_white;
+
+    struct dns_set_t *p_dns_list = dnsset_cfg_getall();
+
+    p_dn_wlist = okos_conf_ins_list_member(p_ssid->dn_white_list);
+    p_dn_wlist->name = safe_strdup("dn white list");
+    debug(LOG_DEBUG, "[CFG]\t\t load domain name white list into ssid(%s)", p_ssid->ssid);
+    okos_list_for_each(p_tmp, p_dns_list) {
+        if (p_tmp->enable && 0 == strcmp(p_tmp->name, p_schm_cfg->dns_set)) {
+            p_dns = p_tmp;
+            break;
+        }
+    }
+
+    if (NULL != p_dns) {
+        debug(LOG_DEBUG, "[CFG]\t\t found domain name set configuration [%s].",
+                p_schm_cfg->dns_set);
+        int i_key;
+        struct key_list *p_key;
+        okos_list_for_each_loop(p_key, p_dns->keylist,
+                i_key = 0, i_key < p_dns->keycount, i_key++) {
+            p_dn_white = okos_conf_ins_list_member(p_dn_wlist->rules);
+            p_dn_white->target = TARGET_ACCEPT;
+            p_dn_white->mask = safe_strdup(p_key->key);
+            debug(LOG_DEBUG, "[CFG]\t\t\t load rule for %s", p_dn_white->mask);
+        }
+    }
+
+    dnsset_cfg_free(p_dns_list);
+    return 0;
+}
+
+static int
+okos_load_mac_white_list_to_ssid(
+        char *acl_name,
+        t_ssid_config *p_ssid
+        )
+{
+    /* Get ALL the ACLs */
+    struct wlan_acl_stats *acls;
+    int isEmpty = wlan_get_acl_all(&acls); // it will malloc all memory
+    if (isEmpty) {
+        debug(LOG_DEBUG, "[CFG]!! MAC white list is empty.");
+        return 1;
+    }
+
+    /* Polling in ACLs to match ACL name in scheme */
+    struct wlan_acl_status *acl = NULL;
+    int i_acl;
+    for (i_acl = 0; i_acl < acls->acl_count; i_acl++) {
+        if (0 == strcmp(acls->acl[i_acl].name, acl_name)) {
+            acl = acls->acl + i_acl;
+            break;
+        }
+    }
+
+    if (NULL != acl) {
+        debug(LOG_DEBUG, "[CFG]\t\t Load ACL(%s) on SSID(%s).",
+                acl_name, p_ssid->ssid);
+        t_trusted_mac *p_mac_wlist;
+        int i_mac;
+        unsigned char *mac;
+        for (i_mac = 0; i_mac < acl->count; i_mac++) {
+            mac = acl->maclist[i_mac].mac;
+            p_mac_wlist = okos_conf_ins_list_member(p_ssid->mac_white_list);
+            safe_asprintf(&p_mac_wlist->mac, "%02x:%02x:%02x:%02x:%02x:%02x",
+                    mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+            debug(LOG_DEBUG, "[CFG]\t\t\t Insert MAC[%s]", p_mac_wlist->mac);
+        }
+    }
+
+    wlan_free_acl_all(acls);
+    return 0;
+}
+
+static t_ssid_config *
+okos_load_ssid(
+        int svc_tmp_id
+        )
+{
+    /*-----------------------------------------------------------------
+     * STEP1: After getting the service template SN.,
+     *        Checking whether this SSID was configured as Portal Mode
+     *        by querying 'portal_scheme' variable.
+     *----------------------------------------------------------------*/
+    char *scheme_name = okos_conf_get_option_value_from_config(
+            "wlan_service_template.ServiceTemplate%d.portal_scheme", svc_tmp_id);
+    if (NULL == scheme_name) {
+        debug(LOG_DEBUG, "[CFG]\t\t Template[%d] works out of Portal mode.", svc_tmp_id);
+        return NULL;
+    }
+
+    /*-----------------------------------------------------------------
+     * STEP2: Got a service template enabled portal.
+     *        So, should do
+     *        1) Polling portal schemes by scheme name.
+     *        2) Create ssid element;
+     *        2.1) Copy AuthSvr Cfg.
+     *        2.2) Copy Domain name & IP white list.
+     *        3) Attach this VAP.
+     *----------------------------------------------------------------*/
+    struct portal_schemes *p_schemes = safe_malloc(sizeof(struct portal_schemes));
+    portal_scheme_get_all(p_schemes);
+    struct portal_scheme_cfg *p_schm_cfg = NULL;
+    struct portal_scheme_cfg *p_tmp = p_schemes->config;
+    int i_schm;
+    for (i_schm = 0; i_schm < p_schemes->num && p_tmp->enable; i_schm++, p_tmp++) {
+        if (0 == strncmp(p_tmp->scheme_name, scheme_name, strlen(scheme_name))) {
+            p_schm_cfg = p_tmp;
+            break;
+        }
+    }
+
+    t_ssid_config *p_ssid = NULL;
+    if (NULL != p_schm_cfg) {
+        p_ssid = okos_conf_ins_list_member(config.ssid_conf);
+        p_ssid->scheme_name = scheme_name;
+        p_ssid->sn = svc_tmp_id;
+        p_ssid->ssid = okos_conf_get_option_value_from_config(
+                "wlan_service_template.ServiceTemplate%d.ssid", svc_tmp_id);
+        p_ssid->ssid = p_ssid->ssid ? p_ssid->ssid : "OkOS";
+        debug(LOG_DEBUG, "[CFG]\t\t Created ssid(%s) scheme(%s) sn(%d).",
+                p_ssid->ssid, p_ssid->scheme_name, p_ssid->sn);
+
+        okos_load_authsvr_to_ssid(p_schm_cfg, p_ssid);
+        okos_load_ip_whitelist_to_ssid(p_schm_cfg, p_ssid);
+        okos_load_dn_whitelist_to_ssid(p_schm_cfg, p_ssid);
+
+        char *acl_name = okos_conf_get_option_value_from_config(
+                "wlan_service_template.ServiceTemplate%d.acl", svc_tmp_id);
+        if (NULL != acl_name) {
+            okos_load_mac_white_list_to_ssid(acl_name, p_ssid);
+        }
+        free(acl_name);
+    } else {
+        debug(LOG_DEBUG, "[CFG]!! Can't find out Portal Scheme(%s) set in template(%d)",
+                scheme_name, svc_tmp_id);
+        free(scheme_name);
+    }
+
+    portal_scheme_free_all(p_schemes);
+
+    return p_ssid;
+}
+
+static void
+okos_config_read(void)
 {
     struct wlan_radio_info *p_rdcfg = safe_malloc(sizeof(struct wlan_radio_info));
     wlan_radio_get_all(p_rdcfg);
     //struct service_template *p_stcfg = safe_malloc(sizeof(struct service_template));
     //wlan_service_template_get_all(p_stcfg);
-    struct portal_schemes *p_schemes = safe_malloc(sizeof(struct portal_schemes));
-    portal_scheme_get_all(p_schemes);
-    struct dns_set_t *p_dns_list = dnsset_cfg_getall();
-    struct dns_set_t *p_dns;
-    struct key_list *p_key;
 
-    struct portal_scheme_cfg *p_schm_cfg;
     t_ssid_config *p_ssid = NULL;
-    t_auth_serv *p_auth_svr;
-    t_trusted_mac *p_mac_wlist;
-    t_firewall_ruleset *p_ip_wlist;
-    t_firewall_ruleset *p_dn_wlist;
-    t_firewall_rule *p_ipx;
-    t_firewall_rule *p_dn_white;
 
-    char cfg[OKOS_WFD_MAX_STR_LEN];
-    char tuple[OKOS_WFD_MAX_STR_LEN];
-
-    debug(LOG_INFO, "<CFG> >> Reading configuration from uci...\n"); 
+    debug(LOG_INFO, "[CFG] Reading configuration from uci.\n"); 
 
     config.device_id = okos_conf_get_option_value_from_config("productinfo.@productinfo[0].mac");
     if (config.device_id) {
-        debug(LOG_DEBUG, ">> Parsing {device_id, %s}", config.device_id);
+        debug(LOG_DEBUG, "[CFG]\t Parsing {device_id: %s}", config.device_id);
     } else {
         int r = rand() % 0x10000;
         safe_asprintf(&config.device_id, "00:4f:61:6b:%02x:%02x", (r>>8)&0xff, r&0xff);
-        debug(LOG_DEBUG, ">>!! Parsing device_id UNCOMPLETED. Filled by [%s]", config.device_id);
+        debug(LOG_DEBUG, "[CFG]!! Parsing device_id UNCOMPLETED. Filled by [%s]", config.device_id);
     }
     config.domain_name = okos_conf_get_option_value_from_config("system.domain.domain");
     if (config.domain_name) {
-        debug(LOG_DEBUG, ">> Parsing {domain_name, %s}", config.domain_name);
+        debug(LOG_DEBUG, "[CFG]\t Parsing {domain_name: %s}", config.domain_name);
     } else {
-        debug(LOG_DEBUG, ">>!! Parsing domain_name UNCOMPLETED.");
+        debug(LOG_DEBUG, "[CFG]!! Parsing domain_name UNCOMPLETED.");
+        config.domain_name = safe_strdup("");
     }
 
-    int i_rd, i_vap, i_svc_tmp_id, ssidLoaded;
-    char *p_tmp = NULL;
-    debug(LOG_DEBUG, ">> Checking configuration of total %d Radioes.", p_rdcfg->num);
-    for (i_rd = 0; i_rd < p_rdcfg->num; i_rd++) {
-        if (1 != p_rdcfg->radioinfo[i_rd].enable) {
-            debug(LOG_DEBUG,">>>> Radio.%d is DISABLED", i_rd);
-            continue;
-        }
-        debug(LOG_DEBUG, ">>>> Checking configuration of total %d VAP, on Radio.%d.",
+    /*-------------------------------------------------------------
+     * Purpose of this block:
+     * Install SSID configuration from 'wlan_service_template'
+     * Since SSID, Portal Configuration are all restored in it.
+     *------------------------------------------------------------*/
+    int i_rd, i_vap, i_svc_tmp_id, ssid_is_loaded;
+    debug(LOG_DEBUG, "[CFG]\t Checking configuration of total %d Radioes.", p_rdcfg->num);
+    for (i_rd = 0; i_rd < p_rdcfg->num && p_rdcfg->radioinfo[i_rd].enable; i_rd++) {
+        debug(LOG_DEBUG, "[CFG]\t\t Checking configuration of total %d VAP, on Radio.%d.",
                 p_rdcfg->radioinfo[i_rd].count, i_rd);
+
         for (i_vap = 0; i_vap < p_rdcfg->radioinfo[i_rd].count; i_vap++) {
+
+            /*-----------------------------------------------------------------
+             * STEP1: Get template SN.
+             *        If The template associated to this VAP has been installed,
+             *        1) Attach it.
+             *        2) Skip it.
+             *----------------------------------------------------------------*/
             i_svc_tmp_id = p_rdcfg->radioinfo[i_rd].service[i_vap];
-            ssidLoaded = 0;
+            ssid_is_loaded = 0;
             okos_list_for_each(p_ssid, config.ssid_conf) {
                 if (i_svc_tmp_id == (int)p_ssid->sn) {
-                    debug(LOG_DEBUG, ">>>> ssid(%s) on {raido.%d,vap.%d} has been loaded with sn[%d]",
-                            p_ssid->ssid, i_rd, i_vap, i_svc_tmp_id);
-                    ssidLoaded = 1;
+                    debug(LOG_DEBUG, "[CFG]]\t\t {radio.%d vap.%d} is attached to template [%d].",
+                            i_rd, i_vap, i_svc_tmp_id);
+                    okos_attach_vap_to_ssid(i_rd, i_vap, p_ssid);
+                    ssid_is_loaded = 1;
                     break;
-                } else {
-                    debug(LOG_DEBUG, ">>>> Checking ssid(%s) with sn[%d].", p_ssid->ssid, p_ssid->sn);
                 }
             }
-            if (ssidLoaded) {
+            if (ssid_is_loaded) {
                 continue;
             }
 
-            debug(LOG_DEBUG, ">>>> {radio.%d, vap.%d} has been configured ssid with sn[%d].",
-                    i_rd, i_vap, i_svc_tmp_id);
-            // all the VAP i/f is here.
-            sprintf(tuple, "wlan_service_template.ServiceTemplate%d.portal_scheme", i_svc_tmp_id);
-            p_tmp = okos_conf_get_option_value_from_config(tuple);
-            if (NULL == p_tmp) {
-                continue;
-            }
-
-            /* Got a service template enabled portal. So, should do
-             * 1) Create ssid element;
-             * 2) Polling portal schemes by scheme name got here.
-             */
-            p_ssid = okos_conf_ins_list_member(config.ssid_conf);
-            p_ssid->scheme_name = p_tmp;
-            p_ssid->sn = i_svc_tmp_id;
-            sprintf(tuple, "wlan_service_template.ServiceTemplate%d.ssid", p_ssid->sn);
-            p_ssid->ssid = okos_conf_get_option_value_from_config(tuple);
-            debug(LOG_DEBUG, ">>>> {radio.%d, vap.%d} configured ssid(%s) scheme(%s) sn(%d).",
-                    i_rd, i_vap, p_ssid->ssid, p_ssid->scheme_name, p_ssid->sn);
-
-            int i_schm;
-            for (i_schm = 0, p_schm_cfg = p_schemes->config;
-                    i_schm < p_schemes->num && p_schm_cfg->enable;
-                    i_schm++, p_schm_cfg++) {
-                if (0 != strncmp(p_schm_cfg->scheme_name, p_ssid->scheme_name, strlen(p_ssid->scheme_name))) {
-                    continue;
-                }
-                
-                char host_name[OKOS_WFD_MAX_STR_LEN];
-                char host_path[OKOS_WFD_MAX_STR_LEN];
-                host_path[0] = '/';
-                int host_port = DEFAULT_AUTHSERVPORT;
-                if (1 == sscanf(p_schm_cfg->uri_path, "http://%s", cfg)) {
-                    if ((3 == sscanf(cfg, "%[a-zA-Z0-9.]:%d/%s", host_name, &host_port, &host_path[1]))
-                            || (2 == sscanf(cfg, "%[a-zA-Z0-9.]/%s", host_name, &host_path[1]))) {
-                        p_auth_svr = okos_conf_ins_list_member(p_ssid->auth_servers);
-                        okos_config_init_default_auth_server(p_auth_svr);
-                        okos_conf_set_str(p_auth_svr->authserv_hostname, host_name);
-                        okos_conf_set_str(p_auth_svr->authserv_path, host_path);
-                        p_auth_svr->authserv_http_port = host_port;
-                        debug(LOG_DEBUG, "  >>>> add auth server(%s) with path(%s) into ssid(%s)",
-                                p_auth_svr->authserv_hostname, p_auth_svr->authserv_path, p_ssid->ssid);
-                    } else {
-                        debug(LOG_WARNING, "  >>!! Bad auth server path configuration<%s>", p_schm_cfg->uri_path);
-                    }
-                }
-
-                p_ip_wlist = okos_conf_ins_list_member(p_ssid->ip_white_list);
-                p_ip_wlist->name = safe_strdup("ip white list");
-                debug(LOG_DEBUG, "  >>>> load ip white list into ssid(%s)", p_ssid->ssid);
-                int i_ip;
-                for (i_ip = 0; i_ip < p_schm_cfg->ip_num; i_ip++) {
-                    p_ipx = okos_conf_ins_list_member(p_ip_wlist->rules);
-                    struct in_addr ipaddr;
-                    ipaddr.s_addr = p_schm_cfg->ip_list[i_ip].ip;
-                    p_ipx->mask = safe_strdup(inet_ntoa(ipaddr));
-                    p_ipx->target = TARGET_ACCEPT;
-                    debug(LOG_DEBUG, "    >> load rule for %s", p_ipx->mask);
-                }
-
-                p_dn_wlist = okos_conf_ins_list_member(p_ssid->dn_white_list);
-                p_dn_wlist->name = safe_strdup("dn white list");
-                debug(LOG_DEBUG, "  >>>> load domain name white list into ssid(%s)", p_ssid->ssid);
-                okos_list_for_each(p_dns, p_dns_list) {
-                    if (!p_dns->enable || 0 != strcmp(p_dns->name, p_schm_cfg->dns_set)) {
-                        continue;
-                    }
-
-                    debug(LOG_DEBUG, "    >> found domain name set configuration [%s].", p_schm_cfg->dns_set);
-                    int i_key;
-                    okos_list_for_each_loop(p_key, p_dns->keylist,
-                            i_key = 0, i_key < p_dns->keycount, i_key++) {
-                        p_dn_white = okos_conf_ins_list_member(p_dn_wlist->rules);
-                        p_dn_white->target = TARGET_ACCEPT;
-                        p_dn_white->mask = safe_strdup(p_key->key);
-                        debug(LOG_DEBUG, "    >> load rule for %s", p_dn_white->mask);
-                    }
-                    break;
-                }
-
-                break;
-            }
-        }
-    }
-
-    debug(LOG_DEBUG, ">> Polling ATH ifaces, and attach to ssid built up.");
-    t_ath_if_list *p_iface = NULL;
-    int vapGotLost;
-    for (i_rd = 0; i_rd < p_rdcfg->num; i_rd++) {
-        if (1 != p_rdcfg->radioinfo[i_rd].enable) {
-            debug(LOG_DEBUG,">>>> Radio.%d is DISABLED", i_rd);
-            continue;
-        }
-        for (i_vap = 0; i_vap < p_rdcfg->radioinfo[i_rd].count; i_vap++) {
-            debug(LOG_DEBUG, ">>>> Checking {radio.%d, vap.%d}.", i_rd, i_vap);
-            vapGotLost = 1;
-            okos_list_for_each(p_ssid, config.ssid_conf) {
-                if ((int)p_ssid->sn == p_rdcfg->radioinfo[i_rd].service[i_vap]) {
-                    p_iface = okos_conf_ins_list_member(p_ssid->if_list);
-                    safe_asprintf(&p_iface->if_name, "ath%d%d", i_rd, i_vap);
-                    int getBssidFailed = okos_get_bssid(p_iface->if_name, &p_iface->bssid);
-                    if (getBssidFailed) {
-                        p_iface->bssid = safe_strdup(config.device_id);
-                    }
-                    p_iface->ssid = p_ssid;
-
-                    debug(LOG_DEBUG, ">>>> Attach iface %s to ssid %s", p_iface->if_name, p_ssid->ssid);
-                    vapGotLost = 0;
-                    break;
-                }
-            }
-            if (vapGotLost) {
-                debug(LOG_DEBUG, ">>!! {radio.%d, vap.%d} can't find corresponding ssid.", i_rd, i_vap);
+            /*-----------------------------------------------------------------
+             * STEP2: Try to Load SSID configuration and attch ath i/f.
+             *        If The template does not work in Portal mode,
+             *        Skip it.
+             *----------------------------------------------------------------*/
+            p_ssid = okos_load_ssid(i_svc_tmp_id);
+            if (NULL == p_ssid) {
+                debug(LOG_DEBUG, "[CFG]!! {radio.%d, vap.%d} load service templete %d failed!",
+                        i_rd, i_vap, i_svc_tmp_id);
+            } else {
+                debug(LOG_DEBUG, "[CFG]\t\t {radio.%d, vap.%d} load template [%d] successfully.",
+                        i_rd, i_vap, i_svc_tmp_id);
+                okos_attach_vap_to_ssid(i_rd, i_vap, p_ssid);
             }
         }
     }
 
     free(p_rdcfg);
     //free(p_stcfg);
-    portal_scheme_free_all(p_schemes);
-    dnsset_cfg_free(p_dns_list);
 
-    debug(LOG_INFO, "<CFG> >> Reading configuration from uci finished...\n");
+    debug(LOG_INFO, "[CFG] Reading configuration from uci finished.\n");
 }
 
 
-void config_simulate(void)
+void
+config_simulate(void)
 {
     okos_config_read();
 }
 
 
 #if 0
-static void okos_simulate_3ssid(void)
+static void
+okos_simulate_3ssid(void)
 {
 
     s_config *my_config = &config;
@@ -1907,7 +2069,10 @@ static void okos_simulate_3ssid(void)
 
 
 
-t_ssid_config * okos_conf_get_ssid_by_name(const char *name)
+t_ssid_config *
+okos_conf_get_ssid_by_name(
+        const char *name
+        )
 {
     if (NULL == name)
         return NULL;
@@ -1921,7 +2086,10 @@ t_ssid_config * okos_conf_get_ssid_by_name(const char *name)
     return NULL;
 }
 
-t_ath_if_list * okos_conf_get_ifx_by_name(const char *name)
+t_ath_if_list *
+okos_conf_get_ifx_by_name(
+        const char *name
+        )
 {
     if (NULL == name)
         return NULL;
@@ -1942,7 +2110,10 @@ t_ath_if_list * okos_conf_get_ifx_by_name(const char *name)
 #define OKOS_CONF_APP_INT(msg, num) pstr_append_sprintf(p_str, "%s: %d\n", msg, num)
 #define OKOS_CONF_APP_STR(msg, str) pstr_append_sprintf(p_str, "%s: %s\n", msg, OKOS_CONF_GET_STR(str))
 
-static char * okos_conf_parse_target(int target)
+static char *
+okos_conf_parse_target(
+        int target
+        )
 {
     switch(target) {
         case TARGET_DROP:
@@ -1960,7 +2131,11 @@ static char * okos_conf_parse_target(int target)
     }
 }
 
-static void okos_conf_get_firewall(pstr_t * p_str, t_firewall_rule *p_head)
+static void
+okos_conf_get_firewall(
+        pstr_t * p_str,
+        t_firewall_rule *p_head
+        )
 {
     t_firewall_rule *p_rule;
     okos_list_for_each(p_rule, p_head) {

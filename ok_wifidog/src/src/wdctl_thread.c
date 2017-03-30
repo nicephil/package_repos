@@ -449,7 +449,7 @@ static int okos_judge_mac(const char *p_mac)
 
 static void okos_wdctl_query_mac(int fd, const char *p_mac, const char *p_ssid)
 {
-	debug(LOG_DEBUG, "<WDCTL> Entering wdctl_query_mac...");
+	debug(LOG_DEBUG, "<WDCTL> Entering wdctl_query_mac.");
 	debug(LOG_DEBUG, "<WDCTL> Argument: {mac = %s; ssid = %s}", p_mac, p_ssid);
 
 	if (!okos_judge_mac(p_mac)) {
@@ -463,8 +463,11 @@ static void okos_wdctl_query_mac(int fd, const char *p_mac, const char *p_ssid)
 	}
 
 	char *p_client_info = okos_get_client_status_text(p_mac, p_ssid);
+
+    debug(LOG_DEBUG, "<WDCTL> Output client information.");
 	write_to_socket(fd, p_client_info, strlen(p_client_info));
 	free(p_client_info);
+    debug(LOG_DEBUG, "<WDCTL> Existing wdctl_query_mac.");
 }
 
 static void okos_wdctl_config(int fd)
@@ -472,12 +475,15 @@ static void okos_wdctl_config(int fd)
     char *s_config = NULL;
     size_t len = 0;
 
+    debug(LOG_DEBUG, "<WDCTL> Entering wdctl_config.");
 	s_config = okos_conf_get_all();
     len = strlen(s_config);
 
-    write_to_socket(fd, s_config, len);   /* XXX Not handling error because we'd just print the same log line. */
+    debug(LOG_DEBUG, "<WDCTL> Output all the configuration.");
+    write_to_socket(fd, s_config, len);
 
     free(s_config);
+    debug(LOG_DEBUG, "<WDCTL> Existing wdctl_config.");
 }
 
 #endif

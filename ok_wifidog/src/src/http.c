@@ -899,8 +899,8 @@ static int okos_update_callback(void *data, int col_n, char **_v, char **_k)
 {
     int i;
     for (i = 0; i < col_n; i++) {
-        debug(LOG_DEBUG, "++++ sqlite: %s", data ? data : "");
-        debug(LOG_DEBUG, "  ++ key:%s; value:%s", _k[i], _v[i] ? _v[i]: "Nil");
+        debug(LOG_DEBUG, "<sqlite>\t %s", data ? data : "");
+        debug(LOG_DEBUG, "<sqlite>\t\t key:%s; value:%s", _k[i], _v[i] ? _v[i]: "Nil");
     }
     return 0;
 }
@@ -910,7 +910,7 @@ static void okos_update_station_info(t_client *client)
     sqlite3 *sta_info_db = NULL;
     int db_result = sqlite3_open(station_info_db_file, &sta_info_db);
     if (0 == db_result) {
-        debug(LOG_DEBUG, "++ sqlite: Open database %s successfully.", station_info_db_file);
+        debug(LOG_DEBUG, "<sqlite>\t Open database %s successfully.", station_info_db_file);
         /* Create merged SQL statement */
         char *sql = NULL;
         safe_asprintf(&sql, "UPDATE STAINFO set " \
@@ -924,23 +924,23 @@ static void okos_update_station_info(t_client *client)
                 client->mac,
                 client->mac
                 );
-        debug(LOG_DEBUG, "++ sqlite: '%s':", sql);
+        debug(LOG_DEBUG, "<sqlite>\t '%s':", sql);
 
         /* Execute SQL statement */
         char *err_msg = NULL;
         int rc = sqlite3_exec(sta_info_db, sql, okos_update_callback, (void*)NULL, &err_msg);
         if (SQLITE_OK != rc) {
-            debug(LOG_DEBUG, "++!! sqlite: Update '%s' failed with %s", sql, err_msg);
+            debug(LOG_DEBUG, "<sqlite>!! Update '%s' failed with %s", sql, err_msg);
             sqlite3_free(err_msg);
         }else{
-            debug(LOG_DEBUG, "++++ sqlite: Update '%s' successfully.", sql);
+            debug(LOG_DEBUG, "<sqlite>\t Update '%s' successfully.", sql);
         }
 
         free(sql);
         sqlite3_close(sta_info_db);
-        debug(LOG_DEBUG, "++ sqliet: Close database.");
+        debug(LOG_DEBUG, "<sqlite>\t Close database.");
     } else {
-        debug(LOG_WARNING, "++!! Fail to open database %s:%s.",
+        debug(LOG_WARNING, "<sqlite>!! Fail to open database %s:%s.",
                 station_info_db_file, sqlite3_errmsg(sta_info_db));
     }
 }
