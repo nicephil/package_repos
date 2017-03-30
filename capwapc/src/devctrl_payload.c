@@ -112,7 +112,7 @@ static int dc_json_config_response(devctrl_block_s *dc_block, void *reserved)
 
 static int dc_json_config_finished(void *reserved)
 {
-    system("/lib/okos/restartservices.sh&");
+    system("/lib/okos/restartservices.sh");
     dc_stop_cawapc();
     dc_restart_cawapc();
 
