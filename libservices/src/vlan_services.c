@@ -70,7 +70,7 @@ int vlan_create(int vlanid, int endid)
         if (vlanid == 1) {
             cfg_set_option_value(tuple, "0t 1");
         } else {
-            cfg_set_option_value(tuple, "0t");
+            cfg_set_option_value(tuple, "0t 1t");
         }
 
         //set default value here
