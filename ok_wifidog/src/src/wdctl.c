@@ -50,6 +50,7 @@ static size_t send_request(int, const char *);
 static void wdctl_status(void);
 static void wdctl_stop(void);
 static void wdctl_reset(void);
+static void wdctl_offline(void);
 static void wdctl_restart(void);
 
 /** @internal
@@ -67,11 +68,12 @@ usage(void)
     fprintf(stdout, "  -h                Print usage\n");
     fprintf(stdout, "\n");
     fprintf(stdout, "commands:\n");
-    fprintf(stdout, "  reset mac [ssid]  Reset the specified mac or ip connection\n");
-    fprintf(stdout, "  status            Obtain the status of wifidog\n");
-    fprintf(stdout, "  stop              Stop the running wifidog\n");
-    fprintf(stdout, "  restart           Re-start the running wifidog (without disconnecting active users!)\n");
-	fprintf(stdout, "  query mac [ssid]  Obtain the status of a client\n");
+    fprintf(stdout, "  reset mac [ssid]      Reset the specified mac or ip connection\n");
+    fprintf(stdout, "  offline mac [scheme]  Offline the specified mac or ip connection\n");
+    fprintf(stdout, "  status                Obtain the status of wifidog\n");
+    fprintf(stdout, "  stop                  Stop the running wifidog\n");
+    fprintf(stdout, "  restart               Re-start the running wifidog\n");
+	fprintf(stdout, "  query mac [ssid]      Obtain the status of a client\n");
     fprintf(stdout, "\n");
 }
 
@@ -130,7 +132,7 @@ parse_commandline(int argc, char **argv)
     } else if (strcmp(*(argv + optind), "reset") == 0) {
         config.command = WDCTL_KILL;
         if ((argc - (optind + 1)) <= 0) {
-            fprintf(stderr, "wdctl: Error: You must specify an IP " "or a Mac address to reset\n");
+            fprintf(stderr, "wdctl: Error: You must specify a Mac address to reset\n");
             usage();
             exit(1);
         }
@@ -141,6 +143,17 @@ parse_commandline(int argc, char **argv)
     } else if (strcmp(*(argv + optind), "restart") == 0) {
         config.command = WDCTL_RESTART;
 #if OK_PATCH
+    } else if (strcmp(*(argv + optind), "offline") == 0) {
+        config.command = WDCTL_OFFLINE;
+        if ((argc - (optind + 1)) <= 0) {
+            fprintf(stderr, "wdctl: Error: You must specify a Mac address to do offline\n");
+            usage();
+            exit(1);
+        }
+        config.param = strdup(*(argv + optind + 1));
+		if ((argc - (optind + 1)) == 2) {
+			config.param1 = strdup(*(argv + optind + 2));
+		}
 	} else if (strcmp(*(argv + optind), "query") == 0) {
 		config.command = WDCTL_QUERY;
         if ((argc - (optind + 1)) <= 0) {
@@ -294,6 +307,47 @@ wdctl_reset(void)
 }
 
 #if OK_PATCH
+static void
+wdctl_offline(void)
+{
+    int sock;
+    char buffer[4096];
+    char request[256];
+    size_t len;
+    ssize_t rlen;
+
+    sock = connect_to_server(config.socket);
+
+    strncpy(request, "offline ", 256);
+    strncat(request, config.param, (256 - strlen(request) - 1));
+    if (config.param1) {
+        strncat(request, " ", (256 - strlen(request) - 1));
+        strncat(request, config.param1, (256 - strlen(request) - 1));
+    }
+    strncat(request, "\r\n\r\n", (256 - strlen(request) - 1));
+
+    send_request(sock, request);
+
+    len = 0;
+    memset(buffer, 0, sizeof(buffer));
+    while ((len < sizeof(buffer)) && ((rlen = read(sock, (buffer + len), (sizeof(buffer) - len))) > 0)) {
+        len += (size_t) rlen;
+    }
+
+    if (strcmp(buffer, "Yes") == 0) {
+        fprintf(stdout, "Connection {%s:%s} successfully reset.\n", config.param, config.param1 ? config.param1 : "*");
+    } else if (strcmp(buffer, "No") == 0) {
+        fprintf(stdout, "Connection {%s:%s} was not active.\n", config.param, config.param1 ? config.param1 : "*");
+    } else if (strcmp(buffer, "Bad") == 0) {
+        fprintf(stdout, "MAC address {%s:%s} couldn't be recoganized.\n", config.param, config.param1 ? config.param1 : "*");
+    } else {
+        fprintf(stdout, "%s", buffer);
+    }
+
+    shutdown(sock, 2);
+    close(sock);
+}
+
 static void wdctl_config(void)
 {
     int sock;
@@ -409,6 +463,9 @@ main(int argc, char **argv)
 	case WDCTL_CONFIG:
 		wdctl_config();
 		break;
+    case WDCTL_OFFLINE:
+        wdctl_offline();
+        break;
 #endif
 
     default:

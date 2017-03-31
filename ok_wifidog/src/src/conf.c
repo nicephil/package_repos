@@ -1633,12 +1633,14 @@ okos_load_ip_whitelist_to_ssid(
         t_ssid_config *p_ssid
         )
 {
-    t_firewall_ruleset *p_ip_wlist;
-    t_firewall_rule *p_ipx;
-    p_ip_wlist = okos_conf_ins_list_member(p_ssid->ip_white_list);
-    p_ip_wlist->name = safe_strdup("ip white list");
+    /* Create IP White List on SSID anyway. */
+    t_firewall_ruleset *p_ip_wlist = okos_conf_ins_list_member(p_ssid->ip_white_list);
+    p_ip_wlist->name = safe_strdup("IP White List");
     debug(LOG_DEBUG, "[CFG]\t\t load ip white list into ssid(%s)", p_ssid->ssid);
+
+    /* Polling the Configuration in Portal Scheme Directly */
     int i_ip;
+    t_firewall_rule *p_ipx;
     for (i_ip = 0; i_ip < p_schm_cfg->ip_num; i_ip++) {
         p_ipx = okos_conf_ins_list_member(p_ip_wlist->rules);
         struct in_addr ipaddr;
@@ -1656,27 +1658,39 @@ okos_load_dn_whitelist_to_ssid(
         t_ssid_config *p_ssid
         )
 {
-    struct dns_set_t *p_tmp, *p_dns = NULL;
-    t_firewall_ruleset *p_dn_wlist;
-    t_firewall_rule *p_dn_white;
-
-    struct dns_set_t *p_dns_list = dnsset_cfg_getall();
-
-    p_dn_wlist = okos_conf_ins_list_member(p_ssid->dn_white_list);
-    p_dn_wlist->name = safe_strdup("dn white list");
+    /* Create Domain Name List on SSID anyway */
+    t_firewall_ruleset *p_dn_wlist = okos_conf_ins_list_member(p_ssid->dn_white_list);
+    p_dn_wlist->name = safe_strdup("Domain Name White List");
     debug(LOG_DEBUG, "[CFG]\t\t load domain name white list into ssid(%s)", p_ssid->ssid);
+
+    if (0 == strlen(p_schm_cfg->dns_set)) { /* No Domain Name White List set in Portal Scheme */
+        debug(LOG_DEBUG, "[CFG]\t\t\t No Domain Name White List setting on SSID(%s)",
+                p_ssid->ssid);
+        return 0;
+    }
+
+    /*---------------------------------------------------------------
+     * STEP 1: Load All the Domain Name Set Configuration 
+     * STEP 2: Polling in the Set to find out a list:
+     *         1) It is enabled;
+     *         2) Its name matches the setting in template.
+     *-------------------------------------------------------------*/
+    struct dns_set_t *p_dns_list = dnsset_cfg_getall();
+    struct dns_set_t *p_tmp, *p_dns = NULL;
     okos_list_for_each(p_tmp, p_dns_list) {
-        if (p_tmp->enable && 0 == strcmp(p_tmp->name, p_schm_cfg->dns_set)) {
+        if (p_tmp->enable &&
+                0 == strcmp(p_tmp->name, p_schm_cfg->dns_set)) {
             p_dns = p_tmp;
             break;
         }
     }
 
-    if (NULL != p_dns) {
-        debug(LOG_DEBUG, "[CFG]\t\t found domain name set configuration [%s].",
+    if (NULL != p_dns) { /* Install Domain Name White List into SSID */
+        debug(LOG_DEBUG, "[CFG]\t\t Install domain name set configuration [%s].",
                 p_schm_cfg->dns_set);
         int i_key;
         struct key_list *p_key;
+        t_firewall_rule *p_dn_white;
         okos_list_for_each_loop(p_key, p_dns->keylist,
                 i_key = 0, i_key < p_dns->keycount, i_key++) {
             p_dn_white = okos_conf_ins_list_member(p_dn_wlist->rules);
@@ -1684,6 +1698,9 @@ okos_load_dn_whitelist_to_ssid(
             p_dn_white->mask = safe_strdup(p_key->key);
             debug(LOG_DEBUG, "[CFG]\t\t\t load rule for %s", p_dn_white->mask);
         }
+    } else {
+        debug(LOG_DEBUG, "[CFG]!! Can't find DomainNameSet(%s) on SSID[%s]",
+                p_schm_cfg->dns_set, p_ssid->ssid);
     }
 
     dnsset_cfg_free(p_dns_list);
@@ -1704,17 +1721,22 @@ okos_load_mac_white_list_to_ssid(
         return 1;
     }
 
-    /* Polling in ACLs to match ACL name in scheme */
+    /*---------------------------------------------------------------
+     * Polling in ACLs to find out the item:
+     * 1) Match ACL name in scheme 
+     * 2) Make sure it's a WHITE list, but not black list.
+     * ------------------------------------------------------------*/
     struct wlan_acl_status *acl = NULL;
     int i_acl;
     for (i_acl = 0; i_acl < acls->acl_count; i_acl++) {
-        if (0 == strcmp(acls->acl[i_acl].name, acl_name)) {
+        if (0 == strcmp(acls->acl[i_acl].name, acl_name)
+                && WLAN_ACL_POLICY_ALLOW == acls->acl[i_acl].policy) {
             acl = acls->acl + i_acl;
             break;
         }
     }
 
-    if (NULL != acl) {
+    if (NULL != acl) { /* Install MAC white list into SSID */
         debug(LOG_DEBUG, "[CFG]\t\t Load ACL(%s) on SSID(%s).",
                 acl_name, p_ssid->ssid);
         t_trusted_mac *p_mac_wlist;
@@ -1727,6 +1749,9 @@ okos_load_mac_white_list_to_ssid(
                     mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
             debug(LOG_DEBUG, "[CFG]\t\t\t Insert MAC[%s]", p_mac_wlist->mac);
         }
+    } else {
+        debug(LOG_DEBUG, "[CFG]!! Can't find out the match ACL list(%s) for SSID[%s]",
+                acl_name, p_ssid->ssid);
     }
 
     wlan_free_acl_all(acls);
@@ -1854,7 +1879,7 @@ okos_config_read(void)
             ssid_is_loaded = 0;
             okos_list_for_each(p_ssid, config.ssid_conf) {
                 if (i_svc_tmp_id == (int)p_ssid->sn) {
-                    debug(LOG_DEBUG, "[CFG]]\t\t {radio.%d vap.%d} is attached to template [%d].",
+                    debug(LOG_DEBUG, "[CFG]\t\t {radio.%d vap.%d} is attached to template [%d].",
                             i_rd, i_vap, i_svc_tmp_id);
                     okos_attach_vap_to_ssid(i_rd, i_vap, p_ssid);
                     ssid_is_loaded = 1;
@@ -2163,14 +2188,14 @@ okos_conf_get_all(void)
 
     LOCK_CONFIG();
 
-    pstr_cat(p_str, ">>>>Internal file section<<<<\n");
+    pstr_cat(p_str, ">>  Internal file section  <<\n");
     OKOS_CONF_APP_STR("Configuation file", config.configfile);
     OKOS_CONF_APP_STR("Html message file", config.htmlmsgfile);
     OKOS_CONF_APP_STR("WDCTL socket file", config.wdctl_sock);
     OKOS_CONF_APP_STR("Internal socket file", config.internal_sock);
     OKOS_CONF_APP_STR("PID file", config.pidfile);
     
-    pstr_cat(p_str, ">>>>Gateway section<<<<\n");
+    pstr_cat(p_str, ">>  Gateway section  <<\n");
     OKOS_CONF_APP_INT("Delta traffic", config.deltatraffic);
     pstr_append_sprintf(p_str, "The program is %s a daemon\n", config.daemon ? "" : "not");
     OKOS_CONF_APP_STR("External interface", config.external_interface);
@@ -2179,14 +2204,14 @@ okos_conf_get_all(void)
     OKOS_CONF_APP_STR("Gateway address", config.gw_address);
     OKOS_CONF_APP_INT("Gateway port", config.gw_port);
 
-    pstr_cat(p_str, ">>>>Httpd section<<<<\n");
+    pstr_cat(p_str, ">>  Httpd section  <<\n");
     OKOS_CONF_APP_STR("Httpd Name", config.httpdname);
     OKOS_CONF_APP_INT("Httpd Max Connections", config.httpdmaxconn);
     OKOS_CONF_APP_STR("Httpd realm", config.httpdrealm);
     OKOS_CONF_APP_STR("Httpd user name", config.httpdusername);
     OKOS_CONF_APP_STR("Httpd password", config.httpdpassword);
 
-    pstr_cat(p_str, ">>>>Client Control Section<<<<\n");
+    pstr_cat(p_str, ">>  Client Control Section  <<\n");
     OKOS_CONF_APP_INT("Client timeout", config.clienttimeout);
     OKOS_CONF_APP_INT("Check Interval", config.checkinterval);
     OKOS_CONF_APP_INT("Limit Rate", config.limit_rate);
@@ -2195,27 +2220,27 @@ okos_conf_get_all(void)
     OKOS_CONF_APP_INT("Proxy Port", config.proxy_port);
     OKOS_CONF_APP_STR("ARP table path", config.arp_table_path);
     
-    pstr_cat(p_str, ">>>>SSL section<<<<\n");
+    pstr_cat(p_str, ">>  SSL section  <<\n");
     OKOS_CONF_APP_INT("SSL verify", config.ssl_verify);
     OKOS_CONF_APP_INT("SSL use sni", config.ssl_use_sni);
     OKOS_CONF_APP_STR("SSL certs", config.ssl_certs);
     OKOS_CONF_APP_STR("SSL cipher list", config.ssl_cipher_list);
 
-    pstr_cat(p_str, ">>>>Firewall Rules Section<<<<\n");
+    pstr_cat(p_str, ">>  Firewall Rules Section  <<\n");
     t_firewall_ruleset *p_fw;
     okos_list_for_each(p_fw, config.rulesets) {
         OKOS_CONF_APP_STR("@@@@", p_fw->name);
         okos_conf_get_firewall(p_str, p_fw->rules);
     }
 
-    pstr_cat(p_str, ">>>>Trusted MAC list Section<<<<\n");
+    pstr_cat(p_str, ">>  Trusted MAC list Section  <<\n");
     t_trusted_mac *p_trusted_mac;
     okos_list_for_each(p_trusted_mac, config.trustedmaclist) {
         OKOS_CONF_APP_STR("  MAC", p_trusted_mac->mac);
     }
 
 
-    pstr_cat(p_str, ">>>>Popular Servers Section<<<<\n");
+    pstr_cat(p_str, ">>  Popular Servers Section  <<\n");
     t_popular_server *p_ps;
     okos_list_for_each(p_ps, config.popular_servers) {
         OKOS_CONF_APP_STR("  Host Name", p_ps->hostname);
@@ -2231,13 +2256,13 @@ okos_conf_get_all(void)
         OKOS_CONF_APP_INT("  sn", p_ssid->sn);
         OKOS_CONF_APP_STR("  SSID", p_ssid->ssid);
         OKOS_CONF_APP_STR("  Scheme", p_ssid->scheme_name);
-        pstr_cat(p_str, ">>Interfaces attched to this SSID<<\n");
+        pstr_cat(p_str, "> Interfaces attched to this SSID <\n");
         t_ath_if_list *p_if;
         okos_list_for_each(p_if, p_ssid->if_list) {
             OKOS_CONF_APP_STR("  Interface Name", p_if->if_name);
             OKOS_CONF_APP_STR("  BSSID", p_if->bssid);
         }
-        pstr_cat(p_str, ">>Authentication Server<<\n");
+        pstr_cat(p_str, "> Authentication Server <\n");
         t_auth_serv *p_svr;
         okos_list_for_each(p_svr, p_ssid->auth_servers) {
             OKOS_CONF_APP_STR("  Host Name", p_svr->authserv_hostname);
@@ -2255,19 +2280,19 @@ okos_conf_get_all(void)
         okos_conf_get_firewall(p_str, p_ssid->dn_white_list->rules);
         OKOS_CONF_APP_STR("@", p_ssid->ip_white_list->name);
         okos_conf_get_firewall(p_str, p_ssid->ip_white_list->rules);
-        pstr_cat(p_str, ">>MAC address white list<<\n");
+        pstr_cat(p_str, "@: MAC address white list\n");
         t_trusted_mac *p_mac;
         okos_list_for_each(p_mac, p_ssid->mac_white_list) {
             OKOS_CONF_APP_STR("  MAC", p_mac->mac);
         }
     }
 
-    pstr_cat(p_str, "\n\n>>>>Debug Section<<<<\n");
-    pstr_cat(p_str, ">>>>System<<<<\n");
+    pstr_cat(p_str, "\n\n>>>> Debug Section <<<<\n");
+    pstr_cat(p_str, ">>  System  <<\n");
     OKOS_CONF_APP_INT("  System Start Time", started_time);
     OKOS_CONF_APP_INT("  System Current Time", time(NULL));
 
-    pstr_cat(p_str, ">>>>Web Server<<<<\n");
+    pstr_cat(p_str, ">>  Web Server  <<\n");
     if (NULL == webserver) {
         pstr_cat(p_str, "Fatal Error, No Web Server here right now.\n");
     } else {
