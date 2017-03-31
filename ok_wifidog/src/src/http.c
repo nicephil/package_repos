@@ -155,7 +155,7 @@ static int okos_http_check_whitelist_by_ssid(request *r, char *url, t_ssid_confi
 
 static void okos_add_validation_client(t_client *client)
 {
-    debug(LOG_DEBUG, "  .. Trying to add VALIDATION client {%s, %s, %s} into list.",
+    debug(LOG_DEBUG, "<client_info>\t Trying to add VALIDATION client {%s, %s, %s} into list.",
             client->ip, client->mac, client->ssid);
     LOCK_CLIENT_LIST();
     t_client *old = client_list_find_by_ssid(client->mac, client->ssid);
@@ -163,10 +163,10 @@ static void okos_add_validation_client(t_client *client)
         client_list_insert_client(client);
         //fw_allow(client, FW_MARK_PROBATION);
         fw_allow(client, FW_MARK_KNOWN);
-        debug(LOG_DEBUG, "  .. Insert a new VALIDATION client {%s, %s, %s, remain_time:%ld}.",
+        debug(LOG_DEBUG, "<client_info>\t Insert a new VALIDATION client {%s, %s, %s, remain_time:%ld}.",
                 client->ip, client->mac, client->ssid, client->remain_time);
     } else {
-        debug(LOG_DEBUG, "  .. VALIDATION client {%s, %s, %s, remain_time:%ld} is already in.",
+        debug(LOG_DEBUG, "<client_info>\t VALIDATION client {%s, %s, %s, remain_time:%ld} is already in.",
                 client->ip, client->mac, client->ssid, client->remain_time);
     }
     UNLOCK_CLIENT_LIST();
@@ -176,18 +176,18 @@ static void okos_add_validation_client(t_client *client)
 
 static void okos_try_to_add_client_into_list(t_client *p_client)
 {
-    debug(LOG_DEBUG, ".. Trying to add ALLOWED client {%s, %s, %s} into list.",
+    debug(LOG_DEBUG, "<client_info>\t Trying to add ALLOWED client {%s, %s, %s} into list.",
             p_client->ip, p_client->mac, p_client->ssid);
 
     LOCK_CLIENT_LIST();
 
     t_client *p_old = client_list_find_by_ssid(p_client->mac, p_client->ssid);
     if (NULL == p_old) {
-        debug(LOG_DEBUG, "  .. Insert New ALLOWED client {%s, %s, %s}", p_client->ip, p_client->mac, p_client->ssid);
+        debug(LOG_DEBUG, "<client_info>\t Insert New ALLOWED client {%s, %s, %s}", p_client->ip, p_client->mac, p_client->ssid);
         client_list_insert_client(p_client);
         fw_allow(p_client, FW_MARK_KNOWN);
     } else {
-        debug(LOG_INFO, "  .. ALLOWED Client {%s, %s, %s, remain_time:%ld} is already in.",
+        debug(LOG_INFO, "<client_info>\t ALLOWED Client {%s, %s, %s, remain_time:%ld} is already in.",
                 p_old->ip, p_old->mac, p_old->ssid, p_old->remain_time);
         okos_client_list_flush(p_old, p_client->remain_time);
         client_free_node(p_client);
@@ -195,7 +195,7 @@ static void okos_try_to_add_client_into_list(t_client *p_client)
     }
 
     /* Logged in successfully as a regular account */
-    debug(LOG_DEBUG, ".. Got ALLOWED from auth server for client {%s,%s,%s}",
+    debug(LOG_DEBUG, "<client_info>\t Got ALLOWED from auth server for client {%s,%s,%s}",
             p_client->ip, p_client->mac, p_client->ssid);
 
     UNLOCK_CLIENT_LIST();
@@ -298,12 +298,12 @@ http_callback_404(httpd *webserver, request *r, int error_code)
     int canntMatchHostInWhiteList;
     canntMatchHostInWhiteList = okos_http_check_whitelist(r, a_tmp_url);
     if (!canntMatchHostInWhiteList) {
-        debug(LOG_INFO, "<HTTPD_404> Match target in global WhiteList, redirect client, exit 404 process..");
+        debug(LOG_INFO, "<HTTPD_404> Match target in global WhiteList, redirect client, exit 404 process.");
         goto cb_404_match_global_whitelist;
     }
     canntMatchHostInWhiteList = okos_http_check_whitelist_by_ssid(r, a_tmp_url, p_client->ssid_conf);
     if (!canntMatchHostInWhiteList) {
-        debug(LOG_INFO, "<HTTPD_404> Match target in WhiteList on ssid(%s), redirect client, exit 404 process..",
+        debug(LOG_INFO, "<HTTPD_404> Match target in WhiteList on ssid(%s), redirect client, exit 404 process.",
                 p_client->ssid_conf->ssid);
         goto cb_404_match_ssid_whitelist;
     }

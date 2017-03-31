@@ -396,7 +396,7 @@ parse_auth_server(FILE * file, const char *filename, int *linenum)
             case oBadOption:
             default:
                 debug(LOG_ERR, "Bad option on line %d " "in %s.", *linenum, filename);
-                debug(LOG_ERR, "Exiting...");
+                debug(LOG_ERR, "Exiting.");
                 exit(-1);
                 break;
             }
@@ -526,7 +526,7 @@ parse_firewall_ruleset(const char *ruleset, FILE * file, const char *filename, i
             case oBadOption:
             default:
                 debug(LOG_ERR, "Bad option on line %d " "in %s.", *linenum, filename);
-                debug(LOG_ERR, "Exiting...");
+                debug(LOG_ERR, "Exiting.");
                 exit(-1);
                 break;
             }
@@ -695,7 +695,7 @@ config_read(const char *filename)
     debug(LOG_INFO, "Reading configuration file '%s'", filename);
 
     if (!(fd = fopen(filename, "r"))) {
-        debug(LOG_ERR, "Could not open configuration file '%s', " "exiting...", filename);
+        debug(LOG_ERR, "Could not open configuration file '%s', " "exiting.", filename);
         exit(1);
     }
 
@@ -866,7 +866,7 @@ config_read(const char *filename)
                     /* FALL THROUGH */
                 default:
                     debug(LOG_ERR, "Bad option on line %d " "in %s.", linenum, filename);
-                    debug(LOG_ERR, "Exiting...");
+                    debug(LOG_ERR, "Exiting.");
                     exit(-1);
                     break;
                 }
@@ -1078,7 +1078,7 @@ config_validate(void)
     validate_popular_servers();
 
     if (missing_parms) {
-        debug(LOG_ERR, "Configuration is not complete, exiting...");
+        debug(LOG_ERR, "Configuration is not complete, exiting.");
         exit(-1);
     }
 }
@@ -1463,7 +1463,7 @@ okos_fill_client_info_by_stainfo(
                 okos_client_set_strdup(client->ssid, client->ssid_conf->ssid);
                 okos_client_set_strdup(client->token, OKOS_AUTH_FAKE_TOKEN);
 
-                debug(LOG_DEBUG, ".... found record of client {ip:%s, mac=%s, ifname:%s, ssid:%s, scheme:%s}", client->ip, client->mac, client->if_name, client->ssid, client->scheme);
+                debug(LOG_DEBUG, "<client_info>\t found record of client {ip:%s, mac=%s, ifname:%s, ssid:%s, scheme:%s}", client->ip, client->mac, client->if_name, client->ssid, client->scheme);
 
                 return client;
             }
@@ -1471,7 +1471,7 @@ okos_fill_client_info_by_stainfo(
     }
 
     client_free_node(client);
-    debug(LOG_DEBUG, "..!! Configuration imcompleted. Can't find out ifx or ssid_conf.");
+    debug(LOG_DEBUG, "<client_info>!! Configuration imcompleted. Can't find out ifx or ssid_conf.");
 
     return NULL;
 }
@@ -1789,8 +1789,8 @@ okos_load_ssid(
     struct portal_scheme_cfg *p_schm_cfg = NULL;
     struct portal_scheme_cfg *p_tmp = p_schemes->config;
     int i_schm;
-    for (i_schm = 0; i_schm < p_schemes->num && p_tmp->enable; i_schm++, p_tmp++) {
-        if (0 == strncmp(p_tmp->scheme_name, scheme_name, strlen(scheme_name))) {
+    for (i_schm = 0; i_schm < p_schemes->num; i_schm++, p_tmp++) {
+        if (p_tmp->enable && 0 == strncmp(p_tmp->scheme_name, scheme_name, strlen(scheme_name))) {
             p_schm_cfg = p_tmp;
             break;
         }
@@ -1863,7 +1863,10 @@ okos_config_read(void)
      *------------------------------------------------------------*/
     int i_rd, i_vap, i_svc_tmp_id, ssid_is_loaded;
     debug(LOG_DEBUG, "[CFG]\t Checking configuration of total %d Radioes.", p_rdcfg->num);
-    for (i_rd = 0; i_rd < p_rdcfg->num && p_rdcfg->radioinfo[i_rd].enable; i_rd++) {
+    for (i_rd = 0; i_rd < p_rdcfg->num; i_rd++) {
+        if (!p_rdcfg->radioinfo[i_rd].enable) {
+            continue;
+        }
         debug(LOG_DEBUG, "[CFG]\t\t Checking configuration of total %d VAP, on Radio.%d.",
                 p_rdcfg->radioinfo[i_rd].count, i_rd);
 

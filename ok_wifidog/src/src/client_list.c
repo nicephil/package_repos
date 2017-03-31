@@ -186,14 +186,14 @@ static t_client * okos_client_query_mac(t_client *first, const char *mac)
 t_client *
 okos_client_append_info(t_client * client, const char * ip)
 {
-    debug(LOG_DEBUG, ".. Start to append info for client {ip:%s}.", ip);
+    debug(LOG_DEBUG, "<client_info> Start to append info for client {ip:%s}.", ip);
 
     okos_client_set_strdup(client->ip, ip);
     if (NULL == okos_fill_client_info_by_stainfo(client)) {
-        debug(LOG_WARNING, "..!! Cant fill the local informaiton for client {ip:%s}.", ip);
+        debug(LOG_WARNING, "<client_info>!! Cant fill the local informaiton for client {ip:%s}.", ip);
         return NULL;
     } 
-    debug(LOG_DEBUG, ".. Complete client {Authenticator=%s,mac=%s,if_name=%s,scheme=%s,ssid=%s,token=%s}", client->ip, client->mac, client->if_name, client->scheme, client->ssid, client->token);
+    debug(LOG_DEBUG, "<client_info> Complete client {Authenticator=%s,mac=%s,if_name=%s,scheme=%s,ssid=%s,token=%s}", client->ip, client->mac, client->if_name, client->scheme, client->ssid, client->token);
 
     return client;
 }
@@ -220,7 +220,7 @@ client_get_new_validation(t_client * client, const char *time_value)
     client->last_flushed = time(NULL);
     client->user_name = safe_strdup("");
 
-    debug(LOG_DEBUG, "    .. Created a validation client {Authenticator=%s, mac=%s, if_name=%s, scheme=%s, ssid=%s, token=%s, username=%s, remain_time=%ld}",
+    debug(LOG_DEBUG, "<client_info>\t\t Created a validation client {Authenticator=%s, mac=%s, if_name=%s, scheme=%s, ssid=%s, token=%s, username=%s, remain_time=%ld}",
             client->ip, client->mac, client->if_name, client->scheme, client->ssid, client->token,
             client->user_name, client->remain_time);
     return client;
@@ -229,7 +229,7 @@ client_get_new_validation(t_client * client, const char *time_value)
 t_client *
 okos_client_get_new_client(const char * ip)
 {
-    debug(LOG_DEBUG, ".. start to build a new client {ip:%s}.", ip);
+    debug(LOG_DEBUG, "<client_info> start to build a new client {ip:%s}.", ip);
 
     t_client * client = client_get_new();
 #if 0
@@ -237,21 +237,21 @@ okos_client_get_new_client(const char * ip)
 #endif
     client->mac = arp_get(ip);
     if (NULL == client->mac) {
-        debug(LOG_WARNING, "..!! Can't find out match entry in arp table for client {ip:%s}", ip);
+        debug(LOG_WARNING, "<client_info>!! Can't find out match entry in arp table for client {ip:%s}", ip);
         client_free_node(client);
         return NULL;
     } else {
         okos_client_set_strdup(client->ip, ip);
         if (NULL == okos_fill_client_info_by_stainfo(client)) {
-            debug(LOG_WARNING, "..!! Cant fill the local informaiton for client {ip:%s}.", ip);
+            debug(LOG_WARNING, "<client_info>!! Cant fill the local informaiton for client {ip:%s}.", ip);
             return NULL;
         } 
     }
 #if 0
-    debug(LOG_INFO, ".. Build a new client {ip=%s,mac=%s,if_name=%s,brX=%s,scheme=%s,ssid=%s,token=%s}",
+    debug(LOG_INFO, "<client_info> Build a new client {ip=%s,mac=%s,if_name=%s,brX=%s,scheme=%s,ssid=%s,token=%s}",
             client->ip, client->mac, client->if_name, client->brX, client->scheme, client->ssid, client->token);
 #endif
-    debug(LOG_INFO, ".. Build a new client {ip=%s,mac=%s,if_name=%s,scheme=%s,ssid=%s,token=%s}",
+    debug(LOG_INFO, "<client_info> Build a new client {ip=%s,mac=%s,if_name=%s,scheme=%s,ssid=%s,token=%s}",
             client->ip, client->mac, client->if_name, client->scheme, client->ssid, client->token);
 
     return client;
@@ -260,15 +260,15 @@ okos_client_get_new_client(const char * ip)
 t_client *
 okos_client_get_new_client_v1(const char *ip)
 {
-    debug(LOG_DEBUG, ".. start to build a new client {ip:%s}.", ip);
+    debug(LOG_DEBUG, "<client_info> start to build a new client {ip:%s}.", ip);
 
     t_client * client = client_get_new();
     okos_client_set_strdup(client->ip, ip);
     if (NULL == okos_fill_client_info_by_stainfo(client)) {
-        debug(LOG_WARNING, "..!! Cant fill the local informaiton for client {ip:%s}.", ip);
+        debug(LOG_WARNING, "<client_info>!! Cant fill the local informaiton for client {ip:%s}.", ip);
         return NULL;
     }
-    debug(LOG_INFO, ".. Build a new client {ip=%s,mac=%s,if_name=%s,scheme=%s,ssid=%s,token=%s}",
+    debug(LOG_INFO, "<client_info> Build a new client {ip=%s,mac=%s,if_name=%s,scheme=%s,ssid=%s,token=%s}",
             client->ip, client->mac, client->if_name, client->scheme, client->ssid, client->token);
 
     return client;
@@ -317,7 +317,7 @@ okos_client_list_flush(t_client * client, const unsigned int remain_time)
 
     okos_client_list_updated();
 
-    debug(LOG_DEBUG, "    .. Flushed an client{%s,%s,%s} Token: %s Remain Time: %d", client->ip, client->mac, client->ssid, client->token, remain_time);
+    debug(LOG_DEBUG, "<client_info>\t\t\t Flushed an client{%s,%s,%s} Token: %s Remain Time: %d", client->ip, client->mac, client->ssid, client->token, remain_time);
     return client;
 }
 
