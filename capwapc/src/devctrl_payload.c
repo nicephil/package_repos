@@ -467,14 +467,12 @@ static int dc_portal_offline_handler(struct tlv *payload, void **reserved)
 
         log_node_paires(paires, sizeof(paires)/sizeof(paires[0]));
 
-#if !OK_PATCH
         if ((ret = portal_scheme_del_sta(json_cfg.scheme, json_cfg.mac)) != 0) {
             CWLog("Deauth the sta %s form the  portal scheme %s failed for %d.", 
                 json_cfg.mac, json_cfg.scheme, ret);
             ret = dc_error_commit_failed;
             goto ERROR_OUT;
         }
-#endif
     }
     
     ret = 0;

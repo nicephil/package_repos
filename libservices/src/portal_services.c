@@ -1,6 +1,9 @@
 #include <uci.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "services/util_services.h"
 #include "services/cfg_services.h"
@@ -284,8 +287,22 @@ int dump_portal_scheme_sta(int writefd, char *scheme_name)
 	return 0;
 }
 
-int portal_scheme_del_sta(char * scheme_name, char * clientmac) 
+int portal_scheme_del_sta(char *scheme_name, char *clientmac) 
 {
+    int ret;
+    char buf[128];
+    sprintf(buf, "wdctl offline %s %s", clientmac, scheme_name);
+    ret = system(buf);
+    if (ret == -1) {
+        syslog(LOG_NOTICE, "portal offline station failure.");
+        return -1;
+    } else {
+        if (WEXITSTATUS(ret)) {
+            syslog(LOG_NOTICE, "portal offline station failure.");
+           return -1;
+        }
+    }
+
 	return 0;
 }
 
