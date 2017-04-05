@@ -2007,6 +2007,7 @@ config wifi-iface ath50
     option ssid ok_${ssid_tmp}
     option encryption psk-mixed
     option key oakridge
+    option hidden 1
 
 EOF
     }
