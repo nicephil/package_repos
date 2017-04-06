@@ -55,7 +55,7 @@ typedef struct device_info{
 #define WLAN_STA_STATUS_FIXLEN          (36 + 18) /* don't include updated/ssid/user */
 #define WLAN_STA_QUERY_FIXLEN           (35 + 18)/* don't include stat/updated/ssid/user */
 #define WLAN_STA_UPDATE_FIXLEN          (17 + 4) /* only include len/mac/ip/portal_mode/name_len+ rssi */
-#define WLAN_INTERFACE_INFO_FIXLEN      31 /* include struct device_interface_info */
+#define WLAN_INTERFACE_INFO_FIXLEN      35 /* include struct device_interface_info */
 #define WDS_TUNNEL_INFO_FIXLEN          18 /* include struct wds_tunnel_info */
 
 typedef enum {
@@ -134,6 +134,7 @@ struct device_interface_info {
     unsigned int mask_address;
     int channel;
     int txpower;
+    int mode;
 };
 
 struct ssh_tunnel_cmd {
