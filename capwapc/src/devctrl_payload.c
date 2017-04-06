@@ -802,6 +802,7 @@ static int dc_get_interface_info(struct device_interface_info **info)
     char name[64] = {0};
     wlan_radio_get_all(&rdinfo);
     struct device_interface_info *l_info = (struct device_interface_info*) malloc(rdinfo.num * sizeof(struct device_interface_info));
+    memset(l_info, 0, rdinfo.num * sizeof(struct device_interface_info));
     for (i = 0; i < rdinfo.num; i ++) {
         sprintf(name, "wifi%d",i);
         strncpy(l_info[i].interface_name, name, SYS_INTF_NAME_SIZE - 1);
@@ -816,7 +817,7 @@ static int dc_get_interface_info(struct device_interface_info **info)
         l_info[i].mode = rdinfo.radioinfo[i].radio.mode;
     }
 
-    info = &l_info;
+    *info = l_info;
 
     return rdinfo.num;
 }
