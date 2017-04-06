@@ -404,6 +404,8 @@ CWBool assemble_interface_info_elem(char **payload, int *len,
         CWProtocolStore32(&msg, info->mask_address);
         CWProtocolStore32(&msg, info->channel);
         CWProtocolStore32(&msg, info->txpower);
+        CWProtocolStore32(&msg, info->mode);
+        CWProtocolStore8(&msg, info->bandwidth);
     }
     
     if (msg.offset != size) {

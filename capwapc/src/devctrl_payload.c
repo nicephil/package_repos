@@ -11,6 +11,7 @@
 
 #include "services/cfg_services.h"
 #include "services/portal_services.h"
+#include "services/wlan_services.h"
 
 extern void log_node_paires(struct node_pair_save *paires, int size);
 
@@ -792,134 +793,34 @@ static int dc_upload_techsupport_response(devctrl_block_s *dc_block, void *reser
     return ret;
 }
 
+
 static int dc_get_interface_info(struct device_interface_info **info)
 {
-#if !OK_PATCH
-    int count = 0;
-    int ret, i, j, size = 0;
-    struct if_attrs * attrs = NULL;    
-    struct if_address * addrs = NULL;  
-    struct if_address * tmp; 
-    struct netifd_link_stats * stats = NULL;
-    struct device_interface_info *info_list = NULL;
-    struct wlan_radio_status   radiostatus;
 
-    ret = netifd_get_all_interfaces(-1, &count, &attrs, &addrs, &stats);        
-    if (ret) 
-    {            
-        CWLog("Failed to get all interfaces info.");
-        return -1;       
-    }
-    if(0 == count)
-    {
-        CWLog("Get interface counte is 0.");
-        return -1;
-    }
-    info_list = (struct device_interface_info *)malloc(count *sizeof(struct device_interface_info));
-    if(info_list == NULL){
-        CWLog("Failed to malloc info_list in get interfaces info.");
-        return -1;
-    }
-    memset(info_list, 0, count *sizeof(struct device_interface_info));
-    memset(&radiostatus, 0, sizeof(radiostatus));
-    for(i = 0; i < count; ++i)
-    {
-        if(strncmp(attrs[i].name, "Loopback", 8)){
-            strncpy(info_list[size].interface_name, attrs[i].name, sizeof(info_list[size].interface_name));
-            info_list[size].interface_len = strlen(info_list[size].interface_name);
-            if(if_is_up(attrs[i].status)){
-                info_list[size].state = 1;
-            }else{
-                info_list[size].state = 2;
-            }
-            memcpy(info_list[size].mac, attrs[i].dev_addr.sa_data, sizeof(info_list[size].mac));
-
-            /*get interface pvid don't include WLAN-Radio and Vlan-interface is vlan number */
-            if(IF_PHYTYPE_VLAN == attrs[i].type){
-                info_list[size].pvid = attrs[i].interface;
-            }else if(IF_PHYTYPE_WLAN != attrs[i].type){
-                port_vlan_info portinfo;
-                eth_get_vlan_info(attrs[i].type, attrs[i].interface, &portinfo);
-                info_list[size].pvid = portinfo.port_pvid;
-            }
-
-            /*get interface ssid only include WLAN-Radio*/
-            if(IF_PHYTYPE_WLAN_BSS == attrs[i].type){
-                struct wlan_bss_status bss;
-                wlan_get_bss_status(attrs[i].interface, &bss);
-                strncpy(info_list[size].ssid, bss.ssid, sizeof(info_list[size].ssid) - 1);
-                info_list[size].ssid_len= strlen(info_list[size].ssid);
-            }else{
-                info_list[size].ssid_len= 0;
-            } 
-
-            /*get interface ip and mask*/
-            struct if_addrinfo addrinfo;
-            char    ip[INET6_ADDRSTRLEN + 1], netmask[INET6_ADDRSTRLEN + 1]; 
-            
-            memset(&addrinfo, 0, sizeof(addrinfo));
-        	strcpy(addrinfo.ifname, attrs[i].name);
-        	if (!dialer_get_address_ioctl(&addrinfo)) {
-        		if ( strlen(addrinfo.ip) != 0 && strlen(addrinfo.mask) != 0 ) {
-                    info_list[size].ip_address = inet_addr(addrinfo.ip);
-                    info_list[size].mask_address = inet_addr(addrinfo.mask);
-        		} 
-                else {
-        			if(0 != attrs->addr_count)
-        			{
-        				for (j = 0; j < attrs->addr_count; ++j) 
-        				{                
-        					if_output_address(tmp, ip, netmask, sizeof(ip)); 
-        					info_list[size].ip_address = inet_addr(ip);
-                            info_list[size].mask_address = inet_addr(netmask);
-        					++tmp;            
-        				}
-        			}
-        		}
-
-        	} else {
-        		if(0 != attrs[i].addr_count)
-        		{
-        			for (j = 0; j < attrs[i].addr_count; ++j) 
-        			{                
-        				if_output_address(tmp, ip, netmask, sizeof(ip)); 
-        				info_list[size].ip_address = inet_addr(ip);
-                        info_list[size].mask_address = inet_addr(netmask);
-        				++tmp;            
-        			}
-        		}
-        	}
-
-            if (attrs[i].type == IF_PHYTYPE_WLAN) {
-                wlan_get_radio_status(attrs[i].interface, &radiostatus);
-                info_list[size].channel = radiostatus.channel;
-                info_list[size].txpower = radiostatus.txpower;
-            }
-            
-            size++;
+    wlan_radio_info rdinfo = {0};
+    int i = 0;
+    char name[64] = {0};
+    wlan_radio_get_all(&rdinfo);
+    struct device_interface_info *l_info = (struct device_interface_info*) malloc(rdinfo.num * sizeof(struct device_interface_info));
+    memset(l_info, 0, rdinfo.num * sizeof(struct device_interface_info));
+    for (i = 0; i < rdinfo.num; i ++) {
+        sprintf(name, "wifi%d",i);
+        strncpy(l_info[i].interface_name, name, SYS_INTF_NAME_SIZE - 1);
+        l_info[i].interface_name[SYS_INTF_NAME_SIZE - 1] = '\0';
+        l_info[i].interface_len = strlen(l_info[i].interface_name);
+        l_info[i].state = rdinfo.radioinfo[i].enable;
+        l_info[i].channel = rdinfo.radioinfo[i].radio.channel;
+        l_info[i].txpower = rdinfo.radioinfo[i].radio.max_power;
+        if (!l_info[i].txpower) {
+            l_info[i].txpower = 25;
         }
-
-        tmp += attrs[i].addr_count;
-    }
-    if (attrs) 
-    {            
-        free(attrs);        
-    }        
-    if (addrs) 
-    {           
-        free(addrs);        
-    }        
-    if (stats) 
-    {            
-        free(stats);        
+        l_info[i].mode = rdinfo.radioinfo[i].radio.mode;
+        l_info[i].bandwidth = rdinfo.radioinfo[i].radio.bandwidth;
     }
 
-    *info = info_list;
+    *info = l_info;
 
-    return size;
-#else
-    return 0;
-#endif
+    return rdinfo.num;
 }
 
 
