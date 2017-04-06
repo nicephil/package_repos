@@ -139,7 +139,7 @@ typedef struct capwapc_config {
     int join_timeout;
     int max_disces;
     int max_retran;
-    char location[33];
+    char location[65];
 } capwapc_config;
 
 extern capwapc_config g_capwapc_config;

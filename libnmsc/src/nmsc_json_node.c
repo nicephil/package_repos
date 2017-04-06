@@ -402,7 +402,7 @@ static int dc_hdl_node_hostname(struct json_object *obj)
 
 static int dc_hdl_node_location(struct json_object *obj)
 {
-    char location[33] = {};
+    char location[65] = {};
     int ret, node = dc_node_location;
     struct node_pair_save pair = {
         .key   = "location",

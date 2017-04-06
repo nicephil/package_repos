@@ -815,6 +815,7 @@ static int dc_get_interface_info(struct device_interface_info **info)
             l_info[i].txpower = 25;
         }
         l_info[i].mode = rdinfo.radioinfo[i].radio.mode;
+        l_info[i].bandwidth = rdinfo.radioinfo[i].radio.bandwidth;
     }
 
     *info = l_info;

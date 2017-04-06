@@ -112,7 +112,8 @@ static int wlan_radio_list(struct uci_package *p, void *arg)
 						info->radioinfo[num].radio.device_mode = RADIO_DEVICE_MODE_NORMAL;
                 }else if (!strcmp(o->e.name, "hwmode"))  {
                     if (!strcmp(o->v.string, "ac") || !strcmp(o->v.string, "11ac"))
-                        info->radioinfo[num].radio.mode = DOT11_RADIO_MODE_A | DOT11_RADIO_MODE_N | DOT11_RADIO_MODE_AC;
+                        //info->radioinfo[num].radio.mode = DOT11_RADIO_MODE_A | DOT11_RADIO_MODE_N | DOT11_RADIO_MODE_AC;
+                        info->radioinfo[num].radio.mode = DOT11_RADIO_MODE_AC;
                     else if (!strcmp(o->v.string, "na"))
                         info->radioinfo[num].radio.mode = DOT11_RADIO_MODE_A | DOT11_RADIO_MODE_N;
                     else if (!strcmp(o->v.string, "ng") || !strcmp(o->v.string, "11ng"))
