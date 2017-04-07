@@ -112,7 +112,8 @@ static int wlan_radio_list(struct uci_package *p, void *arg)
 						info->radioinfo[num].radio.device_mode = RADIO_DEVICE_MODE_NORMAL;
                 }else if (!strcmp(o->e.name, "hwmode"))  {
                     if (!strcmp(o->v.string, "ac") || !strcmp(o->v.string, "11ac"))
-                        info->radioinfo[num].radio.mode = DOT11_RADIO_MODE_A | DOT11_RADIO_MODE_N | DOT11_RADIO_MODE_AC;
+                        //info->radioinfo[num].radio.mode = DOT11_RADIO_MODE_A | DOT11_RADIO_MODE_N | DOT11_RADIO_MODE_AC;
+                        info->radioinfo[num].radio.mode = DOT11_RADIO_MODE_AC;
                     else if (!strcmp(o->v.string, "na"))
                         info->radioinfo[num].radio.mode = DOT11_RADIO_MODE_A | DOT11_RADIO_MODE_N;
                     else if (!strcmp(o->v.string, "ng") || !strcmp(o->v.string, "11ng"))
@@ -762,6 +763,102 @@ int wlan_set_gtk_lifetime_enable(int stid, int value)
     return 0;
 }
 
+int wlan_set_static_client_uplink_rate_limit_value(int stid, unsigned int value)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate%d.static_uplink_ratelimit='20'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.static_uplink_ratelimit", stid);
+    cfg_set_option_value_int(tuple, value);
+
+    if (value !=0) {
+        //wlan_service_template.ServiceTemplate%d.dynamic_uplink_ratelimit='0'
+        sprintf(tuple, "wlan_service_template.ServiceTemplate%d.dynamic_uplink_ratelimit", stid);
+        cfg_set_option_value_int(tuple, 0);
+    }
+    return 0;
+}
+
+int wlan_set_dynamic_client_uplink_rate_limit_value(int stid, unsigned int value)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate%d.dynamic_uplink_ratelimit='20'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.dynamic_uplink_ratelimit", stid);
+    cfg_set_option_value_int(tuple, value);
+
+    if (value !=0) {
+        //wlan_service_template.ServiceTemplate%d.static_uplink_ratelimit='0'
+        sprintf(tuple, "wlan_service_template.ServiceTemplate%d.static_uplink_ratelimit", stid);
+        cfg_set_option_value_int(tuple, 0);
+    }
+    return 0;
+}
+
+int wlan_undo_dynamic_client_uplink_rate_limit_value(int stid)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate%d.dynamic_uplink_ratelimit='0'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.dynamic_uplink_ratelimit", stid);
+    cfg_set_option_value_int(tuple, 0);
+    return 0;
+}
+
+int wlan_undo_static_client_uplink_rate_limit_value(int stid)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate%d.static_uplink_ratelimit='0'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.static_uplink_ratelimit", stid);
+    cfg_set_option_value_int(tuple, 0);
+    return 0;
+}
+
+int wlan_set_static_client_downlink_rate_limit_value(int stid, unsigned int value)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate%d.static_downlink_ratelimit='20'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.static_downlink_ratelimit", stid);
+    cfg_set_option_value_int(tuple, value);
+
+    if (value != 0) {
+        //wlan_service_template.ServiceTemplate%d.dynamic_downlink_ratelimit='0'
+        sprintf(tuple, "wlan_service_template.ServiceTemplate%d.dynamic_downlink_ratelimit", stid);
+        cfg_set_option_value_int(tuple, 0);
+    }
+    return 0;
+}
+
+int wlan_set_dynamic_client_downlink_rate_limit_value(int stid, unsigned int value)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate%d.dynamic_downlink_ratelimit='20'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.dynamic_downlink_ratelimit", stid);
+    cfg_set_option_value_int(tuple, value);
+
+    if (value != 0) {
+        //wlan_service_template.ServiceTemplate%d.static_downlink_ratelimit='0'
+        sprintf(tuple, "wlan_service_template.ServiceTemplate%d.static_downlink_ratelimit", stid);
+        cfg_set_option_value_int(tuple, 0);
+    }
+    return 0;
+}
+
+int wlan_undo_dynamic_client_downlink_rate_limit_value(int stid)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate%d.dynamic_downlink_ratelimit='0'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.dynamic_downlink_ratelimit", stid);
+    cfg_set_option_value_int(tuple, 0);
+    return 0;
+}
+
+int wlan_undo_static_client_downlink_rate_limit_value(int stid)
+{
+    char tuple[128];
+    //wlan_service_template.ServiceTemplate%d.static_downlink_ratelimit='0'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.static_downlink_ratelimit", stid);
+    cfg_set_option_value_int(tuple, 0);
+    return ;
+}
+
 
 
 
@@ -1011,7 +1108,7 @@ int wlan_set_dot11nonly(int radio_id, int dot11nonly)
     sprintf(tuple, "wireless.wifi%d.hwmode", radio_id);
     cfg_set_option_value(tuple, dot11nonly?"11na":"11ng");
     //wireless.wifi1.htmode=HT40
-    sprintf(tuple, "wireless.wifi%d.hwmode", radio_id);
+    sprintf(tuple, "wireless.wifi%d.htmode", radio_id);
     cfg_set_option_value(tuple, dot11nonly?"HT40":"HT20");
     
     //wireless.wifi1.dot11nonly='0'

@@ -16,14 +16,15 @@ sqlite3 /tmp/stationinfo.db 'SELECT * FROM STAINFO' | awk -F'|' '{
     print "\toption mac "$1;
     print "\toption ifname "$2;
     print "\toption chan "$3;  
-    print "\toption rssi "$4;
     print "\toption radioid "$6;
     print "\toption bssid "$7;
     print "\toption authentication "$9;
     print "\toption portal_scheme "$10;
     print "\toption ssid "$11;
     print "\toption vlan "$12;
-    system("/lib/updatefields.sh "$1" "$2" "$11" "$12" "$8);
+    print "\toption portal_mode "$13;
+    print "\toption portal_user "$14;
+    system("/lib/okos/updatefields.sh "$1" "$2" "$11" "$12" "$8);
 }' > /tmp/stationinfo/stationinfo
 
 rm -rf /tmp/getstainfo.lock

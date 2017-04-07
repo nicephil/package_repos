@@ -402,7 +402,7 @@ static int dc_hdl_node_hostname(struct json_object *obj)
 
 static int dc_hdl_node_location(struct json_object *obj)
 {
-    char location[33] = {};
+    char location[65] = {};
     int ret, node = dc_node_location;
     struct node_pair_save pair = {
         .key   = "location",
@@ -4347,6 +4347,76 @@ int dc_hdl_node_wlan(struct json_object *obj)
             goto ERROR_OUT;
         }
 
+        //add for rate limit
+        if(1 == st_json->uplink_limit_enable){//enable
+            if(1 == st_json->uplink_limit_mode){//static
+                ret = wlan_set_static_client_uplink_rate_limit_value(stid, st_json->uplink_limit_rate);
+                if (ret) {
+                    nmsc_log("Set service template %d static uplink limit rate %d failed for %d.", stid, 
+                        st_json->uplink_limit_rate, ret);
+                    ret = dc_error_code(dc_error_commit_failed, node, ret); 
+                    goto ERROR_OUT;
+                }
+            }else if(2 == st_json->uplink_limit_mode){//dynamic
+                ret = wlan_set_dynamic_client_uplink_rate_limit_value(stid, st_json->uplink_limit_rate);
+                if (ret) {
+                    nmsc_log("Set service template %d dynamic uplink limit rate %d failed for %d.", stid, 
+                        st_json->uplink_limit_rate, ret);
+                    ret = dc_error_code(dc_error_commit_failed, node, ret); 
+                    goto ERROR_OUT;
+                }
+            }
+        }else if(0 == st_json->uplink_limit_enable){//disable
+            ret = wlan_undo_dynamic_client_uplink_rate_limit_value(stid);
+            if (ret) {
+                nmsc_log("Set service template %d undo dynamic uplink limit rate failed for %d.", stid, ret);
+                ret = dc_error_code(dc_error_commit_failed, node, ret); 
+                goto ERROR_OUT;
+            }
+            ret = wlan_undo_static_client_uplink_rate_limit_value(stid);  
+            if (ret) {
+                nmsc_log("Set service template %d undo static uplink limit rate failed for %d.", stid, ret);
+                ret = dc_error_code(dc_error_commit_failed, node, ret); 
+                goto ERROR_OUT;
+            }
+        }
+
+        if(1 == st_json->downlink_limit_enable){//enable
+            if(1 == st_json->downlink_limit_mode){//static
+                ret = wlan_set_static_client_downlink_rate_limit_value(stid, st_json->downlink_limit_rate);
+                if (ret) {
+                    nmsc_log("Set service template %d static downlink limit rate %d failed for %d.", stid, 
+                        st_json->downlink_limit_rate, ret);
+                    ret = dc_error_code(dc_error_commit_failed, node, ret); 
+                    goto ERROR_OUT;
+                }
+            }else if(2 == st_json->downlink_limit_mode){//dynamic
+                ret = wlan_set_dynamic_client_downlink_rate_limit_value(stid, st_json->downlink_limit_rate);
+                if (ret) {
+                    nmsc_log("Set service template %d dynamic downlink limit rate %d failed for %d.", stid, 
+                        st_json->downlink_limit_rate, ret);
+                    ret = dc_error_code(dc_error_commit_failed, node, ret); 
+                    goto ERROR_OUT;
+                }
+            }
+        }else if(0 == st_json->downlink_limit_enable){//disable
+            ret = wlan_undo_dynamic_client_downlink_rate_limit_value(stid);
+            if (ret) {
+                nmsc_log("Set service template %d undo dynamic uplink downlink rate failed for %d.", stid, ret);
+                ret = dc_error_code(dc_error_commit_failed, node, ret); 
+                goto ERROR_OUT;
+            }
+            ret = wlan_undo_static_client_downlink_rate_limit_value(stid);  
+            if (ret) {
+                nmsc_log("Set service template %d undo static limit downlink rate failed for %d.", stid, ret);
+                ret = dc_error_code(dc_error_commit_failed, node, ret); 
+                goto ERROR_OUT;
+            }
+        }
+        //end for rate limit
+
+
+
         ret = wlan_set_service_template_enable(stid, 1);
         if (ret) {
             nmsc_log("Enable service template %d failed for %d.", stid, ret);
@@ -4863,7 +4933,7 @@ ERROR_OUT:
     }
 
     if (as_cur_cfg) {
-        free(as_cur_cfg);
+        wlan_free_acl_all(as_cur_cfg);
     }
 
     if(tl_cur_cfg){

@@ -67,7 +67,11 @@ int vlan_create(int vlanid, int endid)
         cfg_set_option_value_int(tuple, vlanid);
         //network.vlan1.ports='0t 1t'
         sprintf(tuple, "network.vlan%d.ports", vlanid);
-        cfg_set_option_value(tuple, "0t 1t");
+        if (vlanid == 1) {
+            cfg_set_option_value(tuple, "0t 1");
+        } else {
+            cfg_set_option_value(tuple, "0t 1t");
+        }
 
         //set default value here
         //network.lan1.vlan_name
@@ -168,9 +172,11 @@ int vlan_set_pvid(const char *port_name, int pvid, int type)
     } else {
         sprintf(tuple, "network.lan%d.ifname", pvid);
         cfg_get_option_value(tuple, buf, sizeof(buf));
-        strcat(buf, " ");
-        strcat(buf, port_name);
-        cfg_set_option_value(tuple, buf);
+        if (!strstr(buf, "eth0.4090")) {
+            strcat(buf, " ");
+            strcat(buf, "eth0.4090");
+            cfg_set_option_value(tuple, buf);
+        }
     }
 
     //sprintf(tuple, "vlan_port.VLAN%s.pvid", port_name);

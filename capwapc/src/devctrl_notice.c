@@ -134,7 +134,7 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
     all.stas = stas;
     int ret = 0;
 
-    system("/lib/getstainfo.sh");
+    system("/lib/okos/getstainfo.sh");
 
     ret = cfg_visit_package_with_path("/tmp/stationinfo", "stationinfo", fetch_station_info_visitor, (void*)&all);
     if (ret) {
