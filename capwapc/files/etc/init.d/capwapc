@@ -91,6 +91,7 @@ start() {
     stop
     rm -rf /tmp/getstainfo.lock /tmp/fresharplist.lock
     generate_config
+    ulimit -c unlimited
     service_start /usr/sbin/$APP
 }
 
