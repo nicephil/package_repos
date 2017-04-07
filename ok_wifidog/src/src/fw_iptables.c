@@ -364,7 +364,7 @@ iptables_fw_init(void)
     }
 
     t_ssid_config * ssid;
-    okos_list_for_each(ssid, config->ssid_conf) {
+    okos_list_for_each(ssid, config->ssid) {
         sn = ssid->sn;
 
         /* Create new chains */
@@ -696,7 +696,7 @@ iptables_fw_destroy(void)
 
     int sn;
     t_ssid_config * ssid;
-    okos_list_for_each(ssid, config->ssid_conf) {
+    okos_list_for_each(ssid, config->ssid) {
         sn = ssid->sn;
 
         /*

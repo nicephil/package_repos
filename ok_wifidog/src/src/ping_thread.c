@@ -103,7 +103,7 @@ ping(void)
     s_config *p_cfg = config_get_config();
     
     t_ssid_config *p_ssid;
-    okos_list_for_each(p_ssid, p_cfg->ssid_conf) {
+    okos_list_for_each(p_ssid, p_cfg->ssid) {
         sockfd = connect_auth_server(p_ssid);
         if (-1 == sockfd) {
             debug(LOG_DEBUG, "<PING> ## auth server(%s) connect failed.",

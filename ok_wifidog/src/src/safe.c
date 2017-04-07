@@ -78,7 +78,7 @@ register_fd_cleanup_on_fork(const int fd)
     if (MAX_FD_CLEANUP == i) {
        debug(LOG_CRIT, "Trying to register more than %d fds for cleanup on fork",
              MAX_FD_CLEANUP);
-       exit(1);
+       exit(10001);
     }
     fd_list[i] = fd;
 }

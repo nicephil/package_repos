@@ -47,11 +47,17 @@ static void init_config(void);
 static void parse_commandline(int, char **);
 static int connect_to_server(const char *);
 static size_t send_request(int, const char *);
+#if 0
 static void wdctl_status(void);
 static void wdctl_stop(void);
 static void wdctl_reset(void);
 static void wdctl_offline(void);
 static void wdctl_restart(void);
+#endif
+
+static void wdctl_cmd_without_reply(const char *);
+static void wdctl_cmd_parse_reply(const char *);
+
 
 /** @internal
  * @brief Print usage
@@ -89,6 +95,24 @@ init_config(void)
     config.command = WDCTL_UNDEF;
 }
 
+typedef void (*ok_exec_cmd)(const char *);
+
+static const struct {
+    const char *name;
+    int params_num;
+    int cmd;
+    ok_exec_cmd execute;
+} cmds[] = {
+    {"status", 0, WDCTL_STATUS, wdctl_cmd_without_reply},
+    {"stop", 0, WDCTL_STOP, wdctl_cmd_without_reply},
+    {"reset", 2, WDCTL_KILL, wdctl_cmd_parse_reply},
+    {"restart", 0, WDCTL_RESTART, wdctl_cmd_without_reply},
+    {"offline", 2, WDCTL_OFFLINE, wdctl_cmd_parse_reply},
+    {"query", 2, WDCTL_QUERY, wdctl_cmd_parse_reply},
+    {"config", 0, WDCTL_CONFIG, wdctl_cmd_without_reply},
+    {NULL, 0, WDCTL_UNDEF, NULL},
+};
+
 /** @internal
  *
  * Uses getopt() to parse the command line and set configuration values
@@ -125,6 +149,36 @@ parse_commandline(int argc, char **argv)
         exit(1);
     }
 
+    int i;
+    for (i = 0; NULL != cmds[i].name; i++) {
+        if (0 == strcmp(cmds[i].name, *(argv + optind))) {
+            config.command = cmds[i].cmd;
+            if (cmds[i].params_num >= 1) {
+                if ((argc - (optind + 1)) <= 0) {
+                    fprintf(stderr, "wdctl: Error: You must specify a MAC\n");
+                    usage();
+                    exit(1);
+                }
+                config.params[0] = strdup(*(argv + optind + 1));
+                if (cmds[i].params_num >= 2) {
+                    if ((argc - (optind + 1)) == 2) {
+                        config.params[1] = strdup(*(argv + optind + 2));
+                    }
+                }
+            }
+            if (NULL != cmds[i].execute) {
+                cmds[i].execute(cmds[i].name);
+                exit(0);
+            }
+            break;
+        }
+    }
+
+    fprintf(stderr, "wdctl: Error: Invalid command \"%s\"\n", *(argv + optind));
+    usage();
+    exit(1);
+
+#if 0
     if (strcmp(*(argv + optind), "status") == 0) {
         config.command = WDCTL_STATUS;
     } else if (strcmp(*(argv + optind), "stop") == 0) {
@@ -173,6 +227,7 @@ parse_commandline(int argc, char **argv)
         usage();
         exit(1);
     }
+#endif
 }
 
 static int
@@ -219,6 +274,82 @@ send_request(int sock, const char *request)
 }
 
 static void
+wdctl_cmd_without_reply(const char *cmd)
+{
+    int sock;
+    char buffer[4096];
+    char request[16];
+    ssize_t len;
+
+    sock = connect_to_server(config.socket);
+
+    strncpy(request, cmd, 15);
+    strncat(request, "\r\n\r\n", 15 - strlen(request));
+
+    send_request(sock, request);
+
+    // -1: need some space for \0!
+    while ((len = read(sock, buffer, sizeof(buffer) - 1)) > 0) {
+        buffer[len] = '\0';
+        fprintf(stdout, "%s", buffer);
+    }
+
+    shutdown(sock, 2);
+    close(sock);
+}
+
+static void 
+wdctl_cmd_parse_reply(const char *cmd)
+{
+    int sock;
+    char buffer[4096];
+    char request[256];
+#define ok_cmd_buf_available(req) (sizeof(req) - strlen(req) - 1)
+
+    size_t len;
+    ssize_t rlen;
+
+    sock = connect_to_server(config.socket);
+
+    strncpy(request, cmd, sizeof(request));
+    strncat(request, " ", ok_cmd_buf_available(request));
+    strncat(request, config.params[0], ok_cmd_buf_available(request));
+    if (config.params[1]) {
+        strncat(request, " ", ok_cmd_buf_available(request));
+        strncat(request, config.params[1], ok_cmd_buf_available(request));
+    }
+    strncat(request, "\r\n\r\n", ok_cmd_buf_available(request));
+
+    send_request(sock, request);
+
+    len = 0;
+    memset(buffer, 0, sizeof(buffer));
+    while ((len < sizeof(buffer)) &&
+            ((rlen = read(sock, (buffer + len), (sizeof(buffer) - len))) > 0)) {
+        len += (size_t) rlen;
+    }
+
+    if (strcmp(buffer, "Yes") == 0) {
+        fprintf(stdout, "Connection [%s:%s] successfully.\n",
+                config.params[0], config.params[1] ? config.params[1] : "*");
+    } else if (strcmp(buffer, "No") == 0) {
+        fprintf(stdout, "Connection [%s -  %s] was not active.\n",
+                config.params[0], config.params[1] ? config.params[1] : "*");
+    } else if (strcmp(buffer, "Bad") == 0) {
+        fprintf(stdout, "MAC address [%s] couldn't be recoganized.\n",
+                config.params[0]);
+    } else if (strcmp(buffer, "Sorry") == 0) {
+        fprintf(stdout, "No action registed for %s\n", request);
+    } else {
+        fprintf(stdout, "%s", buffer);
+    }
+
+    shutdown(sock, 2);
+    close(sock);
+}
+
+#if 0
+static void
 wdctl_status(void)
 {
     int sock;
@@ -264,6 +395,7 @@ wdctl_stop(void)
     shutdown(sock, 2);
     close(sock);
 }
+
 
 void
 wdctl_reset(void)
@@ -431,6 +563,7 @@ wdctl_restart(void)
     shutdown(sock, 2);
     close(sock);
 }
+#endif
 
 int
 main(int argc, char **argv)
@@ -440,6 +573,7 @@ main(int argc, char **argv)
     init_config();
     parse_commandline(argc, argv);
 
+#if 0
     switch (config.command) {
     case WDCTL_STATUS:
         wdctl_status();
@@ -474,5 +608,7 @@ main(int argc, char **argv)
         exit(1);
         break;
     }
+#endif
     exit(0);
+
 }

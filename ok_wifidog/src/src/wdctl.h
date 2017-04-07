@@ -43,9 +43,6 @@
 typedef struct {
     char *socket;
     int command;
-    char *param;
-#if OK_PATCH
-	char *param1;
-#endif
+    char *params[2];
 } s_config;
 #endif

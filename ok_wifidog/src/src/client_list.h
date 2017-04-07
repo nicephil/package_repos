@@ -64,21 +64,17 @@ typedef struct _t_client {
     char *ip;
     char *mac;
     char *if_name;
-    char *ssid;
-    char *scheme;
-    struct _s_ssid_config *ssid_conf;
+    struct _s_ssid_config *ssid;
     struct _s_ath_if_list *ifx;
 
     /** These are what we got from portal server. */
     time_t last_flushed;
-    unsigned int auth_mode;
     unsigned int remain_time;
+    unsigned int auth_mode;
     char *user_name;
-    char *token;                        /**< @brief Client token */
 
-#if 0
-    char * brX;
-#endif
+    //char *token;
+
 } t_client;
 
 /** @brief Get a new client struct, not added to the list yet */
@@ -131,15 +127,17 @@ void client_list_remove(t_client *);
 void client_free_node(t_client *);
 
 #define LOCK_CLIENT_LIST() do { \
-	debug(LOG_DEBUG, "____Locking client list____"); \
+    pthread_t id = pthread_self(); \
+	debug(LOG_DEBUG, "____Locking client list [%u] ____", id); \
 	pthread_mutex_lock(&client_list_mutex); \
-	debug(LOG_DEBUG, "____Client list locked____"); \
+	debug(LOG_DEBUG, "____Client list locked [%u] ____", id); \
 } while (0)
 
 #define UNLOCK_CLIENT_LIST() do { \
-	debug(LOG_DEBUG, "____Unlocking client list____"); \
+    pthread_t id = pthread_self(); \
+	debug(LOG_DEBUG, "____Unlocking client list [%u] ____", id); \
 	pthread_mutex_unlock(&client_list_mutex); \
-	debug(LOG_DEBUG, "____Client list unlocked____"); \
+	debug(LOG_DEBUG, "____Client list unlocked [%u] ____", id); \
 } while (0)
 
 #if OK_PATCH
@@ -147,77 +145,16 @@ void client_free_node(t_client *);
 int okos_client_list_should_be_checked(void);
 void okos_client_list_checked(void);
 int okos_client_list_is_empty(t_client * );
-t_client * okos_client_list_flush(t_client * , const unsigned int);
+void okos_client_list_flush(t_client * , const unsigned int);
+void okos_client_list_flush_all(t_client *, t_client *);
 
-t_client * client_get_new_validation(t_client * , const char *);
-t_client * okos_client_append_info(t_client *, const char * );
-t_client * okos_client_get_new_client(const char * );
-t_client * okos_client_get_new_client_v1(const char * );
-char * okos_get_client_status_text(const char *, const char *);
-char * okos_delete_clients_by_ssid(const char *, const char *);
-char * okos_delete_clients_by_scheme(const char *, const char *);
+char * okos_get_client_status_text(const char *, const char *, int *);
+char * okos_delete_clients_by_ssid(const char *, const char *, int *);
+char * okos_delete_clients_by_scheme(const char *, const char *, int *);
 
-char * okos_client_get_ssid(const t_client *);
 t_client *client_list_find_by_ssid(const char *, const char *);
 t_client *client_list_find_by_scheme(const char *, const char *);
 
-#define okos_client_set_str(element, src) do { \
-    if (element) free(element); \
-    element = (src); \
-    src = NULL; \
-} while (0)
-
-#define okos_client_set_strdup(element, src) do { \
-    if (element) free(element); \
-    element = safe_strdup(src); \
-} while (0)
-
-
-#define okos_client_update_str_after_cmp(element, src) do { \
-    if (element && 0 != strcmp(element, src)) { \
-        free(element); \
-        element = NULL; \
-    } \
-    if (NULL == element) { \
-        element = src; \
-    } else { \
-        free(src); \
-    } \
-    src = NULL; \
-} while (0)
-
-#define okos_client_update_str_after_casecmp(element, src) do { \
-    if (element && 0 != strcasecmp(element, src)) { \
-        free(element); \
-        element = NULL; \
-    } \
-    if (NULL == element) { \
-        element = src; \
-    } else { \
-        free(src); \
-    } \
-    src = NULL; \
-} while (0)
-
-#define okos_client_update_strdup_after_cmp(element, src) do { \
-    if (element && 0 != strcmp(element, src)) { \
-        free(element); \
-        element = NULL; \
-    } \
-    if (NULL == element) { \
-        element = safe_strdup(src); \
-    } \
-} while (0)
-
-#define okos_client_update_strdup_after_casecmp(element, src) do { \
-    if (element && 0 != strcasecmp(element, src)) { \
-        free(element); \
-        element = NULL; \
-    } \
-    if (NULL == element) { \
-        element = safe_strdup(src); \
-    } \
-} while (0)
 
 
 #endif
