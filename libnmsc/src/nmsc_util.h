@@ -11,7 +11,7 @@
 #define CAPWAPC_LATER_EXEC_RESTART  1
 #define CAPWAPC_LATER_EXEC_STOP     2
 
-#if DEBUG
+#if OK_PATCH
 #define nmsc_log(fmt, ...) syslog(LOG_INFO, fmt, ##__VA_ARGS__)
 #define nmsc_debug(fmt, ...) syslog(LOG_DEBUG, fmt, ##__VA_ARGS__)
 #else
