@@ -2,12 +2,14 @@
 
 while :
 do
-    if [ -n "`pgrep capwapc`" ]
-    then
-        sleep 30
-    else
+    sleep 30
+    [ -z "`pgrep capwapc`" ] && {
         logger -p 5 "CAPWAP is exist abnormally, restart it !!!"
         /etc/init.d/capwapc restart
-    fi
+    }
+    [ -z "`pgrep wifidog`" ] && {
+        logger -p 5 "WIFIDog is exist abnormally, restart it !!!"
+        /etc/init.d/wifidog restart
+    }
 done
 
