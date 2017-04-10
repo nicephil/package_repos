@@ -75,7 +75,7 @@ CW_THREAD_RETURN_TYPE CWWTPReceiveStats(void *arg)
 		CWExitThread();
         }
 
-	CW_CREATE_OBJECT_ERR( pData, MM_MONITOR_DATA , EXIT_THREAD);
+	//CW_CREATE_OBJECT_ERR( pData, MM_MONITOR_DATA , EXIT_THREAD);
         fromlen = sizeof(from);
 
 
