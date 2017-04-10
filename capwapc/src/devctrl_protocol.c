@@ -84,7 +84,7 @@ SEARCHED:
 static int parser_msg_seq(CWProtocolMessage *msg)
 {
     CWProtocolTransportHeaderValues transp_header;
-    CWControlHeaderValues ctrl_header;
+    CWControlHeaderValues ctrl_header = {0};
     CWBool dataFlag = CW_FALSE;
     int offset = msg->offset;
     
