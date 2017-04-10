@@ -150,7 +150,7 @@ static int portal_scheme_iterator(struct uci_package *p, void *arg)
 {
     struct uci_element *e, *e1, *e2;
     struct uci_section *s;
-    struct uci_option * o;
+    struct uci_option *o;
     struct portal_schemes schemes;
     char *ptr = NULL;
     int count = 0, cidr, size = 0;

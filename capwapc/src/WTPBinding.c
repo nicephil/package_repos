@@ -517,9 +517,11 @@ CWBool CWBindingSaveConfigureResponse(void* bindingValuesPtr, CWProtocolResultCo
 		if(!CWBindingSetQosValues(bindingPtr->qosCount, bindingPtr->radioQosValues, resultCode))
 		{
 			CW_FREE_OBJECT(bindingPtr->radioQosValues);
+            CW_FREE_OBJECT(bindingPtr);
 			return CW_FALSE;
 		}
 		CW_FREE_OBJECT(bindingPtr->radioQosValues);
+        CW_FREE_OBJECT(bindingPtr);
 	}
 	return CW_TRUE;
 }
