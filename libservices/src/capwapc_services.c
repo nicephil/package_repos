@@ -199,7 +199,7 @@ int capwapc_undo_location(void)
 
 int capwapc_set_domain(const char *domain)
 {
-    cfg_set_option_value(CAPWAPC_CFG_OPTION_DOMAIN_TUPLE);
+    cfg_set_option_value(CAPWAPC_CFG_OPTION_DOMAIN_TUPLE, domain);
 
     return 0;
 }
