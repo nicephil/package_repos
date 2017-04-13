@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import commands;
-from com.oakridge.http import requests;
+import requests;
 
 def get_upload_link(url, token):
     resp = requests.get(url, headers={'Authorization': 'Token {token}'. format(token=token)});
@@ -22,8 +22,9 @@ if __name__ == "__main__":
     token = '385345b76e58940ced482facc6a8641a577fa7d0';
     rep_id = '3d6a5402-b592-4496-913d-e34b48ed5b06';
     server_url = 'http://10.174.68.243:8000';
-    file_path = '/home/devops/osdk_repos/bin/ar71xx/openwrt-ar71xx-generic-ap152-16M-squashfs-sysupgrade.bin';
-    upload_file(token, server_url, rep_id, file_path);
-    if (sys.argc > 1 && len(sys.argv[1]) {
+    if (len(sys.argv) == 1):
+        file_path = '/home/devops/osdk_repos/bin/ar71xx/openwrt-ar71xx-generic-ap152-16M-squashfs-sysupgrade.bin';
+        upload_file(token, server_url, rep_id, file_path);
+    if (len(sys.argv) == 3 and len(sys.argv[1]) and len(sys.argv[2])):
         upload_file(token, server_url, rep_id, sys.argv[1]);
-    }
+        upload_file(token, server_url, rep_id, sys.argv[2]);
