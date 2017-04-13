@@ -499,7 +499,8 @@ int main (int argc, const char * argv[])
 				 * gWTPSecurityContext = NULL;
 				 * gWTPSession = NULL;
 				 */
-				nextState = CW_ENTER_DISCOVERY;
+				//nextState = CW_ENTER_DISCOVERY;
+				nextState = CW_QUIT;
 				break;
 			case CW_QUIT:
                 CWLog("Try to destroy WTP");
@@ -584,6 +585,13 @@ void CWWTPDestroy() {
 	timer_destroy();
 
 	CW_FREE_OBJECT(gCWACList);
+    for(i = 0; i < gRadiosInfo.radioCount; i ++) {
+        bindingValues *aux = gRadiosInfo.radiosInfo[i].bindingValuesPtr;
+        if (aux) {
+            CW_FREE_OBJECT(aux->qosValues);
+	        CW_FREE_OBJECT(aux);
+        }
+    }
 	CW_FREE_OBJECT(gRadiosInfo.radiosInfo);
 }
 

@@ -13,7 +13,8 @@ int cfg_visit_package(const char *package_tuple,
         void *arg)
 {
     struct uci_context *ctx = NULL;
-    struct uci_package *p = NULL;
+    struct uci_ptr ptr = {0};
+    char *tuple = strdup(package_tuple);
     int ret = 0;
 
     ctx = uci_alloc_context();
@@ -22,21 +23,30 @@ int cfg_visit_package(const char *package_tuple,
         return -1;
     }
 
-    uci_load(ctx, package_tuple, &p);
-    if(!p) {
-        syslog(LOG_ERR, "no such package:%s\n", package_tuple);
+    if (uci_lookup_ptr(ctx, &ptr, tuple, true) != UCI_OK) {
+        syslog(LOG_ERR, "no such field:%s\n", tuple);
         ret = -1;
         goto _free;
     }
 
-    ret = visitor(p, arg);
+    if (!(ptr.flags & UCI_LOOKUP_COMPLETE)) {
+        syslog(LOG_ERR, "no such complete field:%s\n", tuple);
+        ret = -1;
+        goto _free;
+    }
+
+
+    ret = visitor(ptr.p, arg);
 
 _free:
-    if (ctx && p) {
-        uci_unload(ctx, p);
+    if (ctx && ptr.p) {
+        uci_unload(ctx, ptr.p);
     }
     if (ctx) {
         uci_free_context(ctx);
+    }
+    if (tuple) {
+        free(tuple);
     }
     return ret;
 }
@@ -47,6 +57,8 @@ int cfg_visit_package_with_path(const char *path, const char *package_tuple,
 {
     struct uci_context *ctx = NULL;
     struct uci_package *p = NULL;
+    struct uci_ptr ptr = {0};
+    char *tuple = strdup(package_tuple);
     int ret = 0;
 
     ctx = uci_alloc_context();
@@ -59,21 +71,29 @@ int cfg_visit_package_with_path(const char *path, const char *package_tuple,
         uci_set_confdir(ctx, path);
     }
 
-    uci_load(ctx, package_tuple, &p);
-    if(!p) {
-        syslog(LOG_ERR, "no such package:%s\n", package_tuple);
+    if (uci_lookup_ptr(ctx, &ptr, tuple, true) != UCI_OK) {
+        syslog(LOG_ERR, "no such field:%s\n", tuple);
         ret = -1;
         goto _free;
     }
 
-    ret = visitor(p, arg);
+    if (!(ptr.flags & UCI_LOOKUP_COMPLETE)) {
+        syslog(LOG_ERR, "no such complete field:%s\n", tuple);
+        ret = -1;
+        goto _free;
+    }
+
+    ret = visitor(ptr.p, arg);
 
 _free:
-    if (ctx && p) {
-        uci_unload(ctx, p);
+    if (ctx && ptr.p) {
+        uci_unload(ctx, ptr.p);
     }
     if (ctx) {
         uci_free_context(ctx);
+    }
+    if (tuple) {
+        free(tuple);
     }
     return ret;
 }

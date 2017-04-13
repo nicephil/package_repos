@@ -357,7 +357,10 @@ void CWWTPEvaluateAC(CWACInfoValues *ACInfoPtr)
     if (gACInfoPtr != NULL) {
         CWDebugLog_F("Already picked the highest priority server, discard new comming server %s.", 
             inet_ntoa(addr->sin_addr));
+        CW_FREE_OBJECT(ACInfoPtr->IPv4Addresses);
+        CW_FREE_OBJECT(ACInfoPtr->IPv6Addresses);
         CW_FREE_OBJECT(ACInfoPtr);
+
         return;
     }
 
@@ -374,6 +377,8 @@ void CWWTPEvaluateAC(CWACInfoValues *ACInfoPtr)
     }
     
     if (capwapc_get_server_pri(&g_capwapc_config, server, &pri) != 0) {
+        CW_FREE_OBJECT(ACInfoPtr->IPv4Addresses);
+        CW_FREE_OBJECT(ACInfoPtr->IPv6Addresses);
         CW_FREE_OBJECT(ACInfoPtr);
         return;
     }
@@ -403,12 +408,16 @@ void CWWTPEvaluateAC(CWACInfoValues *ACInfoPtr)
             if (IS_HIGHER_PRI(pri, gACInfoPtr_temp->priority)) {
                 CWDebugLog_F("Compare with last time %s with the priority %d, replace it with new server.", 
                     inet_ntoa(addr->sin_addr), gACInfoPtr_temp->priority);
+                CW_FREE_OBJECT(gACInfoPtr_temp->IPv4Addresses);
+                CW_FREE_OBJECT(gACInfoPtr_temp->IPv6Addresses);
                 CW_FREE_OBJECT(gACInfoPtr_temp);
                 gACInfoPtr_temp = ACInfoPtr;
             }
             else{
                 CWDebugLog_F("Compare with last time %s with the priority %d, keep the old server.", 
                     inet_ntoa(addr->sin_addr), gACInfoPtr_temp->priority);
+                CW_FREE_OBJECT(ACInfoPtr->IPv4Addresses);
+                CW_FREE_OBJECT(ACInfoPtr->IPv6Addresses);
     		    CW_FREE_OBJECT(ACInfoPtr);
             }
         }

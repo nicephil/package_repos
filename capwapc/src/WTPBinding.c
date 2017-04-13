@@ -358,11 +358,11 @@ CWBool CWBindingSaveConfigurationUpdateRequest(void* bindingValuesPtr, CWProtoco
 			if(!CWBindingSetQosValues(bindingPtr->qosCount, bindingPtr->radioQosValues, resultCode))
 			  {
 				CW_FREE_OBJECT(bindingPtr->radioQosValues);
-				CW_FREE_OBJECT(bindingPtr);
+                CW_FREE_OBJECT(bindingPtr);
 				return CW_FALSE;
 			  }
 			CW_FREE_OBJECT(bindingPtr->radioQosValues);
-			CW_FREE_OBJECT(bindingPtr);
+            CW_FREE_OBJECT(bindingPtr);
 		  }
 		return CW_TRUE;
 		break;
@@ -377,7 +377,8 @@ CWBool CWBindingSaveConfigurationUpdateRequest(void* bindingValuesPtr, CWProtoco
 			CW_FREE_OBJECT(bindingPtr);
 			return CW_FALSE;
 		  }
-		
+		CW_FREE_OBJECT(bindingPtr->radioOFDMValues);
+		CW_FREE_OBJECT(bindingPtr);
 		return CW_TRUE;
 		break;
 	  }

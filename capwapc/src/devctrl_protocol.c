@@ -84,7 +84,7 @@ SEARCHED:
 static int parser_msg_seq(CWProtocolMessage *msg)
 {
     CWProtocolTransportHeaderValues transp_header;
-    CWControlHeaderValues ctrl_header;
+    CWControlHeaderValues ctrl_header = {0};
     CWBool dataFlag = CW_FALSE;
     int offset = msg->offset;
     
@@ -671,7 +671,7 @@ static CWBool parse_devctrlreq_elem(CWProtocolMessage *msgPtr, int len,
     valPtr->orig_len = CWProtocolRetrieve32(msgPtr);
     valPtr->len = CWProtocolRetrieve32(msgPtr);
 
-    CW_CREATE_OBJECT_SIZE_ERR(valPtr->data, valPtr->len, 
+    CW_CREATE_OBJECT_SIZE_ERR(valPtr->data, valPtr->len+1, 
         return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
     memcpy(valPtr->data, &((msgPtr->msg)[(msgPtr->offset)]), valPtr->len);
     msgPtr->offset += valPtr->len;    

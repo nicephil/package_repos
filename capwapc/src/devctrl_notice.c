@@ -160,7 +160,11 @@ static int inline dc_reserves_stas(struct wlan_sta_stat **sta_list,
             stas = (struct wlan_sta_stat *)malloc(totalsize *sizeof(struct wlan_sta_stat));
         }
         else  {
-            stas = (struct wlan_sta_stat *)realloc(stas, totalsize * sizeof(struct wlan_sta_stat));
+            struct wlan_sta_stat *stas_tmp;
+            stas_tmp = (struct wlan_sta_stat *)realloc(stas, totalsize * sizeof(struct wlan_sta_stat));
+            if (stas_tmp) {
+                stas=stas_tmp;
+            }
         }
     }
 
@@ -328,9 +332,12 @@ static void dc_sta_notice_timer_handler(void *arg)
     if (data != NULL && paylength > 0) {
         if (payload != NULL) {
             /* 2bytes type + 4bytes length */
-            payload = (char *)realloc(payload, (totalsize + paylength + 6));
-            if (payload == NULL) {
+            char * payload_tmp;
+            payload_tmp = (char *)realloc(payload, (totalsize + paylength + 6));
+            if (payload_tmp == NULL) {
                 goto RESTART_TIMER;
+            } else {
+                payload = payload_tmp;
             }
         }
         else {
