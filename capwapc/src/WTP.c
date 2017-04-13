@@ -587,8 +587,10 @@ void CWWTPDestroy() {
 	CW_FREE_OBJECT(gCWACList);
     for(i = 0; i < gRadiosInfo.radioCount; i ++) {
         bindingValues *aux = gRadiosInfo.radiosInfo[i].bindingValuesPtr;
-        CW_FREE_OBJECT(aux->qosValues);
-	    CW_FREE_OBJECT(aux);
+        if (aux) {
+            CW_FREE_OBJECT(aux->qosValues);
+	        CW_FREE_OBJECT(aux);
+        }
     }
 	CW_FREE_OBJECT(gRadiosInfo.radiosInfo);
 }
