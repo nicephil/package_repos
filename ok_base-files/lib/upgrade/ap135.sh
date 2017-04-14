@@ -138,7 +138,8 @@ platform_do_upgrade_ap135() {
 		local vmlinux_hexaddr=0x$( printf "%08x" "$vmlinux_addr" )
 
 		local curr_linux_addr=$(fw_printenv bootcmd | sed 's/.*0x/0x/g')
-		[ $(printf "0x%x\n" $curr_linux_addr) != $vmlinux_hexaddr ] && {
+        
+		[ "$curr_linux_addr" -gt 0] 2>/dev/null && [ $(printf "0x%x\n" $curr_linux_addr) != $vmlinux_hexaddr ] && {
 			local fw_printenv=/usr/sbin/fw_printenv
 			[ ! -x "$fw_printenv" ] && {
 				echo "Please install uboot-envtools, aborting!"
