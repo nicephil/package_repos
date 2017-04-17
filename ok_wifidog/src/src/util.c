@@ -99,7 +99,7 @@ execute(const char *cmd_line, int quiet)
 
     const char *new_argv[4];
     new_argv[0] = WD_SHELL_PATH;
-    new_argv[1] = "-c";
+    new_argv[1] = "-c ulimit -c unlimited;";
     new_argv[2] = cmd_line;
     new_argv[3] = NULL;
 
@@ -113,7 +113,7 @@ execute(const char *cmd_line, int quiet)
         } else {
             debug(LOG_ERR, "**** execvp() failed");
         }
-        exit(1);
+        exit(3001);
     }
 
     /* for the parent:      */
@@ -282,7 +282,7 @@ get_ext_iface(void)
         i++;
     }
     debug(LOG_ERR, "get_ext_iface(): Failed to detect the external interface after %d tries, aborting", i);
-    exit(1);                    /* XXX Should this be termination handler? */
+    exit(3002);                    /* XXX Should this be termination handler? */
     free(device);
     free(gw);
     return NULL;

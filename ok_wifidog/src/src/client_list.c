@@ -76,39 +76,53 @@ typedef enum {
 static volatile OKOSClientListStatus client_list_status = ClientListNew;
 static pthread_mutex_t client_list_status_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+#define LOCK_LIST_STATUS(why) do { \
+	debug(LOG_DEBUG, "____Locking list status for %s____", why); \
+    pthread_mutex_lock(&client_list_status_mutex); \
+	debug(LOG_DEBUG, "____List status locked for %s____", why); \
+} while (0)
+
+#define UNLOCK_LIST_STATUS(why) do { \
+	debug(LOG_DEBUG, "____Unlocking list status for %s____", why); \
+    pthread_mutex_unlock(&client_list_status_mutex); \
+	debug(LOG_DEBUG, "____List status unlocked for %s____", why); \
+} while (0)
+
 void okos_client_list_created(void)
 {
-    pthread_mutex_lock(&client_list_status_mutex);
+    LOCK_LIST_STATUS("New");
     client_list_status = ClientListNew;
-    pthread_mutex_unlock(&client_list_status_mutex);
+    UNLOCK_LIST_STATUS("New");
 }
 
 void okos_client_list_updated(void)
 {
-    pthread_mutex_lock(&client_list_status_mutex);
+    LOCK_LIST_STATUS("update");
     client_list_status = ClientListUpdated;
-    pthread_mutex_unlock(&client_list_status_mutex);
+    UNLOCK_LIST_STATUS("update");
 }
 
 void okos_client_list_checked(void)
 {
-    pthread_mutex_lock(&client_list_status_mutex);
+    LOCK_LIST_STATUS("check up");
     client_list_status = ClientListChecked;
-    pthread_mutex_unlock(&client_list_status_mutex);
+    UNLOCK_LIST_STATUS("check up");
 }
 
 int okos_client_list_should_be_checked(void)
 {
     int result = 1;
-    pthread_mutex_lock(&client_list_status_mutex);
+    LOCK_LIST_STATUS("check in");
     if (ClientListChecked == client_list_status) {
         result = 0;
     }
-    pthread_mutex_unlock(&client_list_status_mutex);
+    UNLOCK_LIST_STATUS("check in");
     return result;
 }
     
-#endif
+#endif /* OK_PATCH */
+
+
 /** Get a new client struct, not added to the list yet
  * @return Pointer to newly created client object not on the list yet.
  */
@@ -141,9 +155,35 @@ client_list_init(void)
 /** Insert client at head of list. Lock should be held when calling this!
  * @param Pointer to t_client object.
  */
-void
-client_list_insert_client(t_client * client)
+static int okos_client_list_client_complete(t_client *client)
 {
+#define OK_STR(str) (str) ? (str) : "Nil"
+
+    if (NULL == client->ip || NULL == client->mac \
+            || NULL == client->ifx || NULL == client->ssid \
+            || NULL == client->if_name) {
+        debug(LOG_ERR, "!!!! Corrupt Fruit {ip:%s, mac:%s, if_name:%s, ifx:0x%x, ssid:0x%x}",
+                OK_STR(client->ip), OK_STR(client->mac), OK_STR(client->if_name),
+                client->ifx, client->ssid);
+        client_free_node(client);
+        return -1;
+    }
+    if (NULL == client->user_name) {
+        client->user_name = safe_strdup("");
+    }
+    return 0;
+}
+
+void
+client_list_insert_client(t_client **p_client)
+{
+    t_client *client = *p_client;
+    int failed = okos_client_list_client_complete(client);
+    if (failed) {
+        *p_client = NULL;
+        return;
+    }
+
     t_client *prev_head;
 
     pthread_mutex_lock(&client_id_mutex);
@@ -160,7 +200,7 @@ int okos_client_list_is_empty(t_client * list)
 {
     list = list ? list : firstclient;
     LOCK_CLIENT_LIST();
-    int res = firstclient ? 0 : 1;
+    int res = list ? 0 : 1;
     UNLOCK_CLIENT_LIST();
 
     return res;
@@ -183,98 +223,11 @@ static t_client * okos_client_query_mac(t_client *first, const char *mac)
     return NULL;
 }
 
-t_client *
-okos_client_append_info(t_client * client, const char * ip)
-{
-    debug(LOG_DEBUG, "<client_info> Start to append info for client {ip:%s}.", ip);
-
-    okos_client_set_strdup(client->ip, ip);
-    if (NULL == okos_fill_client_info_by_stainfo(client)) {
-        debug(LOG_WARNING, "<client_info>!! Cant fill the local informaiton for client {ip:%s}.", ip);
-        return NULL;
-    } 
-    debug(LOG_DEBUG, "<client_info> Complete client {Authenticator=%s,mac=%s,if_name=%s,scheme=%s,ssid=%s,token=%s}", client->ip, client->mac, client->if_name, client->scheme, client->ssid, client->token);
-
-    return client;
-}
 
 
-t_client *
-client_get_new_validation(t_client * client, const char *time_value)
-{
-    if (NULL == time_value) {
-        client_free_node(client);
-        return NULL;
-    }
-    int sec = 0;
-    if (1 != sscanf(time_value, "%d", &sec)) {
-        client_free_node(client);
-        return NULL;
-    }
-    if (0 == sec || sec > 300) {
-        client_free_node(client);
-        return NULL;
-    }
 
-    client->remain_time = sec;
-    client->last_flushed = time(NULL);
-    client->user_name = safe_strdup("");
-
-    debug(LOG_DEBUG, "<client_info>\t\t Created a validation client {Authenticator=%s, mac=%s, if_name=%s, scheme=%s, ssid=%s, token=%s, username=%s, remain_time=%ld}",
-            client->ip, client->mac, client->if_name, client->scheme, client->ssid, client->token,
-            client->user_name, client->remain_time);
-    return client;
-}
-
-t_client *
-okos_client_get_new_client(const char * ip)
-{
-    debug(LOG_DEBUG, "<client_info> start to build a new client {ip:%s}.", ip);
-
-    t_client * client = client_get_new();
-#if 0
-    int getMacBrXSuccess = arp_get_all(ip, &client->mac, &client->brX);
-#endif
-    client->mac = arp_get(ip);
-    if (NULL == client->mac) {
-        debug(LOG_WARNING, "<client_info>!! Can't find out match entry in arp table for client {ip:%s}", ip);
-        client_free_node(client);
-        return NULL;
-    } else {
-        okos_client_set_strdup(client->ip, ip);
-        if (NULL == okos_fill_client_info_by_stainfo(client)) {
-            debug(LOG_WARNING, "<client_info>!! Cant fill the local informaiton for client {ip:%s}.", ip);
-            return NULL;
-        } 
-    }
-#if 0
-    debug(LOG_INFO, "<client_info> Build a new client {ip=%s,mac=%s,if_name=%s,brX=%s,scheme=%s,ssid=%s,token=%s}",
-            client->ip, client->mac, client->if_name, client->brX, client->scheme, client->ssid, client->token);
-#endif
-    debug(LOG_INFO, "<client_info> Build a new client {ip=%s,mac=%s,if_name=%s,scheme=%s,ssid=%s,token=%s}",
-            client->ip, client->mac, client->if_name, client->scheme, client->ssid, client->token);
-
-    return client;
-}
-
-t_client *
-okos_client_get_new_client_v1(const char *ip)
-{
-    debug(LOG_DEBUG, "<client_info> start to build a new client {ip:%s}.", ip);
-
-    t_client * client = client_get_new();
-    okos_client_set_strdup(client->ip, ip);
-    if (NULL == okos_fill_client_info_by_stainfo(client)) {
-        debug(LOG_WARNING, "<client_info>!! Cant fill the local informaiton for client {ip:%s}.", ip);
-        return NULL;
-    }
-    debug(LOG_INFO, "<client_info> Build a new client {ip=%s,mac=%s,if_name=%s,scheme=%s,ssid=%s,token=%s}",
-            client->ip, client->mac, client->if_name, client->scheme, client->ssid, client->token);
-
-    return client;
-}
-
-#if 0
+#if OK_PATCH
+#else
 /* FIXME: if you want to use this function, you have to handle all the string element
  *
  */
@@ -309,18 +262,43 @@ okos_client_list_add(const char *ip, const char *mac, const char *token,
 }
 #endif
 
-t_client *
-okos_client_list_flush(t_client * client, const unsigned int remain_time)
+void
+okos_client_list_flush(t_client *client, const unsigned int remain_time)
 {
     client->remain_time = remain_time;
     client->last_flushed = time(NULL);
 
     okos_client_list_updated();
 
-    debug(LOG_DEBUG, "<client_info>\t\t\t Flushed an client{%s,%s,%s} Token: %s Remain Time: %d", client->ip, client->mac, client->ssid, client->token, remain_time);
-    return client;
+    debug(LOG_DEBUG, "<client_info>\t\t Flushed an client{%s,%s,%s} Remain Time: %ld",
+            client->ip, client->mac, client->if_name, remain_time);
 }
 
+void
+okos_client_list_flush_all(t_client *old, t_client *cur)
+{
+#if 0
+    client_list_remove(old);
+    client_list_insert_client(cur);
+    okos_client_list_updated();
+    debug(LOG_DEBUG, "<client_info>\t Client{%s,%s,%s} got flushed with"
+            "{remain_time:%ld, authmode:%d, user_name:%s}",
+            cur->ip, cur->mac, cur->if_name,
+            cur->remain_time, cur->auth_mode, cur->user_name);
+#else
+    old->remain_time = cur->remain_time;
+    old->last_flushed = cur->last_flushed;
+    old->auth_mode = cur->auth_mode;
+    okos_client_update_strdup_after_cmp(old->user_name, cur->user_name);
+    client_free_node(cur);
+
+    okos_client_list_updated();
+    debug(LOG_DEBUG, "<client_info>\t Client{%s,%s,%s} got flushed with"
+            "{remain_time:%ld, authmode:%d, user_name:%s}",
+            old->ip, old->mac, old->if_name,
+            old->remain_time, old->auth_mode, old->user_name);
+#endif
+}
 #if 0
 t_client *
 okos_client_list_client_update(const t_auth_confirm_info *info, t_client *client)
@@ -379,6 +357,7 @@ okos_client_list_update_mac(t_client *client, const char *mac, const t_auth_conf
 
 #endif
 
+#if 0
 /** Based on the parameters it receives, this function creates a new entry
  * in the connections list. All the memory allocation is done here.
  * Client is inserted at the head of the list.
@@ -408,6 +387,7 @@ client_list_add(const char *ip, const char *mac, const char *token)
 
     return curclient;
 }
+#endif
 
 /** Duplicate the whole client list to process in a thread safe way
  * MUTEX MUST BE HELD.
@@ -463,7 +443,10 @@ client_dup(const t_client * src)
     new->id = src->id;
     new->ip = safe_strdup(src->ip);
     new->mac = safe_strdup(src->mac);
+#if OK_PATCH
+#else
     new->token = safe_strdup(src->token);
+#endif
     new->counters.incoming = src->counters.incoming;
     new->counters.incoming_history = src->counters.incoming_history;
     new->counters.incoming_delta = src->counters.incoming_delta;
@@ -478,14 +461,9 @@ client_dup(const t_client * src)
     new->remain_time = src->remain_time;
     new->last_flushed = src->last_flushed;
 
-#if 0
-    new->brX = safe_strdup(src->brX);
-#endif
     new->if_name = safe_strdup(src->if_name);
-    new->ssid = safe_strdup(src->ssid);
-    new->scheme = safe_strdup(src->scheme);
     new->ifx = src->ifx;
-    new->ssid_conf = src->ssid_conf;
+    new->ssid= src->ssid;
 #endif /* OK_PATCH */
 
     new->next = NULL;
@@ -540,7 +518,7 @@ client_list_find_by_scheme(const char *mac, const char *scheme)
 {
     t_client *pclient;
     okos_list_for_each(pclient, firstclient) {
-        if (0 == strcasecmp(pclient->mac, mac) && 0 == strcmp(pclient->scheme, scheme))
+        if (0 == strcasecmp(pclient->mac, mac) && 0 == strcmp(pclient->ssid->scheme, scheme))
             return pclient;
     }
 
@@ -553,7 +531,7 @@ client_list_find_by_ssid(const char *mac, const char *ssid)
 {
     t_client *pclient;
     okos_list_for_each(pclient, firstclient) {
-        if (0 == strcasecmp(pclient->mac, mac) && 0 == strcmp(pclient->ssid, ssid))
+        if (0 == strcasecmp(pclient->mac, mac) && 0 == strcmp(pclient->ssid->ssid, ssid))
             return pclient;
     }
 
@@ -604,6 +582,8 @@ client_list_find_by_mac(const char *mac)
     return NULL;
 }
 
+#if OK_PATCH
+#else
 /** Finds a client by its token
  * @param token Token we are looking for in the linked list
  * @return Pointer to the client, or NULL if not found
@@ -622,6 +602,7 @@ client_list_find_by_token(const char *token)
 
     return NULL;
 }
+#endif
 
 /** Destroy the client list. Including all free.
  * DOES NOT UPDATE firstclient or anything else.
@@ -648,29 +629,23 @@ client_list_destroy(t_client * list)
 void
 client_free_node(t_client * client)
 {
+    if (NULL == client) {
+        return;
+    }
 
-    if (client->mac != NULL)
+    if (client->mac)
         free(client->mac);
-
-    if (client->ip != NULL)
+    if (client->ip)
         free(client->ip);
-
-    if (client->token != NULL)
-        free(client->token);
-
-#if OK_PATCH
     if (client->user_name)
         free(client->user_name);
-#if 0
-    if (client->brX)
-        free(client->brX);
-#endif
     if (client->if_name)
         free(client->if_name);
-    if (client->ssid)
-        free(client->ssid);
-    if (client->scheme)
-        free(client->scheme);
+
+#if OK_PATCH
+#else
+    if (client->token != NULL)
+        free(client->token);
 #endif
 
     free(client);
@@ -722,24 +697,21 @@ client_list_remove(t_client * client)
 
 
 #if OK_PATCH
-char * okos_client_get_ssid(const t_client *client)
-{
-    return client->ssid;
-}
 #if 0
 static void okos_get_client_status_format1(const t_client *p_node, pstr_t *p_str)
 {
     pstr_append_sprintf(p_str, "IP: %s\n", p_node->ip);
     pstr_append_sprintf(p_str, "MAC: %s\n", p_node->mac);
     pstr_append_sprintf(p_str, "AUTH_MODE: %s\n", p_node->auth_mode);
-    pstr_append_sprintf(p_str, "SSID: %s\n", p_node->ssid);
     pstr_append_sprintf(p_str, "USERNAME: %s\n", p_node->user_name);
 }
 #endif
 
 static void okos_get_client_status_format2(const t_client *p_node, pstr_t *p_str)
 {
-    pstr_append_sprintf(p_str, "%15s %17s %10d [%s] [%s]", p_node->ip, p_node->mac, p_node->auth_mode, p_node->ssid, p_node->user_name);
+    pstr_append_sprintf(p_str, "%15s %17s %10d [%s] [%s]",
+            p_node->ip, p_node->mac, p_node->auth_mode,
+            p_node->ssid->ssid, p_node->user_name);
 }
 
 static void okos_get_client_status(const t_client *p_node, pstr_t *p_str)
@@ -747,8 +719,65 @@ static void okos_get_client_status(const t_client *p_node, pstr_t *p_str)
     okos_get_client_status_format2(p_node, p_str);
 }
 
+typedef t_client * (*ok_client_search)(const char *, const char *);
+typedef void (*ok_client_action)(t_client *);
+
+static char *
+okos_polling_list_by(const char *name, const char *mac,
+        const char *cond, const char *cond_name,
+        ok_client_search search, ok_client_action action, int *num)
+{
+    debug(LOG_DEBUG, "<WDCTL> Polling List to %s client by %s [%s - %s]",
+            name, cond_name, mac, cond?cond:"?"); 
+
+    *num = 0;
+    pstr_t *p_str = pstr_new();
+    pstr_append_sprintf(p_str, "%s client [%s]", name, mac);
+    if (cond) {
+        pstr_append_sprintf(p_str, " with %s[%s]:\n", cond_name, cond);
+    } else {
+        pstr_cat(p_str, " all:\n");
+    }
+    pstr_cat(p_str, "IP Address      MAC Address       AUTH MODE   SSID                  User Name\n");
+	LOCK_CLIENT_LIST();
+	t_client *node;
+    if (cond) {
+        node = search(mac, cond);
+        if (node) {
+            okos_get_client_status(node, p_str);
+            (*num)++;
+            if (action) {
+                action(node);
+            }
+        }
+    } else {
+        node = client_get_first_client();
+        t_client *tmp = NULL;
+        while (NULL != (node = okos_client_query_mac(node, mac))) {
+            okos_get_client_status(node, p_str);
+            tmp = node;
+            node = node->next;
+            (*num)++;
+            if (action) {
+                action(tmp);
+            }
+        }
+    }
+	UNLOCK_CLIENT_LIST();
+    pstr_cat(p_str, "\nSee you later.\n\n");
+    return pstr_to_string(p_str);
+}
+
 char *
-okos_delete_clients_by_scheme(const char *mac, const char *scheme)
+okos_delete_clients_by_scheme(const char *mac, const char *scheme, int *num)
+{
+    return okos_polling_list_by("OFFLINE", mac, scheme, "scheme",
+            client_list_find_by_scheme, logout_client, num);
+}
+
+#if 0
+char *
+okos_delete_clients_by_scheme_old(const char *mac, const char *scheme)
 {
     pstr_t *p_str = pstr_new();
     pstr_append_sprintf(p_str, "Offline client [%s]", mac);
@@ -783,9 +812,18 @@ okos_delete_clients_by_scheme(const char *mac, const char *scheme)
     pstr_cat(p_str, "\nSee you later.\n\n");
     return pstr_to_string(p_str);
 }
+#endif
 
 char *
-okos_delete_clients_by_ssid(const char *mac, const char *ssid)
+okos_delete_clients_by_ssid(const char *mac, const char *ssid, int *num)
+{
+    return okos_polling_list_by("RESET", mac, ssid, "SSID",
+            client_list_find_by_ssid, logout_client, num);
+}
+
+#if 0
+char *
+okos_delete_clients_by_ssid_old(const char *mac, const char *ssid)
 {
     pstr_t *p_str = pstr_new();
     pstr_append_sprintf(p_str, "Reset client [%s]", mac);
@@ -820,9 +858,18 @@ okos_delete_clients_by_ssid(const char *mac, const char *ssid)
     pstr_cat(p_str, "\nSee you later.\n\n");
     return pstr_to_string(p_str);
 }
+#endif
 
 char *
-okos_get_client_status_text(const char *p_mac, const char *p_ssid)
+okos_get_client_status_text(const char *mac, const char *ssid, int *num)
+{
+    return okos_polling_list_by("STATUS", mac, ssid, "SSID",
+            client_list_find_by_ssid, NULL, num);
+}
+
+#if 0
+char *
+okos_get_client_status_text_old(const char *p_mac, const char *p_ssid)
 {
     pstr_t *p_str = pstr_new();
     pstr_append_sprintf(p_str, "Status of client [%s]", p_mac);
@@ -852,4 +899,5 @@ okos_get_client_status_text(const char *p_mac, const char *p_ssid)
     pstr_cat(p_str, "\nHave a good day.\n\n");
     return pstr_to_string(p_str);
 }
+#endif
 #endif

@@ -108,11 +108,13 @@ iptables_insert_gateway_id(char **input)
     *input = buffer;
 }
 
+//#define  OKOS_SUSPRESS_IPTABLES
 /** @internal 
  * */
 static int
 iptables_do_command(const char *format, ...)
 {
+#ifndef OKOS_SUSPRESS_IPTABLES
     va_list vlist;
     char *fmt_cmd;
     char *cmd;
@@ -125,11 +127,12 @@ iptables_do_command(const char *format, ...)
     safe_asprintf(&cmd, "iptables %s", fmt_cmd);
     free(fmt_cmd);
 
-    iptables_insert_gateway_id(&cmd);
+    //iptables_insert_gateway_id(&cmd);
 
     debug(LOG_DEBUG, "__Executing command: %s", cmd);
 
-    rc = execute(cmd, fw_quiet);
+    //rc = execute(cmd, fw_quiet);
+    rc = system(cmd);
 
     if (rc != 0) {
         // If quiet, do not display the error
@@ -142,6 +145,9 @@ iptables_do_command(const char *format, ...)
     free(cmd);
 
     return rc;
+#else /*  OKOS_SUSPRESS_IPTABLES  */
+    return 0;
+#endif /*  OKOS_SUSPRESS_IPTABLES  */
 }
 
 /**
@@ -364,7 +370,7 @@ iptables_fw_init(void)
     }
 
     t_ssid_config * ssid;
-    okos_list_for_each(ssid, config->ssid_conf) {
+    okos_list_for_each(ssid, config->ssid) {
         sn = ssid->sn;
 
         /* Create new chains */
@@ -696,7 +702,7 @@ iptables_fw_destroy(void)
 
     int sn;
     t_ssid_config * ssid;
-    okos_list_for_each(ssid, config->ssid_conf) {
+    okos_list_for_each(ssid, config->ssid) {
         sn = ssid->sn;
 
         /*

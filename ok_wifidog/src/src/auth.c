@@ -62,7 +62,6 @@ thread_client_timeout_check(const void *arg)
     pthread_mutex_t cond_mutex = PTHREAD_MUTEX_INITIALIZER;
     struct timespec timeout;
 
-#if OK_PATCH
     timeout.tv_sec = time(NULL) + 5;
     timeout.tv_nsec = 0;
 
@@ -83,7 +82,7 @@ thread_client_timeout_check(const void *arg)
 
         debug(LOG_DEBUG, "<ClientTimeout>: See you in %ld seconds", timeout.tv_sec);
     }
-#else
+#if 0
     while (1) {
         /* Sleep for config.checkinterval seconds... */
         timeout.tv_sec = time(NULL) + config_get_config()->checkinterval;
@@ -105,15 +104,17 @@ thread_client_timeout_check(const void *arg)
 #endif
 }
 
-#if OK_PATCH
 void
 logout_client(t_client * client)
 {
+    if (NULL == client) {
+        debug(LOG_DEBUG, "!!!!Who are trying to logout NULL client");
+    }
     fw_deny(client);
     client_list_remove(client);
     client_free_node(client);
 }
-#else
+#if 0
 /**
  * @brief Logout a client and report to auth server.
  *
@@ -145,7 +146,6 @@ logout_client(t_client * client)
 
     client_free_node(client);
 }
-#endif
 
 /** Authenticates a single client against the central server and returns when done
  * Alters the firewall rules depending on what the auth server says
@@ -154,8 +154,6 @@ logout_client(t_client * client)
 void
 authenticate_client(request * r)
 {
-#if OK_PATCH
-#else
     t_client *client, *tmp;
     t_authresponse auth_response;
     char *token;
@@ -217,11 +215,7 @@ authenticate_client(request * r)
 
     /* Prepare some variables we'll need below */
     config = config_get_config();
-#if OK_PATCH
-    auth_server = get_auth_server(client);
-#else /* OK_PATCH */
     auth_server = get_auth_server();
-#endif /* OK_PATCH */
 
     switch (auth_response.authcode) {
 
@@ -240,11 +234,7 @@ authenticate_client(request * r)
         fw_deny(client);
         safe_asprintf(&urlFragment, "%smessage=%s&token=%s",
                       auth_server->authserv_msg_script_path_fragment, GATEWAY_MESSAGE_DENIED, client->token);
-#if OK_PATCH
-        http_send_redirect_to_auth(r, urlFragment, "Redirect to denied message", auth_server);
-#else /* OK_PATCH */
         http_send_redirect_to_auth(r, urlFragment, "Redirect to denied message");
-#endif /* OK_PATCH */
         free(urlFragment);
         break;
 
@@ -255,11 +245,7 @@ authenticate_client(request * r)
         fw_allow(client, FW_MARK_PROBATION);
         safe_asprintf(&urlFragment, "%smessage=%s&token=%s",
                       auth_server->authserv_msg_script_path_fragment, GATEWAY_MESSAGE_ACTIVATE_ACCOUNT, client->token);
-#if OK_PATCH
-        http_send_redirect_to_auth(r, urlFragment, "Redirect to activate message", auth_server);
-#else /* OK_PATCH */
         http_send_redirect_to_auth(r, urlFragment, "Redirect to activate message");
-#endif /* OK_PATCH */
         free(urlFragment);
         break;
 
@@ -271,11 +257,7 @@ authenticate_client(request * r)
         served_this_session++;
         safe_asprintf(&urlFragment, "%sgw_id=%s&token=%s", auth_server->authserv_portal_script_path_fragment,
                       config->gw_id, client->token);
-#if OK_PATCH
-        http_send_redirect_to_auth(r, urlFragment, "Redirect to portal", auth_server);
-#else /* OK_PATCH */
         http_send_redirect_to_auth(r, urlFragment, "Redirect to portal");
-#endif /* OK_PATCH */
         free(urlFragment);
         break;
 
@@ -286,11 +268,7 @@ authenticate_client(request * r)
         safe_asprintf(&urlFragment, "%smessage=%s&token=%s",
                       auth_server->authserv_msg_script_path_fragment, GATEWAY_MESSAGE_ACCOUNT_VALIDATION_FAILED,
                       client->token);
-#if OK_PATCH
-        http_send_redirect_to_auth(r, urlFragment, "Redirect to failed validation message", auth_server);
-#else /* OK_PATCH */
         http_send_redirect_to_auth(r, urlFragment, "Redirect to failed validation message");
-#endif /* OK_PATCH */
         free(urlFragment);
         break;
 
@@ -305,5 +283,5 @@ authenticate_client(request * r)
 
     UNLOCK_CLIENT_LIST();
     return;
-#endif
 }
+#endif

@@ -66,7 +66,7 @@ fw_allow(t_client * client, int new_fw_connection_state)
 {
     int result;
     int old_state = client->fw_connection_state;
-    t_ssid_config * ssid = okos_conf_get_ssid_by_name(okos_client_get_ssid(client));
+    t_ssid_config * ssid = client->ssid;
     if (NULL == ssid) {
         debug(LOG_ERR, "  &&!! Can't set iptables allow rule for state %d on ssid unknown for client {ip = %s, mac = %s}", new_fw_connection_state, client->ip, client->mac);
         return -1;
@@ -103,7 +103,7 @@ int
 fw_deny(t_client * client)
 {
     int fw_connection_state = client->fw_connection_state;
-    t_ssid_config * ssid = okos_conf_get_ssid_by_name(okos_client_get_ssid(client));
+    t_ssid_config * ssid = client->ssid;
     if (NULL == ssid) {
         debug(LOG_ERR, "  &&!! Can't set iptables deny rule on ssid unknown for client {ip = %s, mac = %s}", client->ip, client->mac);
         return -1;
@@ -235,6 +235,7 @@ arp_get(const char *req_ip)
     s_config *config = config_get_config();
 
     if (!(proc = fopen(config->arp_table_path, "r"))) {
+        debug(LOG_DEBUG, "<ARP>!! Open ARP table failed for %s", req_ip);
         return NULL;
     }
 
@@ -252,6 +253,7 @@ arp_get(const char *req_ip)
 
     fclose(proc);
 
+    debug(LOG_DEBUG, "<ARP>\t Query for (%s) => [%s]", req_ip, reply?reply:"NULL");
     return reply;
 }
 
@@ -378,13 +380,12 @@ fw_destroy(void)
     return iptables_fw_destroy();
 }
 
-#if OK_PATCH
 time_t
 fw_sync_with_authserver(void)
 {
     static time_t expired_time = 0;
 
-    time_t current_time = time(NULL);
+    time_t current_time = time(NULL) + 1;
     debug(LOG_DEBUG, "<ClientTimeout>: "
             "Start to check client status periodly (%ld). ", current_time);
 
@@ -444,15 +445,15 @@ fw_sync_with_authserver(void)
         this_timer = p1->remain_time + p1->last_flushed;
         
         debug(LOG_DEBUG, "<ClientTimeout>: "
-                "Checking client {%s,%s,%s} for timeout:  Last flushed %ld (%ld seconds ago),"
+                "Checking client {%s,%s,%s}:  Last flushed %ld (%ld seconds ago),"
                 "remain time %ld seconds, current time %ld, %ld seconds left.",
-                p1->ip, p1->mac, p1->ssid, p1->last_flushed, current_time - p1->last_flushed,
+                p1->ip, p1->mac, p1->if_name, p1->last_flushed, current_time - p1->last_flushed,
                 p1->remain_time, current_time, this_timer - current_time);
 
         if (p1->remain_time == 0 || this_timer <= current_time) { //Client is timeout.
             debug(LOG_INFO, "<ClientTimeout>: "
                     "Client {%s, %s, %s} - Inactive, removing client and denying in firewall",
-                    p1->ip, p1->mac, p1->ssid);
+                    p1->ip, p1->mac, p1->if_name);
             
             LOCK_CLIENT_LIST();
             original = client_list_find_by_client(p1);
@@ -461,21 +462,21 @@ fw_sync_with_authserver(void)
             } else { //client is gone already.
                 debug(LOG_DEBUG, "<ClientTimeout>: "
                         "Client {%s, %s, %s} was already removed. Not logging out.",
-                        p1->ip, p1->mac, p1->ssid);
+                        p1->ip, p1->mac, p1->if_name);
             }
             UNLOCK_CLIENT_LIST();
 
         } else { //Client should be updated.
             debug(LOG_DEBUG, "<ClientTimeout>: "
                     "Client {%s, %s, %s} is still active.",
-                    p1->ip, p1->mac, p1->ssid);
+                    p1->ip, p1->mac, p1->if_name);
             if (this_timer < next_timer) {
                 next_timer = this_timer;
             }
             if (!updateFailed) {
                 debug(LOG_DEBUG, "<ClientTimeout>: "
                         "Flush Client {%s, %s, %s} remain time:%ld.",
-                        p1->ip, p1->mac, p1->ssid, p1->remain_time);
+                        p1->ip, p1->mac, p1->if_name, p1->remain_time);
 
                 LOCK_CLIENT_LIST();
                 original = client_list_find_by_client(p1);
@@ -484,7 +485,7 @@ fw_sync_with_authserver(void)
                 } else { //client is gone already.
                     debug(LOG_DEBUG, "<ClientTimeout>: "
                             "Client{%s, %s, %s} was already removed. Not logging out.",
-                            p1->ip, p1->mac, p1->ssid);
+                            p1->ip, p1->mac, p1->if_name);
                 }
                 UNLOCK_CLIENT_LIST();
             }
@@ -501,8 +502,7 @@ fw_sync_with_authserver(void)
 
     return next_timer;
 }
-#else /* OK_PATCH */
-
+#if 0
 /**Probably a misnomer, this function actually refreshes the entire client list's traffic counter, re-authenticates every client with the central server and update's the central servers traffic counters and notifies it if a client has logged-out.
  * @todo Make this function smaller and use sub-fonctions
  */
