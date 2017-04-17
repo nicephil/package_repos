@@ -59,20 +59,33 @@
 static int create_unix_socket(const char *);
 static int write_to_socket(int, char *, size_t);
 static void *thread_wdctl_handler(void *);
-static void wdctl_status(int);
-static void wdctl_stop(int);
-static void wdctl_restart(int);
 
-#if OK_PATCH
-static int okos_judge_mac(const char *);
+static void okos_wdctl_status(int, const char*, const char*);
+static void okos_wdctl_stop(int, const char*, const char*);
+static void okos_wdctl_restart(int, const char*, const char*);
 static void okos_wdctl_reset(int, const char *, const char *);
 static void okos_wdctl_offline(int, const char *, const char *);
 static void okos_wdctl_query_mac(int, const char *, const char *);
-static void okos_wdctl_config(int);
-#endif
-
+static void okos_wdctl_config(int, const char *, const char *);
 
 static int wdctl_socket_server;
+
+typedef void (*okos_wdctl_exec)(int, const char*, const char*);
+static const struct {
+    const char *name;
+    unsigned int param1_len;
+    unsigned int param2_len;
+    okos_wdctl_exec action;
+} cmds[] = {
+    {"status", 0, 0, okos_wdctl_status},
+    {"stop", 0, 0, okos_wdctl_stop},
+    {"restart", 0, 0, okos_wdctl_restart},
+    {"config", 0, 0, okos_wdctl_config},
+    {"reset", okos_mac_len, 0, okos_wdctl_reset},
+    {"offline", okos_mac_len, 0, okos_wdctl_offline},
+    {"query", okos_mac_len, 0, okos_wdctl_query_mac},
+    {NULL, 0, 0, NULL},
+};
 
 static int
 create_unix_socket(const char *sock_name)
@@ -153,10 +166,12 @@ thread_wdctl(void *arg)
             debug(LOG_ERR, "<WDCTL> Accept failed on control socket: %s", strerror(errno));
             free(fd);
         } else {
-            debug(LOG_DEBUG, "<WDCTL> Accepted connection on wdctl socket %d (%s)", fd, sa_un.sun_path);
+            debug(LOG_DEBUG, "<WDCTL> Accepted connection on wdctl socket %d (%s)",
+                    fd, sa_un.sun_path);
             result = pthread_create(&tid, NULL, &thread_wdctl_handler, (void *)fd);
             if (result != 0) {
-                debug(LOG_ERR, "<WDCTL> FATAL: Failed to create a new thread (wdctl handler) - exiting");
+                debug(LOG_ERR, "<WDCTL> FATAL: Failed to create a new thread"
+                        "(wdctl handler) - exiting");
                 free(fd);
                 termination_handler(0);
             }
@@ -208,6 +223,22 @@ thread_wdctl_handler(void *arg)
 
     debug(LOG_DEBUG, "<WDCTL> Request received: [%s]", request);
 
+    int c;
+    for (c = 0; NULL != cmds[c].name; c++) {
+        int cmd_len = strlen(cmds[c].name);
+        int param2_pos = cmd_len + cmds[c].param1_len + 1;
+        if (0 == strncmp(request, cmds[c].name, cmd_len)) {
+            request[param2_pos] = 0;
+            if (cmds[c].action) {
+                cmds[c].action(fd, request + cmd_len + 1, request + param2_pos + 1);
+            }
+            break;
+        }
+    }
+    if (NULL == cmds[c].action) {
+        debug(LOG_ERR, "<WDCTL> Request was not understood!");
+    }
+#if 0
     if (strncmp(request, "status", 6) == 0) {
         wdctl_status(fd);
     } else if (strncmp(request, "stop", 4) == 0) {
@@ -232,6 +263,7 @@ thread_wdctl_handler(void *arg)
     } else {
         debug(LOG_ERR, "<WDCTL> Request was not understood!");
     }
+#endif
 
     shutdown(fd, 2);
     close(fd);
@@ -259,6 +291,273 @@ write_to_socket(int fd, char *text, size_t len)
     return 1;
 }
 
+static void
+okos_wdctl_status(int fd, const char *_1, const char *_2)
+{
+    char *status = get_status_text();
+    int len = strlen(status);
+
+    write_to_socket(fd, status, len);
+
+    free(status);
+}
+
+static void
+okos_wdctl_stop(int fd, const char *_1, const char *_2)
+{
+    pid_t pid = getpid();
+    kill(pid, SIGINT);
+}
+
+static void
+okos_wdctl_restart(int afd, const char *_1, const char *_2)
+{
+    s_config *conf = config_get_config();
+
+    debug(LOG_NOTICE, "<WDCTL> Will restart myself");
+
+    /* First, prepare the internal socket */
+    char *sock_name = conf->internal_sock;
+    debug(LOG_DEBUG, "<WDCTL> Socket name: %s", sock_name);
+
+    debug(LOG_DEBUG, "<WDCTL> Creating socket");
+    int sock = create_unix_socket(sock_name);
+    if (-1 == sock) {
+        debug(LOG_ERR, "<WDCTL>!! Open socket between Father and Son failed!");
+        return;
+    }
+
+    /*
+     * The internal socket is ready, fork and exec ourselves
+     */
+    debug(LOG_DEBUG, "<WDCTL> Forking in preparation for exec()...");
+    pid_t pid = safe_fork();
+    if (pid > 0) { /* Parent */
+
+        /*-----------------------------------------------------------
+         * Wait for the child to connect to our socket :
+         *      1) Father will be blocked by `accept`
+         *      2) Until Son connect to.
+         * --------------------------------------------------------*/
+        debug(LOG_DEBUG, "<WDCTL> Waiting for child to connect on internal socket");
+        struct sockaddr_un sa_un;
+        socklen_t len = sizeof(sa_un);
+        int fd = accept(sock, (struct sockaddr *)&sa_un, &len);
+        if (-1 == fd) {
+            debug(LOG_ERR, "<WDCTL> Accept failed on internal socket: %s", strerror(errno));
+            close(sock);
+            return;
+        }
+        close(sock);
+
+        /*-----------------------------------------------------------
+         * Son is born. As Father, should do:
+         *      1) Package all the clients and hand them over to Son
+         *      2) Kill myself.
+         * --------------------------------------------------------*/
+        debug(LOG_DEBUG, "<WDCTL> Received connection from child."
+                "Sending them all existing clients");
+
+        LOCK_CLIENT_LIST();
+        t_client *client = client_get_first_client();
+        char *tempstring = NULL;
+        while (client) {
+            safe_asprintf(&tempstring,
+                          "CLIENT|ip=%s|mac=%s|fw_connection_state=%u"
+                          "|fd=%d|auth_mode=%u|user_name=%s"
+                          "|remain_time=%u|last_flushed=%lu|if_name=%s\n",
+                          client->ip, client->mac, client->fw_connection_state,
+                          client->fd, client->auth_mode, client->user_name,
+                          client->remain_time, client->last_flushed, client->if_name);
+
+            debug(LOG_DEBUG, "<WDCTL> Sending to child client data: %s", tempstring);
+            write_to_socket(fd, tempstring, strlen(tempstring));
+            free(tempstring);
+            client = client->next;
+        }
+        UNLOCK_CLIENT_LIST();
+
+        close(fd);
+
+        debug(LOG_INFO, "<WDCTL> Sent all existing clients to child.  Committing suicide!");
+
+        shutdown(afd, 2);
+        close(afd);
+
+        /* Our job in life is done. Commit suicide! */
+        okos_wdctl_stop(afd, _1, _2);
+    } else { /* Child */
+        close(wdctl_socket_server);
+        close(sock);
+        close_icmp_socket();
+        shutdown(afd, 2);
+        close(afd);
+        debug(LOG_NOTICE, "<WDCTL> Re-executing myself (%s)", restartargv[0]);
+        setsid();
+        execvp(restartargv[0], restartargv);
+        /* If we've reached here the exec() failed - die quickly and silently */
+        debug(LOG_ERR, "<WDCTL> I failed to re-execute myself: %s", strerror(errno));
+        debug(LOG_ERR, "<WDCTL> Exiting without cleanup");
+        exit(9001);
+    }
+}
+
+typedef char * (*okos_polling_action_by_mac)(const char *, const char *, int *);
+
+static void
+okos_wdctl_action_by_mac(
+        int fd, 
+        const char *mac,
+        const char *content,
+        const char *name,
+        okos_polling_action_by_mac action)
+{
+    debug(LOG_DEBUG, "<WDCTL> Entering wdctl_%s.", name);
+    debug(LOG_DEBUG, "<WDCTL> Argument: {mac = %s, [%s]}", mac, content);
+
+	if (!okos_judge_mac(mac)) {
+		debug(LOG_DEBUG, "<WDCTL> Can't %s client without MAC address.", name);
+		write_to_socket(fd, "Bad", 3);
+		return;
+	}
+
+	if (0 == strlen(content)) {
+		content = NULL;
+	}
+
+    if (NULL == action) {
+		debug(LOG_DEBUG, "<WDCTL> No action registered for %s.", name);
+		write_to_socket(fd, "Sorry", 5);
+        return;
+    }
+
+    int num = 0;
+	char *clients_info = action(mac, content, &num);
+    if (0 == num) {
+        debug(LOG_DEBUG, "<WDCTL> No client found.");
+        write_to_socket(fd, "No", 2);
+    } else {
+        debug(LOG_DEBUG, "<WDCTL> Output all the clients %sed.", name);
+        write_to_socket(fd, clients_info, strlen(clients_info));
+    }
+}
+
+static void
+okos_wdctl_offline(int fd, const char *mac, const char *scheme)
+{
+    okos_wdctl_action_by_mac(fd, mac, scheme, "offline", okos_delete_clients_by_scheme);
+}
+
+
+static void
+okos_wdctl_reset(int fd, const char *mac, const char *ssid)
+{
+    okos_wdctl_action_by_mac(fd, mac, ssid, "reset", okos_delete_clients_by_ssid);
+}
+
+
+static void
+okos_wdctl_query_mac(int fd, const char *mac, const char *ssid)
+{
+    okos_wdctl_action_by_mac(fd, mac, ssid, "query", okos_get_client_status_text);
+}
+
+#if 0
+static void
+okos_wdctl_offline(int fd, const char *mac, const char *scheme)
+{
+    debug(LOG_DEBUG, "<WDCTL> Entering wdctl_offline.");
+    debug(LOG_DEBUG, "<WDCTL> Argument: {mac = %s, scheme:[%s]}", mac, scheme);
+
+	if (!okos_judge_mac(mac)) {
+		debug(LOG_DEBUG, "<WDCTL> Can't offline client without MAC address.");
+		write_to_socket(fd, "Bad", 3);
+		return;
+	}
+
+	if (0 == strlen(scheme)) {
+		scheme = NULL;
+	}
+
+    int num = 0;
+	char *clients_info = okos_delete_clients_by_scheme(mac, scheme, &num);
+
+    debug(LOG_DEBUG, "<WDCTL> Output all the clients offlined.");
+	write_to_socket(fd, clients_info, strlen(clients_info));
+	free(clients_info);
+    debug(LOG_DEBUG, "<WDCTL> Existing wdctl_offline.");
+}
+
+
+static void
+okos_wdctl_reset(int fd, const char *mac, const char *ssid)
+{
+    debug(LOG_DEBUG, "<WDCTL> Entering wdctl_reset.");
+    debug(LOG_DEBUG, "<WDCTL> Argument: {mac = %s, ssid:[%s]}", mac, ssid);
+
+	if (!okos_judge_mac(mac)) {
+		debug(LOG_DEBUG, "<WDCTL> Can't reset client without MAC address.");
+		write_to_socket(fd, "Bad", 3);
+		return;
+	}
+
+	if (0 == strlen(ssid)) {
+		ssid = NULL;
+	}
+
+    int num = 0;
+	char *clients_info = okos_delete_clients_by_ssid(mac, ssid, &num);
+
+    debug(LOG_DEBUG, "<WDCTL> Output all the clients reset.");
+	write_to_socket(fd, clients_info, strlen(clients_info));
+	free(clients_info);
+    debug(LOG_DEBUG, "<WDCTL> Existing wdctl_reset.");
+}
+
+
+static void
+okos_wdctl_query_mac(int fd, const char *p_mac, const char *p_ssid)
+{
+	debug(LOG_DEBUG, "<WDCTL> Entering wdctl_query_mac.");
+	debug(LOG_DEBUG, "<WDCTL> Argument: {mac = %s; ssid = %s}", p_mac, p_ssid);
+
+	if (!okos_judge_mac(p_mac)) {
+		debug(LOG_DEBUG, "<WDCTL> Can't query client without MAC address.");
+		write_to_socket(fd, "Bad", 3);
+		return;
+	}
+
+	if (0 == strlen(p_ssid)) {
+		p_ssid = NULL;
+	}
+
+    int num = 0;
+	char *p_client_info = okos_get_client_status_text(p_mac, p_ssid, &num);
+
+    debug(LOG_DEBUG, "<WDCTL> Output client information.");
+	write_to_socket(fd, p_client_info, strlen(p_client_info));
+	free(p_client_info);
+    debug(LOG_DEBUG, "<WDCTL> Existing wdctl_query_mac.");
+}
+#endif
+
+static void okos_wdctl_config(int fd, const char *_1, const char *_2)
+{
+    char *s_config = NULL;
+    size_t len = 0;
+
+    debug(LOG_DEBUG, "<WDCTL> Entering wdctl_config.");
+	s_config = okos_conf_get_all();
+    len = strlen(s_config);
+
+    debug(LOG_DEBUG, "<WDCTL> Output all the configuration.");
+    write_to_socket(fd, s_config, len);
+
+    free(s_config);
+    debug(LOG_DEBUG, "<WDCTL> Existing wdctl_config.");
+}
+
+#if 0
 static void
 wdctl_status(int fd)
 {
@@ -338,15 +637,16 @@ wdctl_restart(int afd)
             /* Send this client */
 #if OK_PATCH
             safe_asprintf(&tempstring,
-                          "CLIENT|ip=%s|mac=%s|token=%s|fw_connection_state=%u|fd=%d|counters_incoming=%llu|counters_outgoing=%llu|counters_last_updated=%lu|auth_mode=%u|user_name=%s|remain_time=%u|last_flushed=%lu|if_name=%s|ssid=%s\n",
-                          client->ip, client->mac, client->token, client->fw_connection_state, client->fd,
-                          client->counters.incoming, client->counters.outgoing, client->counters.last_updated,
-						  client->auth_mode, client->user_name, client->remain_time, client->last_flushed, client->if_name, client->ssid);
+                          "CLIENT|ip=%s|mac=%s|fw_connection_state=%u|fd=%d|auth_mode=%u|user_name=%s|remain_time=%u|last_flushed=%lu|if_name=%s\n",
+                          client->ip, client->mac, client->fw_connection_state,
+                          client->fd, client->auth_mode, client->user_name,
+                          client->remain_time, client->last_flushed, client->if_name);
 #else /* OK_PATCH */
             safe_asprintf(&tempstring,
-                          "CLIENT|ip=%s|mac=%s|token=%s|fw_connection_state=%u|fd=%d|auth_mode=%u|user_name=%s|remain_time=%u|last_flushed=%lu|if_name=%s|ssid=%s\n",
+                          "CLIENT|ip=%s|mac=%s|token=%s|fw_connection_state=%u|fd=%d|counters_incoming=%llu|counters_outgoing=%llu|counters_last_updated=%lu|auth_mode=%u|user_name=%s|remain_time=%u|last_flushed=%lu|if_name=%s\n",
                           client->ip, client->mac, client->token, client->fw_connection_state, client->fd,
-						  client->auth_mode, client->user_name, client->remain_time, client->last_flushed, client->if_name, client->ssid);
+                          client->counters.incoming, client->counters.outgoing, client->counters.last_updated,
+						  client->auth_mode, client->user_name, client->remain_time, client->last_flushed, client->if_name);
 
 #endif
             debug(LOG_DEBUG, "<WDCTL> Sending to child client data: %s", tempstring);
@@ -378,65 +678,10 @@ wdctl_restart(int afd)
         /* If we've reached here the exec() failed - die quickly and silently */
         debug(LOG_ERR, "<WDCTL> I failed to re-execute myself: %s", strerror(errno));
         debug(LOG_ERR, "<WDCTL> Exiting without cleanup");
-        exit(1);
+        exit(9002);
     }
 }
 
-#if OK_PATCH
-static void
-okos_wdctl_offline(
-        int fd,
-        const char *mac,
-        const char *scheme
-        )
-{
-    debug(LOG_DEBUG, "<WDCTL> Entering wdctl_offline.");
-    debug(LOG_DEBUG, "<WDCTL> Argument: {mac = %s, scheme:[%s]}", mac, scheme);
-
-	if (!okos_judge_mac(mac)) {
-		debug(LOG_DEBUG, "<WDCTL> Can't offline client without MAC address.");
-		write_to_socket(fd, "Bad", 3);
-		return;
-	}
-
-	if (0 == strlen(scheme)) {
-		scheme = NULL;
-	}
-
-	char *clients_info = okos_delete_clients_by_scheme(mac, scheme);
-
-    debug(LOG_DEBUG, "<WDCTL> Output all the clients offlined.");
-	write_to_socket(fd, clients_info, strlen(clients_info));
-	free(clients_info);
-    debug(LOG_DEBUG, "<WDCTL> Existing wdctl_offline.");
-}
-
-
-static void
-okos_wdctl_reset(int fd, const char *mac, const char *ssid)
-{
-    debug(LOG_DEBUG, "<WDCTL> Entering wdctl_reset.");
-    debug(LOG_DEBUG, "<WDCTL> Argument: {mac = %s, ssid:[%s]}", mac, ssid);
-
-	if (!okos_judge_mac(mac)) {
-		debug(LOG_DEBUG, "<WDCTL> Can't reset client without MAC address.");
-		write_to_socket(fd, "Bad", 3);
-		return;
-	}
-
-	if (0 == strlen(ssid)) {
-		ssid = NULL;
-	}
-
-	char *clients_info = okos_delete_clients_by_ssid(mac, ssid);
-
-    debug(LOG_DEBUG, "<WDCTL> Output all the clients reset.");
-	write_to_socket(fd, clients_info, strlen(clients_info));
-	free(clients_info);
-    debug(LOG_DEBUG, "<WDCTL> Existing wdctl_reset.");
-}
-
-#else /* OK_PATCH */
 static void
 wdctl_reset(int fd, const char *arg)
 {
@@ -469,60 +714,8 @@ wdctl_reset(int fd, const char *arg)
 
     debug(LOG_DEBUG, "<WDCTL> Exiting wdctl_reset.");
 }
-#endif
+#endif /* OK_PATCH */
 
-#if OK_PATCH
-
-static int okos_judge_mac(const char *p_mac)
-{
-	int isMac = 0;
-	unsigned int tmp[6];
-	if (6 == sscanf(p_mac, "%02X:%02X:%02X:%02X:%02X:%02X", &tmp[0], &tmp[1], &tmp[2], &tmp[3], &tmp[4], &tmp[5])) {
-		isMac = 1;
-	}
-	return isMac;
-}
-
-static void okos_wdctl_query_mac(int fd, const char *p_mac, const char *p_ssid)
-{
-	debug(LOG_DEBUG, "<WDCTL> Entering wdctl_query_mac.");
-	debug(LOG_DEBUG, "<WDCTL> Argument: {mac = %s; ssid = %s}", p_mac, p_ssid);
-
-	if (!okos_judge_mac(p_mac)) {
-		debug(LOG_DEBUG, "<WDCTL> Can't query client without MAC address.");
-		write_to_socket(fd, "Bad", 3);
-		return;
-	}
-
-	if (0 == strcmp(p_ssid, "")) {
-		p_ssid = NULL;
-	}
-
-	char *p_client_info = okos_get_client_status_text(p_mac, p_ssid);
-
-    debug(LOG_DEBUG, "<WDCTL> Output client information.");
-	write_to_socket(fd, p_client_info, strlen(p_client_info));
-	free(p_client_info);
-    debug(LOG_DEBUG, "<WDCTL> Existing wdctl_query_mac.");
-}
-
-static void okos_wdctl_config(int fd)
-{
-    char *s_config = NULL;
-    size_t len = 0;
-
-    debug(LOG_DEBUG, "<WDCTL> Entering wdctl_config.");
-	s_config = okos_conf_get_all();
-    len = strlen(s_config);
-
-    debug(LOG_DEBUG, "<WDCTL> Output all the configuration.");
-    write_to_socket(fd, s_config, len);
-
-    free(s_config);
-    debug(LOG_DEBUG, "<WDCTL> Existing wdctl_config.");
-}
-
-#endif
 
 
 

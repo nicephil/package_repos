@@ -205,7 +205,7 @@ typedef struct _s_ssid_config
 #endif
     t_ath_if_list * if_list;
 
-    char * scheme_name;
+    char * scheme;
     t_auth_serv * auth_servers;
     t_trusted_mac * mac_white_list;
     t_firewall_ruleset * ip_white_list;
@@ -271,7 +271,7 @@ typedef struct {
 
     char * device_id;
     char * domain_name;
-    t_ssid_config * ssid_conf;
+    t_ssid_config * ssid;
 #if 0
     t_bridge_conf * br_conf;
 #endif
@@ -365,13 +365,7 @@ void config_simulate(void);
 t_ssid_config * okos_conf_get_ssid_by_name(const char *);
 t_ath_if_list * okos_conf_get_ifx_by_name(const char *);
 
-struct _t_client * okos_fill_client_info(struct _t_client *);
-struct _t_client * okos_fill_client_info_by_stainfo(struct _t_client *client);
-struct _t_client * okos_fill_client_info_by_fdb(struct _t_client *client);
-
 char * okos_conf_get_all(void);
-
-//#define okos_conf_get_ssid_by_client(client) okos_conf_get_ssid_by_name(okos_client_get_ssid(client))
 
 #endif /* OK_PATCH */
 

@@ -200,8 +200,6 @@ get_clients_from_parent(void)
                             client->ip = safe_strdup(value);
                         } else if (strcmp(key, "mac") == 0) {
                             client->mac = safe_strdup(value);
-                        } else if (strcmp(key, "token") == 0) {
-                            client->token = safe_strdup(value);
                         } else if (strcmp(key, "fw_connection_state") == 0) {
                             client->fw_connection_state = atoi(value);
                         } else if (strcmp(key, "fd") == 0) {
@@ -227,8 +225,6 @@ get_clients_from_parent(void)
                             client->last_flushed = atol(value);
                         } else if (strcmp(key, "if_name") == 0) {
                             client->if_name = safe_strdup(value);
-                        } else if (strcmp(key, "ssid") == 0) {
-                            client->ssid = safe_strdup(value);
 #endif /* OK_PATCH */
                         } else {
                             debug(LOG_NOTICE, "I don't know how to inherit key [%s] value [%s] from parent", key,
@@ -240,29 +236,17 @@ get_clients_from_parent(void)
 
 #if OK_PATCH
             if (client) {
-#if 0
-                debug(LOG_DEBUG, "Received a client {ip=%s, mac=%s, ssid=%s, ifname=%s, scheme=%s, user_name=%s, token=%s, auth_mode=%u, remain_time=%u, last_flushed=%lu,fw_connection_state=%u, fd=%d}",
-                        OKOS_CLIENT_SHOW(client->ip), OKOS_CLIENT_SHOW(client->mac),
-                        OKOS_CLIENT_SHOW(client->ssid), OKOS_CLIENT_SHOW(client->if_name),
-                        OKOS_CLIENT_SHOW(client->scheme), OKOS_CLIENT_SHOW(client->user_name),
-                        OKOS_CLIENT_SHOW(client->token), client->auth_mode,
-                        client->remain_time, client->last_flushed,
-                        client->fw_connection_state, client->fd);
-#endif
-                debug(LOG_DEBUG, "Received a client {ip=%s, mac=%s, ssid=%s, ifname=%s...",
-                        OKOS_CLIENT_SHOW(client->ip), OKOS_CLIENT_SHOW(client->mac),
-                        OKOS_CLIENT_SHOW(client->ssid), OKOS_CLIENT_SHOW(client->if_name));
-                debug(LOG_DEBUG, "Received a client {...scheme=%s, user_name=%s, token=%s, auth_mode=%u...}",
-                        OKOS_CLIENT_SHOW(client->scheme), OKOS_CLIENT_SHOW(client->user_name),
-                        OKOS_CLIENT_SHOW(client->token), client->auth_mode);
-                debug(LOG_DEBUG, "Received a client {...remain_time=%u, last_flushed=%lu,fw_connection_state=%u, fd=%d}",
+                debug(LOG_DEBUG, "Received a client {ip=%s, mac=%s, ifname=%s}",
+                        OKOS_CLIENT_SHOW(client->ip), OKOS_CLIENT_SHOW(client->mac), OKOS_CLIENT_SHOW(client->if_name));
+                debug(LOG_DEBUG, "Received a client {user_name=%s, auth_mode=%u}",
+                        OKOS_CLIENT_SHOW(client->user_name), client->auth_mode);
+                debug(LOG_DEBUG, "Received a client {remain_time=%u, last_flushed=%lu,fw_connection_state=%u, fd=%d}",
                         client->remain_time, client->last_flushed,
                         client->fw_connection_state, client->fd);
 
-                if ((NULL == client->ip) || (NULL == client->mac) || (NULL == client->token)
+                if ((NULL == client->ip) || (NULL == client->mac)
                         || (NULL == client->user_name) || (0 == client->last_flushed)
-                        || (NULL == client->if_name) || (NULL == client->ssid)
-                        || (0 == client->remain_time)) {
+                        || (NULL == client->if_name) || (0 == client->remain_time)) {
                     client_free_node(client);
                     debug(LOG_DEBUG, "Could not receive completed information from parent.");
                 }
@@ -271,20 +255,11 @@ get_clients_from_parent(void)
                     debug(LOG_DEBUG, "Can't parse interface correctly.");
                     client_free_node(client);
                 }
-                client->ssid_conf = okos_conf_get_ssid_by_name(client->ssid);
-                if (NULL == client->ssid_conf) {
-                    debug(LOG_DEBUG, "Can't parse ssid correctly.");
-                    client_free_node(client);
-                }
-                okos_client_set_strdup(client->scheme, client->ssid_conf->scheme_name);
-                if (NULL == client->scheme) {
-                    debug(LOG_DEBUG, "Can't acquire scheme from local configuartion.");
-                    client_free_node(client);
-                }
+                client->ssid = client->ifx->ssid;
+                
+                debug(LOG_DEBUG, "Inheit a client {ip=%s, mac=%s, ifname=%s, user_name=%s, auth_mode=%u, remain_time=%u, last_flushed=%lu,fw_connection_state=%u, fd=%d}", client->ip, client->mac, client->if_name, client->user_name, client->auth_mode, client->remain_time, client->last_flushed, client->fw_connection_state, client->fd);
 
-                debug(LOG_DEBUG, "Inheit a client {ip=%s, mac=%s, ssid=%s, ifname=%s, scheme=%s, user_name=%s, token=%s, auth_mode=%u, remain_time=%u, last_flushed=%lu,fw_connection_state=%u, fd=%d}", client->ip, client->mac, client->ssid, client->if_name, client->scheme, client->user_name, client->token, client->auth_mode, client->remain_time, client->last_flushed, client->fw_connection_state, client->fd);
-
-                client_list_insert_client(client);
+                client_list_insert_client(&client);
             }
 
 #else /* OK_PATCH */
@@ -390,7 +365,7 @@ init_signals(void)
     sa.sa_flags = SA_RESTART;
     if (sigaction(SIGCHLD, &sa, NULL) == -1) {
         debug(LOG_ERR, "sigaction(): %s", strerror(errno));
-        exit(1);
+        exit(1001);
     }
 
     /* Trap SIGPIPE */
@@ -402,7 +377,7 @@ init_signals(void)
     sa.sa_handler = SIG_IGN;
     if (sigaction(SIGPIPE, &sa, NULL) == -1) {
         debug(LOG_ERR, "sigaction(): %s", strerror(errno));
-        exit(1);
+        exit(1002);
     }
 
     sa.sa_handler = termination_handler;
@@ -412,25 +387,30 @@ init_signals(void)
     /* Trap SIGTERM */
     if (sigaction(SIGTERM, &sa, NULL) == -1) {
         debug(LOG_ERR, "sigaction(): %s", strerror(errno));
-        exit(1);
+        exit(1003);
     }
 
     /* Trap SIGQUIT */
     if (sigaction(SIGQUIT, &sa, NULL) == -1) {
         debug(LOG_ERR, "sigaction(): %s", strerror(errno));
-        exit(1);
+        exit(1004);
     }
 
     /* Trap SIGINT */
     if (sigaction(SIGINT, &sa, NULL) == -1) {
         debug(LOG_ERR, "sigaction(): %s", strerror(errno));
-        exit(1);
+        exit(1005);
     }
 }
 
 #if OK_PATCH
 static void reserve_fd()
 {
+    s_config *config = config_get_config();
+    if (!config->daemon) {
+        return;
+    }
+    
     int fd;
 
     for (fd = 0; fd < 3; fd++) {
@@ -513,7 +493,7 @@ main_loop(void)
     if (NULL == (webserver = httpdCreate(config->gw_address, config->gw_port))) {
 #endif
         debug(LOG_ERR, "<DAEMON> Could not create web server: %s", strerror(errno));
-        exit(1);
+        exit(1006);
     }
     register_fd_cleanup_on_fork(webserver->serverSock);
     debug(LOG_DEBUG, "<DAEMON> Created web server {Host=%s, Port=%d, ServerSock=%d, StartTime=%d, LastError=%d}",
@@ -526,15 +506,14 @@ main_loop(void)
      * Why don't we add some funny things here?
      */
     okos_init_http_callback();
-    //okos_http_callback_register("portal", okos_http_cb_about, NULL);
     okos_http_callback_register("about", okos_http_cb_shell, NULL);
 
-    httpdAddCContent(webserver, "/", "auth", 0, NULL, http_callback_wifidog);
-    httpdAddCContent(webserver, "/auth", "", 0, NULL, http_callback_wifidog);
+    httpdAddCContent(webserver, "/", "auth", 0, NULL, okos_http_cb_wifidog);
+    httpdAddCContent(webserver, "/auth", "", 0, NULL, okos_http_cb_wifidog);
     
-    httpdAddCContent(webserver, "/auth", "client", 0, NULL, http_callback_auth);
-    httpdAddCContent(webserver, "/auth/client", "allow", 0, NULL, http_callback_auth_allow);
-    httpdAddCContent(webserver, "/auth/client", "qrcode", 0, NULL, http_callback_auth_qrcode);
+    httpdAddCContent(webserver, "/auth", "client", 0, NULL, okos_http_cb_auth);
+    httpdAddCContent(webserver, "/auth/client", "allow", 0, NULL, okos_http_cb_allow);
+    httpdAddCContent(webserver, "/auth/client", "qrcode", 0, NULL, okos_http_cb_qrcode);
 
 #else
     httpdAddCContent(webserver, "/", "wifidog", 0, NULL, http_callback_wifidog);
@@ -545,14 +524,14 @@ main_loop(void)
     httpdAddCContent(webserver, "/wifidog", "disconnect", 0, NULL, http_callback_disconnect);
 #endif
 
-    httpdSetErrorFunction(webserver, 404, http_callback_404);
+    httpdSetErrorFunction(webserver, 404, okos_http_cb_404);
 
     /* Reset the firewall (if WiFiDog crashed) */
     fw_destroy();
     /* Then initialize it */
     if (!fw_init()) {
         debug(LOG_ERR, "FATAL: Failed to initialize firewall");
-        exit(1);
+        exit(1007);
     }
 
     /* Start clean up thread */

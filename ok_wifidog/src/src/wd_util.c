@@ -217,14 +217,13 @@ get_status_text()
         pstr_append_sprintf(pstr, "\nClient %d\n", count);
         pstr_append_sprintf(pstr, "  MAC:            %s\n", current->mac);
         pstr_append_sprintf(pstr, "  Authenticator:  %s\n", current->ip);
-        pstr_append_sprintf(pstr, "  SSID:           %s\n", current->ssid);
+        pstr_append_sprintf(pstr, "  SSID:           %s\n", current->ssid->ssid);
         pstr_append_sprintf(pstr, "  INTERFACE:      %s\n", current->if_name);
-        pstr_append_sprintf(pstr, "  SCHEME NAME:    %s\n", current->scheme);
+        pstr_append_sprintf(pstr, "  SCHEME NAME:    %s\n", current->ssid->scheme);
         pstr_append_sprintf(pstr, "  User Name:      %s\n", current->user_name);
         pstr_append_sprintf(pstr, "  auth mode:      %d\n", current->auth_mode);
         pstr_append_sprintf(pstr, "  REMAIN TIME:    %d\n", current->remain_time);
         pstr_append_sprintf(pstr, "  LAST FLUSHED:   %d\n", current->last_flushed);
-        pstr_append_sprintf(pstr, "  Token:          %s\n", current->token);
         count++;
         current = current->next;
     }
@@ -260,4 +259,22 @@ get_status_text()
     return pstr_to_string(pstr);
 }
 
+
+int okos_judge_mac(const char *p_mac)
+{
+    if (17 != strlen(p_mac)) {
+        return 0;
+    }
+	unsigned int tmp[6];
+	if (6 != sscanf(p_mac, "%x:%X:%X:%X:%X:%X", &tmp[0], &tmp[1], &tmp[2], &tmp[3], &tmp[4], &tmp[5])) {
+        return 0;
+	}
+    int i;
+    for (i = 0; i < 6; i++) {
+        if (tmp[i] > 255) {
+            return 0;
+        }
+    }
+	return 1;
+}
 
