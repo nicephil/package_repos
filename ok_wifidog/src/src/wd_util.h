@@ -51,4 +51,14 @@ int is_auth_online(void);
 /** @brief Creates a human-readable paragraph of the status of wifidog */
 char *get_status_text(void);
 
+
+/*---------------------------------------------------------------------------*/
+typedef struct _ok_mac{
+    unsigned char mac[6];
+} s_ok_mac;
+
+#define okos_mac_len 17
+
+int okos_judge_mac(const char *);
+
 #endif /* _WD_UTIL_H_ */

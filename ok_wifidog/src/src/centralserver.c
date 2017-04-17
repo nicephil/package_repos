@@ -57,7 +57,6 @@
 
 #include "simple_http.h"
 
-#if OK_PATCH
 /* This function will query Auth Server for a client login status.
  * It will construct query by the input of client->ip.
  * After received response from Auth Server successfully, it will
@@ -93,22 +92,18 @@ int
 auth_server_request(t_authresponse *authresponse, t_client *client)
 {
     debug(LOG_DEBUG, "~~ Querying Client {%s, %s, %s}",
-            client->ip, client->mac, client->ssid);
+            client->ip, client->mac, client->if_name);
 
-    char *info = okos_http_insert_parameter(client);
-    //t_ssid_config * ssid = okos_conf_get_ssid_by_client(client);
-    t_ssid_config *ssid = client->ssid_conf;
-    int updateFailed = 0;
-    t_auth_serv *auth_server = ssid->auth_servers;
-
-    //int sockfd = connect_auth_server(ssid);
+    int updateFailed = -1;
+    authresponse->authcode = AUTH_ERROR;
+    
+    t_auth_serv *auth_server = get_auth_server(client);
     int sockfd = _access_auth_server(auth_server);
     if (-1 == sockfd) {
         debug(LOG_DEBUG, "~~ Auth server is unreachable.");
-        authresponse->authcode = AUTH_ERROR;
-        updateFailed = -1;
         goto asr_cant_access_authsvr;
     }
+    char *info = okos_http_assemble_INFO(client);
     
     /* Send out request to Auth server to check login status of client:
      */
@@ -116,7 +111,7 @@ auth_server_request(t_authresponse *authresponse, t_client *client)
     memset(buf, 0, sizeof(buf));
     snprintf(buf, (sizeof(buf) - 1),
             "GET %s%sinfo=%s HTTP/1.0\r\n"
-            "Life is short, play hard!\r\n"
+            "I got lost.\r\n"
             "\r\n",
             auth_server->authserv_path,
             auth_server->authserv_auth_script_path_fragment,
@@ -137,53 +132,50 @@ auth_server_request(t_authresponse *authresponse, t_client *client)
     res = http_get(sockfd, buf);
 #endif
 
-    authresponse->authcode = AUTH_ALLOWED;
     if (NULL == res) {
-        debug(LOG_ERR, "~~!! There was a problem talking to the auth server!");
-        authresponse->authcode = AUTH_ERROR;
-        updateFailed = 1;
+        debug(LOG_ERR, "~~!! AuthSvr doesn't reply!");
         goto asr_can_not_get_response;
     }
 
     /* Anyway, Auth server will reply me a string started with "auth="
      */
+    updateFailed = 0;
     char * parameterAuth = strstr(res, "auth=");
     if (parameterAuth == NULL) {
-        client->remain_time = 0;
+        okos_client_set_expired(client);
         authresponse->authcode = AUTH_DENIED;
-        updateFailed = 2;
-        debug(LOG_WARNING, "~~!! Can't get expected authentication code, Denied client {%s, %s, %s}.",
-                client->ip, client->mac, client->ssid);
+        debug(LOG_WARNING, "~~!! AuthSvr reply without 'AUTH', Denied client {%s, %s, %s}.",
+                client->ip, client->mac, client->if_name);
         goto asr_response_without_auth;
     }
 
     debug(LOG_DEBUG, "~~ Got response [%s]", parameterAuth);
     parameterAuth += strlen("auth=");
-    int parseFailed = okos_http_parse_info(parameterAuth, client);
+    int parseFailed = okos_http_parse_AUTH(parameterAuth, client);
     if (parseFailed) {
-        client->remain_time = 0;
+        okos_client_set_expired(client);
         authresponse->authcode = AUTH_DENIED;
-        updateFailed = 3;
-        debug(LOG_WARNING, "~~!! Can't parse authentication code returned, Denied client {%s, %s, %s}.",
-                client->ip, client->mac, client->ssid);
+        debug(LOG_WARNING, "~~!! Can't parse `AUTH`, Denied client {%s, %s, %s}.",
+                client->ip, client->mac, client->if_name);
         goto asr_response_without_auth;
     }
 
     if (0 == client->remain_time) {
         authresponse->authcode = AUTH_DENIED;
+    } else {
+        authresponse->authcode = AUTH_ALLOWED;
     }
-    debug(LOG_DEBUG, "~~ Auth server returned authentication code %d", authresponse->authcode);
+    debug(LOG_DEBUG, "~~ AuthSvr returned authentication code %d", authresponse->authcode);
 
 asr_response_without_auth:
     free(res);
     
 asr_can_not_get_response:
-asr_cant_access_authsvr:
     free(info);
+asr_cant_access_authsvr:
     return updateFailed;
 }
-#else /* OK_PATCH */
-
+#if 0
 /** Initiates a transaction with the auth server, either to authenticate or to
  * update the traffic counters at the server
 @param authresponse Returns the information given by the central server 

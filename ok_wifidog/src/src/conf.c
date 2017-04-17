@@ -37,7 +37,6 @@
 #include <string.h>
 #include <ctype.h>
 
-#include <sqlite3.h>
 
 #include "common.h"
 #include "safe.h"
@@ -50,8 +49,7 @@
 
 #include "util.h"
 #include "client_list.h"
-
-
+#include "gateway.h"
 
 #if OK_PATCH
 
@@ -68,7 +66,6 @@
 #include "services/cfg_services.h"
 
 #include "okos_auth_param.h"
-#include "gateway.h"
 #endif
 
 /** @internal
@@ -1118,17 +1115,15 @@ config_notnull(const void *parm, const char *parmname)
  */
 #if OK_PATCH
 t_auth_serv *
-get_auth_server(
-        const t_client *client
-        )
+get_auth_server(const t_client *client)
 {
     if (NULL == client)
         return NULL;
 
-    if (NULL == client->ssid_conf)
+    if (NULL == client->ssid)
         return NULL;
 
-    return client->ssid_conf->auth_servers;
+    return client->ssid->auth_servers;
 }
 
 #else /* OK_PATCH */
@@ -1208,10 +1203,10 @@ t_client * okos_fill_client_info_by_fdb(t_client *client)
                         continue;
                     }
                     client->ifx = br->ifx[--port];
-                    client->ssid_conf = client->ifx->ssid;
+                    client->ssid= client->ifx->ssid;
                     client->if_name = safe_strdup(client->ifx->if_name);
-                    client->ssid = safe_strdup(client->ssid_conf->ssid);
-                    client->scheme = safe_strdup(client->ssid_conf->scheme_name);
+                    client->ssid = safe_strdup(client->ssid->ssid);
+                    client->scheme = safe_strdup(client->ssid->scheme);
                     client->token = safe_strdup(OKOS_AUTH_FAKE_TOKEN);
                     whatIfound = client;
 
@@ -1357,124 +1352,6 @@ static t_client * okos_get_client_ifname(t_client *client)
 }
 */
 
-static int
-okos_show_station_info(
-        void *data,
-        int col_n,
-        char **col_v,
-        char **col_name
-        )
-{
-    t_client *client = (t_client *)data;
-    int i = 0;
-    for (i = 0; i < col_n; i++) {
-        debug(LOG_DEBUG, "<sqlite>\t\t key:%s, value:%s.", col_name[i], col_v[i] ? col_v[i] : "Nil");
-        if (0 == strcasecmp(col_name[i], "IFNAME") && NULL != col_v[i]) {
-            okos_client_set_strdup(client->if_name, col_v[i]);
-        } else if (0 == strcasecmp(col_name[i], "MAC") && NULL != col_v[i]) {
-            okos_client_set_strdup(client->mac, col_v[i]);
-        } else {
-            debug(LOG_DEBUG, "<sqlite>!! Got value[%s] UNREQUIRED.", col_name[i]);
-        }
-    }
-    return 0;
-}
-
-
-static t_client *
-okos_get_client_iface(
-        t_client *client
-        )
-{
-    char *sql = NULL;
-    if (NULL == client->ip) { /* ip => mac */
-        return NULL;
-    }
-    client->mac = arp_get(client->ip);
-    debug(LOG_DEBUG, "<sqlite>\t Query ARP table for (%s) => [%s]",
-            client->ip, client->mac ? client->mac : "NULL");
-    if (NULL != client->mac) { /* mac => if_name */
-        safe_asprintf(&sql, "SELECT IFNAME from STAINFO " \
-                "WHERE MAC = '%s';" \
-                ,
-                client->mac
-                );
-    } else { /* ip => mac, ifname */
-        safe_asprintf(&sql, "SELECT MAC, IFNAME from STAINFO " \
-                "WHERE IPADDR = '%s';" \
-                ,
-                client->ip
-                );
-    }
-    debug(LOG_DEBUG, "<sqlite>\t '%s'", sql);
-
-    sqlite3 *sta_info_db = NULL;
-    int db_result = sqlite3_open(station_info_db_file, &sta_info_db);
-    if (0 != db_result) {
-        debug(LOG_ERR, "<sqlite>!! Fail to open database %s:%s.",
-                station_info_db_file, sqlite3_errmsg(sta_info_db));
-        free(sql);
-        return NULL;
-    }
-    debug(LOG_DEBUG, "<sqlite>\t Open database %s successfully.", station_info_db_file);
-    
-    char *err_msg = NULL;
-    int rc = sqlite3_exec(sta_info_db, sql, okos_show_station_info, client, &err_msg);
-    if (SQLITE_OK != rc) {
-        debug(LOG_WARNING, "<sqlite>!! Query ( %s ) Failed for %s.",
-                sql, err_msg);
-        sqlite3_free(err_msg);
-        client = NULL;
-    } else {
-        if (NULL == client->if_name) {
-            debug(LOG_DEBUG, "<sqlite>!! Return without error but if_name is NULL)");
-        } else if (NULL == client->mac) {
-            debug(LOG_DEBUG, "<sqlite>!! Return without error but mac is NULL)");
-        } else {
-            debug(LOG_DEBUG, "<sqlite>\t Query ( %s ) successfully.", sql);
-        }
-    }
-
-    sqlite3_close(sta_info_db);
-    free(sql);
-    debug(LOG_DEBUG, "<sqlite>\t Close database.");
-    
-    return client;
-}
-
-t_client *
-okos_fill_client_info_by_stainfo(
-        t_client *client
-        )
-{
-#if 0
-    if (NULL != okos_get_client_ifname_by_stainfo(client)) {
-#endif
-#if 0
-    if (NULL != okos_get_client_ifname(client)) {
-#endif
-    if (NULL != okos_get_client_iface(client)) {
-        client->ifx = okos_conf_get_ifx_by_name(client->if_name);
-        if (NULL != client->ifx) {
-            client->ssid_conf = client->ifx->ssid;
-            if (NULL != client->ssid_conf) {
-
-                okos_client_set_strdup(client->scheme, client->ssid_conf->scheme_name);
-                okos_client_set_strdup(client->ssid, client->ssid_conf->ssid);
-                okos_client_set_strdup(client->token, OKOS_AUTH_FAKE_TOKEN);
-
-                debug(LOG_DEBUG, "<client_info>\t found record of client {ip:%s, mac=%s, ifname:%s, ssid:%s, scheme:%s}", client->ip, client->mac, client->if_name, client->ssid, client->scheme);
-
-                return client;
-            }
-        }
-    }
-
-    client_free_node(client);
-    debug(LOG_DEBUG, "<client_info>!! Configuration imcompleted. Can't find out ifx or ssid_conf.");
-
-    return NULL;
-}
 
 #if 0
 t_client *
@@ -1485,13 +1362,13 @@ okos_fill_client_info(
     debug(LOG_INFO, "Fill the client info from config by hand.");
     
     t_ssid_config *ssid;
-    okos_list_for_each(ssid, config.ssid_conf) {
+    okos_list_for_each(ssid, config.ssid) {
         if (0 == strcmp(client->brX, ssid->br_name)) {
-            client->ssid_conf = ssid;
+            client->ssid= ssid;
             client->ifx = ssid->if_list;
             client->if_name = safe_strdup(client->ifx->if_name);
-            client->ssid = safe_strdup(client->ssid_conf->ssid);
-            client->scheme = safe_strdup(client->ssid_conf->scheme_name);
+            client->ssid = safe_strdup(client->ssid->ssid);
+            client->scheme = safe_strdup(client->ssid->scheme);
             
             // Fake the token to cheat wifidog
             client->token = safe_strdup(OKOS_AUTH_FAKE_TOKEN);
@@ -1798,14 +1675,14 @@ okos_load_ssid(
 
     t_ssid_config *p_ssid = NULL;
     if (NULL != p_schm_cfg) {
-        p_ssid = okos_conf_ins_list_member(config.ssid_conf);
-        p_ssid->scheme_name = scheme_name;
+        p_ssid = okos_conf_ins_list_member(config.ssid);
+        p_ssid->scheme = scheme_name;
         p_ssid->sn = svc_tmp_id;
         p_ssid->ssid = okos_conf_get_option_value_from_config(
                 "wlan_service_template.ServiceTemplate%d.ssid", svc_tmp_id);
         p_ssid->ssid = p_ssid->ssid ? p_ssid->ssid : "OkOS";
         debug(LOG_DEBUG, "[CFG]\t\t Created ssid(%s) scheme(%s) sn(%d).",
-                p_ssid->ssid, p_ssid->scheme_name, p_ssid->sn);
+                p_ssid->ssid, p_ssid->scheme, p_ssid->sn);
 
         okos_load_authsvr_to_ssid(p_schm_cfg, p_ssid);
         okos_load_ip_whitelist_to_ssid(p_schm_cfg, p_ssid);
@@ -1880,7 +1757,7 @@ okos_config_read(void)
              *----------------------------------------------------------------*/
             i_svc_tmp_id = p_rdcfg->radioinfo[i_rd].service[i_vap];
             ssid_is_loaded = 0;
-            okos_list_for_each(p_ssid, config.ssid_conf) {
+            okos_list_for_each(p_ssid, config.ssid) {
                 if (i_svc_tmp_id == (int)p_ssid->sn) {
                     debug(LOG_DEBUG, "[CFG]\t\t {radio.%d vap.%d} is attached to template [%d].",
                             i_rd, i_vap, i_svc_tmp_id);
@@ -1949,7 +1826,7 @@ okos_simulate_3ssid(void)
     okos_conf_set_str(brX->br_name, "br-lan1");
 
     // 1st ssid 
-    ssid = okos_conf_append_list_member(my_config->ssid_conf);
+    ssid = okos_conf_append_list_member(my_config->ssid);
     ssid->brx = brX;
     ifs = okos_conf_append_list_member(ssid->if_list);
     ifs->ssid = ssid;
@@ -1968,7 +1845,7 @@ okos_simulate_3ssid(void)
     okos_conf_set_int(ssid, sn, 1);
     okos_conf_set_str(ssid->ssid, "oakridge_test_1");
     okos_conf_set_str(ssid->br_name, "br-lan1");
-    okos_conf_set_str(ssid->scheme_name, "1");
+    okos_conf_set_str(ssid->scheme, "1");
 
     authsvrs = okos_conf_append_list_member(ssid->auth_servers);
     okos_config_init_default_auth_server(authsvrs);
@@ -2002,7 +1879,7 @@ okos_simulate_3ssid(void)
 
 
     // second ssid 
-    ssid = okos_conf_append_list_member(my_config->ssid_conf);
+    ssid = okos_conf_append_list_member(my_config->ssid);
     ssid->brx = brX;
     ifs = okos_conf_append_list_member(ssid->if_list);
     ifs->ssid = ssid;
@@ -2020,7 +1897,7 @@ okos_simulate_3ssid(void)
     okos_conf_set_int(ssid, sn, 2);
     okos_conf_set_str(ssid->ssid, "oakridge_test_2");
     okos_conf_set_str(ssid->br_name, "br-lan1");
-    okos_conf_set_str(ssid->scheme_name, "1");
+    okos_conf_set_str(ssid->scheme, "1");
 
     authsvrs = okos_conf_append_list_member(ssid->auth_servers);
     okos_config_init_default_auth_server(authsvrs);
@@ -2055,7 +1932,7 @@ okos_simulate_3ssid(void)
 
     
     // Third ssid 
-    ssid = okos_conf_append_list_member(my_config->ssid_conf);
+    ssid = okos_conf_append_list_member(my_config->ssid);
     ssid->brx = brX;
     ifs = okos_conf_append_list_member(ssid->if_list);
     ifs->ssid = ssid;
@@ -2067,7 +1944,7 @@ okos_simulate_3ssid(void)
     okos_conf_set_int(ssid, sn, 3);
     okos_conf_set_str(ssid->ssid, "oakridge_test_3");
     okos_conf_set_str(ssid->br_name, "br-lan1");
-    okos_conf_set_str(ssid->scheme_name, "1");
+    okos_conf_set_str(ssid->scheme, "1");
 
     authsvrs = okos_conf_append_list_member(ssid->auth_servers);
     okos_config_init_default_auth_server(authsvrs);
@@ -2106,7 +1983,7 @@ okos_conf_get_ssid_by_name(
         return NULL;
 
     t_ssid_config *ssid;
-    okos_list_for_each(ssid, config.ssid_conf) {
+    okos_list_for_each(ssid, config.ssid) {
         if (0 == strcmp(ssid->ssid, name)) {
             return ssid;
         }
@@ -2115,15 +1992,13 @@ okos_conf_get_ssid_by_name(
 }
 
 t_ath_if_list *
-okos_conf_get_ifx_by_name(
-        const char *name
-        )
+okos_conf_get_ifx_by_name(const char *name)
 {
     if (NULL == name)
         return NULL;
 
     t_ssid_config *ssid;
-    okos_list_for_each(ssid, config.ssid_conf) {
+    okos_list_for_each(ssid, config.ssid) {
         t_ath_if_list *ifx;
         okos_list_for_each(ifx, ssid->if_list) {
             if (0 == strcmp(ifx->if_name, name)) {
@@ -2254,11 +2129,11 @@ okos_conf_get_all(void)
     OKOS_CONF_APP_STR("Domain Name", config.domain_name);
     pstr_cat(p_str, ">>>> SSID Configuration <<<<\n");
     t_ssid_config *p_ssid;
-    okos_list_for_each(p_ssid, config.ssid_conf) {
+    okos_list_for_each(p_ssid, config.ssid) {
         pstr_cat(p_str, "----------------------------\n");
         OKOS_CONF_APP_INT("  sn", p_ssid->sn);
         OKOS_CONF_APP_STR("  SSID", p_ssid->ssid);
-        OKOS_CONF_APP_STR("  Scheme", p_ssid->scheme_name);
+        OKOS_CONF_APP_STR("  Scheme", p_ssid->scheme);
         pstr_cat(p_str, "> Interfaces attched to this SSID <\n");
         t_ath_if_list *p_if;
         okos_list_for_each(p_if, p_ssid->if_list) {

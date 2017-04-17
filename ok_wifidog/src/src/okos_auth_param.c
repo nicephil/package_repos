@@ -13,6 +13,8 @@
 #include "safe.h"
 #include "client_list.h"
 
+#include "gateway.h"
+
 typedef struct s_http_auth_info_pri {
     /* Pravite Part: */
 #define OKOS_BRIF_NAME_LEN 64
@@ -93,35 +95,6 @@ static inline void okos_http_ins_str(const char *desc, unsigned char **pt)
 }
 
 
-static unsigned char * okos_http_serial_auth_info(const t_client *client, int *len)
-{
-//    okos_http_simulate_client_info(client, &info);
-	debug(LOG_DEBUG, "  ^=serialize the local information into buffer.");
-
-    unsigned char * urltmp = safe_malloc(sizeof(t_http_auth_info));
-    unsigned char * pt = urltmp;
-	s_config *pconfig = config_get_config();
-
-    *pt++ = OKOS_AUTH_INFO_VERSION;
-	okos_mac_str2bin(pconfig->device_id, pt);
-	pt += 6;
-	okos_mac_str2bin(client->mac, pt);
-    pt += 6;
-    unsigned long client_ip = htonl(inet_addr(client->ip));
-    memcpy(pt, (char *)(&(client_ip)), sizeof(client_ip));
-    pt += sizeof(client_ip);
-    
-	okos_http_ins_str(client->ssid, &pt);
-	okos_http_ins_str(pconfig->domain_name, &pt);
-    okos_http_ins_str(client->ssid_conf->scheme_name, &pt);
-
-	okos_mac_str2bin(client->ifx->bssid, pt);
-    pt += 6;
-
-    *len = pt - urltmp;
-
-    return urltmp;
-}
 
 static unsigned char * okos_http_hex2byte(const char *hex, int *len)
 {
@@ -156,7 +129,7 @@ static unsigned char * okos_http_hex2byte(const char *hex, int *len)
 
 static char * okos_http_byte2hex(const unsigned char *bytes, const int len)
 {
-	debug(LOG_DEBUG, "  ^= start to transfer data to ascii.");
+	debug(LOG_DEBUG, "^=== Start to transfer data to ASCII.");
 
     char *hex = safe_malloc(len*2+1);
     char alph[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
@@ -175,12 +148,34 @@ static inline void okos_http_encrypt_auth_info(unsigned char *hex, const int len
     for (i = 0; i < len; i++) hex[i] ^= 0xDA;
 }
 
-static int _okos_http_parse_info(const unsigned char *info, const int len, t_client *client)
+static unsigned char * okos_http_serial_local_info(const t_client *client, int *len)
 {
-    const unsigned char *pos = info;
-    int left = len;
-	t_auth_confirm_info *ptemp = NULL;
-	int size;
+    unsigned char * urltmp = safe_malloc(sizeof(t_http_auth_info));
+    unsigned char * pt = urltmp;
+	s_config *pconfig = config_get_config();
+
+    *pt++ = OKOS_AUTH_INFO_VERSION;
+	okos_mac_str2bin(pconfig->device_id, pt);
+	pt += 6;
+	okos_mac_str2bin(client->mac, pt);
+    pt += 6;
+    unsigned long client_ip = htonl(inet_addr(client->ip));
+    memcpy(pt, (char *)(&(client_ip)), sizeof(client_ip));
+    pt += sizeof(client_ip);
+    
+	okos_http_ins_str(client->ssid->ssid, &pt);
+	okos_http_ins_str(pconfig->domain_name, &pt);
+    okos_http_ins_str(client->ssid->scheme, &pt);
+
+	okos_mac_str2bin(client->ifx->bssid, pt);
+    pt += 6;
+
+    *len = pt - urltmp;
+
+	debug(LOG_DEBUG, "^=== Serialized `local information` into INFO.");
+    return urltmp;
+}
+
 
 #define pre_parse(left, size, element) {\
 	size = sizeof(ptemp->element); \
@@ -190,10 +185,17 @@ static int _okos_http_parse_info(const unsigned char *info, const int len, t_cli
 #define post_parse(left, pos, size) {\
 	left -= size; pos += size;}
 
+static int _okos_http_parse_info(const unsigned char *info, const int len, t_client *client)
+{
+    const unsigned char *pos = info;
+    int left = len;
+	t_auth_confirm_info *ptemp = NULL;
+	int size;
+
 	pre_parse(left, size, version);
 	int ver = *((typeof(ptemp->version) *)pos);
 	if (OKOS_AUTH_CNFM_VERSION != ver) {
-		debug(LOG_ERR, "  =^!!Auth confirm info version (%d) is wrong.", ver);
+		debug(LOG_ERR, "===^!! AUTH.version (%d) is wrong.", ver);
 		return -2;
 	}
 	post_parse(left, pos, size);
@@ -201,7 +203,7 @@ static int _okos_http_parse_info(const unsigned char *info, const int len, t_cli
 	pre_parse(left, size, mac_num);
 	int mac_num = *((typeof(ptemp->mac_num) *)pos);
 	if (mac_num < 1 || mac_num > 2) {
-		debug(LOG_ERR, "  =^!!Mac address number (%d) is wrong.", mac_num);
+		debug(LOG_ERR, "===^!! AUTH.mac_address_number (%d) is wrong.", mac_num);
 		return -1;
 	}
 	post_parse(left, pos, size);
@@ -229,7 +231,8 @@ static int _okos_http_parse_info(const unsigned char *info, const int len, t_cli
 	typeof(ptemp->user_len) user_len = *((typeof(ptemp->user_len) *)pos);
 	post_parse(left, pos, size);
 
-	debug(LOG_DEBUG, "  =^ Compare&Adjust the user name length from msg content (%d) to buffer left %d", user_len, left);
+	debug(LOG_DEBUG, "===^ Adjust user_name length from (%d) to buffer left %d",
+            user_len, left);
 	user_len = user_len <= left ? user_len : left;
 	char * username = safe_malloc(user_len + 1);
 	memcpy(username, pos, user_len);
@@ -237,15 +240,14 @@ static int _okos_http_parse_info(const unsigned char *info, const int len, t_cli
 	okos_client_update_str_after_cmp(client->user_name, username);
 
 	client->last_flushed = time(NULL);
-	debug(LOG_DEBUG, "  =^ Auth confirm information parse successful for client {mac:%s, auth_mode:%d, remain_time:%d, user_name:%s}", client->mac, client->auth_mode, client->remain_time, client->user_name);
     return 0;
 }
 
-char * okos_http_insert_parameter(t_client *client)
+char * okos_http_assemble_INFO(t_client *client)
 {
-	debug(LOG_DEBUG, "^= start to insert parameter to auth info");
+	debug(LOG_DEBUG, "^= Start to assemble INFO variable.");
     int len = 0;
-    unsigned char * urlBytes = okos_http_serial_auth_info(client, &len);
+    unsigned char * urlBytes = okos_http_serial_local_info(client, &len);
     okos_http_encrypt_auth_info(urlBytes, len);
     char *info = okos_http_byte2hex(urlBytes, len);
     free(urlBytes);
@@ -253,22 +255,291 @@ char * okos_http_insert_parameter(t_client *client)
 	return info;
 }
 
-int okos_http_parse_info(const char *auth_value, t_client *client)
+int okos_http_parse_AUTH(const char *auth_value, t_client *client)
 {
-	debug(LOG_DEBUG, "=^ start to parse auth value.");
+	debug(LOG_DEBUG, "=^ Start to parse AUTH value.");
 	int len = 0;
     unsigned char *param = okos_http_hex2byte(auth_value, &len);
 	okos_http_encrypt_auth_info(param, len);
     int canntParse = _okos_http_parse_info(param, len, client);
 
     if (!canntParse) {
-        debug(LOG_DEBUG, "=^ Client {mac:%s, user_name:%s, auth_mode:%d, remain_time:%d} got authed.",
-		        client->user_name, client->mac, client->auth_mode, client->remain_time);
+        debug(LOG_DEBUG, "=^ Client {mac:%s, user_name:%s, auth_mode:%d, remain_time:%d}"
+                "parsed from AUTH variable.",
+		        client->mac, client->user_name, client->auth_mode, client->remain_time);
+    } else {
+        debug(LOG_DEBUG, "=^!! parse AUTH value FAILED!");
     }
-	debug(LOG_DEBUG, "=^ parse auth value %s.", canntParse ? "failed" : "successfully");
     free(param);
 	return canntParse;
 }
 
+t_client *
+okos_client_get_new(const char *ip)
+{
+    t_client *client = client_get_new();
+    client->ip = safe_strdup(ip);
+    return client;
+}
+
+sqlite3 *
+okos_open_stainfo_db(void)
+{
+    sqlite3 *sta_info_db = NULL;
+    int db_result = sqlite3_open(station_info_db_file, &sta_info_db);
+    if (0 != db_result) {
+        debug(LOG_ERR, "<sqlite>!! Open database %s failed because %s.",
+                station_info_db_file, sqlite3_errmsg(sta_info_db));
+        return NULL;
+    } else {
+        debug(LOG_DEBUG, "<sqlite>\t Open database %s successfully.", station_info_db_file);
+        return sta_info_db;
+    }
+}
+
+void
+okos_close_stainfo_db(sqlite3 *db)
+{
+    sqlite3_close(db);
+    debug(LOG_DEBUG, "<sqlite>\t Close database.");
+}
+
+
+static int
+okos_show_station_info(
+        void *data,
+        int col_n,
+        char **col_v,
+        char **col_name
+        )
+{
+    t_client *client = (t_client *)data;
+    int i = 0;
+    for (i = 0; i < col_n; i++) {
+        debug(LOG_DEBUG, "<sqlite>\t\t key:%s, value:%s.",
+                col_name[i], col_v[i] ? col_v[i] : "Nil");
+        if (0 == strcasecmp(col_name[i], "IFNAME") && NULL != col_v[i]) {
+            okos_client_set_strdup(client->if_name, col_v[i]);
+        } else if (0 == strcasecmp(col_name[i], "MAC") && NULL != col_v[i]) {
+            okos_client_set_strdup(client->mac, col_v[i]);
+        } else {
+            debug(LOG_DEBUG, "<sqlite>!! Got key[%s] UNREQUIRED.", col_name[i]);
+        }
+    }
+    return 0;
+}
+
+/*-------------------------------------------------------------------
+ * Acquire if_name [and mac address] through database query.
+ *
+ * INPUT: client->ip [client->mac]
+ *
+ * OUTPUT: client->if_name & [client->mac]
+ *
+ * RETURN:
+ *      1) SQLite Query failed.
+ *      2) Query return OK, but if_name is NULL.
+ *      3) Query return OK, but maf is NULL.
+ *      0) client's IP, MAC and IF_NAME are available. 
+ * NOTES:
+ *      1) If client->mac is available, Do NOT ruin it. It's the case
+ *         of guest network authenticaion mode.
+ *------------------------------------------------------------------*/
+static int
+okos_get_client_iface(t_client *client, sqlite3 *sta_info_db)
+{
+    /*---------------------------------------------------------------
+     * STEP 3: Build up SQLite Query. 
+     *         1) If MAC is available, Try to get 'if_name'.
+     *         2) If MAC is NULL, Try to acquire 'if_name' & 'MAC'
+     *            from IP address.
+     *            This case may not success as always.
+     * ------------------------------------------------------------*/
+    char *sql = NULL;
+    if (NULL != client->mac) { 
+        safe_asprintf(&sql, "SELECT IFNAME from STAINFO " 
+                "WHERE MAC = '%s';" 
+                , client->mac);
+    } else { 
+        safe_asprintf(&sql, "SELECT MAC, IFNAME from STAINFO " 
+                "WHERE IPADDR = '%s';" 
+                , client->ip);
+    }
+
+    int failed = 0;
+    char *err_msg = NULL;
+    int rc = sqlite3_exec(sta_info_db, sql, okos_show_station_info, client, &err_msg);
+    if (SQLITE_OK != rc) {
+        debug(LOG_WARNING, "<sqlite>!! Query(%s) Failed for %s.",
+                sql, err_msg?err_msg:"None");
+        sqlite3_free(err_msg);
+        failed = 1;
+    } else {
+        if (NULL == client->if_name) {
+            failed = 2;
+            debug(LOG_DEBUG, "<sqlite>!! Query(%s) success, but if_name is NULL)", sql);
+        } else if (NULL == client->mac) {
+            failed = 3;
+            debug(LOG_DEBUG, "<sqlite>!! Query(%s) success, but mac is NULL)", sql);
+        } else {
+            debug(LOG_DEBUG, "<sqlite>\t Query(%s) success.", sql);
+        }
+    }
+
+    free(sql);
+    
+    return failed;
+}
+
+/*-------------------------------------------------------------------
+ * Try to file client data from:
+ * 1) Local Information: MAC (arp table), IF_NAME (database);
+ * 2) Configuration:
+ *      1) String: SSID, Scheme
+ *      2) Data Point: ifx & ssid
+ *
+ * INPUT: Client IP [MAC]
+ *      1) httpd_callback_404: IP ONLY
+ *      2) httpd_callback_auth: IP + MAC
+ *      3) httpd_callback_allow: IP ONLY
+ *      4) httpd_callback_qrcode: IP ONLY
+ * OUTPUT: Either you got the items listed above, Or
+ *         Nothing but client datastruct freed.
+ * ----------------------------------------------------------------*/
+void
+okos_fill_local_info_by_stainfo(t_client **p_client, sqlite3 *sta_info_db)
+{
+    t_client *client = *p_client;
+    if (NULL == client->mac) {
+        client->mac = arp_get(client->ip);
+    }
+
+    int failed = okos_get_client_iface(client, sta_info_db);
+    if (!failed) { /* client's IP, MAC & if_name is ready. */
+        client->ifx = okos_conf_get_ifx_by_name(client->if_name);
+        if (NULL != client->ifx) {
+            client->ssid = client->ifx->ssid;
+            if (NULL != client->ssid) {
+                debug(LOG_DEBUG, "<client_info>\t Found record:"
+                        "{%s, %s, %s, %s, scheme:%s}",
+                        client->ip, client->mac, client->if_name,
+                        client->ssid->ssid, client->ssid->scheme);
+
+                return;
+            } else {
+                debug(LOG_DEBUG, "<client_info>!! 'ssid' is imcompleted.");
+            }
+        } else {
+            debug(LOG_DEBUG, "<client_info>!! 'ifx' is imcompleted.");
+        }
+    }
+
+    client_free_node(client);
+    *p_client = NULL;
+
+    return;
+}
+
+/*---------------------------------------------------------
+ * Client Fields Filled:
+ *      LAST_FLUSHED
+ *      REMAIN_TIME
+ *      USER_NAME  -- Just fake a NULL string.
+ *-------------------------------------------------------*/
+void
+okos_client_update_allow_time(t_client **p_client, const char *time_value)
+{
+    t_client *client = *p_client;
+    /*---------------------------------------------------------------
+     * For all the cases below, they are invalid ALLOW,
+     * Just Drop it.
+     * ------------------------------------------------------------*/
+    if (NULL == time_value) {
+        debug(LOG_DEBUG, "<client_info>!! TIME is NULL for client{%s,%s,%s}",
+                client->ip, client->mac, client->if_name);
+        client_free_node(client);
+        *p_client = NULL;
+        return;
+    }
+    int sec = 0;
+    if (1 != sscanf(time_value, "%d", &sec)) {
+        debug(LOG_DEBUG, "<client_info>!! TIME is %s(str) for client{%s,%s,%s}",
+                time_value, client->ip, client->mac, client->if_name);
+        client_free_node(client);
+        *p_client = NULL;
+        return;
+    }
+    if (0 >= sec || sec > 300) {
+        debug(LOG_DEBUG, "<client_info>!! TIME is %d(int) for client{%s,%s,%s}",
+                sec, client->ip, client->mac, client->if_name);
+        client_free_node(client);
+        *p_client = NULL;
+        return;
+    }
+
+    client->remain_time = sec;
+    client->last_flushed = time(NULL);
+
+    debug(LOG_DEBUG, "<client_info>\t\t Created a VALIDATION client"
+            "{%s, %s, %s, remain_time=%ld }",
+            client->ip, client->mac, client->if_name, client->remain_time);
+    return;
+}
+
+
+static int okos_update_stainfo_callback(void *data, int col_n, char **_v, char **_k)
+{
+    int i;
+    for (i = 0; i < col_n; i++) {
+        debug(LOG_DEBUG, "<sqlite>\t %s", data ? data : "");
+        debug(LOG_DEBUG, "<sqlite>\t\t key:%s; value:%s", _k[i], _v[i] ? _v[i]: "Nil");
+    }
+    return 0;
+}
+
+void okos_update_station_info(sqlite3 *sta_info_db, t_client *client)
+{
+    /* Create merged SQL statement */
+    char *sql = NULL;
+    safe_asprintf(&sql, "UPDATE STAINFO set " \
+            "PORTAL_SCHEME='%s', PORTAL_MODE='%d'," \
+            "PORTAL_USER='%s', IPADDR='%s' " \
+            "WHERE MAC='%s';" \
+            /* "SELECT * from STAINFO where MAC='%s';" \ */
+            ,
+            client->ssid->scheme, client->auth_mode,
+            client->user_name, client->ip,
+            client->mac,
+            client->mac
+            );
+    debug(LOG_DEBUG, "<sqlite>\t '%s':", sql);
+
+    /* Execute SQL statement */
+    char *err_msg = NULL;
+    int rc = sqlite3_exec(sta_info_db, sql, okos_update_stainfo_callback, (void*)NULL, &err_msg);
+    if (SQLITE_OK != rc) {
+        debug(LOG_DEBUG, "<sqlite>!! Update '%s' failed because %s", sql, err_msg?err_msg:"None");
+        sqlite3_free(err_msg);
+    }else{
+        debug(LOG_DEBUG, "<sqlite>\t Update '%s' successfully.", sql);
+    }
+
+    free(sql);
+}
+
+
+char *
+okos_client_get_ssid(const t_client *client)
+{
+    return client->ssid->ssid;
+}
+
+
+void
+okos_client_set_expired(t_client *client)
+{
+    client->remain_time = 0;
+    client->last_flushed = time(NULL);
+}
 
 #endif
