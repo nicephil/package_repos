@@ -259,7 +259,7 @@ get_clients_from_parent(void)
                 
                 debug(LOG_DEBUG, "Inheit a client {ip=%s, mac=%s, ifname=%s, user_name=%s, auth_mode=%u, remain_time=%u, last_flushed=%lu,fw_connection_state=%u, fd=%d}", client->ip, client->mac, client->if_name, client->user_name, client->auth_mode, client->remain_time, client->last_flushed, client->fw_connection_state, client->fd);
 
-                client_list_insert_client(client);
+                client_list_insert_client(&client);
             }
 
 #else /* OK_PATCH */

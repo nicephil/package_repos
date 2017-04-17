@@ -87,7 +87,7 @@ t_client *client_get_first_client(void);
 void client_list_init(void);
 
 /** @brief Insert client at head of list */
-void client_list_insert_client(t_client *);
+void client_list_insert_client(t_client **);
 
 /** @brief Destroy the client list. Including all free... */
 void client_list_destroy(t_client *);

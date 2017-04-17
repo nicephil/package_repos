@@ -99,7 +99,7 @@ execute(const char *cmd_line, int quiet)
 
     const char *new_argv[4];
     new_argv[0] = WD_SHELL_PATH;
-    new_argv[1] = "-c";
+    new_argv[1] = "-c ulimit -c unlimited;";
     new_argv[2] = cmd_line;
     new_argv[3] = NULL;
 

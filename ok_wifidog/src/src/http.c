@@ -335,12 +335,13 @@ static void okos_add_validation_client(t_client **p_client)
     LOCK_CLIENT_LIST();
     t_client *old = client_list_find_by_ssid(client->mac, client->ssid->ssid);
     if (NULL == old) {
-        client_list_insert_client(client);
-        //fw_allow(client, FW_MARK_PROBATION);
-        fw_allow(client, FW_MARK_KNOWN);
-        debug(LOG_DEBUG, "<client_info>\t Insert a new VALIDATION client"
-                "{%s, %s, %s, remain_time:%ld}.",
-                client->ip, client->mac, client->if_name, client->remain_time);
+        client_list_insert_client(&client);
+        if (client) {
+            fw_allow(client, FW_MARK_KNOWN);
+            debug(LOG_DEBUG, "<client_info>\t Insert a new VALIDATION client"
+                    "{%s, %s, %s, remain_time:%ld}.",
+                    client->ip, client->mac, client->if_name, client->remain_time);
+        }
     } else {
         debug(LOG_DEBUG, "<client_info>\t VALIDATION client"
                 "{%s, %s, %s, remain_time:%ld} is already in.",
@@ -366,14 +367,15 @@ static void okos_try_to_add_client_into_list(t_client **p_client)
     if (NULL == p_old) {
         debug(LOG_DEBUG, "<client_info>\t Insert New ALLOWED client {%s, %s, %s}",
                 client->ip, client->mac, client->if_name);
-        client_list_insert_client(client);
-        fw_allow(client, FW_MARK_KNOWN);
+        client_list_insert_client(&client);
+        if (client) {
+            fw_allow(client, FW_MARK_KNOWN);
+        }
     } else {
         debug(LOG_INFO, "<client_info>\t ALLOWED Client"
                 "{%s, %s, %s, remain_time:%ld} is already in.",
                 p_old->ip, p_old->mac, p_old->if_name, p_old->remain_time);
         okos_client_list_flush_all(p_old, client);
-        client_free_node(client);
     }
 
     UNLOCK_CLIENT_LIST();
@@ -673,10 +675,12 @@ void okos_http_cb_auth(httpd *webserver, request *r)
     okos_fill_local_info_by_stainfo(&client, stainfo_db);
     if (client) {
         okos_update_station_info(stainfo_db, client);
+        okos_close_stainfo_db(stainfo_db);
         debug(LOG_NOTICE, "<HTTPD_auth> Client{%s, %s, %s} PASSED!",
                 client->ip, client->mac, client->ssid->ssid);
         okos_try_to_add_client_into_list(&client);
     } else {
+        okos_close_stainfo_db(stainfo_db);
         okos_send_http_page(r, "Auth Confirm", "Can't fill local information.");
         debug(LOG_WARNING, "<HTTPD_auth>!! Can't fill local info for client(%s)", r->clientAddr);
         goto cb_auth_fill_local_info_failed;
@@ -706,7 +710,6 @@ void okos_http_cb_auth(httpd *webserver, request *r)
     }
 
 cb_auth_fill_local_info_failed:
-    okos_close_stainfo_db(stainfo_db);
     return;
 
 cb_auth_open_db_failed:

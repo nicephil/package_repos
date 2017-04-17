@@ -283,6 +283,7 @@ wdctl_cmd_without_reply(const char *cmd)
 
     sock = connect_to_server(config.socket);
 
+    request[15] = '\0';
     strncpy(request, cmd, 15);
     strncat(request, "\r\n\r\n", 15 - strlen(request));
 
@@ -311,6 +312,7 @@ wdctl_cmd_parse_reply(const char *cmd)
 
     sock = connect_to_server(config.socket);
 
+    request[255] = '\0';
     strncpy(request, cmd, sizeof(request));
     strncat(request, " ", ok_cmd_buf_available(request));
     strncat(request, config.params[0], ok_cmd_buf_available(request));

@@ -162,7 +162,7 @@ static int okos_client_list_client_complete(t_client *client)
     if (NULL == client->ip || NULL == client->mac \
             || NULL == client->ifx || NULL == client->ssid \
             || NULL == client->if_name) {
-        debug(LOG_ERR, "!!!! Corrupt Fruit {ip:%s, mac:%s, if_name:%s, ifx:%d, ssid:%d}",
+        debug(LOG_ERR, "!!!! Corrupt Fruit {ip:%s, mac:%s, if_name:%s, ifx:0x%x, ssid:0x%x}",
                 OK_STR(client->ip), OK_STR(client->mac), OK_STR(client->if_name),
                 client->ifx, client->ssid);
         client_free_node(client);
@@ -175,10 +175,12 @@ static int okos_client_list_client_complete(t_client *client)
 }
 
 void
-client_list_insert_client(t_client * client)
+client_list_insert_client(t_client **p_client)
 {
+    t_client *client = *p_client;
     int failed = okos_client_list_client_complete(client);
     if (failed) {
+        *p_client = NULL;
         return;
     }
 
@@ -198,7 +200,7 @@ int okos_client_list_is_empty(t_client * list)
 {
     list = list ? list : firstclient;
     LOCK_CLIENT_LIST();
-    int res = firstclient ? 0 : 1;
+    int res = list ? 0 : 1;
     UNLOCK_CLIENT_LIST();
 
     return res;
@@ -268,23 +270,34 @@ okos_client_list_flush(t_client *client, const unsigned int remain_time)
 
     okos_client_list_updated();
 
-    debug(LOG_DEBUG, "<client_info>\t\t Flushed an client{%s,%s,%s} Remain Time: %d",
+    debug(LOG_DEBUG, "<client_info>\t\t Flushed an client{%s,%s,%s} Remain Time: %ld",
             client->ip, client->mac, client->if_name, remain_time);
 }
 
 void
 okos_client_list_flush_all(t_client *old, t_client *cur)
 {
+#if 0
+    client_list_remove(old);
+    client_list_insert_client(cur);
+    okos_client_list_updated();
+    debug(LOG_DEBUG, "<client_info>\t Client{%s,%s,%s} got flushed with"
+            "{remain_time:%ld, authmode:%d, user_name:%s}",
+            cur->ip, cur->mac, cur->if_name,
+            cur->remain_time, cur->auth_mode, cur->user_name);
+#else
     old->remain_time = cur->remain_time;
-    old->last_flushed = time(NULL);
+    old->last_flushed = cur->last_flushed;
     old->auth_mode = cur->auth_mode;
     okos_client_update_strdup_after_cmp(old->user_name, cur->user_name);
+    client_free_node(cur);
 
     okos_client_list_updated();
     debug(LOG_DEBUG, "<client_info>\t Client{%s,%s,%s} got flushed with"
             "{remain_time:%ld, authmode:%d, user_name:%s}",
             old->ip, old->mac, old->if_name,
             old->remain_time, old->auth_mode, old->user_name);
+#endif
 }
 #if 0
 t_client *
@@ -728,7 +741,6 @@ okos_polling_list_by(const char *name, const char *mac,
     pstr_cat(p_str, "IP Address      MAC Address       AUTH MODE   SSID                  User Name\n");
 	LOCK_CLIENT_LIST();
 	t_client *node;
-    t_client *tmp = 0;
     if (cond) {
         node = search(mac, cond);
         if (node) {
@@ -740,6 +752,7 @@ okos_polling_list_by(const char *name, const char *mac,
         }
     } else {
         node = client_get_first_client();
+        t_client *tmp = NULL;
         while (NULL != (node = okos_client_query_mac(node, mac))) {
             okos_get_client_status(node, p_str);
             tmp = node;
@@ -762,7 +775,7 @@ okos_delete_clients_by_scheme(const char *mac, const char *scheme, int *num)
             client_list_find_by_scheme, logout_client, num);
 }
 
-
+#if 0
 char *
 okos_delete_clients_by_scheme_old(const char *mac, const char *scheme)
 {
@@ -799,6 +812,7 @@ okos_delete_clients_by_scheme_old(const char *mac, const char *scheme)
     pstr_cat(p_str, "\nSee you later.\n\n");
     return pstr_to_string(p_str);
 }
+#endif
 
 char *
 okos_delete_clients_by_ssid(const char *mac, const char *ssid, int *num)
@@ -806,6 +820,8 @@ okos_delete_clients_by_ssid(const char *mac, const char *ssid, int *num)
     return okos_polling_list_by("RESET", mac, ssid, "SSID",
             client_list_find_by_ssid, logout_client, num);
 }
+
+#if 0
 char *
 okos_delete_clients_by_ssid_old(const char *mac, const char *ssid)
 {
@@ -842,6 +858,7 @@ okos_delete_clients_by_ssid_old(const char *mac, const char *ssid)
     pstr_cat(p_str, "\nSee you later.\n\n");
     return pstr_to_string(p_str);
 }
+#endif
 
 char *
 okos_get_client_status_text(const char *mac, const char *ssid, int *num)
@@ -850,6 +867,7 @@ okos_get_client_status_text(const char *mac, const char *ssid, int *num)
             client_list_find_by_ssid, NULL, num);
 }
 
+#if 0
 char *
 okos_get_client_status_text_old(const char *p_mac, const char *p_ssid)
 {
@@ -881,4 +899,5 @@ okos_get_client_status_text_old(const char *p_mac, const char *p_ssid)
     pstr_cat(p_str, "\nHave a good day.\n\n");
     return pstr_to_string(p_str);
 }
+#endif
 #endif

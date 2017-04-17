@@ -371,7 +371,7 @@ okos_get_client_iface(t_client *client, sqlite3 *sta_info_db)
     int rc = sqlite3_exec(sta_info_db, sql, okos_show_station_info, client, &err_msg);
     if (SQLITE_OK != rc) {
         debug(LOG_WARNING, "<sqlite>!! Query(%s) Failed for %s.",
-                sql, err_msg);
+                sql, err_msg?err_msg:"None");
         sqlite3_free(err_msg);
         failed = 1;
     } else {
@@ -518,7 +518,7 @@ void okos_update_station_info(sqlite3 *sta_info_db, t_client *client)
     char *err_msg = NULL;
     int rc = sqlite3_exec(sta_info_db, sql, okos_update_stainfo_callback, (void*)NULL, &err_msg);
     if (SQLITE_OK != rc) {
-        debug(LOG_DEBUG, "<sqlite>!! Update '%s' failed because %s", sql, err_msg);
+        debug(LOG_DEBUG, "<sqlite>!! Update '%s' failed because %s", sql, err_msg?err_msg:"None");
         sqlite3_free(err_msg);
     }else{
         debug(LOG_DEBUG, "<sqlite>\t Update '%s' successfully.", sql);
