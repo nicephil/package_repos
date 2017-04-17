@@ -23,7 +23,7 @@ start() {
 
 	/sbin/wifi down
 	/sbin/wifi up
-    /lib/okos/getifaceinfo.sh
+    /lib/okos/getifaceinfo.sh &
 }
 
 restart() {
@@ -46,5 +46,5 @@ reload() {
 	ubus call network reload
 	/sbin/wifi down
 	/sbin/wifi up
-    /lib/okos/getifaceinfo.sh
+    /lib/okos/getifaceinfo.sh &
 }
