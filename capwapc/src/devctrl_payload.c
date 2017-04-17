@@ -794,43 +794,12 @@ static int dc_upload_techsupport_response(devctrl_block_s *dc_block, void *reser
     return ret;
 }
 
-
-#if 0
-static int dc_get_interface_info(struct device_interface_info **info)
-{
-
-    wlan_radio_info rdinfo = {0};
-    int i = 0;
-    char name[64] = {0};
-    wlan_radio_get_all(&rdinfo);
-    struct device_interface_info *l_info = (struct device_interface_info*) malloc(rdinfo.num * sizeof(struct device_interface_info));
-    memset(l_info, 0, rdinfo.num * sizeof(struct device_interface_info));
-    for (i = 0; i < rdinfo.num; i ++) {
-        sprintf(name, "wifi%d",i);
-        strncpy(l_info[i].interface_name, name, SYS_INTF_NAME_SIZE - 1);
-        l_info[i].interface_name[SYS_INTF_NAME_SIZE - 1] = '\0';
-        l_info[i].interface_len = strlen(l_info[i].interface_name);
-        l_info[i].state = rdinfo.radioinfo[i].enable;
-        l_info[i].channel = rdinfo.radioinfo[i].radio.channel;
-        l_info[i].txpower = rdinfo.radioinfo[i].radio.max_power;
-        if (!l_info[i].txpower) {
-            l_info[i].txpower = 25;
-        }
-        l_info[i].mode = rdinfo.radioinfo[i].radio.mode;
-        l_info[i].bandwidth = rdinfo.radioinfo[i].radio.bandwidth;
-    }
-
-    *info = l_info;
-
-    return rdinfo.num;
-}
-#endif
-
 //CREATE TABLE IFINFO(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH);
 static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
 {
     static int row = 0;
     if (*(int*)cookie) {
+        row = 0;
         *(int*)cookie = atoi(argv[0]);
         return 0;
     }

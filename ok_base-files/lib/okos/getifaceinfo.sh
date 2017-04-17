@@ -57,10 +57,11 @@ iwconfig 2> /dev/null | awk '{
                               
 if (match($1,"ath") && !match($1, "ath50")) {        
     ifname=mac=vlan=ssid=ipaddr=maskaddr=chan=txpower=mode=bandwidth="";
+    radio_index=substr($1,4,1)
     "(. /lib/functions.sh;config_load wireless;config_get  _vlan "$1" network;echo $_vlan;)" | getline vlan
-    "(. /lib/functions.sh;config_load wireless;config_get  _chan wifi"substr($1,4,1)" channel;echo $_chan;)" | getline chan
-    "(. /lib/functions.sh;config_load wireless;config_get  _mode wifi"substr($1,4,1)" hwmode;echo $_mode;)" | getline mode
-    "(. /lib/functions.sh;config_load wireless;config_get  _bandwidth wifi"substr($1,4,1)" htmode;echo $_bandwidth;)" | getline bandwidth
+    "(. /lib/functions.sh;config_load wireless;config_get  _chan wifi"radio_index" channel;echo $_chan;)" | getline chan
+    "(. /lib/functions.sh;config_load wireless;config_get  _mode wifi"radio_index" hwmode;echo $_mode;)" | getline mode
+    "(. /lib/functions.sh;config_load wireless;config_get  _bandwidth wifi"radio_index" htmode;echo $_bandwidth;)" | getline bandwidth
     ifname=$1;
     ssid=substr($4,7);
     gsub(/"/,"",ssid)
@@ -78,10 +79,11 @@ if (match($1,"ath") && !match($1, "ath50")) {
 
     #system("echo sqlite3 '"$dbfile"' '\''BEGIN TRANSACTION;INSERT INTO '"${tablename}"' VALUES (\""ifname"\",\"1\",\""mac"\",\""substr(vlan,4)"\",\""ssid"\",\""ipaddr"\",\""maskaddr"\",\""chan"\",\""txpower"\",\""mode"\",\""bandwidth"\");COMMIT'\''");
     system("sqlite3 '"$dbfile"' '\''BEGIN TRANSACTION;INSERT INTO '"${tablename}"' VALUES (\""ifname"\",\"1\",\""mac"\",\""substr(vlan,4)"\",\""ssid"\",\""ipaddr"\",\""maskaddr"\",\""chan"\",\""txpower"\",\""mode"\",\""bandwidth"\");COMMIT'\''");
-    #system("echo sqlite3 '"$dbfile"' '\''BEGIN TRANSACTION;UPDATE '"${tablename}"' SET CHAN=\""chan"\",TXPOWER=\""txpower"\" WHERE IFNAME=\"wifi"radio_index"\";COMMIT'\''");
-    system("sqlite3 '"$dbfile"' '\''BEGIN TRANSACTION;UPDATE '"${tablename}"' SET CHAN=\""chan"\",TXPOWER=\""txpower"\" WHERE IFNAME=\"wifi"radio_index"\";COMMIT'\''");
+    if (chan && txpower) {
+        #system("echo sqlite3 '"$dbfile"' '\''BEGIN TRANSACTION;UPDATE '"${tablename}"' SET CHAN=\""chan"\",TXPOWER=\""txpower"\" WHERE IFNAME=\"wifi"radio_index"\";COMMIT'\''");
+        system("sqlite3 '"$dbfile"' '\''BEGIN TRANSACTION;UPDATE '"${tablename}"' SET CHAN=\""chan"\",TXPOWER=\""txpower"\" WHERE IFNAME=\"wifi"radio_index"\";COMMIT'\''");
+    }
 }
-
 
 }'
 
