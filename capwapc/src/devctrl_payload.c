@@ -798,7 +798,7 @@ static int dc_upload_techsupport_response(devctrl_block_s *dc_block, void *reser
 static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
 {
     static int row = 0;
-    if (*(int*)cookie) {
+    if (*(int*)cookie == -1) {
         row = 0;
         *(int*)cookie = atoi(argv[0]);
         return 0;
