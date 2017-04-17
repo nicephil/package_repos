@@ -9,7 +9,7 @@ define Package/capwapc
 	SECTION:=Oakridge
 	CATEGORY:=Oakridge Software
 	TITLE:=capwapc utilities
-	DEPENDS:=+libpthread +libnmsc +libjson +libservices
+	DEPENDS:=+libpthread +libnmsc +libjson +libservices +libsqlite3
 endef
 
 define Package/capwapc/description

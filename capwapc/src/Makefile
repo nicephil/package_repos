@@ -6,7 +6,7 @@ CFLAGS = -Wall -g -O0 -D_REENTRANT -I./include/ -DCW_NO_DTLS -std=gnu99 #-DLOG_F
 CFLAGS+=$(EXTRA_CFLAGS)
 OPENSSL_INCLUDE = #-I/usr/local/ssl/include/ #Openssl include files
 LDFLAGS+=$(EXTRA_LDFLAGS)
-LDFLAGS+=-ljson -lnmsc -lservices -Wl
+LDFLAGS+=-ljson -lnmsc -lservices -lsqlite3 -Wl
 
 # Memory leak
 #LDFLAGS += ../dmalloc-5.5.0/libdmallocth.a
