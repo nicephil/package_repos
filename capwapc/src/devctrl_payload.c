@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <sys/stat.h> 
 #include <time.h>
+#include <sqlite3.h>
 #include "CWWTP.h"
 #include "devctrl_protocol.h"
 #include "devctrl_payload.h"
@@ -794,6 +795,7 @@ static int dc_upload_techsupport_response(devctrl_block_s *dc_block, void *reser
 }
 
 
+#if 0
 static int dc_get_interface_info(struct device_interface_info **info)
 {
 
@@ -822,7 +824,153 @@ static int dc_get_interface_info(struct device_interface_info **info)
 
     return rdinfo.num;
 }
+#endif
 
+//CREATE TABLE IFINFO(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH);
+static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
+{
+    static int row = 0;
+    if (*(int*)cookie) {
+        *(int*)cookie = atoi(argv[0]);
+        return 0;
+    }
+
+    struct device_interface_info *info = (struct device_interface_info *)cookie;
+    /*IFNAME*/
+    if (argv[0]) {
+        strncpy(info[row].interface_name, argv[0], SYS_INTF_NAME_SIZE-1);
+        info[row].interface_len=strlen(info[row].interface_name);
+    }
+
+    /*STATE*/
+    if (argv[1]) {
+        info[row].state = atoi(argv[1]);
+    } else {
+        info[row].state = 0;
+    }
+
+    /*MAC*/
+    if (argv[2]) {
+        /* mac address */
+        char *s = argv[2], *e;
+        int i = 0;
+        for (i = 0; i < 6; i++) {
+            info[row].mac[i] = s ? strtoul(s, &e, 16) : 0;
+            if (s) {
+                s = (*e) ? e + 1 : e;
+            }
+        }
+    }
+
+    /*VLAN*/
+    if (argv[3]) {
+        info[row].pvid = atoi(argv[3]);
+    }
+
+    /*SSID*/
+    if (argv[4]) {
+        strncpy(info[row].ssid, argv[4], 32);
+        info[row].ssid_len = strlen(info[row].ssid);
+    }
+
+    /*IPADDR*/
+    if (argv[5]) {
+        info[row].ip_address = inet_addr(argv[5]);
+    }
+
+
+    /*MASKADDR*/
+    if (argv[6]) {
+        info[row].mask_address = inet_addr(argv[5]);
+    }
+
+    /*CHAN*/
+    if (argv[7]) {
+        info[row].channel = atoi(argv[7]);
+    }
+
+    /*TXPOWER*/
+    if (argv[8]) {
+        info[row].txpower = atoi(argv[8]);
+    }
+        
+    /*MODE*/
+    if (argv[9]) {
+        if (!strcmp(argv[9], "ac") || !strcmp(argv[9], "11ac")) {
+            info[row].mode = DOT11_RADIO_MODE_AC;
+        } else if (!strcmp(argv[9], "na")) {
+            info[row].mode = DOT11_RADIO_MODE_A | DOT11_RADIO_MODE_N;
+        } else if (!strcmp(argv[9], "ng") || !strcmp(argv[9], "11ng")) {
+            info[row].mode = DOT11_RADIO_MODE_G | DOT11_RADIO_MODE_N;
+        } else if (!strcmp(argv[9], "a")) {
+            info[row].mode = DOT11_RADIO_MODE_A;
+        } else if (!strcmp(argv[9], "g")) {
+            info[row].mode = DOT11_RADIO_MODE_G;
+        } else if (!strcmp(argv[9], "n")) {
+            info[row].mode = DOT11_RADIO_MODE_N;
+        }
+    }
+
+    /*BANDWIDTH*/
+    if (argv[10]) {
+        int bw = 0;
+        sscanf(argv[10],"HT%2d", &bw);
+        info[row].bandwidth = bw;
+    }
+
+    row ++;
+
+    return 0;
+}
+
+static int dc_get_interface_info(struct device_interface_info **info)
+{
+    const char *sql_count_str="SELECT count(*) FROM IFINFO";
+    const char *sql_str="SELECT * FROM IFINFO";
+    sqlite3 *db = NULL;
+    char *pErrMsg = NULL; 
+    int ret = 0;
+    int count = -1;
+
+    ret = sqlite3_open("/tmp/ifaceinfo.db", &db);
+    if (ret != SQLITE_OK) {
+        CWLog("open database failure:%s", sqlite3_errmsg(db));
+        ret = -1;
+        goto __cleanup;
+    }
+
+    ret = sqlite3_exec(db, sql_count_str, _sql_callback, &count, &pErrMsg);
+    if (ret != SQLITE_OK) {
+        CWLog("SQL create error: %s\n", pErrMsg);
+        ret = -2;
+        goto __cleanup;
+    }
+
+    *info = (struct device_interface_info *)malloc(count * sizeof(struct device_interface_info));
+    if (*info == NULL) {
+        CWLog("SQL create error: %s\n", pErrMsg);
+        ret = -3;
+        goto __cleanup;
+    }
+    memset(*info, 0, count * sizeof(struct device_interface_info));
+
+    ret = sqlite3_exec(db, sql_str, _sql_callback, *info, &pErrMsg);
+    if (ret != SQLITE_OK) {
+        CWLog("SQL create error: %s\n", pErrMsg);
+        ret = -4;
+    }
+
+    ret = count;
+
+__cleanup:
+    if (db) {
+        sqlite3_close(db);
+    }
+    if(pErrMsg) {
+        free(pErrMsg);
+    }
+    return ret;
+}
 
 static int dc_interface_info_response(devctrl_block_s *dc_block, void *reserved)
 {
