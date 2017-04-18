@@ -499,8 +499,7 @@ int main (int argc, const char * argv[])
 				 * gWTPSecurityContext = NULL;
 				 * gWTPSession = NULL;
 				 */
-				//nextState = CW_ENTER_DISCOVERY;
-				nextState = CW_QUIT;
+				nextState = CW_ENTER_DISCOVERY;
 				break;
 			case CW_QUIT:
                 CWLog("Try to destroy WTP");
