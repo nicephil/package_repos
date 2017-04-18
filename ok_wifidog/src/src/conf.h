@@ -51,7 +51,7 @@
 #define DEFAULT_SYSLOG_FACILITY LOG_DAEMON
 #define DEFAULT_WDCTL_SOCK "/tmp/wdctl.sock"
 #define DEFAULT_INTERNAL_SOCK "/tmp/wifidog.sock"
-#define DEFAULT_AUTHSERVPORT 8080
+#define DEFAULT_AUTHSERVPORT 80
 #define DEFAULT_AUTHSERVSSLPORT 443
 /** Note that DEFAULT_AUTHSERVSSLAVAILABLE must be 0 or 1, even if the config file syntax is yes or no */
 #define DEFAULT_AUTHSERVSSLAVAILABLE 0
