@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <arpa/inet.h>
 #include <strings.h>
+#include <errno.h>
 #include "nmsc/nmsc.h"
 #include "nmsc_util.h"
 #include "json/json.h"
@@ -328,7 +329,10 @@ int dc_hdl_node_type(struct json_object *obj)
 
     /* full config */
     if (type == 0) {
-        system("cp -rf /etc/defcfg/* /etc/config/");
+        int retv = system("cp -rf /etc/defcfg/* /etc/config/. ");
+        if (retv == -1) {
+            nmsc_log("system error: %s",strerror(errno));
+        }
     }
     
     return 0;
