@@ -434,6 +434,18 @@ CWBool CWWTPManageGenericRunMessage(CWProtocolMessage *msgPtr) {
 				break;
 			}
 
+#if OK_PATCH
+            /* reset from nms */
+            case CW_MSG_TYPE_VALUE_RESET_REQUEST:
+            {
+				CWFreeMessageFragments(messages, fragmentsNum);
+				CW_FREE_OBJECT(messages);
+				CWDebugLog("Reset Request received");
+                return CW_FALSE;
+                break;
+            }
+#endif
+
             /* Custom MSG from nms */
             case CW_MSG_TYPE_VALUE_DEVICE_CONTROL_REQUEST:
             {
