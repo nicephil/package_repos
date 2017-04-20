@@ -50,6 +50,9 @@ get_status_led() {
 	ap152)
 		status_led="ap152:green:status"
 		;;
+	ap147)
+		status_led="ap147:green:status"
+		;;
 	ap81)
 		status_led="ap81:green:status"
 		;;
