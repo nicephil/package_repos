@@ -28,3 +28,6 @@ config dhcp 'dwan'
         option ra server
         option dhcpv6 server
 
+config dhcp 'lan1'
+    option interface 'lan1'
+    option ignore '1'
