@@ -49,6 +49,7 @@ int vlan_create(int vlanid, int endid)
         //network.lan1=interface
         //network.lan1.ifname='eth0.1'
         //network.lan1.type='bridge'
+        //network.lan1.proto='dhcp'
         sprintf(buf, "lan%d", vlanid);
         cfg_add_section_with_name_type("network", buf, "interface");
         sprintf(tuple, "network.lan%d.ifname", vlanid);
