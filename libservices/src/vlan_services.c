@@ -264,6 +264,12 @@ int dialer_undo(const char *ifname, int type)
 {
     char tuple[128];
 
+    /*
+     * hardcode other lan interface with dhcp
+     */
+    if (strcmp(ifname, "lan1"))
+        return 0;
+
     if (type == IP_TYPE_DHCP) {
         //network.lan1.proto='dhcp'
         sprintf(tuple, "network.%s.proto", ifname);
