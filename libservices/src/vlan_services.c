@@ -56,6 +56,8 @@ int vlan_create(int vlanid, int endid)
         cfg_set_option_value(tuple, buf);
         sprintf(tuple, "network.lan%d.type", vlanid);
         cfg_set_option_value(tuple, "bridge");
+        sprintf(tuple, "network.lan%d.proto", vlanid);
+        cfg_set_option_value(tuple, "dhcp");
         //network.vlan1=switch_vlan
         sprintf(buf, "vlan%d", vlanid);
         cfg_add_section_with_name_type("network", buf, "switch_vlan");
