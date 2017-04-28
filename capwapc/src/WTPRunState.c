@@ -234,7 +234,7 @@ CWStateTransition CWWTPEnterRun() {
                 CWDebugLog_F("Failure Receiving Response");
 				return CW_ENTER_RESET;
 			}
-			if (!CWErr(CWWTPManageGenericRunMessage(&msg))) {
+			if (!(CWWTPManageGenericRunMessage(&msg))) {
 
 				if(CWErrorGetLastErrorCode() == CW_ERROR_INVALID_FORMAT) {
 
