@@ -202,7 +202,7 @@ set network.alias='alias'
 set network.alias.interface="lan$vlan"
 set network.alias.proto='static'
 set network.alias.ipaddr='169.254.165.32'
-set network.alias.netmask='255.255.0.0'
+set network.alias.netmask='255.255.255.0'
 set network.dwan=interface
 set network.dwan.ifname='ath50'
 set network.dwan.proto='static'
@@ -211,8 +211,8 @@ set network.dwan.netmask='255.255.255.0'
 set network.alias1=alias
 set network.alias1.interface='dwan'
 set network.alias1.proto='static'
-set network.alias1.ipaddr='169.254.165.100'
-set network.alias1.netmask='255.255.0.0'
+set network.alias1.ipaddr='169.254.250.100'
+set network.alias1.netmask='255.255.255.0'
 
 EOF
 }
