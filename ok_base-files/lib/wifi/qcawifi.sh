@@ -1190,12 +1190,12 @@ enable_qcawifi() {
 
             [ -n "$_static_uprate" -a -n "$_static_downrate" ] && [ "$_static_uprate" != "0" -a "$_static_downrate" != "0" ] && {   
                 #echo "Static==>$vif $_static_uprate $_static_downrate"        
-                /lib/okos/ratelimit.sh -i $vif -b "${_static_uprate}k" "${_static_downrate}k"
+                /lib/okos/ratelimit.sh -i $vif -l "${_static_uprate}k" "${_static_downrate}k"
             }                                                                        
 
             [ -n "$_dynamic_uprate" -a -n "$_dynamic_downrate" ] && [ "$_dynamic_uprate" != "0" -a "$_dynamic_downrate" != "0" ] && {
                 #echo "Dynamic==>$vif $_dynamic_uprate $_dynamic_downrate"
-                /lib/okos/ratelimit.sh -i $vif -l "${_dynamic_uprate}k" "${_dynamic_downrate}k"
+                /lib/okos/ratelimit.sh -i $vif -b "${_dynamic_uprate}k" "${_dynamic_downrate}k"
             }                                                                          
 
 
@@ -2004,6 +2004,7 @@ EOF
 config wifi-iface ath50
     option device wifi0
     option ifname ath50
+    option network dwan
     option mode ap
     option ssid ok_${ssid_tmp}
     option encryption psk-mixed
