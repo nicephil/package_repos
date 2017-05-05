@@ -1,18 +1,11 @@
-# fix dnsmasq issue
 set dhcp.@dnsmasq[0].interface='dwan'
 set dhcp.lan1=dhcp
 set dhcp.lan1.interface='lan1'
 set dhcp.lan1.ignore='1'
-
-
-# fix dwan ip conflict issue
 set network.dwan.ipaddr='192.168.250.100'
 set network.dwan.netmask='255.255.255.0'
 set network.alias.netmask='255.255.255.0'
 set network.alias1.ipaddr='169.254.250.100'
 set network.alias1.netmask='255.255.255.0'
-
-# add ath50 into dwan
 set wireless.ath50.network='dwan'
-
 commit

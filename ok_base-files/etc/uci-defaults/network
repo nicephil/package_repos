@@ -8,7 +8,7 @@
 #OK_PATCH used to fixup the static config added by okos after sysupgrade and reboot
 #as /etc/config/ will be restored after sysupgrade, need this script to fixup
 [ -e /lib/okos/okos_defcfg_fixup.sh ] && {
-/lib/okos_defcfg_fixup.sh
+/lib/okos/okos_defcfg_fixup.sh
 }
 #end of OK_PATCH
 

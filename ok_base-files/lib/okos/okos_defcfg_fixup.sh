@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # fix using config
-uci -c /etc/config -f /lib/okos/uci_defconfig_fixup_cmd
+uci -S -c /etc/config batch -f /lib/okos/okos_uci_defcfg_fixup_cmd
 
 # fix stored defcfg
-uci -c /etc/defcfg -f /lib/okos/uci_defconfig_fixup_cmd
+uci -S -c /etc/defcfg batch -f /lib/okos/okos_uci_defcfg_fixup_cmd
