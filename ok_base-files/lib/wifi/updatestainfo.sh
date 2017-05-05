@@ -12,6 +12,12 @@ then
     exit 0
 fi
 
+# the dbfile should be delete after wifi down/up
+if [ "$ath" = "/lib/wifi" ]
+then
+    rm -rf /tmp/stationinfo.db
+fi
+
 #CREATE TABLE STAINFO(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER);
 if [ ! -f "$dbfile" ]
 then

@@ -98,8 +98,6 @@ start() {
     ## OK_PATCH
     # generate productinfo
     /lib/okos/fetch_productinfo.sh > /etc/config/productinfo
-    # generate tmp db
-    [ ! -f /tmp/stationinfo.db ] && /lib/wifi/updatestainfo.sh
     ## end OK_PATCH
 
 
