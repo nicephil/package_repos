@@ -4,7 +4,16 @@
 # Copyright (C) 2011 OpenWrt.org
 #
 
-[ -e /etc/config/network ] && exit 0
+[ -e /etc/config/network ] &&  {
+#OK_PATCH used to fixup the static config added by okos after sysupgrade and reboot
+#as /etc/config/ will be restored after sysupgrade, need this script to fixup
+[ -e /lib/okos/okos_defcfg_fixup.sh ] && {
+/lib/okos/okos_defcfg_fixup.sh
+}
+#end of OK_PATCH
+
+exit 0
+}
 
 touch /etc/config/network
 
@@ -293,6 +302,8 @@ esac
 
 uci commit network
 
+#OK_PATCH
 cp /etc/config/network /etc/defcfg/network
+#end of OK_PATCH
 
 exit 0
