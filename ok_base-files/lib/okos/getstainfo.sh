@@ -15,7 +15,6 @@ sqlite3 /tmp/stationinfo.db 'SELECT * FROM STAINFO' | awk -F'|' '{
     print "config client "mac;              
     print "\toption mac "$1;
     print "\toption ifname "$2;
-    print "\toption chan "$3;  
     print "\toption radioid "$6;
     print "\toption bssid "$7;
     print "\toption authentication "$9;

@@ -15,7 +15,7 @@ fi
 # the dbfile should be delete after wifi down/up
 if [ "$ath" = "/lib/wifi" ]
 then
-    rm -rf /tmp/stationinfo.db
+    rm -rf $dbfile
 fi
 
 #CREATE TABLE STAINFO(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER);
@@ -27,8 +27,6 @@ fi
 
 case "$event" in
     "AP-STA-CONNECTED")
-    
-        chan_rssi_assoctime=`wlanconfig $ath list sta | awk '$1 ~ /'${mac}'/{print $3"'\'','\''"$6"'\'','\''"$17;exit}'`
         
         bssid=`ifconfig $ath | awk '$1 ~ /ath/{print $5;exit}'`
         ip=`awk '{if ($4 == "'$mac'") {print $1; exit}}' /proc/net/arp`
@@ -48,7 +46,7 @@ case "$event" in
         sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
 
         # add new record
-        CMD="INSERT INTO ${tablename} VALUES('$mac','$ath','$chan_rssi_assoctime','${ath:3:1}','$bssid','$ip','$_auth','$_ps','$_ssid','${_vlan:3}','','')"
+        CMD="INSERT INTO ${tablename} VALUES('$mac','$ath','','','','${ath:3:1}','$bssid','$ip','$_auth','$_ps','$_ssid','${_vlan:3}','','')"
         #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
         sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
     ;;
