@@ -6,7 +6,7 @@ ssid="$3"
 vlan="br-lan$4"
 _ip="$5"
 
-if [ -z $_ip ]
+if [ -z "$_ip" ]
 then
     _ip=`awk '{if ($4 == "'$mac'" && $6 == "'$vlan'") {print $1; exit}}' /proc/net/arp`
 fi
@@ -14,7 +14,7 @@ fi
 _chan_rssi_assoctime=`wlanconfig $ath list sta | awk '$1 ~ /'${mac}'/{print $3,$6,$17;exit}'`
 OIFS=$IFS;IFS=' ';set -- $_chan_rssi_assoctime;_chan=$1;_rssi=$2;_assoctime=$3;IFS=$OIFS
 
-echo -e "\toption channel $_chan"
+echo -e "\toption chan $_chan"
 echo -e "\toption assoctime $_assoctime"
 echo -e "\toption ipaddr $_ip"
 echo -e "\toption rssi $_rssi"
