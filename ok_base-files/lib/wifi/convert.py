@@ -2,7 +2,7 @@
 
 import sys
 
-fw_size = 2116
+fw_size = 12064
 
 
 def cal_checksum(fdata):
