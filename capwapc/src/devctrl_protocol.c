@@ -475,7 +475,7 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
             for (i = 0; i < count; i++) {
                 /* does not includ stat section */
                 size += WLAN_STA_QUERY_FIXLEN;
-                size += (stas[i].ssid_len + stas[i].name_len + stas[i].ps_len);
+                size += (stas[i].ssid_len + stas[i].name_len + stas[i].ps_len + stas[i].client_type_len + stas[i].client_hostname_len + stas[i].location_len);
             }
             number = count;
             break;
@@ -485,7 +485,7 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
                 if (!stas[i].updated) {
                     number++;
                     size += WLAN_STA_STATUS_FIXLEN;
-                    size += (stas[i].ssid_len + stas[i].name_len + stas[i].ps_len);
+                    size += (stas[i].ssid_len + stas[i].name_len + stas[i].ps_len + stas[i].client_type_len + stas[i].client_hostname_len + stas[i].location_len);
                 }
             }
             if (number > 0) {
@@ -538,6 +538,15 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
             CWProtocolStore8(&msg, sta->name_len);
             CWProtocolStoreRawBytes(&msg, sta->user, sta->name_len);
             CWProtocolStore32(&msg, sta->rssi);
+            CWProtocolStore64(&msg, sta->ts);
+            CWProtocolStore64(&msg, sta->delta_txB);
+            CWProtocolStore64(&msg, sta->delta_rxB);
+            CWProtocolStore32(&msg, sta->atxrb);
+            CWProtocolStore32(&msg, sta->arxrb);
+            CWProtocolStore8(&msg, sta->error_rate);
+            CWProtocolStore8(&msg, sta->retry_rate);
+            CWProtocolStore32(&msg, sta->ntxrt);
+            CWProtocolStore32(&msg, sta->nrxrt);
         }
     }
     else {
@@ -545,14 +554,14 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
             struct wlan_sta_stat *sta = &(stas[i]);
             
             if (type == WLAN_STA_TYPE_QUERY) {
-                sta->len = WLAN_STA_QUERY_FIXLEN + sta->ssid_len + sta->name_len + sta->ps_len;
+                sta->len = WLAN_STA_QUERY_FIXLEN + sta->ssid_len + sta->name_len + sta->ps_len + sta->client_type_len + sta->client_hostname_len + sta->location_len;
                 CWProtocolStore16(&msg, sta->len);
             }
             else {
                 if (sta->updated) {
                     continue;
                 }
-                sta->len = WLAN_STA_STATUS_FIXLEN + sta->ssid_len + sta->name_len + sta->ps_len;
+                sta->len = WLAN_STA_STATUS_FIXLEN + sta->ssid_len + sta->name_len + sta->ps_len + sta->client_type_len + sta->client_hostname_len + sta->location_len;
                 CWProtocolStore16(&msg, sta->len);
                 CWProtocolStore8(&msg, sta->state);
             }
@@ -576,7 +585,14 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
             CWProtocolStore32(&msg, sta->rssi);
             CWProtocolStore32(&msg, sta->channel);
             CWProtocolStore32(&msg, sta->vlan);
-            
+            CWProtocolStore32(&msg, sta->mode);
+            CWProtocolStore8(&msg, sta->bandwidth);
+            CWProtocolStore8(&msg, sta->client_type_len);
+            CWProtocolStoreRawBytes(&msg, sta->client_type, sta->client_type_len);
+            CWProtocolStore8(&msg, sta->client_hostname_len);
+            CWProtocolStoreRawBytes(&msg, sta->client_hostname, sta->client_hostname_len);
+            CWProtocolStore8(&msg, sta->location_len);
+            CWProtocolStoreRawBytes(&msg, sta->location, sta->location_len);
         }
     }
     if (msg.offset != size) {

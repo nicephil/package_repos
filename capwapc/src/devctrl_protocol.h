@@ -52,9 +52,9 @@ typedef struct device_info{
     char country[4];
 } device_info_s;
 
-#define WLAN_STA_STATUS_FIXLEN          (36 + 18) /* don't include updated/ssid/user */
-#define WLAN_STA_QUERY_FIXLEN           (35 + 18)/* don't include stat/updated/ssid/user */
-#define WLAN_STA_UPDATE_FIXLEN          (17 + 4) /* only include len/mac/ip/portal_mode/name_len+ rssi */
+#define WLAN_STA_STATUS_FIXLEN          (36 + 18 + 8) /* don't include updated/ssid/user */
+#define WLAN_STA_QUERY_FIXLEN           (35 + 18 + 8)/* don't include stat/updated/ssid/user */
+#define WLAN_STA_UPDATE_FIXLEN          (17 + 4 + 42) /* only include len/mac/ip/portal_mode/name_len+ rssi */
 #define WLAN_INTERFACE_INFO_FIXLEN      36 /* include struct device_interface_info */
 #define WDS_TUNNEL_INFO_FIXLEN          18 /* include struct wds_tunnel_info */
 
@@ -67,6 +67,8 @@ typedef enum {
 
 #if OK_PATCH
 #define MAX_AUTH_USERNAME_LEN 64
+#define MAX_CLIENT_TYPE_LEN 32
+#define MAX_LOCATION_LEN 64
 #endif
 
 struct wlan_sta_stat {
@@ -93,6 +95,25 @@ struct wlan_sta_stat {
     int channel;
     int vlan;
     rssi_level_e rs_level;
+    int mode;
+    unsigned char bandwidth;
+    char client_type_len;
+    char client_type[MAX_CLIENT_TYPE_LEN + 1];
+    char client_hostname_len;
+    char client_hostname[HOST_NAME_MAX + 1];
+    char location_len;
+    char location[MAX_LOCATION_LEN + 1];
+    unsigned long long txB;
+    unsigned long long delta_txB;
+    unsigned long long rxB;
+    unsigned long long delta_rxB;
+    unsigned int atxrb;
+    unsigned int arxrb;
+    unsigned char error_rate;
+    unsigned char retry_rate;
+    unsigned int ntxrt;
+    unsigned int nrxrt;
+    unsigned long long ts;
 };
 
 enum {

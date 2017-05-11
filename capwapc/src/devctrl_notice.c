@@ -6,8 +6,10 @@
 #include "devctrl_notice.h"
 
 #include "services/cfg_services.h"
+#include "services/wlan_services.h"
+#include "sqlite3.h"
 
-#define WLAN_STA_STAUS_TIMER    30
+#define WLAN_STA_STAUS_TIMER    20
 
 static CWTimerID g_sta_notice_timerid = -1;
 
@@ -24,102 +26,256 @@ static inline rssi_level_e dc_rssi2level(int rssi)
     }
 }
 
-static int fetch_station_info_visitor(struct uci_package *p, void *arg)
+//CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,SMODE,SBW,NTXRT,NRXRT,TXB,RXB,ATXRB,ARXRB,TXFS,REXS,TS)
+static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
 {
-    struct uci_element *e1, *e2;
-    int index = 0;
+    static int row = 0;
+    if (*(int*)cookie == -1) {
+        row = 0;
+        *(int*)cookie = atoi(argv[0]);
+        return 0;
+    }
+
+    struct wlan_sta_stat *stas = (struct wlan_sta_stat *)cookie;
+
+    /*MAC*/
+    if (argv[0]) {
+        /* mac address */
+        char *s = argv[0], *e;
+        int i = 0;
+        for (i = 0; i < 6; i++) {
+            stas[row].mac[i] = s ? strtoul(s, &e, 16) : 0;
+            if (s) {
+                s = (*e) ? e + 1 : e;
+            }
+        }
+    }
+
+    /*IFNAME*/
+    /*argv[1]*/
+
+    /*CHAN*/
+    if (argv[2]) {
+        stas[row].channel = atoi(argv[2]);
+    } else {
+        stas[row].channel = 0;
+    }
+
+    /*RSSI*/
+    if (argv[3]) {
+        stas[row].rssi = atoi(argv[3]) - 95;
+        stas[row].rs_level = dc_rssi2level(stas[row].rssi);
+    }
+
+    /*ASSOCTIME*/
+    if (argv[4]) {
+        int hours=0,minutes=0,seconds=0;
+        if (sscanf(argv[4], "%d:%d:%d", &hours, &minutes, &seconds)) {
+            stas[row].uptime = hours*60*60 + minutes*60 + seconds;
+        }
+        struct timeval tv = {0};
+        gettimeofday(&tv,NULL);
+        stas[row].time_ms = ((unsigned long long)tv.tv_sec*1000 + tv.tv_usec/1000) - (stas[row].uptime*1000);
+    }
+    
+    /*RADIOID*/
+    if (argv[5]) {
+        stas[row].radioid = atoi(argv[5]);
+    }
+
+    /*BSSID*/
+    if (argv[6]) {
+        char mac[22] = {0};
+        strcpy(mac, argv[6]);
+        char *s = mac;
+        char *e;
+        int i;
+        for (i = 0; i < 6; i++) {
+            stas[row].bssid[i] = s ? strtoul(s, &e, 16) : 0;
+            if (s) {
+                s = (*e) ? e + 1 : e;
+            }
+        }
+    }
+
+    /*IPADDR*/
+    if (argv[7]) {
+        stas[row].ip = inet_addr(argv[7]);
+    }
+
+    /*AUTHENTICATION*/
+    if (argv[8]) {
+        if (strcmp(argv[8], "open")) {
+            stas[row].auth = 5;
+        }
+    }
+
+    /*PORTAL_SCHEME*/
+    if (argv[9]) {
+        strcpy(stas[row].ps_name, argv[9]);
+        stas[row].ps_len = strlen(stas[row].ps_name);
+        stas[row].portal = 1;
+    }
+    
+    /*SSID*/
+    if (argv[10]) {
+        strcpy(stas[row].ssid, argv[10]);
+        stas[row].ssid_len = strlen(stas[row].ssid);
+    }
+
+    /*VLAN*/
+    if (argv[11]) {
+        stas[row].vlan = atoi(argv[11]);
+    }
+
+    /*PORTAL_MODE*/
+    if (argv[12]) {
+        stas[row].portal_mode = atoi(argv[12]);
+    }
+
+    /*PORTAL_USER*/
+    if (argv[13]) {
+        strncpy(stas[row].user, argv[13], sizeof(stas[row].user)-1);
+        stas[row].name_len = strlen(stas[row].user);
+    }
+
+    /*SMODE*/
+    if (argv[14]) {
+        if (!strcmp(argv[14], "ac") || !strcmp(argv[14], "11ac")) {
+            stas[row].mode = DOT11_RADIO_MODE_AC;
+        } else if (!strcmp(argv[14], "na")) {
+            stas[row].mode = DOT11_RADIO_MODE_A | DOT11_RADIO_MODE_N;
+        } else if (!strcmp(argv[14], "ng") || !strcmp(argv[14], "11ng")) {
+            stas[row].mode = DOT11_RADIO_MODE_G | DOT11_RADIO_MODE_N;
+        } else if (!strcmp(argv[14], "a")) {
+            stas[row].mode = DOT11_RADIO_MODE_A;
+        } else if (!strcmp(argv[14], "g")) {
+            stas[row].mode = DOT11_RADIO_MODE_G;
+        } else if (!strcmp(argv[14], "n")) {
+            stas[row].mode = DOT11_RADIO_MODE_N;
+        }
+    }
+
+    /*SBW*/
+    if (argv[15]) {
+        int bw = 0;
+        if (strstr(argv[15], "VHT")) {
+            sscanf(argv[15],"VHT%2d", &bw);
+            stas[row].bandwidth = bw;
+        } else {
+            sscanf(argv[15],"HT%2d", &bw);
+            stas[row].bandwidth = bw;
+        }
+    }
+
+    /*NTXRT*/
+    if (argv[16]) {
+        stas[row].ntxrt = atoi(argv[16]);
+    }
+
+    /*NRXRT*/
+    if (argv[17]) {
+        stas[row].nrxrt = atoi(argv[17]);
+    }
+
+    /*TXB*/
+    if (argv[18]) {
+        stas[row].txB = atoll(argv[18]);
+    }
+
+    /*RXB*/
+    if (argv[19]) {
+        stas[row].rxB = atoll(argv[19]);
+    }
+
+    /*ATXRB*/
+    if (argv[20]) {
+        stas[row].atxrb = atoi(argv[20]);
+    }
+    
+    /*ARXRB*/
+    if (argv[21]) {
+        stas[row].arxrb = atoi(argv[21]);
+    }
+
+    /*TXFS*/
+    /*argv[22]*/
+
+    /*REXS*/
+    /*argv[23]*/
+
+    /*TS*/
+    if (argv[24]) {
+        stas[row].ts = atoll(argv[24]);
+    }
+
+    /*client type*/
+
+    /*hostname*/
+
+    /*location*/
+    cfg_get_option_value(CAPWAPC_CFG_OPTION_LOCATION_TUPLE, stas[row].location, MAX_LOCATION_LEN);
+    stas[row].location_len = strlen(stas[row].location);
+    
+    row ++;
+
+    return 0;
+}
+
+static int wlan_get_sta_info_db(void *stats)
+{
     struct wlan_sta_stat_all {
         int count;
         struct wlan_sta_stat **stas;
     };
-    struct wlan_sta_stat_all *all = (struct wlan_sta_stat_all *)arg;
+    struct wlan_sta_stat_all *all = (struct wlan_sta_stat_all *)stats;
 
-    struct wlan_sta_stat *stas = NULL;
+    const char *sql_count_str="SELECT count(*) FROM STATSINFO";
+    const char *sql_str="SELECT * FROM STATSINFO";
+    sqlite3 *db = NULL;
+    char *pErrMsg = NULL; 
+    int ret = 0;
+    int count = -1;
 
-    uci_foreach_element(&p->sections, e1) {
-        all->count ++;
+    ret = sqlite3_open("/tmp/statsinfo.db", &db);
+    if (ret != SQLITE_OK) {
+        CWLog("open database failure:%s", sqlite3_errmsg(db));
+        ret = -1;
+        goto __cleanup;
     }
-    if (!all->count) {
-        stas = NULL;
-        return 0;
+
+    ret = sqlite3_exec(db, sql_count_str, _sql_callback, &count, &pErrMsg);
+    if (ret != SQLITE_OK) {
+        CWLog("SQL create error: %s\n", pErrMsg);
+        ret = -2;
+        goto __cleanup;
     }
-    stas = (struct wlan_sta_stat *)malloc(all->count * sizeof(struct wlan_sta_stat));
-    memset(stas, 0, all->count * sizeof(struct wlan_sta_stat));
-    index = 0;
-    uci_foreach_element(&p->sections, e1) {
-        struct uci_section *s = uci_to_section(e1);
-        uci_foreach_element(&s->options, e2) {
-            struct uci_option *o = uci_to_option(e2);
-            if (!strcmp(o->e.name, "ifname")) {
-                continue;
-            }else if (!strcmp(o->e.name, "mac")) {
-                char mac[22] = {0};
-                strcpy(mac, o->v.string);
-                char *s = mac;
-                char *e;
-                int i;
-                for (i = 0; i < 6; i++) {
-                    stas[index].mac[i] = s ? strtoul(s, &e, 16) : 0;
-                    if (s) {
-                        s = (*e) ? e + 1 : e;
-                    }
-                }
-            } else if (!strcmp(o->e.name, "chan")) {
-                stas[index].channel = atoi(o->v.string);
-            } else if (!strcmp(o->e.name, "rssi")) {
-                stas[index].rssi = atoi(o->v.string);
-            } else if (!strcmp(o->e.name, "assoctime")) {
-                struct  timeval    tv;
-                int hours=0, minutes=0, seconds=0;
-                if(sscanf(o->v.string, "%d:%d:%d", &hours, &minutes, &seconds)) {
-                    stas[index].uptime = hours*60*60 + minutes*60 + seconds;
-                }
-                gettimeofday(&tv,NULL);
-                stas[index].time_ms = ((unsigned long long)tv.tv_sec*1000 + tv.tv_usec/1000) - (stas[index].uptime*1000);
-            } else if (!strcmp(o->e.name, "ipaddr")) {
-                struct in_addr net;
-                inet_aton(o->v.string, &net);
-                stas[index].ip = net.s_addr;
-            } else if (!strcmp(o->e.name, "radioid")) {
-                stas[index].radioid = atoi(o->v.string);
-            } else if (!strcmp(o->e.name, "bssid")) {
-                char mac[22] = {0};
-                strcpy(mac, o->v.string);
-                char *s = mac;
-                char *e;
-                int i;
-                for (i = 0; i < 6; i++) {
-                    stas[index].bssid[i] = s ? strtoul(s, &e, 16) : 0;
-                    if (s) {
-                        s = (*e) ? e + 1 : e;
-                    }
-                }
-            } else if (!strcmp(o->e.name, "authentication")) {
-                if (!strcmp(o->v.string, "open")) {
-                    stas[index].auth = 0;
-                } else {
-                    stas[index].auth = 5;
-                }
-            } else if (!strcmp(o->e.name, "portal_scheme")) {
-                strcpy(stas[index].ps_name, o->v.string);
-                stas[index].ps_len = strlen(stas[index].ps_name);
-                stas[index].portal = 1;
-            } else if (!strcmp(o->e.name, "ssid")) {
-                strcpy(stas[index].ssid, o->v.string);
-                stas[index].ssid_len = strlen(stas[index].ssid);
-            } else if (!strcmp(o->e.name, "vlan")) {
-                stas[index].vlan = atoi(o->v.string);
-            } else if (!strcmp(o->e.name, "portal_mode")) {
-                stas[index].portal_mode = atoi(o->v.string);
-            } else if (!strcmp(o->e.name, "portal_user")) {
-                strncpy(stas[index].user, o->v.string, sizeof(stas[index].user)-1);
-                stas[index].name_len = strlen(stas[index].user);
-            }
-        }
-        index ++;
+    all->count = count;
+
+    *(all->stas) = (struct wlan_sta_stat *)malloc(count * sizeof(struct wlan_sta_stat));
+    if (*(all->stas) == NULL) {
+        CWLog("SQL create error: %s\n", pErrMsg);
+        ret = -3;
+        goto __cleanup;
     }
-    *(all->stas) = stas;
-    return 0;
+    memset(*(all->stas), 0, count * sizeof(struct wlan_sta_stat));
+
+    ret = sqlite3_exec(db, sql_str, _sql_callback, *(all->stas), &pErrMsg);
+    if (ret != SQLITE_OK) {
+        CWLog("SQL create error: %s\n", pErrMsg);
+        ret = -4;
+    }
+
+    ret = 0;
+
+__cleanup:
+    if (db) {
+        sqlite3_close(db);
+    }
+    if(pErrMsg) {
+        free(pErrMsg);
+    }
+    return ret;
 }
 
 static int wlan_get_sta_info(struct wlan_sta_stat **stas)
@@ -136,7 +292,7 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
 
     system("/lib/okos/getstainfo.sh");
 
-    ret = cfg_visit_package_with_path("/tmp/stationinfo", "stationinfo", fetch_station_info_visitor, (void*)&all);
+    ret = wlan_get_sta_info_db((void*)&all);
     if (ret) {
         return -1;
     }
@@ -145,10 +301,10 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
 }
 
 static int inline dc_reserves_stas(struct wlan_sta_stat **sta_list, 
-    int totalsize, int cursize, struct wlan_sta_stat *newstas, int count)
+        int totalsize, int cursize, struct wlan_sta_stat *newstas, int count)
 {
     struct wlan_sta_stat * stas = *sta_list;
-    
+
     if (cursize + count > totalsize || stas == NULL) {
         if (count > 5) {
             totalsize += count;
@@ -196,9 +352,9 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
             for (j = 0; j < pre_count; j++) {
                 pre = &(pre_stas[j]);
                 if (!memcmp(cur->mac, pre->mac, sizeof(cur->mac))) {
-                    /* Roaming form pre radio to cur radio or reassocation with same radio */
+                    /* Roaming from pre radio to cur radio or reassocation with same radio */
                     if (cur->radioid != pre->radioid || cur->uptime < WLAN_STA_STAUS_TIMER) { 
-                        pre->state = 1; /* disassociation form pre radio */
+                        pre->state = 1; /* disassociation from pre radio */
                         pre->updated = 0; /* fix bug 2776: need reset to 0 */
                         totalsize = dc_reserves_stas(&rse_stas, totalsize, res_count, pre, 1);
                         if (totalsize < 0) {
@@ -206,7 +362,7 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
                             goto FREE_STAS;
                         }
                         res_count += 1;
-                        
+
                         /* assocation with current radio */
                         totalsize = dc_reserves_stas(&rse_stas, totalsize, res_count, cur, 1);
                         if (totalsize < 0) {
@@ -217,12 +373,14 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
                     }
                     else {
                         /* sta update notice */
-                        if (pre->ip != cur->ip /* new ip */
-                            || pre->rs_level != cur->rs_level
-                            || pre->portal_mode != cur->portal_mode /* new portal mode */
+                        if (1||pre->ip != cur->ip /* new ip */
+                                || pre->rs_level != cur->rs_level
+                                || pre->portal_mode != cur->portal_mode /* new portal mode */
                             || pre->name_len != cur->name_len /* new username */
                             || strncmp(pre->user, cur->user, pre->name_len) != 0) {
                             cur->updated = 1;
+                            cur->delta_txB = cur->txB - pre->txB;
+                            cur->delta_rxB = cur->rxB - pre->rxB;
                             
                             totalsize = dc_reserves_stas(&rse_stas, totalsize, res_count, cur, 1);
                             if (totalsize < 0) {

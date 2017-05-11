@@ -29,7 +29,6 @@ case "$event" in
     "AP-STA-CONNECTED")
         
         bssid=`ifconfig $ath | awk '$1 ~ /ath/{print $5;exit}'`
-        ip=`awk '{if ($4 == "'$mac'") {print $1; exit}}' /proc/net/arp`
         
         . /lib/functions.sh
         st="ServiceTemplate""${ath:4}"
@@ -46,7 +45,7 @@ case "$event" in
         sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
 
         # add new record
-        CMD="INSERT INTO ${tablename} VALUES('$mac','$ath','','','','${ath:3:1}','$bssid','$ip','$_auth','$_ps','$_ssid','${_vlan:3}','','')"
+        CMD="INSERT INTO ${tablename} VALUES('$mac','$ath','','','','${ath:3:1}','$bssid','','$_auth','$_ps','$_ssid','${_vlan:3}','','')"
         #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
         sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
     ;;
