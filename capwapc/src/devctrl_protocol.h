@@ -106,7 +106,7 @@ struct wlan_sta_stat {
     unsigned long long txB;
     unsigned long long delta_txB;
     unsigned long long rxB;
-    unsigned long long delta_rdB;
+    unsigned long long delta_rxB;
     unsigned int atxrb;
     unsigned int arxrb;
     unsigned char error_rate;
