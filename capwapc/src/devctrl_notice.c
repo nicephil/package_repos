@@ -9,7 +9,7 @@
 #include "services/wlan_services.h"
 #include "sqlite3.h"
 
-#define WLAN_STA_STAUS_TIMER    20
+#define WLAN_STA_STAUS_TIMER    5
 
 static CWTimerID g_sta_notice_timerid = -1;
 
@@ -190,12 +190,12 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
 
     /*ATXRB*/
     if (argv[20]) {
-        stas[row].atxrb = atoi(argv[20]);
+        stas[row].atxrb = atoi(argv[20])/1024;
     }
     
     /*ARXRB*/
     if (argv[21]) {
-        stas[row].arxrb = atoi(argv[21]);
+        stas[row].arxrb = atoi(argv[21])/1024;
     }
 
     /*TXFS*/
