@@ -35,7 +35,7 @@ do
 
     
     OIFS=$IFS;IFS='_';set -- $_smode_sbw;_smode=$3;_sbw=$4;IFS=$OIFS
-    [ -z "$_smode_sbw" ] && {
+    [ -z "$_sbw" ] && {
         OIFS=$IFS;IFS='_';set -- $_smode_sbw1;_smode=$3;_sbw=$4;IFS=$OIFS
     }
     _smode=`echo $_smode|tr [A-Z] [a-z]`
