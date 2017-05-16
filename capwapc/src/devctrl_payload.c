@@ -125,6 +125,14 @@ static int dc_json_config_finished(void *reserved)
     return 0;
 }
 
+static inline int dc_set_blacklist_sta(const char *mac, int time, int action)
+{
+    char buf[32];
+    sprintf(buf, "/lib/okos/setblacklist.sh %s %d %d", mac, time, action);
+    system(buf);
+    return 0;
+}
+
 static inline int dc_kickoff_sta(const char *ssid, char *mac)
 {
     char buf[128];
@@ -536,12 +544,16 @@ static int dc_portal_offline_handler(struct tlv *payload, void **reserved)
                 }
                 break;
             case OT_SET_BLACKLIST:
+                if ((ret = dc_set_blacklist_sta(json_cfg.mac, json_cfg.time, 1) != 0)) {
                     CWLog("Try to set blacklist sta %s attached the ssid %s failed for time %d.", 
                             json_cfg.mac, "ALL", json_cfg.time);
+                }
                 break;
             case OT_UNSET_BLACKLIST:
+                if ((ret = dc_set_blacklist_sta(json_cfg.mac, json_cfg.time, 0) != 0)) {
                     CWLog("Try to unset blacklist sta %s attached the ssid %s failed for time %d.", 
                             json_cfg.mac, "ALL", json_cfg.time);
+                }
                 break;
             case OT_SET_WHITELIST:
                     CWLog("Try to set whitelist sta %s attached the ssid %s failed for time %d.", 
