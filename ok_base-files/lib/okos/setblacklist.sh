@@ -20,11 +20,11 @@ then
         grep -q "$mac" ${atjobs_dir}/${file}
         if [ "$?" -eq "0" ]
         then
-            if [ ${file:0:1} = "=" ]
+            if [ "${file:0:1}" = "=" ]
             then
                 sleep 20
             else
-                echo "cancel exising timer"
+                echo "cancel exising timer ${file}"
                 rm -rf ${atjobs_dir}/${file}
             fi
         fi
@@ -51,11 +51,9 @@ then
         grep -q "$mac" ${atjobs_dir}/${file}
         if [ "$?" -eq "0" ]
         then
-            if [ ${file:0:1} = "=" ]
+            if [ ! "${file:0:1}" = "=" ]
             then
-                sleep 20
-            else
-                echo "cancel exising timer"
+                echo "cancel exising timer ${file}"
                 rm -rf ${atjobs_dir}/${file}
             fi
         fi
