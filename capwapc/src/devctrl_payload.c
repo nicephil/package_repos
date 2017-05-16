@@ -127,13 +127,8 @@ static int dc_json_config_finished(void *reserved)
 
 static inline int dc_kickoff_sta(const char *ssid, char *mac)
 {
-    int ret;
-    int stid;
     char buf[128];
-    wlan_get_stid_by_ssid(ssid, &stid);
-    sprintf(buf, "iwpriv ath0%d kickmac %s", stid, mac);
-    system(buf);
-    sprintf(buf, "iwpriv ath1%d kickmac %s", stid, mac);
+    sprintf(buf, "iwconfig 2>/dev/null | awk \'/ath/{system(\"iwpriv \"$1\" kickmac %s\");}\'", mac);
     system(buf);
 
     return 0;
@@ -421,17 +416,39 @@ static int dc_reboot_response(devctrl_block_s *dc_block, void *reserved)
     return ret;
 }
 
+enum {
+    OT_KICKOFF = 1,
+    OT_OFFLINE,
+    OT_KICKOFF_OFFLINE,
+    OT_SET_BLACKLIST,
+    OT_UNSET_BLACKLIST,
+    OT_SET_WHITELIST,
+    OT_UNSET_WHITELIST,
+    OT_RATELIMIT
+} OPERATE_TYPE;
+
 static int dc_portal_offline_handler(struct tlv *payload, void **reserved)
 {
     struct portal_cmd {
         char mac[20];
         char scheme[PORTAL_NAME_MAX_LENGTH + 1];
+        int time;
+        int tx_rate_limit;
+        int rx_rate_limit;
     };
-    struct portal_cmd json_cfg;
+    struct portal_cmd json_cfg = {0};
     struct node_pair_save paires[] = {
         {"mac",           json_type_string, json_cfg.mac,    sizeof(json_cfg.mac)},
         {"portal_scheme", json_type_string, json_cfg.scheme, sizeof(json_cfg.scheme)},
+        {"time", json_type_int, &(json_cfg.time), sizeof(json_cfg.time)},
+        {"tx_rate_limit", json_type_int, &(json_cfg.tx_rate_limit), sizeof(json_cfg.tx_rate_limit)},
+        {"rx_rate_limit", json_type_int, &(json_cfg.rx_rate_limit), sizeof(json_cfg.rx_rate_limit)},
+
     }; 
+    int operate_type;
+    struct node_pair_save ot_paire[] = {
+        {"operate_type", json_type_int, &operate_type, sizeof(operate_type)}
+    };
     struct json_object *root, *array;
     int ret, size, i;
     char terminated;
@@ -445,6 +462,19 @@ static int dc_portal_offline_handler(struct tlv *payload, void **reserved)
         ret = dc_error_json_format;
         goto ERROR_OUT;
     }    
+
+
+    {
+        json_object_object_foreach(root, key, val) {
+            if (!strcmp(key, "operate_type")) {
+                if ((ret = dc_hdl_node_default(val, ot_paire, sizeof(ot_paire)/sizeof(ot_paire[0])))!= 0) {
+                    goto ERROR_OUT;
+                }
+                log_node_paires(ot_paire, sizeof(ot_paire)/sizeof(ot_paire[0]));
+                break;
+            }
+        }
+    }
 
     json_object_object_foreach(root, key, val) {
         if (!strcmp(key, "clients")){
@@ -462,10 +492,10 @@ static int dc_portal_offline_handler(struct tlv *payload, void **reserved)
         ret = 0;
         goto ERROR_OUT;
     }
-    
+
     for(i = 0; i < size; i++) { 
         memset(&json_cfg, 0, sizeof(json_cfg));
-        
+
         array = json_object_array_get_idx(val, i);
         if ((ret = dc_hdl_node_default(array, paires, sizeof(paires)/sizeof(paires[0]))) != 0) {
             goto ERROR_OUT;
@@ -473,13 +503,68 @@ static int dc_portal_offline_handler(struct tlv *payload, void **reserved)
 
         log_node_paires(paires, sizeof(paires)/sizeof(paires[0]));
 
-        if ((ret = portal_scheme_del_sta(json_cfg.scheme, json_cfg.mac)) != 0) {
-            CWLog("Deauth the sta %s form the  portal scheme %s failed for %d.", 
-                json_cfg.mac, json_cfg.scheme, ret);
-            ret = dc_error_commit_failed;
-            goto ERROR_OUT;
+
+        switch(operate_type) {
+            case OT_KICKOFF:
+                if ((ret = dc_kickoff_sta(NULL, json_cfg.mac)) != 0) {
+                    CWLog("Try to kick off sta %s attached the ssid %s failed for %d.", 
+                            json_cfg.mac, "ALL", ret);
+                    ret = dc_error_commit_failed;
+                    goto ERROR_OUT;
+                }
+                break;
+            case OT_OFFLINE:
+                if ((ret = portal_scheme_del_sta(json_cfg.scheme, json_cfg.mac)) != 0) {
+                    CWLog("Deauth the sta %s form the  portal scheme %s failed for %d.", 
+                            json_cfg.mac, json_cfg.scheme, ret);
+                    ret = dc_error_commit_failed;
+                    goto ERROR_OUT;
+                }
+                break;
+            case OT_KICKOFF_OFFLINE:
+                if ((ret = portal_scheme_del_sta(json_cfg.scheme, json_cfg.mac)) != 0) {
+                    CWLog("Deauth the sta %s form the  portal scheme %s failed for %d.", 
+                            json_cfg.mac, json_cfg.scheme, ret);
+                    ret = dc_error_commit_failed;
+                    goto ERROR_OUT;
+                }
+                if ((ret = dc_kickoff_sta(NULL, json_cfg.mac)) != 0) {
+                    CWLog("Try to kick off sta %s attached the ssid %s failed for %d.", 
+                            json_cfg.mac, "ALL", ret);
+                    ret = dc_error_commit_failed;
+                    goto ERROR_OUT;
+                }
+                break;
+            case OT_SET_BLACKLIST:
+                    CWLog("Try to set blacklist sta %s attached the ssid %s failed for time %d.", 
+                            json_cfg.mac, "ALL", json_cfg.time);
+                break;
+            case OT_UNSET_BLACKLIST:
+                    CWLog("Try to unset blacklist sta %s attached the ssid %s failed for time %d.", 
+                            json_cfg.mac, "ALL", json_cfg.time);
+                break;
+            case OT_SET_WHITELIST:
+                    CWLog("Try to set whitelist sta %s attached the ssid %s failed for time %d.", 
+                            json_cfg.mac, "ALL", json_cfg.time);
+                break;
+            case OT_UNSET_WHITELIST:
+                    CWLog("Try to unset whitelist sta %s attached the ssid %s failed for time %d.", 
+                            json_cfg.mac, "ALL", json_cfg.time);
+                break;
+            case OT_RATELIMIT:
+                    CWLog("Try to set ratelimit sta %s attached the ssid %s failed for tx_rate_limit %d rx_rate_limit %d.", 
+                            json_cfg.mac, "ALL", json_cfg.tx_rate_limit, json_cfg.rx_rate_limit);
+                break;
+            default:
+                    CWLog("Unknown operate_type %d, sta %s, portal_scheme %s, time %d,  tx_rate_limit %d rx_rate_limit %d.", 
+                            operate_type, json_cfg.mac, json_cfg.scheme, json_cfg.time, json_cfg.tx_rate_limit, json_cfg.rx_rate_limit);
+                    ret = dc_error_commit_failed;
+                    goto ERROR_OUT;
+                break;
         }
+
     }
+
     
     ret = 0;
 ERROR_OUT: 
