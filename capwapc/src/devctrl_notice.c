@@ -190,12 +190,12 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
 
     /*ATXRB*/
     if (argv[20]) {
-        stas[row].atxrb = atoi(argv[20])/1024;
+        stas[row].atxrb = atoi(argv[20]);
     }
     
     /*ARXRB*/
     if (argv[21]) {
-        stas[row].arxrb = atoi(argv[21])/1024;
+        stas[row].arxrb = atoi(argv[21]);
     }
 
     /*TXFS*/
@@ -381,6 +381,8 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
                             cur->updated = 1;
                             cur->delta_txB = cur->txB - pre->txB;
                             cur->delta_rxB = cur->rxB - pre->rxB;
+                            cur->atxrb = cur->delta_txB / WLAN_STA_STAUS_TIMER;
+                            cur->arxrb = cur->delta_rxB / WLAN_STA_STAUS_TIMER;
                             
                             totalsize = dc_reserves_stas(&rse_stas, totalsize, res_count, cur, 1);
                             if (totalsize < 0) {
