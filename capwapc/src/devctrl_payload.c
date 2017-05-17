@@ -128,7 +128,7 @@ static int dc_json_config_finished(void *reserved)
 
 static inline int dc_set_whitelist_sta(const char *mac, int time, int action)
 {
-    char buf[32];
+    char buf[128];
     sprintf(buf, "/lib/okos/setwhitelist.sh %s %d %d", mac, time, action);
     system(buf);
     return 0;
@@ -136,7 +136,7 @@ static inline int dc_set_whitelist_sta(const char *mac, int time, int action)
 
 static inline int dc_set_blacklist_sta(const char *mac, int time, int action)
 {
-    char buf[32];
+    char buf[128];
     sprintf(buf, "/lib/okos/setblacklist.sh %s %d %d", mac, time, action);
     system(buf);
     return 0;
