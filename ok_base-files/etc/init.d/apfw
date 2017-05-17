@@ -1,0 +1,40 @@
+#!/bin/sh
+
+START=45
+
+CMD="iptables"
+FW_CHAIN="Firewall"
+WL_CHAIN="WhiteList"
+
+
+start ()
+{
+    $CMD -N $FW_CHAIN
+    $CMD -A $FW_CHAIN -m state --state RELATED,ESTABLISHED -j ACCEPT 
+    $CMD -A $FW_CHAIN -m state --state INVALID -j DROP 
+    $CMD -A $FW_CHAIN -p icmp -j ACCEPT 
+    $CMD -A $FW_CHAIN -p tcp -m tcp --dport 22 -m state --state NEW -j ACCEPT 
+    $CMD -A $FW_CHAIN -p tcp -m tcp --dport 2060 -j ACCEPT 
+    $CMD -A $FW_CHAIN -i ath50 -p udp -m udp --dport 67 -j ACCEPT 
+    $CMD -A $FW_CHAIN -p tcp -m tcp --dport 80 -j ACCEPT 
+
+    $CMD -I INPUT -j $FW_CHAIN
+    $CMD -P INPUT DROP
+    
+    $CMD -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+    $CMD -N $WL_CHAIN 
+    $CMD -A FORWARD -j $WL_CHAIN
+}
+
+stop ()
+{
+    $CMD -P INPUT ACCEPT
+    $CMD -D INPUT -j $FW_CHAIN
+    $CMD -F $FW_CHAIN
+    $CMD -X $FW_CHAIN
+    $CMD -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+    $CMD -D FORWARD -j $WL_CHAIN 
+    $CMD -F $WL_CHAIN 
+    $CMD -X $WL_CHAIN 
+}
+
