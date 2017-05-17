@@ -6,7 +6,7 @@ action=$3 # 1 means set, 0 means unset
 
 atjobs_dir="/var/spool/cron/atjobs"
 
-. /lib/okos/whitelist.sh
+. /lib/okos/whitelist.sh start
 
 
 if [ "$action" = "1" ]
@@ -33,7 +33,10 @@ then
     done 
 
     # 4. add it into whitelist timer
-    echo ". /lib/okos/whitelist.sh;del $mac" | at now +$((time/60))minutes
+    if [ "$time" -ne "0" ]
+    then
+        echo ". /lib/okos/whitelist.sh start;del $mac" | at now +$((time/60))minutes
+    fi
 
     # 5. add it into whitelist
     add $mac
