@@ -318,6 +318,18 @@ int portald_scheme_update_domain(char * domain_name)
     return 0;
 }
 
+int portald_scheme_update_auth_url(char *auth_url)
+{
+    //system.auth_url.auth_url='aa'
+    if (!auth_url) {
+        cfg_del_section("system.auth_url");
+    } else {
+        cfg_add_section("system","auth_url");
+        cfg_set_option_value("system.auth_url.auth_url", auth_url);
+    }
+    return 0;
+}
+
 int portal_scheme_authentication(char * scheme_name, char * clientmac, unsigned int time) 
 {
 	return 0;

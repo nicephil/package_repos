@@ -365,6 +365,46 @@ int dc_hdl_node_version(struct json_object *obj)
     return 0;
 }
 
+static int dc_hdl_node_auth_url(struct json_object *obj)
+{
+    char auth_url[255] = {};
+    int ret, node = dc_node_hostname;
+    struct node_pair_save pair = {
+        .key   = "auth_url",
+        .type  = json_type_string,
+        .value = auth_url,
+        .size  = sizeof(auth_url),
+    };
+    
+    if (json_object_get_type(obj) != json_type_string) {
+        return dc_error_code(dc_error_obj_type, node, 0);
+    }
+
+    if ((ret = dc_hdl_node_default(obj, &pair, 1)) != 0) {
+        return dc_error_code(ret, node, 0);
+    }
+
+    log_node_pair(pair);
+
+
+
+
+    if (!strlen(auth_url) || is_default_string_config(auth_url)) {
+        if ((ret = portald_scheme_update_auth_url(NULL)) != 0) {
+            nmsc_log("Set auth_url %s failed for %d.", auth_url, ret);
+            return dc_error_code(dc_error_commit_failed, node, ret);
+        } 
+    }
+    else {
+        if ((ret = portald_scheme_update_auth_url(auth_url)) != 0) {
+            nmsc_log("Set auth_url %s failed for %d.", auth_url, ret);
+            return dc_error_code(dc_error_commit_failed, node, ret);
+        } 
+    }
+    return 0;
+}
+
+
 static int dc_hdl_node_hostname(struct json_object *obj)
 {
     char hostname[255] = {};
@@ -546,7 +586,8 @@ int dc_hdl_node_system(struct json_object *obj)
         {"hostname", dc_hdl_node_hostname},
         {"location", dc_hdl_node_location},
         {"country_code", dc_hdl_node_country},
-        {"domain_name", dc_hdl_node_domain_name}
+        {"domain_name", dc_hdl_node_domain_name},
+        {"auth_url", dc_hdl_node_auth_url}
     };
     int i, obj_saved, ret, node = dc_node_system;
     
