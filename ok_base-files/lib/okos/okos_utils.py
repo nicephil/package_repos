@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 from subprocess import Popen, PIPE
 
@@ -8,7 +8,15 @@ def get_mac(iface):
     try:
         mac = open('/sys/class/net/'+iface+'/address').readline()
     except:
-        mac = "00:00:00:00:00:00"
+        mac = ""
+    if len(mac) == 0:
+        if iface == "br-lan1":
+            mac = "FC:AD:0F:09:27:A0"
+        elif iface == "ath01":
+            mac = "06:AD:0F:09:27:A0"
+        else:
+            mac = "00:11:22:33:44:55"
+
     return mac[0:17]
 
 
@@ -23,6 +31,8 @@ def get_ssid(ath):
         ssid = s
     except:
         ssid = ""
+    if len(ssid) == 0:
+        ssid = "TIparkGuest-llwang"
     return ssid
 
 
@@ -37,16 +47,32 @@ def get_portalscheme(ath):
         portalscheme = s
     except:
         portalscheme = ""
+    if len(portalscheme) == 0:
+        portalscheme = "fa99d0a5841d48659a5afcbaf4a31a73_1006"
     return portalscheme
+
+
+def get_auth_url():
+    """ try to get auth_url from system.auth_url.auth_url """
+    try:
+        pid = Popen(["uci", "-q", "get",
+                     "system.auth_url.auth_url"], stdout=PIPE)
+        s = pid.communicate()[0]
+        auth_url = s
+    except:
+        auth_url = ""
+
+    if len(auth_url) == 0:
+        auth_url = "http://139.196.188.253/auth/device/client"
+
+    return auth_url
 
 
 def mac_to_byte(mac):
     mac_tmp = mac.split(':')
     mac_byte = ''
-    i = 0
-    while i < len(mac_tmp) - 1:
-        mac_byte += chr(int(mac_tmp[i], base=16))
-        i += 1
+    for _, item in enumerate(mac_tmp):
+        mac_byte += chr(int(item, base=16))
     return mac_byte
 
 
