@@ -40,6 +40,16 @@ def get_portalscheme(ath):
     return portalscheme
 
 
+def mac_to_byte(mac):
+    mac_tmp = mac.split(':')
+    mac_byte = ''
+    i = 0
+    while i < len(mac_tmp) - 1:
+        mac_byte += chr(int(mac_tmp[i], base=16))
+        i += 1
+    return mac_byte
+
+
 if __name__ == '__main__':
     print get_mac("br-lan1")
     print get_mac("ath10")
