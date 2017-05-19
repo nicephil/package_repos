@@ -6,7 +6,7 @@ action=$3 # 1 means set, 0 means unset
 
 atjobs_dir="/var/spool/cron/atjobs"
 
-. /lib/okos/whitelist.sh start
+. /lib/okos/whitelist.sh
 
 
 if [ "$action" = "1" ]

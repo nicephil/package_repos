@@ -1,12 +1,14 @@
 #!/usr/bin/python
 
 import os
+import gc
 import sys
 import time
 import struct
 import urllib2
 import binascii
-from multiprocessing import Process, Queue
+from threading import Thread
+from Queue import Queue
 from okos_utils import get_auth_url, mac_to_byte, get_mac, get_portalscheme, \
     get_ssid
 from syslog import syslog, LOG_INFO, LOG_WARNING, LOG_ERR
@@ -19,14 +21,15 @@ class ClientEvent(object):
         self.event = event
 
 
-class Client(Process):
+class Client(Thread):
     """ Describes client """
     def __init__(self, mac):
+        Thread.__init__(self)
         self.mac = mac
         self.queue = Queue(1)
         self.term = False
         self.clientevent = None
-        super(Client, self).__init__()
+        self.name = mac
 
     def put_event(self, ath, event):
         # 1. new client event
@@ -39,7 +42,7 @@ class Client(Process):
         else:
             # 5. clean queue and put it
             queue.get_nowait()
-            queue.put_nowai(clientevent)
+            queue.put_nowait(clientevent)
 
     def handle_event(self):
         clientevent = self.queue.get()
@@ -50,27 +53,31 @@ class Client(Process):
             acl_type, time, tx_rate_limit, rx_ratelimit = self.query_auth()
             if acl_type == 1:
                 # 1.2 set_whitelist
-                self.set_whitelist(time)
-                pass
+                self.set_whitelist(time, 1)
             elif acl_type == 3:
                 # 1.3 set_blacklist
-                self.set_blacklist(time)
-                pass
+                self.set_blacklist(time, 1)
             elif acl_type == 0:
                 # 1.4 none acl, so check
-                pass
+                self.set_whitelist(0, 0)
+                self.set_blacklist(0, 0)
             # 1.5 set_ratelimit
             self.set_ratelimit(tx_rate_limit, rx_ratelimit)
+            # print "wifievent:on%s %s" % (self.mac, clientevent.event)
 
         # 2. disconnected event
         elif clientevent.event == 'AP-STA-DISCONNECTED':
             # 2.1 cleanup
             # 2.2 stop handling and exit process
             self.term = True
-            print "wifievent: %s" % clientevent.event
+            self.set_whitelist(120, 1)
+            # self.set_whitelist(0, 0)
+            # self.set_blacklist(0, 0)
+            # self.set_ratelimit(0, 0)
+            # print "wifievent:on%s %s" % (self.mac, clientevent.event)
         else:
-            syslog(LOG_WARNING, "wifievent:Unknow Event: %s " %
-                   clientevent.event)
+            syslog(LOG_WARNING, "wifievent:Unknow Event on %s %s" %
+                   (self.mac, clientevent.event))
 
     def query_auth(self):
         try:
@@ -151,25 +158,27 @@ class Client(Process):
         version = ord(version)
         mac_num = ord(mac_num)
         username_len = ord(username_len)
-        print repr(auth_mode)
-        print repr(remain_time)
+        # print repr(auth_mode)
+        # print repr(remain_time)
         offset = struct.calcsize(fmt)
         fmt = '!%dsciii' % username_len
         username, acl_type, time, tx_rate_limit, rx_rate_limit = \
             struct.unpack_from(fmt, ss_str, offset)
         acl_type = ord(acl_type)
-        print repr(username)
-        print repr(acl_type)
-        print repr(time)
-        print repr(tx_rate_limit)
-        print repr(rx_rate_limit)
+        # print repr(username)
+        # print repr(acl_type)
+        # print repr(time)
+        # print repr(tx_rate_limit)
+        # print repr(rx_rate_limit)
         return acl_type, time, tx_rate_limit, rx_rate_limit
 
-    def set_whitelist(self, time):
-        os.system("/lib/okos/setwhitelist.sh %s %d" % (self.mac, time))
+    def set_whitelist(self, time, action):
+        os.system("/lib/okos/setwhitelist.sh %s %d %d" % (self.mac, time,
+                                                          action))
 
-    def set_blacklist(self, time):
-        os.system("/lib/okos/setblacklist.sh %s %d" % (self.mac, time))
+    def set_blacklist(self, time, action):
+        os.system("/lib/okos/setblacklist.sh %s %d %d" % (self.mac, time,
+                                                          action))
 
     def set_ratelimit(self, tx_rate_limit, rx_ratelimit):
         pass
@@ -184,7 +193,6 @@ class Manager(object):
     def __init__(self, pipe_name):
         self.pipe_name = pipe_name
         self.client_dict = {}
-        self.create_pipe()
 
     def create_pipe(self):
         try:
@@ -192,7 +200,7 @@ class Manager(object):
         except OSError, e:
             syslog(LOG_WARNING, "wifievent: mkfifo error: %d %s" % (e.errno,
                                                                     e.strerror))
-            sys.exit(-1)
+            sys.exit(0)
 
         self.pipe_f = os.open(self.pipe_name, os.O_SYNC |
                               os.O_CREAT | os.O_RDWR)
@@ -204,21 +212,28 @@ class Manager(object):
             s = os.read(self.pipe_f, 128)
             s = s.strip('\n')
 
+            # 2. no char, sender is closed, so sleep
             if len(s) == 0:
-                # 2. no char, sender is closed, so sleep
                 time.sleep(1)
                 continue
 
             # 3. parse content
-            ath, mac, event = s.split(' ')
+            try:
+                ath, mac, event = s.split(' ')
+            except ValueError:
+                ath = s
+                mac = ''
+                event = ''
+            except KeyboardInterrupt:
+                sys.exit(0)
             syslog(LOG_INFO, "wifievent:%s, %s, %s" % (ath,
                                                        mac,
                                                        event))
             # 4. handle wifi up/down event
-            if ath == '/lib/wifi':
+            if ath == '/lib/wifi' or event == 'AP-DISABLED':
                 # free all existing clients
                 for k in self.client_dict.keys():
-                    self.client_dict[k].terminate()
+                    self.client_dict[k].term = True
                 self.client_dict.clear()
                 continue
 
@@ -228,13 +243,12 @@ class Manager(object):
                 client = Client(mac)
                 self.client_dict[mac] = client
                 # 5.2 run it as daemon process
-                client.daemon = True
                 client.start()
             else:
                 client = self.client_dict[mac]
                 if not client.is_alive():
-                    client.daemon = True
-                    client.start()
+                    client = Client(mac)
+                    self.client_dict[mac] = client
 
             # 6. add event into client event queue
             client.put_event(ath, event)
@@ -243,6 +257,8 @@ class Manager(object):
             for key in self.client_dict.keys():
                 if not self.client_dict[key].is_alive():
                     del(self.client_dict[key])
+            # 8. gc
+            gc.collect()
 
 
 def main():
@@ -281,8 +297,10 @@ def main():
     device_mac = get_mac('br-lan1')
     global auth_url
     auth_url = get_auth_url()
+    # print "wifievent:%s %s" % (device_mac, auth_url)
     # 3. create manager object and go into event loop
     manager = Manager('/tmp/wifievent.pipe')
+    manager.create_pipe()
     manager.handle_pipe_loop()
 
 
