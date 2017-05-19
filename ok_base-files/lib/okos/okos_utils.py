@@ -28,7 +28,7 @@ def get_ssid(ath):
                      "wlan_service_template.ServiceTemplate" + stid +
                      ".ssid"], stdout=PIPE)
         s = pid.communicate()[0]
-        ssid = s
+        ssid = s.strip('\n')
     except:
         ssid = ""
     if len(ssid) == 0:
@@ -44,7 +44,7 @@ def get_portalscheme(ath):
                      "wlan_service_template.ServiceTemplate" + stid +
                      ".portal_scheme"], stdout=PIPE)
         s = pid.communicate()[0]
-        portalscheme = s
+        portalscheme = s.strip('\n')
     except:
         portalscheme = ""
     if len(portalscheme) == 0:
@@ -58,7 +58,7 @@ def get_auth_url():
         pid = Popen(["uci", "-q", "get",
                      "system.auth_url.auth_url"], stdout=PIPE)
         s = pid.communicate()[0]
-        auth_url = s
+        auth_url = s.strip('\n')
     except:
         auth_url = ""
 

@@ -6,13 +6,14 @@ CLIENT_MAC=$3
 
 logger -t hostapd_cli "=======>$*" 
 
-if [ -f "/tmp/wifievent.pipe" ]
+if [ -e "/tmp/wifievent.pipe" ]
 then
-    echo "$IFNAME $CLIENT_MAC $EVENT" > /tmp/wifievent.pipe
+    echo "$IFNAME $CLIENT_MAC $EVENT" > /tmp/wifievent.pipe &
 else
+    killall -6 clientevent.py
     /lib/okos/clientevent.py
     sleep 1
-    echo "$IFNAME $CLIENT_MAC $EVENT" > /tmp/wifievent.pipe
+    echo "$IFNAME $CLIENT_MAC $EVENT" > /tmp/wifievent.pipe &
 fi
 
 
