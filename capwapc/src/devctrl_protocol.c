@@ -539,14 +539,14 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
             CWProtocolStoreRawBytes(&msg, sta->user, sta->name_len);
             CWProtocolStore32(&msg, sta->rssi);
             CWProtocolStore64(&msg, sta->ts);
-            CWProtocolStore64(&msg, sta->delta_txB);
             CWProtocolStore64(&msg, sta->delta_rxB);
-            CWProtocolStore32(&msg, sta->atxrb);
+            CWProtocolStore64(&msg, sta->delta_txB);
             CWProtocolStore32(&msg, sta->arxrb);
+            CWProtocolStore32(&msg, sta->atxrb);
             CWProtocolStore8(&msg, sta->error_rate);
             CWProtocolStore8(&msg, sta->retry_rate);
-            CWProtocolStore32(&msg, sta->ntxrt);
             CWProtocolStore32(&msg, sta->nrxrt);
+            CWProtocolStore32(&msg, sta->ntxrt);
         }
     }
     else {

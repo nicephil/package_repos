@@ -1,7 +1,6 @@
-#!/usr/bin/python2
+#!/usr/bin/python
 
 import os
-from syslog import *
 import sys
 import time
 import struct
@@ -10,6 +9,7 @@ import binascii
 from multiprocessing import Process, Queue
 from okos_utils import get_auth_url, mac_to_byte, get_mac, get_portalscheme, \
     get_ssid
+from syslog import syslog, LOG_INFO, LOG_WARNING, LOG_ERR
 
 
 class ClientEvent(object):
@@ -69,7 +69,8 @@ class Client(Process):
             self.term = True
             print "wifievent: %s" % clientevent.event
         else:
-            syslog(LOG_WARN, "wifievent:Unknow Event: %s " % clientevent.event)
+            syslog(LOG_WARNING, "wifievent:Unknow Event: %s " %
+                   clientevent.event)
 
     def query_auth(self):
         try:
@@ -77,7 +78,7 @@ class Client(Process):
             url = '%s/authority?info=%s' % (auth_url, self.pack_info())
             response = urllib2.urlopen(url)
         except urllib2.HTTPError, e:
-            syslog(LOG_WARN, "wifievent: %d %s" % (e.errno, e.strerror))
+            syslog(LOG_WARNING, "wifievent: %d %s" % (e.errno, e.strerror))
         return self.unpack_info(response.read())
 
     def pack_info(self):
@@ -189,8 +190,8 @@ class Manager(object):
         try:
             os.mkfifo(self.pipe_name)
         except OSError, e:
-            syslog(LOG_WARN, "wifievent: mkfifo error: %d %s" % (e.errno,
-                                                                 e.strerror))
+            syslog(LOG_WARNING, "wifievent: mkfifo error: %d %s" % (e.errno,
+                                                                    e.strerror))
             sys.exit(-1)
 
         self.pipe_f = os.open(self.pipe_name, os.O_SYNC |
@@ -246,15 +247,18 @@ class Manager(object):
 
 def main():
     # 1. daemonlize
-    if True:
+    daemon = True
+    if len(sys.argv) > 1:
+        daemon = False
+    if daemon:
         try:
             pid = os.fork()
             if pid > 0:
                 # exit first parent
                 sys.exit(0)
         except OSError, e:
-            syslog(LOG_WARN, "wifievent:fork #1 failed: %d (%s)" % (e.errno,
-                                                                    e.strerror))
+            syslog(LOG_WARNING, "wifievent:fork #1 failed: %d (%s)" %
+                   (e.errno, e.strerror))
             sys.exit(1)
             # decouple from parent environment
             os.chdir("/")
