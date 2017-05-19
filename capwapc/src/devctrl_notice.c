@@ -188,6 +188,8 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
         stas[row].rxB = atoll(argv[19]);
     }
 
+    //syslog(LOG_ERR, "sql:%x%x txB:%s:%lld rxB:%s:%lld", stas[row].mac[4], stas[row].mac[5], argv[18], stas[row].txB, argv[19], stas[row].rxB);
+
     /*ATXRB*/
     if (argv[20]) {
         stas[row].atxrb = atoi(argv[20]);
@@ -381,9 +383,10 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
                             cur->updated = 1;
                             cur->delta_txB = cur->txB - pre->txB;
                             cur->delta_rxB = cur->rxB - pre->rxB;
-                            cur->atxrb = cur->delta_txB / WLAN_STA_STAUS_TIMER;
-                            cur->arxrb = cur->delta_rxB / WLAN_STA_STAUS_TIMER;
-                            
+                            cur->atxrb = cur->delta_txB / (cur->ts - pre->ts);
+                            cur->arxrb = cur->delta_rxB / (cur->ts - pre->ts);
+                            //syslog(LOG_ERR, "O%x%x===>dtxB:%d drxB:%d txB:%d rxB:%d atx:%d arx:%d", pre->mac[4], pre->mac[5],  pre->delta_txB, pre->delta_rxB, pre->txB, pre->rxB, pre->atxrb, pre->arxrb);
+                            //syslog(LOG_ERR, "N%x%x+++>%d %d %d %d %d %d", cur->mac[4], cur->mac[5], cur->delta_txB, cur->delta_rxB, cur->txB, cur->rxB, cur->atxrb, cur->arxrb);
                             totalsize = dc_reserves_stas(&rse_stas, totalsize, res_count, cur, 1);
                             if (totalsize < 0) {
                                 res_count = -1;
