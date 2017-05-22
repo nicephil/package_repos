@@ -51,7 +51,8 @@ class Client(Thread):
         # 1. handle connected event
         if clientevent.event == 'AP-STA-CONNECTED':
             # 1.1 query auth
-            acl_type, time, tx_rate_limit, rx_ratelimit = self.query_auth()
+            acl_type, time, tx_rate_limit, rx_ratelimit, remain_time = \
+                self.query_auth()
             if acl_type == 1:
                 # 1.2 set_whitelist
                 self.set_whitelist(time, 1)
@@ -60,7 +61,10 @@ class Client(Thread):
                 self.set_blacklist(time, 1)
             elif acl_type == 0:
                 # 1.4 none acl, so check
-                self.set_whitelist(0, 0)
+                if remain_time == 0:
+                    self.set_whitelist(0, 0)
+                else:
+                    self.set_whitelist(remain_time, 1)
                 self.set_blacklist(0, 0)
             # 1.5 set_ratelimit
             self.set_ratelimit(tx_rate_limit, rx_ratelimit)
@@ -71,7 +75,7 @@ class Client(Thread):
             # 2.1 cleanup
             # 2.2 stop handling and exit process
             self.term = True
-            self.set_whitelist(120, 1)
+            # self.set_whitelist(120, 1)
             # self.set_whitelist(0, 0)
             # self.set_blacklist(0, 0)
             # self.set_ratelimit(0, 0)
@@ -174,7 +178,7 @@ class Client(Thread):
         # print repr(time)
         # print repr(tx_rate_limit)
         # print repr(rx_rate_limit)
-        return acl_type, time, tx_rate_limit, rx_rate_limit
+        return acl_type, time, tx_rate_limit, rx_rate_limit, remain_time
 
     def set_whitelist(self, time, action):
         os.system("/lib/okos/setwhitelist.sh %s %d %d" % (self.mac, time,
