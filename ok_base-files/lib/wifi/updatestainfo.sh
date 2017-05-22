@@ -18,12 +18,8 @@ then
     rm -rf $dbfile
 fi
 
-#CREATE TABLE STAINFO(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER);
-if [ ! -f "$dbfile" ]
-then
-    #echo sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_HMODE,PORTAL_USER);COMMIT;" | logger
-    sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER);COMMIT;"
-fi
+#echo sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_HMODE,PORTAL_USER);COMMIT;" | logger
+sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC TEXT PRIMARY KEY NOT NULL,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER);COMMIT;"
 
 case "$event" in
     "AP-STA-CONNECTED")
@@ -39,13 +35,8 @@ case "$event" in
         config_load wireless
         config_get _vlan $ath network
 
-        # avoid duplicated record here
-        CMD="DELETE FROM ${tablename} WHERE MAC = '$mac'"
-        #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
-        sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
-
         # add new record
-        CMD="INSERT INTO ${tablename} VALUES('$mac','$ath','','','','${ath:3:1}','$bssid','','$_auth','$_ps','$_ssid','${_vlan:3}','','')"
+        CMD="INSERT OR REPLACE INTO ${tablename} VALUES('$mac','$ath','','','','${ath:3:1}','$bssid','','$_auth','$_ps','$_ssid','${_vlan:3}','','')"
         #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
         sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
     ;;
