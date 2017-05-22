@@ -36,12 +36,13 @@ class Client(Thread):
         clientevent = ClientEvent(ath, event)
         queue = self.queue
 
-        if queue.empty():
+        try:
             # 4. put into queue if queue is empty
             queue.put_nowait(clientevent)
-        else:
+        except Queue.Full:
             # 5. clean queue and put it
-            queue.get_nowait()
+            tmp_event = queue.get_nowait()
+            del(tmp_event)
             queue.put_nowait(clientevent)
 
     def handle_event(self):
@@ -78,6 +79,7 @@ class Client(Thread):
         else:
             syslog(LOG_WARNING, "wifievent:Unknow Event on %s %s" %
                    (self.mac, clientevent.event))
+        del(clientevent)
 
     def query_auth(self):
         try:
@@ -86,7 +88,9 @@ class Client(Thread):
             response = urllib2.urlopen(url)
         except urllib2.HTTPError, e:
             syslog(LOG_WARNING, "wifievent: %d %s" % (e.errno, e.strerror))
-        return self.unpack_info(response.read())
+        response_str = response.read()
+        del(response)
+        return self.unpack_info(response_str)
 
     def pack_info(self):
         """
@@ -247,6 +251,7 @@ class Manager(object):
             else:
                 client = self.client_dict[mac]
                 if not client.is_alive():
+                    del(client)
                     client = Client(mac)
                     self.client_dict[mac] = client
 
@@ -259,6 +264,14 @@ class Manager(object):
                     del(self.client_dict[key])
             # 8. gc
             gc.collect()
+            '''
+            rt = gc.collect()
+            print "%d unreachable" % rt
+            garbages = gc.garbage
+            print "\n%d garbages:" % len(garbages)
+            for garbage in garbages:
+                print str(garbage)
+            '''
 
 
 def main():
@@ -293,6 +306,8 @@ def main():
             sys.exit(1)
 
     # 2. get mac info auth url from system
+    # gc.set_debug(gc.DEBUG_COLLECTABLE | gc.DEBUG_UNCOLLECTABLE |
+    # gc.DEBUG_INSTANCES | gc.DEBUG_OBJECTS | gc.DEBUG_SAVEALL)
     global device_mac
     device_mac = get_mac('br-lan1')
     global auth_url
