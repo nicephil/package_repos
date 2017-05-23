@@ -125,6 +125,13 @@ static int dc_json_config_finished(void *reserved)
     return 0;
 }
 
+static inline int dc_set_ratelimit_sta(const char *mac, int tx_rate_limit, int rx_rate_limit)
+{
+    char buf[128];
+    sprintf(buf, "/lib/okos/setratelimit.sh %s %d %d", mac, tx_rate_limit, rx_rate_limit);
+    system(buf);
+    return 0;
+}
 
 static inline int dc_set_whitelist_sta(const char *mac, int time, int action)
 {
@@ -577,8 +584,10 @@ static int dc_portal_offline_handler(struct tlv *payload, void **reserved)
                 }
                 break;
             case OT_RATELIMIT:
+                if ((ret = dc_set_ratelimit_sta(json_cfg.mac, json_cfg.tx_rate_limit, json_cfg.rx_rate_limit) != 0)) {
                     CWLog("Try to set ratelimit sta %s attached the ssid %s failed for tx_rate_limit %d rx_rate_limit %d.", 
                             json_cfg.mac, "ALL", json_cfg.tx_rate_limit, json_cfg.rx_rate_limit);
+                }
                 break;
             default:
                     CWLog("Unknown operate_type %d, sta %s, portal_scheme %s, time %d,  tx_rate_limit %d rx_rate_limit %d.", 
