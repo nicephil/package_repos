@@ -51,7 +51,7 @@ class Client(Thread):
         # 1. handle connected event
         if clientevent.event == 'AP-STA-CONNECTED':
             # 1.1 query auth
-            acl_type, time, tx_rate_limit, rx_ratelimit, remain_time = \
+            acl_type, time, tx_rate_limit, rx_rate_limit, remain_time = \
                 self.query_auth()
             if acl_type == 1:
                 # 1.2 set_whitelist
@@ -67,7 +67,7 @@ class Client(Thread):
                     self.set_whitelist(remain_time, 1)
                 self.set_blacklist(0, 0)
             # 1.5 set_ratelimit
-            self.set_ratelimit(tx_rate_limit, rx_ratelimit)
+            self.set_ratelimit(tx_rate_limit, rx_rate_limit)
 
         # 2. disconnected event
         elif clientevent.event == 'AP-STA-DISCONNECTED':
@@ -77,12 +77,11 @@ class Client(Thread):
             # self.set_whitelist(120, 1)
             # self.set_whitelist(0, 0)
             # self.set_blacklist(0, 0)
-            # self.set_ratelimit(0, 0)
+            self.set_ratelimit(0, 0)
         else:
             syslog(LOG_WARNING, "Unknow Event on %s %s" %
                    (self.mac, clientevent.event))
         syslog(LOG_DEBUG, "mac:%s event:%s" % (self.mac, clientevent.event))
-        del(clientevent)
 
     def query_auth(self):
         try:
@@ -182,12 +181,17 @@ class Client(Thread):
     def set_whitelist(self, time, action):
         os.system("/lib/okos/setwhitelist.sh %s %d %d" % (self.mac, time,
                                                           action))
+        pass
 
     def set_blacklist(self, time, action):
         os.system("/lib/okos/setblacklist.sh %s %d %d" % (self.mac, time,
                                                           action))
+        pass
 
     def set_ratelimit(self, tx_rate_limit, rx_ratelimit):
+        os.system("/lib/okos/setratelimit.sh %s %d %d" % (self.mac,
+                                                          tx_rate_limt,
+                                                          rx_rate_limt))
         pass
 
     def run(self):
