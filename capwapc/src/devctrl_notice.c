@@ -114,7 +114,9 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
     if (argv[9]) {
         strcpy(stas[row].ps_name, argv[9]);
         stas[row].ps_len = strlen(stas[row].ps_name);
-        stas[row].portal = 1;
+        if (stas[row].ps_len) {
+            stas[row].portal = 1;
+        }
     }
     
     /*SSID*/
