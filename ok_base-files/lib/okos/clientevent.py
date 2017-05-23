@@ -11,7 +11,7 @@ from threading import Thread
 from Queue import Queue
 from okos_utils import get_auth_url, mac_to_byte, get_mac, get_portalscheme, \
     get_ssid
-from syslog import syslog, LOG_INFO, LOG_WARNING, LOG_ERR
+from syslog import syslog, LOG_INFO, LOG_WARNING, LOG_ERR, LOG_DEBUG
 
 
 class ClientEvent(object):
@@ -68,7 +68,6 @@ class Client(Thread):
                 self.set_blacklist(0, 0)
             # 1.5 set_ratelimit
             self.set_ratelimit(tx_rate_limit, rx_ratelimit)
-            # print "wifievent:on%s %s" % (self.mac, clientevent.event)
 
         # 2. disconnected event
         elif clientevent.event == 'AP-STA-DISCONNECTED':
@@ -79,10 +78,10 @@ class Client(Thread):
             # self.set_whitelist(0, 0)
             # self.set_blacklist(0, 0)
             # self.set_ratelimit(0, 0)
-            # print "wifievent:on%s %s" % (self.mac, clientevent.event)
         else:
-            syslog(LOG_WARNING, "wifievent:Unknow Event on %s %s" %
+            syslog(LOG_WARNING, "Unknow Event on %s %s" %
                    (self.mac, clientevent.event))
+        syslog(LOG_DEBUG, "mac:%s event:%s" % (self.mac, clientevent.event))
         del(clientevent)
 
     def query_auth(self):
@@ -91,7 +90,7 @@ class Client(Thread):
             url = '%s/authority?info=%s' % (auth_url, self.pack_info())
             response = urllib2.urlopen(url)
         except urllib2.HTTPError, e:
-            syslog(LOG_WARNING, "wifievent: %d %s" % (e.errno, e.strerror))
+            syslog(LOG_WARNING, "HTTPError:%d %s" % (e.errno, e.strerror))
         response_str = response.read()
         del(response)
         return self.unpack_info(response_str)
@@ -166,18 +165,18 @@ class Client(Thread):
         version = ord(version)
         mac_num = ord(mac_num)
         username_len = ord(username_len)
-        # print repr(auth_mode)
-        # print repr(remain_time)
+        syslog(LOG_DEBUG, repr(auth_mode))
+        syslog(LOG_DEBUG, "remain_time:%s" % repr(remain_time))
         offset = struct.calcsize(fmt)
         fmt = '!%dsciii' % username_len
         username, acl_type, time, tx_rate_limit, rx_rate_limit = \
             struct.unpack_from(fmt, ss_str, offset)
         acl_type = ord(acl_type)
-        # print repr(username)
-        # print repr(acl_type)
-        # print repr(time)
-        # print repr(tx_rate_limit)
-        # print repr(rx_rate_limit)
+        syslog(LOG_DEBUG, "username:%s" % repr(username))
+        syslog(LOG_DEBUG, "acl_type:%s" % repr(acl_type))
+        syslog(LOG_DEBUG, "time:%s" % repr(time))
+        syslog(LOG_DEBUG, "tx_rate_limit:%s" % repr(tx_rate_limit))
+        syslog(LOG_DEBUG, "rx_rate_limit:%s" % repr(rx_rate_limit))
         return acl_type, time, tx_rate_limit, rx_rate_limit, remain_time
 
     def set_whitelist(self, time, action):
@@ -206,8 +205,8 @@ class Manager(object):
         try:
             os.mkfifo(self.pipe_name)
         except OSError, e:
-            syslog(LOG_WARNING, "wifievent: mkfifo error: %d %s" % (e.errno,
-                                                                    e.strerror))
+            syslog(LOG_WARNING, "mkfifo error: %d %s" % (e.errno,
+                                                         e.strerror))
             sys.exit(0)
 
         self.pipe_f = os.open(self.pipe_name, os.O_SYNC |
@@ -234,9 +233,9 @@ class Manager(object):
                 event = ''
             except KeyboardInterrupt:
                 sys.exit(0)
-            syslog(LOG_INFO, "wifievent:%s, %s, %s" % (ath,
-                                                       mac,
-                                                       event))
+            syslog(LOG_INFO, "ath:%s, mac:%s, event:%s" % (ath,
+                                                           mac,
+                                                           event))
             # 4. handle wifi up/down event
             if ath == '/lib/wifi' or event == 'AP-DISABLED':
                 # free all existing clients
@@ -290,7 +289,7 @@ def main():
                 # exit first parent
                 sys.exit(0)
         except OSError, e:
-            syslog(LOG_WARNING, "wifievent:fork #1 failed: %d (%s)" %
+            syslog(LOG_WARNING, "fork #1 failed: %d (%s)" %
                    (e.errno, e.strerror))
             sys.exit(1)
             # decouple from parent environment
@@ -302,11 +301,11 @@ def main():
             pid = os.fork()
             if pid > 0:
                 # exit from second parent, print eventual PID before
-                syslog(LOG_INFO, "wifievent:Daemon PID %d" % pid)
+                syslog(LOG_INFO, "Daemon PID %d" % pid)
                 sys.exit(0)
         except OSError, e:
-            syslog(LOG_ERR, "wifievent:fork #2 failed: %d (%s)" % (e.errno,
-                                                                   e.strerror))
+            syslog(LOG_ERR, "fork #2 failed: %d (%s)" % (e.errno,
+                                                         e.strerror))
             sys.exit(1)
 
     # 2. get mac info auth url from system
@@ -316,7 +315,7 @@ def main():
     device_mac = get_mac('br-lan1')
     global auth_url
     auth_url = get_auth_url()
-    # print "wifievent:%s %s" % (device_mac, auth_url)
+    syslog(LOG_DEBUG, "device_mac:%s auth_url:%s" % (device_mac, auth_url))
     # 3. create manager object and go into event loop
     manager = Manager('/tmp/wifievent.pipe')
     manager.create_pipe()

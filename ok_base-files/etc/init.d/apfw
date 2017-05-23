@@ -4,7 +4,6 @@ START=45
 
 CMD="iptables"
 FW_CHAIN="Firewall"
-WL_CHAIN="WhiteList"
 
 
 start ()
@@ -23,8 +22,6 @@ start ()
     $CMD -P INPUT DROP
     
     $CMD -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
-    $CMD -N $WL_CHAIN 
-    $CMD -A FORWARD -j $WL_CHAIN
 }
 
 stop ()
@@ -34,8 +31,5 @@ stop ()
     $CMD -F $FW_CHAIN
     $CMD -X $FW_CHAIN
     $CMD -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
-    $CMD -D FORWARD -j $WL_CHAIN 
-    $CMD -F $WL_CHAIN 
-    $CMD -X $WL_CHAIN 
 }
 
