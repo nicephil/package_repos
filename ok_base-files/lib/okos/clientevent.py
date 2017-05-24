@@ -205,8 +205,8 @@ class Client(Thread):
 
     def set_ratelimit(self, tx_rate_limit, rx_ratelimit, ath, action):
         os.system("/lib/okos/setratelimit.sh %s %d %d %s %d" % (self.mac,
-                                                                tx_rate_limt,
-                                                                rx_rate_limt,
+                                                                tx_rate_limit,
+                                                                rx_rate_limit,
                                                                 ath,
                                                                 action))
         pass
