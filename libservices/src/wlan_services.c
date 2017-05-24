@@ -1255,6 +1255,14 @@ int wlan_set_bind(int radio_id, int stid)
     sprintf(tuple, "wireless.ath%d%d.mode", radio_id, stid);
     cfg_set_option_value(tuple, "ap");
 
+    //wireless.ath15.ath15.mcastenhance
+    sprintf(tuple, "wireless.ath%d%d.mcastenhance", radio_id, stid);
+    cfg_set_option_value_int(tuple, 2);
+    
+    //wireless.ath15.ath15.mcast_rate
+    sprintf(tuple, "wireless.ath%d%d.mcast_rate", radio_id, stid);
+    cfg_set_option_value_int(tuple, 6144);
+
     //wireless.ath15.ssid='oakridg-def1' <-> wlan_service_template.ServiceTemplate1.ssid="ssid"
     sprintf(tuple, "wlan_service_template.ServiceTemplate%d.ssid", stid);
     cfg_get_option_value(tuple, buf, sizeof(buf));
