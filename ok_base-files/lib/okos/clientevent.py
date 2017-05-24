@@ -10,7 +10,7 @@ import binascii
 from threading import Thread
 from Queue import Queue
 from okos_utils import get_auth_url, mac_to_byte, get_mac, get_portalscheme, \
-    get_ssid
+    get_ssid, get_domain
 from syslog import syslog, LOG_INFO, LOG_WARNING, LOG_ERR, LOG_DEBUG
 # import pdb
 
@@ -41,13 +41,14 @@ class Client(Thread):
         try:
             # 4. put into queue if queue is empty
             queue.put_nowait(clientevent)
-        except Queue.Full:
+        except:
+            syslog(LOG_WARNING, "Queue Full!")
             # 5. clean queue and put it
             tmp_event = queue.get_nowait()
-            del(tmp_event)
             queue.put_nowait(clientevent)
+            del(tmp_event)
 
-    @profile
+    # @profile
     def handle_event(self):
         clientevent = self.queue.get()
         self.clientevent = clientevent
@@ -56,6 +57,13 @@ class Client(Thread):
             # 1.1 query auth
             acl_type, time, tx_rate_limit, rx_rate_limit, remain_time = \
                 self.query_auth()
+            syslog(LOG_DEBUG, "mac:%s acl_type:%s time:%s tx_rate_limit:%s \
+                   rx_rate_limit:%s remain_time:%s" % (repr(self.mac),
+                                                       repr(acl_type),
+                                                       repr(time),
+                                                       repr(tx_rate_limit),
+                                                       repr(rx_rate_limit),
+                                                       repr(remain_time)))
             self.last_acl_type = acl_type
             if acl_type == 1:
                 # 1.2 set_whitelist
@@ -71,7 +79,9 @@ class Client(Thread):
                     self.set_whitelist(remain_time, 1)
                 self.set_blacklist(0, 0)
             # 1.5 set_ratelimit
-            self.set_ratelimit(tx_rate_limit, rx_rate_limit, clientevent.ath)
+            self.set_ratelimit(tx_rate_limit, rx_rate_limit,
+                               clientevent.ath,
+                               1)
 
         # 2. disconnected event
         elif clientevent.event == 'AP-STA-DISCONNECTED':
@@ -85,19 +95,21 @@ class Client(Thread):
                 # self.set_blacklist(0, 0)
                 pass
             elif self.last_acl_type == 0:
+                # self.set_whitelist(0, 0)
                 # self.set_blacklist(0, 0)
                 pass
-            self.set_ratelimit(0, 0, clientevent.ath)
+            self.set_ratelimit(0, 0, clientevent.ath, 0)
         else:
             syslog(LOG_WARNING, "Unknow Event on %s %s" %
                    (self.mac, clientevent.event))
-        syslog(LOG_DEBUG, "mac:%s event:%s" % (self.mac, clientevent.event))
+        syslog(LOG_DEBUG, "-->mac:%s event:%s" % (self.mac, clientevent.event))
 
     def query_auth(self):
         try:
             global auth_url
             url = '%s/authority?info=%s' % (auth_url, self.pack_info())
-            response = urllib2.urlopen(url)
+            syslog(LOG_DEBUG, 'query url:%s' % url)
+            response = urllib2.urlopen(url, timeout=3)
         except urllib2.HTTPError, e:
             syslog(LOG_WARNING, "HTTPError:%d %s" % (e.errno, e.strerror))
         response_str = response.read()
@@ -127,8 +139,8 @@ class Client(Thread):
         client_ip = 0
         ssid = get_ssid(clientevent.ath)
         ssid_len = len(ssid)
-        domain_len = 0
-        domain = ''
+        global domain
+        domain_len = len(domain)
         portal_scheme = get_portalscheme(clientevent.ath)
         portal_scheme_len = len(portal_scheme)
         bssid = get_mac(clientevent.ath)
@@ -174,18 +186,11 @@ class Client(Thread):
         version = ord(version)
         mac_num = ord(mac_num)
         username_len = ord(username_len)
-        syslog(LOG_DEBUG, repr(auth_mode))
-        syslog(LOG_DEBUG, "remain_time:%s" % repr(remain_time))
         offset = struct.calcsize(fmt)
         fmt = '!%dsciii' % username_len
         username, acl_type, time, tx_rate_limit, rx_rate_limit = \
             struct.unpack_from(fmt, ss_str, offset)
         acl_type = ord(acl_type)
-        syslog(LOG_DEBUG, "username:%s" % repr(username))
-        syslog(LOG_DEBUG, "acl_type:%s" % repr(acl_type))
-        syslog(LOG_DEBUG, "time:%s" % repr(time))
-        syslog(LOG_DEBUG, "tx_rate_limit:%s" % repr(tx_rate_limit))
-        syslog(LOG_DEBUG, "rx_rate_limit:%s" % repr(rx_rate_limit))
         return acl_type, time, tx_rate_limit, rx_rate_limit, remain_time
 
     def set_whitelist(self, time, action):
@@ -198,11 +203,12 @@ class Client(Thread):
                                                           action))
         pass
 
-    def set_ratelimit(self, tx_rate_limit, rx_ratelimit, ath):
-        os.system("/lib/okos/setratelimit.sh %s %d %d %s" % (self.mac,
-                                                             tx_rate_limt,
-                                                             rx_rate_limt,
-                                                             ath))
+    def set_ratelimit(self, tx_rate_limit, rx_ratelimit, ath, action):
+        os.system("/lib/okos/setratelimit.sh %s %d %d %s %d" % (self.mac,
+                                                                tx_rate_limt,
+                                                                rx_rate_limt,
+                                                                ath,
+                                                                action))
         pass
 
     def run(self):
@@ -227,7 +233,7 @@ class Manager(object):
         self.pipe_f = os.open(self.pipe_name, os.O_SYNC |
                               os.O_CREAT | os.O_RDWR)
 
-    @profile
+    # @profile
     def handle_pipe_loop(self):
         # loop processing pipe event
         while True:
@@ -273,6 +279,7 @@ class Manager(object):
                     del(client)
                     client = Client(mac)
                     self.client_dict[mac] = client
+                    client.start()
 
             # 6. add event into client event queue
             client.put_event(ath, event)
@@ -332,6 +339,8 @@ def main():
     device_mac = get_mac('br-lan1')
     global auth_url
     auth_url = get_auth_url()
+    global domain
+    domain = get_domain()
     syslog(LOG_DEBUG, "device_mac:%s auth_url:%s" % (device_mac, auth_url))
     # 3. create manager object and go into event loop
     manager = Manager('/tmp/wifievent.pipe')

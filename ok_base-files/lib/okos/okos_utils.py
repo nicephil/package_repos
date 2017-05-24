@@ -48,8 +48,26 @@ def get_portalscheme(ath):
     except:
         portalscheme = ""
     if len(portalscheme) == 0:
-        portalscheme = "fa99d0a5841d48659a5afcbaf4a31a73_1006"
+        # portalscheme = "fa99d0a5841d48659a5afcbaf4a31a73_1006"
+        pass
     return portalscheme
+
+
+def get_domain():
+    """ try to get domain from system.domain.domain """
+    try:
+        pid = Popen(["uci", "-q", "get",
+                     "system.domain.domain"], stdout=PIPE)
+        s = pid.communicate()[0]
+        domain = s.strip('\n')
+    except:
+        domain = ""
+
+    if len(domain) == 0:
+        # domain = "fa99d0a5841d48659a5afcbaf4a31a73"
+        pass
+
+    return domain
 
 
 def get_auth_url():
