@@ -12,6 +12,7 @@ from Queue import Queue
 from okos_utils import get_auth_url, mac_to_byte, get_mac, get_portalscheme, \
     get_ssid
 from syslog import syslog, LOG_INFO, LOG_WARNING, LOG_ERR, LOG_DEBUG
+# import pdb
 
 
 class ClientEvent(object):
@@ -29,6 +30,7 @@ class Client(Thread):
         self.queue = Queue(1)
         self.term = False
         self.clientevent = None
+        self.last_acl_type = 0
         self.name = mac
 
     def put_event(self, ath, event):
@@ -45,6 +47,7 @@ class Client(Thread):
             del(tmp_event)
             queue.put_nowait(clientevent)
 
+    @profile
     def handle_event(self):
         clientevent = self.queue.get()
         self.clientevent = clientevent
@@ -53,6 +56,7 @@ class Client(Thread):
             # 1.1 query auth
             acl_type, time, tx_rate_limit, rx_rate_limit, remain_time = \
                 self.query_auth()
+            self.last_acl_type = acl_type
             if acl_type == 1:
                 # 1.2 set_whitelist
                 self.set_whitelist(time, 1)
@@ -67,17 +71,23 @@ class Client(Thread):
                     self.set_whitelist(remain_time, 1)
                 self.set_blacklist(0, 0)
             # 1.5 set_ratelimit
-            self.set_ratelimit(tx_rate_limit, rx_rate_limit)
+            self.set_ratelimit(tx_rate_limit, rx_rate_limit, clientevent.ath)
 
         # 2. disconnected event
         elif clientevent.event == 'AP-STA-DISCONNECTED':
             # 2.1 cleanup
             # 2.2 stop handling and exit process
             self.term = True
-            # self.set_whitelist(120, 1)
-            # self.set_whitelist(0, 0)
-            # self.set_blacklist(0, 0)
-            self.set_ratelimit(0, 0)
+            if self.last_acl_type == 1:
+                self.set_whitelist(120, 1)
+                pass
+            elif self.last_acl_type == 3:
+                # self.set_blacklist(0, 0)
+                pass
+            elif self.last_acl_type == 0:
+                # self.set_blacklist(0, 0)
+                pass
+            self.set_ratelimit(0, 0, clientevent.ath)
         else:
             syslog(LOG_WARNING, "Unknow Event on %s %s" %
                    (self.mac, clientevent.event))
@@ -188,10 +198,11 @@ class Client(Thread):
                                                           action))
         pass
 
-    def set_ratelimit(self, tx_rate_limit, rx_ratelimit):
-        os.system("/lib/okos/setratelimit.sh %s %d %d" % (self.mac,
-                                                          tx_rate_limt,
-                                                          rx_rate_limt))
+    def set_ratelimit(self, tx_rate_limit, rx_ratelimit, ath):
+        os.system("/lib/okos/setratelimit.sh %s %d %d %s" % (self.mac,
+                                                             tx_rate_limt,
+                                                             rx_rate_limt,
+                                                             ath))
         pass
 
     def run(self):
@@ -216,6 +227,7 @@ class Manager(object):
         self.pipe_f = os.open(self.pipe_name, os.O_SYNC |
                               os.O_CREAT | os.O_RDWR)
 
+    @profile
     def handle_pipe_loop(self):
         # loop processing pipe event
         while True:
@@ -279,6 +291,7 @@ class Manager(object):
             for garbage in garbages:
                 print str(garbage)
             '''
+            # pdb.set_trace()
 
 
 def main():
