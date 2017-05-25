@@ -203,7 +203,7 @@ class Client(Thread):
                                                           action))
         pass
 
-    def set_ratelimit(self, tx_rate_limit, rx_ratelimit, ath, action):
+    def set_ratelimit(self, tx_rate_limit, rx_rate_limit, ath, action):
         os.system("/lib/okos/setratelimit.sh %s %d %d %s %d" % (self.mac,
                                                                 tx_rate_limit,
                                                                 rx_rate_limit,
@@ -264,6 +264,19 @@ class Manager(object):
                 for k in self.client_dict.keys():
                     self.client_dict[k].term = True
                 self.client_dict.clear()
+                # 4.1 retrieve the global information
+                global device_mac
+                device_mac = get_mac('br-lan1')
+                global auth_url
+                auth_url = get_auth_url()
+                global domain
+                domain = get_domain()
+                syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
+                       (device_mac, auth_url, domain))
+                # 4.2 system service restart
+                os.system("/lib/okos/arpwatch restart&")
+                os.system("/lib/okos/whitelist restart")
+                os.system("/lib/okos/qos restart")
                 continue
 
             # 5. handle client event
@@ -341,7 +354,8 @@ def main():
     auth_url = get_auth_url()
     global domain
     domain = get_domain()
-    syslog(LOG_DEBUG, "device_mac:%s auth_url:%s" % (device_mac, auth_url))
+    syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
+           (device_mac, auth_url, domain))
     # 3. create manager object and go into event loop
     manager = Manager('/tmp/wifievent.pipe')
     manager.create_pipe()
