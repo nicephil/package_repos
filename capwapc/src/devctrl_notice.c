@@ -218,6 +218,7 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
     /*hostname*/
     if (argv[25]) {
         strncpy(stas[row].client_hostname, argv[25], HOST_NAME_MAX);
+        stas[row].client_hostname_len = strlen(stas[row].client_hostname);
     }
 
     /*location*/
