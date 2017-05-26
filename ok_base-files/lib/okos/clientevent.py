@@ -38,15 +38,14 @@ class Client(Thread):
         clientevent = ClientEvent(ath, event)
         queue = self.queue
 
-        try:
-            # 4. put into queue if queue is empty
-            queue.put_nowait(clientevent)
-        except:
-            syslog(LOG_WARNING, "Queue Full!")
+        # 4. put into queue if queue is empty
+        if queue.full():
             # 5. clean queue and put it
-            tmp_event = queue.get_nowait()
+            syslog(LOG_WARNING, "Queue Full!")
+            queue.queue.clear()
             queue.put_nowait(clientevent)
-            del(tmp_event)
+        else:
+            queue.put_nowait(clientevent)
 
     # @profile
     def handle_event(self):
@@ -85,20 +84,24 @@ class Client(Thread):
 
         # 2. disconnected event
         elif clientevent.event == 'AP-STA-DISCONNECTED':
-            # 2.1 cleanup
-            # 2.2 stop handling and exit process
-            self.term = True
-            if self.last_acl_type == 1:
-                self.set_whitelist(120, 1)
-                pass
-            elif self.last_acl_type == 3:
-                # self.set_blacklist(0, 0)
-                pass
-            elif self.last_acl_type == 0:
-                # self.set_whitelist(0, 0)
-                # self.set_blacklist(0, 0)
-                pass
-            self.set_ratelimit(0, 0, clientevent.ath, 0)
+            # 2.1 stop handling and exit process
+            if self.queue.empty():
+                self.term = True
+                # 2.2 clean up
+                if self.last_acl_type == 1:
+                    self.set_whitelist(120, 1)
+                    pass
+                elif self.last_acl_type == 3:
+                    # self.set_blacklist(0, 0)
+                    pass
+                elif self.last_acl_type == 0:
+                    # self.set_whitelist(0, 0)
+                    # self.set_blacklist(0, 0)
+                    pass
+                self.set_ratelimit(0, 0, clientevent.ath, 0)
+            else:
+                syslog(LOG_DEBUG, "NEW EVENT Comming")
+        # 3. Unknow Event
         else:
             syslog(LOG_WARNING, "Unknow Event on %s %s" %
                    (self.mac, clientevent.event))
@@ -112,6 +115,10 @@ class Client(Thread):
             response = urllib2.urlopen(url, timeout=3)
         except urllib2.HTTPError, e:
             syslog(LOG_WARNING, "HTTPError:%d %s" % (e.errno, e.strerror))
+            return 0, 0, 0, 0, 0
+        except Exception, e:
+            syslog(LOG_WARNING, "HTTPError:%d %s" % (e.errno, e.strerror))
+            return 0, 0, 0, 0, 0
         response_str = response.read()
         del(response)
         return self.unpack_info(response_str)
@@ -218,11 +225,12 @@ class Client(Thread):
 
 class Manager(object):
     """ Describes manager communication with pipe """
-    def __init__(self, pipe_name):
-        self.pipe_name = pipe_name
+    def __init__(self):
+        self.pipe_name = ''
         self.client_dict = {}
 
-    def create_pipe(self):
+    def create_pipe(self, pipe_name):
+        self.pipe_name = pipe_name
         try:
             os.mkfifo(self.pipe_name)
         except OSError, e:
@@ -258,8 +266,8 @@ class Manager(object):
             syslog(LOG_INFO, "ath:%s, mac:%s, event:%s" % (ath,
                                                            mac,
                                                            event))
-            # 4. handle wifi up/down event
-            if ath == '/lib/wifi' or event == 'AP-DISABLED':
+            # 4. handle wifi driver down event
+            if ath == '/lib/wifi':
                 # free all existing clients
                 for k in self.client_dict.keys():
                     self.client_dict[k].term = True
@@ -284,11 +292,12 @@ class Manager(object):
                 # 5.1 new one
                 client = Client(mac)
                 self.client_dict[mac] = client
-                # 5.2 run it as daemon process
+                # 5.2 run it
                 client.start()
             else:
                 client = self.client_dict[mac]
-                if not client.is_alive():
+                if (not client.is_alive()) or client.term:
+                    client.term = True
                     del(client)
                     client = Client(mac)
                     self.client_dict[mac] = client
@@ -299,7 +308,9 @@ class Manager(object):
 
             # 7. clean up dead process
             for key in self.client_dict.keys():
-                if not self.client_dict[key].is_alive():
+                if (not self.client_dict[key].is_alive()) or \
+                   self.client_dict[key].term:
+                    self.client_dict[key].term = True
                     del(self.client_dict[key])
             # 8. gc
             gc.collect()
@@ -357,8 +368,8 @@ def main():
     syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
            (device_mac, auth_url, domain))
     # 3. create manager object and go into event loop
-    manager = Manager('/tmp/wifievent.pipe')
-    manager.create_pipe()
+    manager = Manager()
+    manager.create_pipe('/tmp/wifievent.pipe')
     manager.handle_pipe_loop()
 
 
