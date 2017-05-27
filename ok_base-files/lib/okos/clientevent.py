@@ -289,6 +289,8 @@ class Manager(object):
                 os.system("/lib/okos/whitelist restart")
                 os.system("/lib/okos/qos restart")
                 continue
+            elif event == 'AP-DISABLED' or len(mac) == 0:
+                continue
 
             # 5. handle client event
             if mac not in self.client_dict.keys():
