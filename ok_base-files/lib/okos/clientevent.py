@@ -120,6 +120,9 @@ class Client(Thread):
             syslog(LOG_WARNING, "HTTPError:%d %s" % (e.errno, e.strerror))
             return 0, 0, 0, 0, 0
         response_str = response.read()
+        # hacky avoidance (https://bugs.python.org/issue1208304)
+        response.fp._sock.recv = None
+        response.close()
         del(response)
         return self.unpack_info(response_str)
 
