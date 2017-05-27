@@ -700,6 +700,10 @@ enable_qcawifi() {
 	config_get TXPowLim5G "$device" TXPowLim5G
 	[ -n "$TXPowLim5G" ] && iwpriv "$phy" TXPowLim5G "$TXPowLim5G"
 
+    # OK_PATCH default config
+    iwpriv "$phy" disablestats 0
+    # end of OK_PATCH
+
 	config_get_bool enable_ol_stats "$device" enable_ol_stats
 	[ -n "$enable_ol_stats" ] && iwpriv "$phy" enable_ol_stats "$enable_ol_stats"
 
