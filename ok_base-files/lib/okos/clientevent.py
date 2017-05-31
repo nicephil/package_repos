@@ -285,9 +285,9 @@ class Manager(object):
                 syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
                        (device_mac, auth_url, domain))
                 # 4.2 system service restart
-                os.system("/lib/okos/arpwatch restart&")
-                os.system("/lib/okos/whitelist restart")
-                os.system("/lib/okos/qos restart")
+                os.system("/etc/init.d/arpwatch restart&")
+                os.system("/etc/init.d/whitelist restart")
+                os.system("/etc/init.d/qos restart")
                 continue
             elif event == 'AP-DISABLED' or len(mac) == 0:
                 continue
@@ -298,6 +298,7 @@ class Manager(object):
                 client = Client(mac)
                 self.client_dict[mac] = client
                 # 5.2 run it
+                client.daemon = True
                 client.start()
             else:
                 client = self.client_dict[mac]
@@ -306,27 +307,20 @@ class Manager(object):
                     del(client)
                     client = Client(mac)
                     self.client_dict[mac] = client
+                    client.daemon = True
                     client.start()
 
             # 6. add event into client event queue
             client.put_event(ath, event)
 
-            # 7. clean up dead process
-            for key in self.client_dict.keys():
-                if (not self.client_dict[key].is_alive()) or \
-                   self.client_dict[key].term:
-                    self.client_dict[key].term = True
-                    del(self.client_dict[key])
-            # 8. gc
+            # 7. gc
             gc.collect()
-            '''
-            rt = gc.collect()
-            print "%d unreachable" % rt
-            garbages = gc.garbage
-            print "\n%d garbages:" % len(garbages)
-            for garbage in garbages:
-                print str(garbage)
-            '''
+            # rt = gc.collect()
+            # print "%d unreachable" % rt
+            # garbages = gc.garbage
+            # print "\n%d garbages:" % len(garbages)
+            # for garbage in garbages:
+            #     print str(garbage)
             # pdb.set_trace()
 
 
@@ -363,7 +357,7 @@ def main():
 
     # 2. get mac info auth url from system
     # gc.set_debug(gc.DEBUG_COLLECTABLE | gc.DEBUG_UNCOLLECTABLE |
-    # gc.DEBUG_INSTANCES | gc.DEBUG_OBJECTS | gc.DEBUG_SAVEALL)
+    #              gc.DEBUG_INSTANCES | gc.DEBUG_OBJECTS | gc.DEBUG_SAVEALL)
     global device_mac
     device_mac = get_mac('br-lan1')
     global auth_url
