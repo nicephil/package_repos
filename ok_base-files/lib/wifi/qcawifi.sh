@@ -1296,6 +1296,10 @@ enable_qcawifi() {
 		config_get_bool protmode "$vif" protmode
         protmode=${protmode:-$_protmode}
 		[ -n "$protmode" ] && iwpriv "$ifname" protmode "$protmode"
+        iwpriv "$ifname" txrx_vap_stats 1
+        iwpriv "$ifname" txrx_fw_stats 1
+        iwpriv "$ifname" txrx_fw_mstats 1
+        iwpriv "$ifname" rxdropstats 1
         #endof OK_PATCH
 
 		config_get enablertscts "$vif" enablertscts
