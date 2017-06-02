@@ -5,10 +5,13 @@ from subprocess import Popen, PIPE
 
 def get_mac(iface):
     """ fetch the mac address of specified iface """
+
     try:
-        mac = open('/sys/class/net/'+iface+'/address').readline()
+        with open('/sys/class/net/'+iface+'/address') as f:
+            mac = f.readline()
     except:
         mac = ""
+
     if len(mac) == 0:
         if iface == "br-lan1":
             mac = "FC:AD:0F:09:27:A0"

@@ -4932,6 +4932,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
                 continue;
             }
             CHECK_DEFAULT_INTEGER_CONFIG(ci_json_cfg, 1);
+            ci_json_cfg = 1;
             /* client isolation */
             ret = wlan_set_isolation(radio_id, stid, ci_json_cfg);
         }
