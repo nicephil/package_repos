@@ -7,11 +7,13 @@ import time
 import struct
 import urllib2
 import binascii
+import threading
 from threading import Thread
 from Queue import Queue
 from okos_utils import get_auth_url, mac_to_byte, get_mac, get_portalscheme, \
     get_ssid, get_domain
 from syslog import syslog, LOG_INFO, LOG_WARNING, LOG_ERR, LOG_DEBUG
+# import objgraph
 # import pdb
 
 
@@ -101,6 +103,9 @@ class Client(Thread):
                 self.set_ratelimit(0, 0, clientevent.ath, 0)
             else:
                 syslog(LOG_DEBUG, "NEW EVENT Comming")
+        elif clientevent.event == 'TERM':
+            self.term = True
+            sys.exit(0)
         # 3. Unknow Event
         else:
             syslog(LOG_WARNING, "Unknow Event on %s %s" %
@@ -117,7 +122,7 @@ class Client(Thread):
             syslog(LOG_WARNING, "HTTPError:%d %s" % (e.errno, e.strerror))
             return 0, 0, 0, 0, 0
         except Exception, e:
-            syslog(LOG_WARNING, "HTTPError:%d %s" % (e.errno, e.strerror))
+            syslog(LOG_WARNING, "HTTPError: %s" % str(e))
             return 0, 0, 0, 0, 0
         response_str = response.read()
         # hacky avoidance (https://bugs.python.org/issue1208304)
@@ -204,21 +209,24 @@ class Client(Thread):
         return acl_type, time, tx_rate_limit, rx_rate_limit, remain_time
 
     def set_whitelist(self, time, action):
-        os.system("/lib/okos/setwhitelist.sh %s %d %d" % (self.mac, time,
-                                                          action))
+        os.system("/lib/okos/setwhitelist.sh %s %d %d >/dev/null 2>&1" %
+                  (self.mac, time,
+                   action))
         pass
 
     def set_blacklist(self, time, action):
-        os.system("/lib/okos/setblacklist.sh %s %d %d" % (self.mac, time,
-                                                          action))
+        os.system("/lib/okos/setblacklist.sh %s %d %d >/dev/null 2>&1" %
+                  (self.mac, time,
+                   action))
         pass
 
     def set_ratelimit(self, tx_rate_limit, rx_rate_limit, ath, action):
-        os.system("/lib/okos/setratelimit.sh %s %d %d %s %d" % (self.mac,
-                                                                tx_rate_limit,
-                                                                rx_rate_limit,
-                                                                ath,
-                                                                action))
+        os.system("/lib/okos/setratelimit.sh %s %d %d %s %d >/dev/null 2>&1" %
+                  (self.mac,
+                   tx_rate_limit,
+                   rx_rate_limit,
+                   ath,
+                   action))
         pass
 
     def run(self):
@@ -266,18 +274,17 @@ class Manager(object):
                 event = ''
             except KeyboardInterrupt:
                 sys.exit(0)
-            syslog(LOG_INFO, "ath:%s, mac:%s, event:%s" % (ath,
-                                                           mac,
-                                                           event))
+            syslog(LOG_INFO, "==>ath:%s, mac:%s, event:%s" % (ath,
+                                                              mac,
+                                                              event))
             # 4. handle wifi driver down event
             if ath == '/lib/wifi':
                 # free all existing clients
                 for k in self.client_dict.keys():
                     self.client_dict[k].term = True
+                    self.client_dict[k].put_event('ath00', 'TERM')
                 self.client_dict.clear()
                 # 4.1 retrieve the global information
-                global device_mac
-                device_mac = get_mac('br-lan1')
                 global auth_url
                 auth_url = get_auth_url()
                 global domain
@@ -285,11 +292,18 @@ class Manager(object):
                 syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
                        (device_mac, auth_url, domain))
                 # 4.2 system service restart
-                os.system("/etc/init.d/arpwatch restart&")
-                os.system("/etc/init.d/whitelist restart")
-                os.system("/etc/init.d/qos restart")
+                os.system("/etc/init.d/arpwatch restart >/dev/null 2>&1 &")
+                os.system("/etc/init.d/whitelist restart >/dev/null 2>&1")
+                os.system("/etc/init.d/qos restart >/dev/null 2>&1")
+                # 4.3 collect memory
+                gc.collect()
+
+                for c in threading.enumerate():
+                    syslog(LOG_DEBUG, 'FFF> %s' % str(c))
+
                 continue
             elif event == 'AP-DISABLED' or len(mac) == 0:
+                gc.collect()
                 continue
 
             # 5. handle client event
@@ -313,8 +327,17 @@ class Manager(object):
             # 6. add event into client event queue
             client.put_event(ath, event)
 
-            # 7. gc
+            # 7. clean up dead process
+            for key in self.client_dict.keys():
+                if (not self.client_dict[key].is_alive()) or \
+                   self.client_dict[key].term:
+                    self.client_dict[key].term = True
+                    del(self.client_dict[key])
+
+            # 8. gc
             gc.collect()
+            for c in threading.enumerate():
+                syslog(LOG_DEBUG, 'CCC> %s' % str(c))
             # rt = gc.collect()
             # print "%d unreachable" % rt
             # garbages = gc.garbage
@@ -356,6 +379,7 @@ def main():
             sys.exit(1)
 
     # 2. get mac info auth url from system
+    gc.enable()
     # gc.set_debug(gc.DEBUG_COLLECTABLE | gc.DEBUG_UNCOLLECTABLE |
     #              gc.DEBUG_INSTANCES | gc.DEBUG_OBJECTS | gc.DEBUG_SAVEALL)
     global device_mac

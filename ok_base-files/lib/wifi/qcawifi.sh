@@ -702,6 +702,8 @@ enable_qcawifi() {
 
     # OK_PATCH default config
     iwpriv "$phy" disablestats 0
+    iwpriv "$phy" set_min_snr 20
+    iwpriv "$phy" set_min_snr_en 1
     # end of OK_PATCH
 
 	config_get_bool enable_ol_stats "$device" enable_ol_stats
@@ -1061,7 +1063,7 @@ enable_qcawifi() {
 		config_get ps_timeout "$vif" ps_timeout
 		[ -n "$ps_timeout" ] && iwpriv "$ifname" ps_timeout "${ps_timeout}"
 
-		config_get mcastenhance "$vif" mcastenhance
+		config_get mcastenhance "$vif" mcastenhance 2
 		[ -n "$mcastenhance" ] && iwpriv "$ifname" mcastenhance "${mcastenhance}"
 
 		config_get disable11nmcs "$vif" disable11nmcs
@@ -1196,14 +1198,14 @@ enable_qcawifi() {
                 _static_uprate=$((_static_uprate/8))
                 _static_downrate=$((_static_downrate/8))
                 #echo "Static==>$vif $_static_uprate $_static_downrate"        
-                /lib/okos/ratelimit.sh -i $vif -l "${_static_uprate}k" "${_static_downrate}k"
+                /lib/okos/ratelimit.sh -i $vif -l "${_static_uprate}k" "${_static_downrate}k" > /dev/null 2>&1
             }                                                                        
 
             [ -n "$_dynamic_uprate" -a -n "$_dynamic_downrate" ] && [ "$_dynamic_uprate" != "0" -a "$_dynamic_downrate" != "0" ] && {
                 _dynamic_uprate=$((_dynamic_uprate/8))
                 _dynamic_downrate=$((_dynamic_downrate/8))
                 #echo "Dynamic==>$vif $_dynamic_uprate $_dynamic_downrate"
-                /lib/okos/ratelimit.sh -i $vif -b "${_dynamic_uprate}k" "${_dynamic_downrate}k"
+                /lib/okos/ratelimit.sh -i $vif -b "${_dynamic_uprate}k" "${_dynamic_downrate}k" > /dev/null 2>&1
             }                                                                          
 
 
