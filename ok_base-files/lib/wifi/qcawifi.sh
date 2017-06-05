@@ -703,7 +703,7 @@ enable_qcawifi() {
     # OK_PATCH default config
     iwpriv "$phy" disablestats 0
     iwpriv "$phy" set_min_snr_en 1
-    iwpriv "$phy" set_min_snr 20
+    iwpriv "$phy" set_min_snr 10
     # end of OK_PATCH
 
 	config_get_bool enable_ol_stats "$device" enable_ol_stats
@@ -1481,7 +1481,7 @@ enable_qcawifi() {
 		config_get_bool qbssload "$vif" qbssload
 		[ -n "$qbssload" ] && iwpriv "$ifname" qbssload "$qbssload"
 
-		config_get_bool proxyarp "$vif" proxyarp
+		config_get_bool proxyarp "$vif" proxyarp 1
 		[ -n "$proxyarp" ] && iwpriv "$ifname" proxyarp "$proxyarp"
 
 		config_get_bool dgaf_disable "$vif" dgaf_disable
