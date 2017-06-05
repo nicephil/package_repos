@@ -976,7 +976,7 @@ int wlan_set_mode(int radio_id, int mode)
     else if ((mode & DOT11_RADIO_MODE_N) != 0) {
         /*
         radio->config.short_gi = 1;
-        radio->config.bandwidth = 20;
+        radio->config.bandwidth = 40;
         radio->config.dot11nonly = 0;
         radio->config.dot11aconly = 0;
         radio->config.ampdu = 1;
@@ -992,7 +992,7 @@ int wlan_set_mode(int radio_id, int mode)
 
         //wireless.wifi0.htmode
         sprintf(tuple, "wireless.wifi%d.htmode", radio_id);
-        cfg_set_option_value(tuple, "HT20");
+        cfg_set_option_value(tuple, "HT40");
 
         //wireless.wifi1.dot11nonly='1'
         sprintf(tuple, "wireless.wifi%d.dot11nonly", radio_id);
