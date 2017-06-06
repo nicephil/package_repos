@@ -310,10 +310,10 @@ load_qcawifi() {
 		[ $nss_wifi_olcfg != 0 ] && append umac_args "nss_wifi_olcfg=$nss_wifi_olcfg"
 	fi
 
-	config_get max_clients qcawifi max_clients
+	config_get max_clients qcawifi max_clients 128
 	[ -n "$max_clients" ] && append umac_args "max_clients=$max_clients"
 
-	config_get max_vaps qcawifi max_vaps
+	config_get max_vaps qcawifi max_vaps 18
 	[ -n "$max_vaps" ] && append umac_args "max_vaps=$max_vaps"
 
 	config_get enable_smart_antenna_da qcawifi enable_smart_antenna_da
@@ -1926,7 +1926,7 @@ check_qcawifi_device() {
 
 
 detect_qcawifi() {
-	devidx=0
+	devidx=1
 	olcfg_ng=0
 	olcfg_ac=0
 	nss_olcfg=0
@@ -1938,11 +1938,11 @@ detect_qcawifi() {
 	while :; do
 		config_get type "wifi$devidx" type
 		[ -n "$type" ] || break
-		devidx=$(($devidx + 1))
+		devidx=$(($devidx - 1))
 	done
 	cd /sys/class/net
 	[ -d wifi0 ] || return
-	for dev in $(ls -d wifi* 2>&-); do
+	for dev in $(ls -d wifi* 2>&- | sort -r); do
 		found=0
 		config_foreach check_qcawifi_device wifi-device
 		[ "$found" -gt 0 ] && continue
@@ -1979,10 +1979,8 @@ detect_qcawifi() {
         base_mac="$(cat /sys/class/net/eth0/address)"
         mac="${base_mac%:*}:`printf "%02x" $((0x${base_mac##*:} + $((${devidx}*8))))`"
         amsdu="1"
-        mode_ht="HT40"
         if [ $devidx == "0" ]; then
             amsdu="0"
-            mode_ht="HT20"
         fi
 		cat <<EOF
 config wifi-device  wifi$devidx
@@ -1990,7 +1988,7 @@ config wifi-device  wifi$devidx
     option channel	auto
     option macaddr ${mac}
     option hwmode	${mode_11}
-    option htmode $mode_ht
+    option htmode auto
     option disabled 0
     option txpower 27
     option wmm 1
@@ -2007,7 +2005,7 @@ config wifi-device  wifi$devidx
     option enable_ol_stats 1
 
 EOF
-	devidx=$(($devidx + 1))
+	devidx=$(($devidx - 1))
 	done
 
     #OK_PATCH
