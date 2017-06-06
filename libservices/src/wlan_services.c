@@ -1109,7 +1109,7 @@ int wlan_set_dot11nonly(int radio_id, int dot11nonly)
     cfg_set_option_value(tuple, dot11nonly?"11na":"11ng");
     //wireless.wifi1.htmode=HT40
     sprintf(tuple, "wireless.wifi%d.htmode", radio_id);
-    cfg_set_option_value(tuple, dot11nonly?"HT40":"HT20");
+    cfg_set_option_value(tuple, dot11nonly?"HT40":"auto");
     
     //wireless.wifi1.dot11nonly='0'
     sprintf(tuple, "wireless.wifi%d.dot11only", radio_id);
@@ -1127,7 +1127,7 @@ int wlan_set_dot11aconly(int radio_id, int dot11aconly)
     cfg_set_option_value(tuple, "ac");
     //wireless.wifi1.htmode=HT80
     sprintf(tuple, "wireless.wifi%d.htmode", radio_id);
-    cfg_set_option_value(tuple, dot11aconly?"HT80":"HT40");
+    cfg_set_option_value(tuple, dot11aconly?"HT80":"auto");
     
     //wireless.wifi1.dot11aconly='1'
     sprintf(tuple, "wireless.wifi%d.dot11aconly", radio_id);
