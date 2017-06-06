@@ -21,7 +21,7 @@ else
 fi
 
 #CREATE TABLE STATSINFO(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER);
-for client in `sqlite3 /tmp/stationinfo.db 'SELECT * FROM STAINFO'`
+for client in `for ath in `iwconfig 2>/dev/null | awk '/ath/{print $1}'`;do wlanconfig $ath list sta; done | awk '$1 !~ /ADDR/{print $1}'`
 do
     OIFS=$IFS;IFS='|';set -- $client;_mac=$1;_ath=$2;_radioid=$6;_bssid=$7;_ip=$8;_auth=$9;_ps=$10;_ssid=$11;_vlan=$12;_pm=$13;_pu=$14;IFS=$OIFS        
     vlan_if="br-lan${_vlan}"
@@ -33,7 +33,6 @@ do
     [ -z "$_ip" ] && {
         _ip=`awk '{if ($4 == "'$_mac'" && $6 == "'$vlan_if'") {print $1; exit}}' /proc/net/arp` 
     }
-    sqlite3 /tmp/stationinfo.db "BEGIN TRANSACTION;UPDATE STAINFO SET IP = \'$_ip\' WHERE MAC = \'$_mac\';COMMIT"
     
     _chan_rssi_assoctime=`wlanconfig $_ath list sta | awk '$1 ~ /'${_mac}'/{print $3,$4,$5,$6,$17,$19,$20;exit}'`
     set -- $_chan_rssi_assoctime;_chan=$1;_ntxrt=$2;_nrxrt=$3;_rssi=$4;_assoctime=$5;_smode_sbw=$6;_smode_sbw1=$7
