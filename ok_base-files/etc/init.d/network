@@ -23,7 +23,10 @@ start() {
 
 	/sbin/wifi down
 	/sbin/wifi up
+#OK_PATCH
     /lib/okos/getifaceinfo.sh &
+    route add -host log.networkworld365.com gw $( route -n | awk '$1 ~ /0.0.0.0/{print $2}') br-lan1 > /dev/null 2>&1 &
+#end
 }
 
 restart() {
@@ -46,5 +49,8 @@ reload() {
 	ubus call network reload
 	/sbin/wifi down
 	/sbin/wifi up
+#OK_PATCH
     /lib/okos/getifaceinfo.sh &
+    route add -host log.networkworld365.com gw $( route -n | awk '$1 ~ /0.0.0.0/{print $2}') br-lan1 > /dev/null 2>&1 &
+#end
 }
