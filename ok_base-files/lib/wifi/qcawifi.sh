@@ -1935,7 +1935,7 @@ detect_qcawifi() {
 	sleep 3
 	load_qcawifi
 	config_load wireless
-	while :; do
+	while [ $devidx -ge 0 ]; do
 		config_get type "wifi$devidx" type
 		[ -n "$type" ] || break
 		devidx=$(($devidx - 1))
