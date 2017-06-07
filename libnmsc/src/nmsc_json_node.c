@@ -3869,7 +3869,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
 
     struct radio_json rd1_def_cfg = {
         .id = 1,
-        .mode = (DOT11_RADIO_MODE_A | DOT11_RADIO_MODE_N),
+        .mode = (DOT11_RADIO_MODE_A),
         .channel = 149,
         .max_power = 0,
         .dot11nonly = 0,
