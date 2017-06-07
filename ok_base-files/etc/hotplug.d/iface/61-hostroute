@@ -1,0 +1,7 @@
+[ "$INTERFACE" = "lan1" ] && {
+    [ "$ACTION" = "ifup" -o "$ACTION" = "ifupdate" ] && {
+        . /lib/functions/network.sh; network_get_gateway _gateway lan1
+        route add -host log.networkworld365.com gw $_gateway br-lan1
+    }
+}
+
