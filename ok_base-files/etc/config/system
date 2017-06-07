@@ -26,7 +26,7 @@ config button
 config button
     option button 'reset'
     option action 'released'
-    option handler 'echo RESTORY FACTORY CONFIGRARION > /dev/console; firstboot; reboot'
+    option handler 'echo RESTORY FACTORY CONFIGRARION > /dev/console; firstboot; reboot -f '
     option min '4'
     option max '60'
 
