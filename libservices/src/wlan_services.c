@@ -1146,7 +1146,7 @@ int wlan_set_bandwidth(int radio_id, int bandwidth)
         sprintf(buf, "HT%d", bandwidth);
         cfg_set_option_value(tuple, buf);
     } else {
-        cfg_set_option_value(tuple, "auto")
+        cfg_set_option_value(tuple, "auto");
     }
 
     return 0;
