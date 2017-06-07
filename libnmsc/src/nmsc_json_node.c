@@ -3874,7 +3874,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
         .max_power = 0,
         .dot11nonly = 0,
         .ampdu = 1,
-        .bandwidth = 40,
+        .bandwidth = 0,
         .distance = 1,
         .preamble = 0,
         .protection_mode = 1,

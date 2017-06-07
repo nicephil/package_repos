@@ -1142,8 +1142,12 @@ int wlan_set_bandwidth(int radio_id, int bandwidth)
     char buf[33];
     //wireless.wifi0.htmode='HT20'
     sprintf(tuple, "wireless.wifi%d.htmode", radio_id);
-    sprintf(buf, "HT%d", bandwidth);
-    cfg_set_option_value(tuple, buf);
+    if (bandwidth) {
+        sprintf(buf, "HT%d", bandwidth);
+        cfg_set_option_value(tuple, buf);
+    } else {
+        cfg_set_option_value(tuple, "auto")
+    }
 
     return 0;
 }
