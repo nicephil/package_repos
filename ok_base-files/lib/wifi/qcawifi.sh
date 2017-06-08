@@ -18,17 +18,17 @@ append DRIVERS "qcawifi"
 
 wlanconfig() {
 	[ -n "${DEBUG}" ] && echo wlanconfig "$@"
-	/usr/sbin/wlanconfig "$@"
+	/usr/sbin/wlanconfig "$@" 2> /dev/null
 }
 
 iwconfig() {
 	[ -n "${DEBUG}" ] && echo iwconfig "$@"
-	/usr/sbin/iwconfig "$@"
+	/usr/sbin/iwconfig "$@" 2> /dev/null
 }
 
 iwpriv() {
 	[ -n "${DEBUG}" ] && echo iwpriv "$@"
-	/usr/sbin/iwpriv "$@"
+	/usr/sbin/iwpriv "$@" 2> /dev/null
 }
 
 find_qcawifi_phy() {
