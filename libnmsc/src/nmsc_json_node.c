@@ -3869,7 +3869,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
 
     struct radio_json rd1_def_cfg = {
         .id = 1,
-        .mode = (DOT11_RADIO_MODE_AC),
+        .mode = (DOT11_RADIO_MODE_A | DOT11_RADIO_MODE_N),
         .channel = 149,
         .max_power = 0,
         .dot11nonly = 0,
@@ -3899,7 +3899,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
         .dot11nonly = 0,
         .dot11aconly = 0,
         .ampdu = 1,
-        .bandwidth = 40,
+        .bandwidth = 0,
         .distance = 1,
         .preamble = 0,
         .protection_mode = 1,
@@ -4931,8 +4931,6 @@ int dc_hdl_node_wlan(struct json_object *obj)
             if (rd_cur->service[k] < 0) {
                 continue;
             }
-            CHECK_DEFAULT_INTEGER_CONFIG(ci_json_cfg, 1);
-            ci_json_cfg = 1;
             /* client isolation */
             ret = wlan_set_isolation(radio_id, stid, ci_json_cfg);
         }
@@ -5463,8 +5461,8 @@ int dc_hdl_node_log(struct json_object *obj)
     }
 
     memset(&json_cfg, 0, sizeof(json_cfg));
-    json_cfg.host.level = LOG_INFO;
-    json_cfg.buffer.level = LOG_INFO;
+    json_cfg.host.level = LOG_DEBUG;
+    json_cfg.buffer.level = LOG_DEBUG;
 
     if ((ret = dc_hdl_node_default(obj, paires, sizeof(paires)/sizeof(paires[0]))) != 0) {
         return dc_error_code(ret, node, 0);

@@ -34,6 +34,7 @@ do
     }
     
     _chan_rssi_assoctime=`wlanconfig $_ath list sta | awk '$1 ~ /'${_mac}'/{print $3,$4,$5,$6,$17,$19,$20;exit}'`
+    [ -z $_chan_rssi_assoctime ] && continue
     set -- $_chan_rssi_assoctime;_chan=$1;_ntxrt=$2;_nrxrt=$3;_rssi=$4;_assoctime=$5;_smode_sbw=$6;_smode_sbw1=$7
     _ntxrt=${_ntxrt%[a-zA-Z]*}
     _nrxrt=${_nrxrt%[a-zA-Z]*}
@@ -46,6 +47,7 @@ do
     _smode=`echo $_smode|tr [A-Z] [a-z]`
     
     _stats=`apstats -s -i $_ath -m $_mac | awk -F'=' '/Tx Data Bytes|Rx Data Bytes|Average Tx Rate|Average Rx Rate|Tx failures|Rx errors/{print $2}'`
+    [ -z "$_stats" ] && continue
     set -- $_stats;_txB=$1;_rxB=$2;_atxrb=$3;_arxrb=$4;_txfs=$5;_rxes=$6
     _ts=`date +%s`
    
