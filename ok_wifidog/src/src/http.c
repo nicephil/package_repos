@@ -421,10 +421,6 @@ okos_http_cb_404(httpd *webserver, request *r, int error_code)
         goto cb_404_leave_for_bad_method;
     }
 
-    sqlite3 *stainfo_db = okos_open_stainfo_db();
-    if (NULL == stainfo_db) {
-        goto cb_404_open_db_failed;
-    }
     /*---------------------------------------------------------------
      * STEP 2: Prepare client's original URL.
      * ------------------------------------------------------------*/
@@ -432,7 +428,21 @@ okos_http_cb_404(httpd *webserver, request *r, int error_code)
     memset(a_tmp_url, 0, sizeof(a_tmp_url));
     snprintf(a_tmp_url, (sizeof(a_tmp_url) - 1), "http://%s%s%s%s",
              r->request.host, r->request.path, r->request.query[0] ? "?" : "", r->request.query);
+#if 0
+    if ( NULL != strstr(a_tmp_url, "hotspot-detect") ) {
+        okos_send_simple_reply(r, "Apple", "good boy");
+        goto cb_404_original_url_detect;
+    }
+#endif
 
+    /*---------------------------------------------------------------
+     * STEP 3: Prepare Datebase.
+     * ------------------------------------------------------------*/
+    sqlite3 *stainfo_db = okos_open_stainfo_db();
+    if (NULL == stainfo_db) {
+        goto cb_404_open_db_failed;
+    }
+    
     /*---------------------------------------------------------------
      * STEP 3: Build a client based on IP address
      *         1) client->MAC <= arp table
@@ -510,6 +520,7 @@ cb_404_match_global_whitelist:
 cb_404_cannt_get_new_client:
     okos_close_stainfo_db(stainfo_db);
 cb_404_open_db_failed:
+cb_404_original_url_detect:
 cb_404_leave_for_bad_method:
     return;
 }
