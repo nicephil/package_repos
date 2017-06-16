@@ -37,6 +37,9 @@
 #include "httpd.h"
 #include "httpd_priv.h"
 
+#include <syslog.h>
+#include "../src/debug.h"
+
 int
 _httpd_net_read(sock, buf, len)
 int sock;
@@ -382,6 +385,25 @@ _httpd_formatTimeString(char *ptr, int clock)
     strftime(ptr, HTTP_TIME_STRING_LEN, "%a, %d %b %Y %T GMT", timePtr);
 }
 
+#ifndef OK_PATCH
+void
+_httpd_sendHeaders(request * r, int contentLength, int modTime)
+{
+    char buf[1500],  tmpBuf[80], timeBuf[HTTP_TIME_STRING_LEN];
+
+    if (r->response.headersSent)
+        return;
+
+    r->response.headersSent = 1;
+    _httpd_formatTimeString(timeBuf, 0);
+
+    snprintf(buf, sizeof(buf),
+            "HTTP/1.0 %s%sDate: %s\nConnection: close\nContent-Type: %s\n\n",
+            r->response.response, r->response.headers, timeBuf, r->response.contentType);
+
+    _httpd_net_write(r->clientSock, buf, strlen(buf));
+}
+#else
 void
 _httpd_sendHeaders(request * r, int contentLength, int modTime)
 {
@@ -418,6 +440,7 @@ _httpd_sendHeaders(request * r, int contentLength, int modTime)
     }
     _httpd_net_write(r->clientSock, "\n", 1);
 }
+#endif
 
 httpDir *
 _httpd_findContentDir(server, dir, createFlag)
