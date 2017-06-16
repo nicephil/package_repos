@@ -1760,9 +1760,9 @@ okos_config_read(void)
             ssid_is_loaded = 0;
             okos_list_for_each(p_ssid, config.ssid) {
                 if (i_svc_tmp_id == (int)p_ssid->sn) {
-                    debug(LOG_DEBUG, "[CFG]\t\t [%d]{radio.%d vap.%d} is attached to template [%d].",
-                            i_rd, radio_id, i_vap, i_svc_tmp_id);
-                    okos_attach_vap_to_ssid(radio_id, i_vap, p_ssid);
+                    debug(LOG_DEBUG, "[CFG]\t\t [%d:%d]{radio.%d vap.%d} is attached to template [%d].",
+                            i_rd, i_vap, radio_id, i_svc_tmp_id, i_svc_tmp_id);
+                    okos_attach_vap_to_ssid(radio_id, i_svc_tmp_id, p_ssid);
                     ssid_is_loaded = 1;
                     break;
                 }
@@ -1778,12 +1778,12 @@ okos_config_read(void)
              *----------------------------------------------------------------*/
             p_ssid = okos_load_ssid(i_svc_tmp_id);
             if (NULL == p_ssid) {
-                debug(LOG_DEBUG, "[CFG]!! [%d]{radio.%d, vap.%d} load service templete %d failed!",
-                        i_rd, radio_id, i_vap, i_svc_tmp_id);
+                debug(LOG_DEBUG, "[CFG]!! [%d:%d]{radio.%d, vap.%d} load service templete %d failed!",
+                        i_rd, i_vap, radio_id, i_svc_tmp_id, i_svc_tmp_id);
             } else {
-                debug(LOG_DEBUG, "[CFG]\t\t [%d]{radio.%d, vap.%d} load template [%d] successfully.",
-                        i_rd, radio_id, i_vap, i_svc_tmp_id);
-                okos_attach_vap_to_ssid(radio_id, i_vap, p_ssid);
+                debug(LOG_DEBUG, "[CFG]\t\t [%d:%d]{radio.%d, vap.%d} load template [%d] successfully.",
+                        i_rd, i_vap, radio_id, i_svc_tmp_id, i_svc_tmp_id);
+                okos_attach_vap_to_ssid(radio_id, i_svc_tmp_id, p_ssid);
             }
         }
     }
