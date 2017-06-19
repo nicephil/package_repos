@@ -84,6 +84,10 @@ struct service_template_json {
     int  ts_enable;
     char ts_ip[33];
     char ts_netmask[33];
+#if OK_PATCH
+    int  bandwidth_priority;
+    int client_isolation;
+#endif
 };
             
 struct service_templates {
@@ -1952,6 +1956,10 @@ static int dc_parse_node_service_template(struct json_object *obj,
         {"ts_enable",             json_type_int,    NULL, sizeof(service_template.ts_enable)}, 
         {"ts_ip",                 json_type_string, NULL, sizeof(service_template.ts_ip)}, 
         {"ts_netmask",            json_type_string, NULL, sizeof(service_template.ts_netmask)}, 
+#if OK_PATCH
+        {"bandwidth_priority",    json_type_int,    NULL, sizeof(service_template.bandwidth_priority)}, 
+        {"client_isolation",      json_type_int,    NULL, sizeof(service_template.client_isolation)}, 
+#endif
     };   
     struct json_object *array;
     int i, j, ret, size, node = dc_node_service_template;
@@ -2002,6 +2010,10 @@ static int dc_parse_node_service_template(struct json_object *obj,
         paires[j++].value = &(service_templates->config[service_templates->num].ts_enable);
         paires[j++].value = service_templates->config[service_templates->num].ts_ip;
         paires[j++].value = service_templates->config[service_templates->num].ts_netmask;
+#if OK_PATCH
+        paires[j++].value = &(service_templates->config[service_templates->num].bandwidth_priority);
+        paires[j++].value = &(service_templates->config[service_templates->num].client_isolation);
+#endif
         
         service_templates->config[service_templates->num].uplink_limit_enable = -1;
         service_templates->config[service_templates->num].downlink_limit_enable = -1;
@@ -3841,6 +3853,10 @@ int dc_hdl_node_wlan(struct json_object *obj)
         .ptk_lifetime = 3600,
         .wep_key_slot = 1,
         .m2u_enable = 0,
+#if OK_PATCH
+        .bandwidth_priority = 3,
+        .client_isolation = 0,
+#endif
     };
     
     struct radio_json rd0_def_cfg = {
@@ -4222,6 +4238,10 @@ int dc_hdl_node_wlan(struct json_object *obj)
         CHECK_DEFAULT_INTEGER_CONFIG(st_json->ptk_lifetime, st_def_cfg.ptk_lifetime);
         CHECK_DEFAULT_INTEGER_CONFIG(st_json->wep_key_slot, st_def_cfg.wep_key_slot);
         CHECK_DEFAULT_INTEGER_CONFIG(st_json->m2u_enable, st_def_cfg.m2u_enable);
+#if OK_PATCH
+        CHECK_DEFAULT_INTEGER_CONFIG(st_json->bandwidth_priority, st_def_cfg.bandwidth_priority);
+        CHECK_DEFAULT_INTEGER_CONFIG(st_json->client_isolation, st_def_cfg.client_isolation);
+#endif
     }
 
     for (j = 0; j < st_json_cfg.num; j++) {
@@ -4247,7 +4267,12 @@ int dc_hdl_node_wlan(struct json_object *obj)
                     && st_json->ptk_enabled == st_cur->ptk_enabled
                     && st_json->ptk_lifetime == st_cur->ptk_lifetime
                     && st_json->wep_key_slot == st_cur->wep_key_slot
-                    && st_json->m2u_enable == st_cur->m2u_enabled) {
+                    && st_json->m2u_enable == st_cur->m2u_enabled
+#if OK_PATCH
+                    && st_json->bandwidth_priority == st_cur->bandwidth_priority
+                    && st_json->client_isolation == st_cur->client_isolation
+#endif
+                    ) {
                     if (st_json->cipher == WLAN_CIPHER_WEP40) {
                         if (st_json->key_crypt == st_cur->wep40_key[0].key_crypt
                             && st_json->key_type == st_cur->wep40_key[0].key_type
@@ -4392,6 +4417,25 @@ int dc_hdl_node_wlan(struct json_object *obj)
             goto ERROR_OUT;
         }
 
+#if OK_PATCH
+        // add bandwidth_priority and client_isolation
+        ret = wlan_set_bandwidth_priority(stid, st_json->bandwidth_priority);
+        if (ret) {
+            nmsc_log("Set service template %d bandwidth_priority %d failed for %d.", stid, 
+                st_json->bandwidth_priority, ret);
+            ret = dc_error_code(dc_error_commit_failed, node, ret); 
+            goto ERROR_OUT;
+        }
+
+        ret = wlan_set_client_isolation(stid, st_json->client_isolation);
+        if (ret) {
+            nmsc_log("Set service template %d client_isolation %d failed for %d.", stid, 
+                st_json->client_isolation, ret);
+            ret = dc_error_code(dc_error_commit_failed, node, ret); 
+            goto ERROR_OUT;
+        }
+#endif
+
         //add for rate limit
         if(1 == st_json->uplink_limit_enable){//enable
             if(1 == st_json->uplink_limit_mode){//static
@@ -4460,8 +4504,6 @@ int dc_hdl_node_wlan(struct json_object *obj)
         }
         //end for rate limit
 
-
-
         ret = wlan_set_service_template_enable(stid, 1);
         if (ret) {
             nmsc_log("Enable service template %d failed for %d.", stid, ret);
@@ -4471,6 +4513,9 @@ int dc_hdl_node_wlan(struct json_object *obj)
             later_enable = 1;
         }
     }
+
+
+
 
     /* get all radio information again */
     memset(rd_cur_cfg, 0, sizeof(struct wlan_radio_info));
@@ -4912,27 +4957,6 @@ int dc_hdl_node_wlan(struct json_object *obj)
                     goto ERROR_OUT;
                 }
             }
-        }
-    }
-
-    /* get all radio information again for other config */
-    memset(rd_cur_cfg, 0, sizeof(struct wlan_radio_info));
-    if ((ret = wlan_radio_get_all(rd_cur_cfg)) != 0) {
-        nmsc_log("Get all radio information failed for %d.", ret);
-        ret = dc_error_code(dc_error_commit_failed, node, ret); 
-        goto ERROR_OUT;
-    }
-
-    for (i = 0; i < rd_cur_cfg->num; i++) {
-        struct radio_info *rd_cur = &(rd_cur_cfg->radioinfo[i]);
-        int radio_id = i;
-        for (k = 0; k < rd_cur->count; k++) {
-            int stid = rd_cur->service[k];
-            if (rd_cur->service[k] < 0) {
-                continue;
-            }
-            /* client isolation */
-            ret = wlan_set_isolation(radio_id, stid, ci_json_cfg);
         }
     }
 
