@@ -168,6 +168,11 @@ struct wlan_service_template {
     struct  wlan_wep40_key      wep40_key[4];
     struct  wlan_wep108_key     wep108_key[4];
     struct  wpa_key             wpa_key;
+
+#if OK_PATCH
+    int bandwidth_priority;
+    int client_isolation;
+#endif
 };
 
 typedef struct service_template
@@ -367,6 +372,11 @@ extern int wlan_set_ptk_lifetime(int stid, int value);
 extern int wlan_set_ptk_lifetime_enable(int stid, int value);
 extern int wlan_set_gtk_lifetime(int stid, int value);
 extern int wlan_set_gtk_lifetime_enable(int stid, int value);
+#if OK_PATCH
+// add bandwidth_priority and client_isolation
+extern int wlan_set_bandwidth_priority(int stid, int value);
+extern int wlan_set_client_isolation(int stid, int value);
+#endif
 extern int wlan_set_static_client_uplink_rate_limit_value(int stid, unsigned int value);
 extern int wlan_set_dynamic_client_uplink_rate_limit_value(int stid, unsigned int value);
 extern int wlan_undo_dynamic_client_uplink_rate_limit_value(int stid);

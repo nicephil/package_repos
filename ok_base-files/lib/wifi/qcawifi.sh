@@ -1189,25 +1189,6 @@ enable_qcawifi() {
             config_load wlan_service_template                      
             [ "$vif" != "ath50" ] && st_name="ServiceTemplate${vif:4}"                      
             config_get _acl "$st_name" acl                       
-            config_get _static_uprate "$st_name" static_uplink_ratelimit
-            config_get _static_downrate "$st_name" static_downlink_ratelimit
-            config_get _dynamic_uprate "$st_name" dynamic_uplink_ratelimit  
-            config_get _dynamic_downrate "$st_name" dynamic_downlink_ratelimit
-
-            [ -n "$_static_uprate" -a -n "$_static_downrate" ] && [ "$_static_uprate" != "0" -a "$_static_downrate" != "0" ] && {   
-                _static_uprate=$((_static_uprate/8))
-                _static_downrate=$((_static_downrate/8))
-                #echo "Static==>$vif $_static_uprate $_static_downrate"        
-                /lib/okos/ratelimit.sh -i $vif -l "${_static_uprate}k" "${_static_downrate}k" > /dev/null 2>&1
-            }                                                                        
-
-            [ -n "$_dynamic_uprate" -a -n "$_dynamic_downrate" ] && [ "$_dynamic_uprate" != "0" -a "$_dynamic_downrate" != "0" ] && {
-                _dynamic_uprate=$((_dynamic_uprate/8))
-                _dynamic_downrate=$((_dynamic_downrate/8))
-                #echo "Dynamic==>$vif $_dynamic_uprate $_dynamic_downrate"
-                /lib/okos/ratelimit.sh -i $vif -b "${_dynamic_uprate}k" "${_dynamic_downrate}k" > /dev/null 2>&1
-            }                                                                          
-
 
 		    [ -n "$_acl" ] && {
 		        config_load wlan_acl

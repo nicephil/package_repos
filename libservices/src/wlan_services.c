@@ -365,6 +365,13 @@ static int wlan_service_template_list(struct uci_package *p, void *arg)
                 else if (strcmp(o->e.name, "manage_mask") == 0) {
                     stinfo->wlan_st_info[num].manage_mask = atoi(o->v.string);
                 }
+                else if (strcmp(o->e.name, "bandwidth_priority") == 0) {
+                    stinfo->wlan_st_info[num].bandwidth_priority = atoi(o->v.string);
+                }
+                else if (strcmp(o->e.name, "client_isolation") == 0) {
+                    stinfo->wlan_st_info[num].bandwidth_priority = atoi(o->v.string);
+                }
+                
             }
         }
         num++;
@@ -542,6 +549,10 @@ int wlan_create_service_template(int stid)
         st->wep108_key[i].key[0] = 0;
         st->wep108_key[i].key_len = 0;
     }
+#if OK_PATCH
+    st->bandwidth_priority = 3;
+    st->client_isolation = 0;
+#endif
     */
 
     int i = 0;
@@ -603,7 +614,7 @@ int wlan_create_service_template(int stid)
     cfg_set_option_value(tuple, "passphrase");
 
     //wlan_service_template.ServiceTemplate1.psk_key_crypt='plain'
-    sprintf(tuple, "wlan_service_template.ServiceTemplate1.psk_key_crypt", stid);
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.psk_key_crypt", stid);
     cfg_set_option_value(tuple, "plain");
 
     for (i = 0; i < 4; ++i) {
@@ -631,6 +642,17 @@ int wlan_create_service_template(int stid)
         sprintf(tuple, "wlan_service_template.ServiceTemplate%d.wep108_key_%d", stid, i + 1);
         cfg_set_option_value(tuple, "");
     }
+    
+#if OK_PATCH
+    // add bandwidth_priority and client_isolation
+    //wlan_service_template.ServiceTemplate1.bandwidth_priority='3'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.bandwidth_priority", stid);
+    cfg_set_option_value_int(tuple, 3);
+    
+    //wlan_service_template.ServiceTemplate1.client_isolation='0'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.client_isolation", stid);
+    cfg_set_option_value_int(tuple, 0);
+#endif
 
     return 0;
 }
@@ -743,7 +765,7 @@ int wlan_set_ptk_lifetime_enable(int stid, int value)
 
 int wlan_set_gtk_lifetime(int stid, int value)
 {
-    //wlan_service_template.ServiceTemplate1.gtk_lifttime='86400
+    //wlan_service_template.ServiceTemplate1.gtk_lifttime='86400'
     char tuple[128];
     sprintf(tuple, "wlan_service_template.ServiceTemplate%d.gtk_lifttime", stid);
     cfg_set_option_value_int(tuple, value);
@@ -762,6 +784,25 @@ int wlan_set_gtk_lifetime_enable(int stid, int value)
     }
     return 0;
 }
+
+#if OK_PATCH
+// add bandwidth_priority and client_isolation
+int wlan_set_bandwidth_priority(int stid, int value)
+{
+    //wlan_service_template.ServiceTemplate1.bandwidth_priority='3'
+    char tuple[128];
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.bandwidth_priority", stid);
+    cfg_set_option_value_int(tuple, value);
+}
+
+int wlan_set_client_isolation(int stid, int value)
+{
+    //wlan_service_template.ServiceTemplate1.client_isolation='0'
+    char tuple[128];
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.client_isolation", stid);
+    cfg_set_option_value_int(tuple, value);
+}
+#endif
 
 int wlan_set_static_client_uplink_rate_limit_value(int stid, unsigned int value)
 {
@@ -1300,6 +1341,19 @@ int wlan_set_bind(int radio_id, int stid)
     cfg_get_option_value(tuple, buf, sizeof(buf));
     sprintf(tuple, "wireless.ath%d%d.maxsta", radio_id, stid);
     cfg_set_option_value(tuple, buf);
+
+#if OK_PATCH
+    // add bandwidth_priority and client_isolation, bandwidth_priority will handled in /lib/wifi/qcawifi.sh
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.client_isolation", stid);
+    cfg_get_option_value(tuple, buf, sizeof(buf));
+    sprintf(tuple, "wireless.ath%d%d.isolation", radio_id, stid);
+    cfg_set_option_value(tuple, buf);
+    sprintf(tuple, "wireless.ath%d%d.l2tif", radio_id, stid);
+    cfg_set_option_value(tuple, buf);
+#endif
+
+
+
 
     //wireless.ath00.hidden <-> wlan_service_template.ServiceTemplate1.beacon_ssid_hide='disabled'
     sprintf(tuple, "wlan_service_template.ServiceTemplate%d.beacon_ssid_hide", stid);
