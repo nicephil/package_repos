@@ -1,7 +1,7 @@
 #!/bin/sh
 
 strings /dev/mtd5 | awk -F'=' ' 
-BEGIN { print "config productinfo"; } 
+BEGIN { print "config productinfo productinfo"; } 
 { 
 if ($1 == "DEV_NAME") 
     print "\toption production "$2;  
