@@ -74,11 +74,11 @@ class Client(Thread):
                 self.set_blacklist(time, 1)
             elif acl_type == 0:
                 # 1.4 none acl, so check
+                self.set_blacklist(0, 0)
                 if remain_time == 0:
                     self.set_whitelist(0, 0)
                 else:
                     self.set_whitelist(remain_time, 1)
-                self.set_blacklist(0, 0)
             # 1.5 set_ratelimit
             self.set_ratelimit(tx_rate_limit, rx_rate_limit,
                                clientevent.ath,
