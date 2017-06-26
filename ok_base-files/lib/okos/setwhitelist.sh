@@ -52,7 +52,7 @@ then
     # 2. del it from whitelist timer
     for file in $(ls $atjobs_dir)
     do
-        grep -q "$mac" ${atjobs_dir}/${file}
+        grep -q "del $mac" ${atjobs_dir}/${file}
         if [ "$?" -eq "0" ]
         then
             if [ ! "${file:0:1}" = "=" ]
