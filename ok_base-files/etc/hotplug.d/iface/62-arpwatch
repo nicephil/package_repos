@@ -1,8 +1,14 @@
 [ "$ACTION" = "ifup" -o "$ACTION" = "ifupdate" ] && {
-    rm -rf /tmp/arpwatch/arp_${DEVICE}.dat
-    touch  /tmp/arpwatch/arp_${DEVICE}.dat
-    /usr/sbin/arpwatch -f /tmp/arpwatch/arp_${DEVICE}.dat -i $DEVICE
+    [ "${DEVICE:0:6}" = "br-lan" ] && { 
+        for pid in `pgrep -f "arpwatch.*${DEVICE}.*"`
+        do 
+            kill -9 $pid
+        done
 
+        rm -rf /tmp/arpwatch/arp_${DEVICE}.dat
+        touch  /tmp/arpwatch/arp_${DEVICE}.dat
+        /usr/sbin/arpwatch -f /tmp/arpwatch/arp_${DEVICE}.dat -i $DEVICE
+    }
 }
 
 

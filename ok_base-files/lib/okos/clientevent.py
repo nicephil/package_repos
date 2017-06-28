@@ -292,7 +292,6 @@ class Manager(object):
                 syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
                        (device_mac, auth_url, domain))
                 # 4.2 system service restart
-                os.system("/etc/init.d/arpwatch restart >/dev/null 2>&1 &")
                 os.system("/etc/init.d/whitelist restart >/dev/null 2>&1")
                 os.system("/etc/init.d/qos restart >/dev/null 2>&1")
                 # 4.3 collect memory
