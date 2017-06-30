@@ -264,7 +264,7 @@ hostapd_set_bss_options() {
             config_get wpa_psk_file "$vif" wpa_psk_file
             [ -n "$wpa_psk_file" ] && {
                 touch $wpa_psk_file
-                append "$wpa_psk_file" "wpa_psk_file=$wpa_psk_file" "$N"
+                append "$var" "wpa_psk_file=$wpa_psk_file" "$N"
             }
 			wps_possible=1
 			# By default we assume we are in configured state,
