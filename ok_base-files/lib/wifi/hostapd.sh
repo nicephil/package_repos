@@ -259,8 +259,13 @@ hostapd_set_bss_options() {
 			if [ ${#psk} -eq 64 ]; then
 				append "$var" "wpa_psk=$psk" "$N"
 			else
-				append "$var" "wpa_passphrase=$psk" "$N"
+				[ -n "$psk" ] && append "$var" "wpa_passphrase=$psk" "$N"
 			fi
+            config_get wpa_psk_file "$vif" wpa_psk_file
+            [ -n "$wpa_psk_file" ] && {
+                touch $wpa_psk_file
+                append "$wpa_psk_file" "wpa_psk_file=$wpa_psk_file" "$N"
+            }
 			wps_possible=1
 			# By default we assume we are in configured state,
 			# while the user has the provision to override this.
