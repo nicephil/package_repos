@@ -19,9 +19,33 @@ sqlite3 $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(MAC T
 #CREATE TABLE STATSINFO(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER);
 for client in $(for ath in `iwconfig 2>/dev/null | awk '/ath/{print $1}'`;do wlanconfig $ath list sta; done | awk '$1 !~ /ADDR/{if (!(a[$1]++)) print $1}')
 do
-    client=$(sqlite3 /tmp/stationinfo.db "SELECT * FROM STAINFO WHERE MAC = \"$client\"")
-    [ -z $client ] && continue
-    OIFS=$IFS;IFS='|';set -- $client;_mac=$1;_ath=$2;_radioid=$6;_bssid=$7;_ip=$8;_auth=$9;_ps=$10;_ssid=$11;_vlan=$12;_pm=$13;_pu=$14;IFS=$OIFS        
+    client_tmp=$(sqlite3 /tmp/stationinfo.db "SELECT * FROM STAINFO WHERE MAC = \"$client\"")
+    [ -n "$client_tmp" ] && {
+        OIFS=$IFS;IFS='|';set -- $client_tmp;_mac=$1;_ath=$2;_radioid=$6;_bssid=$7;_ip=$8;_auth=$9;_ps=$10;_ssid=$11;_vlan=$12;_pm=$13;_pu=$14;IFS=$OIFS        
+    }
+    [ -z "$client_tmp" ] && {
+        for _ath in `iwconfig 2>/dev/null | awk '/ath/{print $1}'`
+        do
+            tmp_str=`wlanconfig $_ath list sta | awk -n "/$client/p"`
+            [ -n "$tmp_str" ] && break
+        done
+        [ -z "$tmp_str" ] && continue
+
+        _bssid=`ifconfig $_ath | awk '$1 ~ /ath/{print $5;exit}'`
+        
+        . /lib/functions.sh
+        st="ServiceTemplate""${ath:4}"
+        config_load wlan_service_template
+        config_get _auth $st authentication
+        config_get _ps $st portal_scheme
+        config_get _ssid $st ssid
+        config_load wireless
+        config_get _vlan $ath network
+        _mac=$client
+        _radioid=${_ath:3:1}
+        _pm=""
+        _pu=""
+    }
     vlan_if="br-lan${_vlan}"
     if [ -e "$arpfile" ]
     then
