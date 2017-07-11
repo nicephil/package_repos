@@ -88,7 +88,6 @@ class Client(Thread):
         elif clientevent.event == 'AP-STA-DISCONNECTED':
             # 2.1 stop handling and exit process
             if self.queue.empty():
-                self.term = True
                 # 2.2 clean up
                 if self.last_acl_type == 1:
                     self.set_whitelist(120, 1)
@@ -101,6 +100,8 @@ class Client(Thread):
                     # self.set_blacklist(0, 0)
                     pass
                 self.set_ratelimit(0, 0, clientevent.ath, 0)
+                if self.queue.empty():
+                    self.term = True
             else:
                 syslog(LOG_DEBUG, "NEW EVENT Comming")
         elif clientevent.event == 'TERM':
