@@ -702,8 +702,10 @@ enable_qcawifi() {
 
     # OK_PATCH default config
     iwpriv "$phy" disablestats 0
-    iwpriv "$phy" set_min_snr_en 0
-    iwpriv "$phy" set_min_snr 5
+    config_get rssi_access "$device" rssi_access 0                                 
+    iwpriv "$phy" set_min_snr_en $rssi_access                                              
+    config_get rssi_access_threshold "$device" rssi_access_thresold -92            
+    iwpriv "$phy" set_min_snr $((rssi_access_threshold+97))  
     # end of OK_PATCH
 
 	config_get_bool enable_ol_stats "$device" enable_ol_stats
@@ -1260,7 +1262,8 @@ enable_qcawifi() {
 		config_get chanbw "$vif" chanbw
 		[ -n "$chanbw" ] && iwpriv "$ifname" chanbw "$chanbw"
 
-		config_get maxsta "$vif" maxsta
+        config_get maxsta "$device" client_max 127
+		[ -z "$maxsta" ] && config_get maxsta "$vif" maxsta 127
 		[ -n "$maxsta" ] && iwpriv "$ifname" maxsta "$maxsta"
 
 		config_get sko_max_xretries "$vif" sko_max_xretries

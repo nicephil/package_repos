@@ -83,6 +83,8 @@ static int wlan_radio_list(struct uci_package *p, void *arg)
                     /* atf - end*/
                 }else if(!strcmp(o->e.name, "rssi_access_threshold")) {
                     info->radioinfo[num].radio.rssi_access_threshold = atoi(o->v.string);
+                }else if (!strcmp(o->e.name, "client_max")) {
+                    info->radioinfo[num].radio.client_max = atoi(o->v.string);
                 }else if(!strcmp(o->e.name, "bintval"))
                 {
                     info->radioinfo[num].radio.beacon_interval = atoi(o->v.string);
@@ -1245,14 +1247,28 @@ int wlan_set_beacon_interval(int radio_id, int value)
 
 int wlan_set_rssi_threshold(int radio_id, int value)
 {
-    //wireless.wifi1.rssi_access_threshold='20'
+    //wireless.wifi1.rssi_access_threshold='-92'
+    char tuple[128];
+    sprintf(tuple, "wireless.wifi%d.rssi_access_threshold", radio_id);
+    cfg_set_option_value_int(tuple, value);
     return 0;
 }
 
 int wlan_set_rssi(int radio_id, int enable)
 {
     //wireless.wifi1.rssi_access='1'
+    char tuple[128];
+    sprintf(tuple, "wireless.wifi%d.rssi_access", radio_id);
+    cfg_set_option_value_int(tuple, enable);
     return 0;
+}
+
+int wlan_set_radio_client_max(int radio_id, int max)
+{
+    //wireless.wifi1.client_max='127'
+    char tuple[128];
+    sprintf(tuple, "wireless.wifi%d.client_max", radio_id);
+    cfg_set_option_value_int(tuple, max);
 }
 
 int wlan_set_bcast_ratelimit_enable(int radio_id, int value)
