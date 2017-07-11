@@ -110,8 +110,8 @@ do
             json_add_string "radio" "$radio"
             config_get ssid "$ath" "ssid"
             json_add_string "ssid" "$ssid"
-            json_add_int "Tx_Data_Bytes" "$Delta_txB"
-            json_add_int "Rx_Data_Bytes" "$Delta_rxB"
+            json_add_int "Tx_Data_Bytes" "$Delta_rxB"
+            json_add_int "Rx_Data_Bytes" "$Delta_txB"
             json_close_object
             break
         fi
