@@ -51,7 +51,7 @@ do
     then
         _ip_hostname=`sqlite3 $arpfile "SELECT IP,HOSTNAME from \"$vlan_if\" where MAC=\"$_mac\""`
         OIFS=$IFS;IFS='|';set -- $_ip_hostname;_ip=$1;_hostname=$2;IFS=$OIFS
-        _hostname=`echo $_hostname | sed "s/.$(awk '/search/{print $2; exit}' /tmp/resolv.conf.auto)//g"`
+        _hostname=${_hostname%%.*}
     fi
     [ -z "$_ip" ] && {
         _ip=`awk '{if ($4 == "'$_mac'" && $6 == "'$vlan_if'") {print $1; exit}}' /proc/net/arp` 
