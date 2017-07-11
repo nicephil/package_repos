@@ -124,6 +124,9 @@ struct radio_json {
     int bcst_ratelimt_cbs;
     int air_time_fairness;
     char air_scan[33];
+#if OK_PATCH
+    int client_max;
+#endif
 };
 
 struct radio_list {
@@ -2059,6 +2062,9 @@ static int dc_parse_node_radio(struct json_object *obj, void *jsoncfg)
         {"Broadcast_cbs",           json_type_int,      NULL, sizeof(radios->config[0].bcst_ratelimt_cbs)},
         {"airtime_fairness",        json_type_int,      NULL, sizeof(radios->config[0].air_time_fairness)},
         {"air_scan",                json_type_string,   NULL, sizeof(radios->config[0].air_scan)},
+#if OK_PATCH
+        {"client_max",              json_type_int,      NULL, sizeof(radios->config[0].client_max)},
+#endif
     }; 
     struct node_pair_save subpaires[] = {
         {"ssid_names",  json_type_string, NULL, sizeof(radios->config[0].mbss[0].ssidname)},
@@ -2102,6 +2108,9 @@ static int dc_parse_node_radio(struct json_object *obj, void *jsoncfg)
         paires[21].value = &(radios->config[radios->num].air_time_fairness);
         /* added for wlan scan */
         paires[22].value =  radios->config[radios->num].air_scan;
+#if OK_PATCH
+        paires[23].value = &(radios->config[radios->num].client_max);
+#endif
         
         
         array = json_object_array_get_idx(obj, i);
@@ -3876,11 +3885,14 @@ int dc_hdl_node_wlan(struct json_object *obj)
         .rts_threshold = 2347,
         .short_gi = 1,
         .rssi_access = 0,
-        .rssi_access_threshold = -80,
+        .rssi_access_threshold = -92,
         .bcst_ratelimt = 0, 
         .bcst_ratelimt_cir = 10,
         .bcst_ratelimt_cbs = 30,
         .air_time_fairness = 0,
+#if OK_PATCH
+        .client_max = 127,
+#endif
     };
 
     struct radio_json rd1_def_cfg = {
@@ -3900,11 +3912,14 @@ int dc_hdl_node_wlan(struct json_object *obj)
         .rts_threshold = 2347,
         .short_gi = 1,
         .rssi_access = 0,
-        .rssi_access_threshold = -77,
+        .rssi_access_threshold = -87,
         .bcst_ratelimt = 0, 
         .bcst_ratelimt_cir = 10,
         .bcst_ratelimt_cbs = 30,
         .air_time_fairness = 0,
+#if OK_PATCH
+        .client_max = 127,
+#endif
     };
 
     struct radio_json rd1_def_cfg_11ac = {
@@ -3925,11 +3940,14 @@ int dc_hdl_node_wlan(struct json_object *obj)
         .rts_threshold = 2347,
         .short_gi = 1,
         .rssi_access = 0,
-        .rssi_access_threshold = -77,
+        .rssi_access_threshold = -87,
         .bcst_ratelimt = 0, 
         .bcst_ratelimt_cir = 10,
         .bcst_ratelimt_cbs = 30,
         .air_time_fairness = 0,
+#if OK_PATCH
+        .client_max = 127,
+#endif
     };
     
     struct subnode_parser {
@@ -4583,6 +4601,9 @@ int dc_hdl_node_wlan(struct json_object *obj)
         CHECK_DEFAULT_INTEGER_CONFIG(rd_json->bcst_ratelimt_cir, rd_def->bcst_ratelimt_cir);
         CHECK_DEFAULT_INTEGER_CONFIG(rd_json->bcst_ratelimt_cbs, rd_def->bcst_ratelimt_cbs);
         CHECK_DEFAULT_INTEGER_CONFIG(rd_json->air_time_fairness, rd_def->air_time_fairness);
+#if OK_PATCH
+        CHECK_DEFAULT_INTEGER_CONFIG(rd_json->client_max, rd_def->client_max);
+#endif
         
         if (rd_cur->enable) {
             /* disable it as rd_cur config is different from rd_json */
@@ -4836,6 +4857,18 @@ int dc_hdl_node_wlan(struct json_object *obj)
                 goto ERROR_OUT;
             }
         }
+
+#if OK_PATCH
+        if (rd_cur->radio.client_max != rd_json->client_max) {
+            ret = wlan_set_radio_client_max(rd_json->id, rd_json->client_max);
+            if (ret) {
+                nmsc_log("Set radio %d client_max %d failed for %d.", 
+                    rd_json->id, rd_json->client_max, ret);   
+                ret = dc_error_code(dc_error_commit_failed, node, ret);
+                goto ERROR_OUT;
+            }
+        }
+#endif
 
         /* added for broadcast rate limit */
         if (rd_json->bcst_ratelimt >= 0) {
