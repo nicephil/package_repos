@@ -350,7 +350,7 @@ static int dc_get_wlan_radio_stats(struct wlan_radio_stat **stats)
         count  = 0;
         return count;
     }
-    cur_stats[0].ifname = "wifi1";
+    strcpy(cur_stats[0].ifname, "wifi1");
     cur_stats[0].ifname_len = strlen(cur_stats[0].ifname);
     cur_stats[0].chan_util = 20;
     cur_stats[0].error_rate = 1;
@@ -359,7 +359,7 @@ static int dc_get_wlan_radio_stats(struct wlan_radio_stat **stats)
     cur_stats[0].tx_rate = 1024;
     cur_stats[0].rx_rate = 4096;
 
-    cur_stats[1].ifname = "wifi0";
+    strcpy(cur_stats[1].ifname, "wifi0");
     cur_stats[1].ifname_len = strlen(cur_stats[1].ifname);
     cur_stats[1].chan_util = 60;
     cur_stats[1].error_rate = 10;
