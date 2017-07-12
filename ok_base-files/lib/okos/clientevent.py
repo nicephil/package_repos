@@ -53,6 +53,7 @@ class Client(Thread):
     def handle_event(self):
         clientevent = self.queue.get()
         self.clientevent = clientevent
+        syslog(LOG_DEBUG, "++>mac:%s event:%s" % (self.mac, clientevent.event))
         # 1. handle connected event
         if clientevent.event == 'AP-STA-CONNECTED':
             # 1.1 query auth
