@@ -120,14 +120,14 @@ struct device_update_info* chk_dev_updateinfo(void)
 
     sk = socket(PF_INET, SOCK_DGRAM, 0);
 	if (sk < 0) {
-		return -1;
+		return NULL;
 	}
 	memset(&ifr, 0, sizeof(ifr));
 	strncpy(ifr.ifr_name, "br-lan1", sizeof(ifr.ifr_name));
 	if (ioctl(sk, SIOCGIFADDR, &ifr) < 0) {
         syslog(LOG_ERR, "no such interface: br-lan1");
 		close(sk);
-		return -1;
+		return NULL;
 	}
 
     paddr = (struct sockaddr_in *) &ifr.ifr_addr;
@@ -135,7 +135,7 @@ struct device_update_info* chk_dev_updateinfo(void)
 
     if (ioctl(sk, SIOCGIFNETMASK, &ifr) < 0) {
 		close(sk);
-		return -1;
+		return NULL;
 	}
 
     paddr = (struct sockaddr_in *) &ifr.ifr_netmask;
