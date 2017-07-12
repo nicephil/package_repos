@@ -462,6 +462,57 @@ CWBool assemble_wds_info_elem(char **payload, int *len,
     return CW_TRUE;
 }
 
+CWBool assemble_wlan_radio_status_elem(char **payload, int *len, struct wlan_radio_stat *stats, int count)
+{
+    int i = 0;
+    int size = 0;
+    CWProtocolMessage msg = {0};
+
+    if (count == 0) {
+        return CW_TRUE;
+    }
+    
+    size = 1; /* num */
+    for (i = 0; i < count; i ++) {
+        size += WLAN_RADIO_STATUS_FIXLEN; /* fix len */
+        size += stats[i].ifname_len; /* vary len */
+    }
+
+    CW_CREATE_PROTOCOL_MESSAGE(msg, size, 
+        return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+
+    CWProtocolStore8(&msg, count); /* num */
+    for (i = 0; i < count; i++) {
+        struct wlan_radio_stat *stat = &(stats[i]);
+
+        stat->len = WLAN_RADIO_STATUS_FIXLEN + stat->ifname_len;
+        CWProtocolStore16(&msg, stat->len); /* len */
+
+        CWProtocolStore8(&msg, stat->ifname_len); /* ifname_len */
+        CWProtocolStoreRawBytes(&msg, stat->ifname, stat->ifname_len); /* ifname */
+
+        CWProtocolStore8(&msg, stat->chan_util); /* chan_util */
+        CWProtocolStore8(&msg, stat->error_rate); /* error_rate */
+        CWProtocolStore8(&msg, stat->retry_rate); /* retry_rate */
+
+        CWProtocolStore32(&msg, stat->snr); /* snr */
+
+        CWProtocolStore32(&msg, stat->tx_rate); /* tx_rate */
+        CWProtocolStore32(&msg, stat->rx_rate); /* rx_rate */
+    }
+
+    if (msg.offset != size) {
+        CWLog("Assmeble wlan radio stats failed for message offset match failed %d:%d", 
+              msg.offset ,size);
+        CW_FREE_PROTOCOL_MESSAGE(msg);
+        return CW_FALSE;
+    }
+    
+    *payload = msg.msg;
+    *len = size;
+    return CW_TRUE;
+}
+
 CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
     struct wlan_sta_stat *stas, int count, int type)
 {
