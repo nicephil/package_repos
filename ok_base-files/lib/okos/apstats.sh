@@ -69,6 +69,21 @@ format_output ()
 
         }' ${file_name}
     ;;
+    "WLAN" )
+        awk -F'[ =]+' 'BEGIN {OFS="|"} /WLAN Stats/{
+
+            while (getline > 0 && length($0) > 0) {
+                if (match($1$2$3,"TxDataBytes")) {
+                    txB=$4;
+                } else if (match($1$2$3,"RxDataBytes")) {
+                    rxB=$4
+                }
+            }
+
+            print txB,rxB
+
+        }' ${file_name}
+    ;;
     * )
     ;;
     esac
@@ -119,6 +134,11 @@ do
 done
 
 json_close_array
+
+json_add_object "WLAN"
+json_add_int "Tx_Data_Bytes" "$Delta_rxB"
+json_add_int "Rx_Data_Bytes" "$Delta_TxB"
+json_close_object
 
 rm -rf /tmp/apstats_*_prev.log
 mv ${file_name} /tmp/apstats_${timestamp}_prev.log

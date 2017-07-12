@@ -71,12 +71,13 @@ typedef enum {
 #define MAX_AUTH_USERNAME_LEN 64
 #define MAX_CLIENT_TYPE_LEN 32
 #define MAX_LOCATION_LEN 64
+#define SYS_INTF_NAME_SIZE 24
 #endif
 
 struct wlan_radio_stat {
     unsigned short len;
     unsigned char ifname_len;
-    char *ifname;
+    char ifname[SYS_INTF_NAME_SIZE+1];
     unsigned char chan_util;
     unsigned char  error_rate;
     unsigned char retry_rate;
@@ -153,9 +154,6 @@ struct device_update_info {
     char wds_mode;
 };
 
-#if OK_PATCH
-#define SYS_INTF_NAME_SIZE 24
-#endif
 struct device_interface_info {
     unsigned short len;
     char interface_len;
