@@ -39,13 +39,6 @@ then
 fi
 config_load wireless
 
-# 4. generate json file
-. /usr/share/libubox/jshn.sh
-json_init
-json_add_string "mac" "`echo ${mac} | sed 's/://g'`"
-json_add_int "timestamp" "$timestamp_prev"
-json_add_array "VAP_Stats"
-
 
 format_output ()
 {
@@ -80,7 +73,7 @@ format_output ()
                 }
             }
 
-            print txB,rxB
+            print "WLAN",txB,rxB
 
         }' ${file_name}
     ;;
@@ -89,6 +82,39 @@ format_output ()
     esac
 }
 
+
+# 4. generate json file
+. /usr/share/libubox/jshn.sh
+json_init
+json_add_string "mac" "`echo ${mac} | sed 's/://g'`"
+json_add_int "timestamp" "$timestamp_prev"
+
+# 4.1 Add WLAN
+# fetch WLAN Stats
+wlan_data_cur=`format_output $file_name "WLAN"`
+wlan_data_prev=`format_output $file_name_prev "WLAN"`
+OIFS=$IFS; IFS="|"; set -- $wlan_data_cur; txB=$2;rxB=$3; IFS=$OIFS
+# echo "--------->"$txB $rxB
+OIFS=$IFS; IFS="|"; set -- $wlan_data_prev; txB_prev=$2;rxB_prev=$3; IFS=$OIFS
+# echo "--------->"$txB_prev $rxB_prev
+if [ "$txB" -ge "$txB_prev" -a "$rxB" -ge "$rxB_prev" ]
+then
+    Delta_txB=$((txB - txB_prev))
+    Delta_rxB=$((rxB - rxB_prev))
+else
+    Delta_txB="$txB"
+    Delta_rxB="$rxB"
+fi
+# echo "+++++>"WLAN", $Delta_txB, $Delta_rxB"
+
+json_add_object "WLAN"
+json_add_int "Tx_Data_Bytes" "$Delta_rxB"
+json_add_int "Rx_Data_Bytes" "$Delta_TxB"
+json_close_object
+
+
+# 4.2 Add VAP
+json_add_array "VAP_Stats"
 
 # 5. fetch VAP Level Stats from cur log
 datas_cur=`format_output $file_name "VAP"`
@@ -134,11 +160,6 @@ do
 done
 
 json_close_array
-
-json_add_object "WLAN"
-json_add_int "Tx_Data_Bytes" "$Delta_rxB"
-json_add_int "Rx_Data_Bytes" "$Delta_TxB"
-json_close_object
 
 rm -rf /tmp/apstats_*_prev.log
 mv ${file_name} /tmp/apstats_${timestamp}_prev.log

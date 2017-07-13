@@ -495,7 +495,8 @@ FREE_STAS:
 static void dc_sta_notice_timer_handler(void *arg) 
 {
     struct wlan_sta_stat *stas = NULL;
-    devctrl_block_s dc_resp;
+    struct wlan_radio_stat *radio_stats = NULL;
+    devctrl_block_s dc_resp = {0};
     char *payload = NULL, *data = NULL;
     int count = 0, paylength = 0, totalsize = 0; 
 
@@ -557,7 +558,6 @@ static void dc_sta_notice_timer_handler(void *arg)
     }
 
     /* radio status */
-    struct wlan_radio_stat *radio_stats = NULL;
     count = dc_get_wlan_radio_stats(&radio_stats);
     if (radio_stats == NULL || count <= 0) { 
         goto RESTART_TIMER;
