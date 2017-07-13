@@ -5,6 +5,8 @@ time=$2
 action=$3 # 1 means set, 0 means unset
 time=240
 
+logger -p 7 -t clientevent "setblacklist:mac:$mac, time:$time, action:$action"
+
 atjobs_dir="/var/spool/cron/atjobs"
 
 . /lib/okos/whitelist.sh
