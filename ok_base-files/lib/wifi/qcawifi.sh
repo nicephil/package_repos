@@ -1465,7 +1465,7 @@ enable_qcawifi() {
 		config_get_bool qbssload "$vif" qbssload
 		[ -n "$qbssload" ] && iwpriv "$ifname" qbssload "$qbssload"
 
-		config_get_bool proxyarp "$vif" proxyarp 1
+		config_get_bool proxyarp "$vif" proxyarp 0
 		[ -n "$proxyarp" ] && iwpriv "$ifname" proxyarp "$proxyarp"
 
 		config_get_bool dgaf_disable "$vif" dgaf_disable

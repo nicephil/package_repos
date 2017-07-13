@@ -5,6 +5,7 @@ tx_rate_limit=$2
 rx_rate_limit=$3
 ath=$4
 action=$5
+logger -p 7 -t clientevent "setratelimit:mac:$mac, tx_rate_limit:$tx_rate_limit, rx_rate_limit:$rx_rate_limit, ath:$ath, action:$action"
 
 [ "$action" = "0" ] && {
     /lib/okos/qos.sh del $mac

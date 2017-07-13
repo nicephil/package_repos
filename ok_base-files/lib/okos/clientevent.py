@@ -276,7 +276,7 @@ class Manager(object):
                 event = ''
             except KeyboardInterrupt:
                 sys.exit(0)
-            syslog(LOG_INFO, "==>ath:%s, mac:%s, event:%s" % (ath,
+            syslog(LOG_INFO, "=++=>ath:%s, mac:%s, event:%s" % (ath,
                                                               mac,
                                                               event))
             # 4. handle wifi driver down event
@@ -346,6 +346,11 @@ class Manager(object):
             # for garbage in garbages:
             #     print str(garbage)
             # pdb.set_trace()
+
+            # 9. add log
+            syslog(LOG_INFO, "=--=>ath:%s, mac:%s, event:%s" % (ath,
+                                                              mac,
+                                                              event))
 
 
 def main():
