@@ -4,3 +4,5 @@
 sync;echo 3 > /proc/sys/vm/drop_caches
 sleep 15
 /etc/init.d/wifidog restart&
+/etc/init.d/whitelist restart&
+/etc/init.d/qos restart&
