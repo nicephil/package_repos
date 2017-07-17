@@ -337,8 +337,8 @@ class Manager(object):
 
             # 8. gc
             gc.collect()
-            for c in threading.enumerate():
-                syslog(LOG_DEBUG, 'CCC> %s' % str(c))
+            #for c in threading.enumerate():
+            #    syslog(LOG_DEBUG, 'CCC> %s' % str(c))
             # rt = gc.collect()
             # print "%d unreachable" % rt
             # garbages = gc.garbage
