@@ -109,7 +109,7 @@ fi
 
 json_add_object "WLAN"
 json_add_int "Tx_Data_Bytes" "$Delta_rxB"
-json_add_int "Rx_Data_Bytes" "$Delta_TxB"
+json_add_int "Rx_Data_Bytes" "$Delta_txB"
 json_close_object
 
 
