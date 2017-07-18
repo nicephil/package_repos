@@ -77,6 +77,9 @@ struct wlan_radio_config {
 
     char country[4];        // used 2 or 3 chars, aligned to 4 bytes
     char scan_template[33];
+#if OK_PATCH
+    int client_max;
+#endif
 };
 
 typedef struct radio_info
@@ -341,7 +344,6 @@ extern int wlan_create_service_template(int stid);
 extern int wlan_set_ssid(int stid, const char *ssid);
 extern int wlan_set_portal_scheme(int service_template, char *portal_scheme);
 extern int wlan_set_beacon_ssid_hide(int stid, int value);
-extern int wlan_set_client_max(int stid, int value);
 extern int wlan_set_radio_enable(int radio_id, int enable);
 extern int wlan_set_mode(int radio_id, int mode);
 extern int wlan_set_channel(int radio_id, int value);
@@ -361,6 +363,7 @@ extern int wlan_set_protection_mode(int radio_id, int mode);
 extern int wlan_set_beacon_interval(int radio_id, int value);
 extern int wlan_set_rssi_threshold(int radio_id, int value);
 extern int wlan_set_rssi(int radio_id, int enable);
+extern int wlan_set_radio_client_max(int radio_id, int max);
 extern int wlan_set_bind(int radio_id, int stid);
 extern int wlan_set_bcast_ratelimit_enable(int radio_id, int value);
 extern int wlan_set_cipher(int stid, int cipher);

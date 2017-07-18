@@ -341,6 +341,38 @@ static int inline dc_reserves_stas(struct wlan_sta_stat **sta_list,
     return totalsize;
 }
 
+static int dc_get_wlan_radio_stats(struct wlan_radio_stat **stats)
+{
+    int count = 2;
+    struct wlan_radio_stat *cur_stats = NULL;
+    cur_stats = (struct wlan_radio_stat *)malloc(count*sizeof(struct wlan_radio_stat));
+    if (cur_stats == NULL) {
+        count  = 0;
+        return count;
+    }
+    strcpy(cur_stats[0].ifname, "wifi1");
+    cur_stats[0].ifname_len = strlen(cur_stats[0].ifname);
+    cur_stats[0].chan_util = 20;
+    cur_stats[0].error_rate = 1;
+    cur_stats[0].retry_rate = 3;
+    cur_stats[0].snr = 40;
+    cur_stats[0].tx_rate = 1024;
+    cur_stats[0].rx_rate = 4096;
+
+    strcpy(cur_stats[1].ifname, "wifi0");
+    cur_stats[1].ifname_len = strlen(cur_stats[1].ifname);
+    cur_stats[1].chan_util = 60;
+    cur_stats[1].error_rate = 10;
+    cur_stats[1].retry_rate = 30;
+    cur_stats[1].snr = 20;
+    cur_stats[1].tx_rate = 1024;
+    cur_stats[1].rx_rate = 2048;
+
+    *stats = cur_stats;
+
+    return count;
+}
+
 int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
 {
 #define UPTIME_DIFF   1 /* s */
@@ -463,66 +495,102 @@ FREE_STAS:
 static void dc_sta_notice_timer_handler(void *arg) 
 {
     struct wlan_sta_stat *stas = NULL;
-    devctrl_block_s dc_resp;
+    struct wlan_radio_stat *radio_stats = NULL;
+    devctrl_block_s dc_resp = {0};
     char *payload = NULL, *data = NULL;
     int count = 0, paylength = 0, totalsize = 0; 
 
     count = dc_get_wlan_sta_stats(&stas,1);
-    if (stas == NULL || count <= 0) { 
-        goto RESTART_TIMER;
-    }
+    if (stas != NULL && count > 0) { 
 
-    /* WLAN sta status: association or dis association */
-    if (assemble_wlan_sta_status_elem(&data, &paylength, stas, count, WLAN_STA_TYPE_STAUS) != CW_TRUE) {
-        CWLog("Get wlan client diff stat count %d but assmeble staus msg failed.", count);
-        goto RESTART_TIMER;
-    }
-    if (data != NULL && paylength > 0) {    
-        /* 2bytes type + 4bytes length */
-        CW_CREATE_OBJECT_SIZE_ERR(payload, paylength + 6, {goto RESTART_TIMER;});
-
-        /* sta status notice */
-        save_payload_type(payload, DC_PAYLOAD_STA_STAUS_NOTICE);
-        save_payload_length(payload + 2, paylength);
-        
-        if (data) {
-            CW_COPY_MEMORY(payload + 6, data, paylength);
-            free(data);
-            data = NULL;
+        /* WLAN sta status: association or dis association */
+        if (assemble_wlan_sta_status_elem(&data, &paylength, stas, count, WLAN_STA_TYPE_STAUS) != CW_TRUE) {
+            CWLog("Get wlan client diff stat count %d but assmeble staus msg failed.", count);
+            goto RESTART_TIMER;
         }
-        totalsize += (paylength + 6);
-    }
-
-    /* WLAN sta status update: acquire ip or poartal authed */
-    if (assemble_wlan_sta_status_elem(&data, &paylength, stas, count, WLAN_STA_TYPE_UPDATE) != CW_TRUE) {
-        CWLog("Get wlan client diff stat count %d but assmeble update msg failed.", count);
-        goto RESTART_TIMER;
-    }
-    if (data != NULL && paylength > 0) {
-        if (payload != NULL) {
+        if (data != NULL && paylength > 0) {    
             /* 2bytes type + 4bytes length */
-            char * payload_tmp;
-            payload_tmp = (char *)realloc(payload, (totalsize + paylength + 6));
-            if (payload_tmp == NULL) {
-                goto RESTART_TIMER;
-            } else {
-                payload = payload_tmp;
-            }
-        }
-        else {
             CW_CREATE_OBJECT_SIZE_ERR(payload, paylength + 6, {goto RESTART_TIMER;});
+
+            /* sta status notice */
+            save_payload_type(payload, DC_PAYLOAD_STA_STAUS_NOTICE);
+            save_payload_length(payload + 2, paylength);
+
+            if (data) {
+                CW_COPY_MEMORY(payload + 6, data, paylength);
+                free(data);
+                data = NULL;
+            }
+            totalsize += (paylength + 6);
         }
 
-        /* sta update info notice */
-        save_payload_type(payload + totalsize, DC_PAYLOAD_STA_INFO_NOTICE);
-        save_payload_length(payload + totalsize + 2, paylength);
-        
-        if (data) {
-            CW_COPY_MEMORY(payload + totalsize + 6, data, paylength);
-            free(data);
+        /* WLAN sta status update: acquire ip or poartal authed */
+        if (assemble_wlan_sta_status_elem(&data, &paylength, stas, count, WLAN_STA_TYPE_UPDATE) != CW_TRUE) {
+            CWLog("Get wlan client diff stat count %d but assmeble update msg failed.", count);
+            goto RESTART_TIMER;
         }
-        totalsize += (paylength + 6);
+        if (data != NULL && paylength > 0) {
+            if (payload != NULL) {
+                /* 2bytes type + 4bytes length */
+                char * payload_tmp;
+                payload_tmp = (char *)realloc(payload, (totalsize + paylength + 6));
+                if (payload_tmp == NULL) {
+                    goto RESTART_TIMER;
+                } else {
+                    payload = payload_tmp;
+                }
+            }
+            else {
+                CW_CREATE_OBJECT_SIZE_ERR(payload, paylength + 6, {goto RESTART_TIMER;});
+            }
+
+            /* sta update info notice */
+            save_payload_type(payload + totalsize, DC_PAYLOAD_STA_INFO_NOTICE);
+            save_payload_length(payload + totalsize + 2, paylength);
+
+            if (data) {
+                CW_COPY_MEMORY(payload + totalsize + 6, data, paylength);
+                free(data);
+            }
+            totalsize += (paylength + 6);
+        }
     }
+
+    /* radio status */
+    count = dc_get_wlan_radio_stats(&radio_stats);
+    if (radio_stats != NULL && count > 0) { 
+        /* WLAN radio status notification */
+        if (assemble_wlan_radio_status_elem(&data, &paylength, radio_stats, count) != CW_TRUE) {
+            CWLog("Get wlan radio stats count %d but assmeble update msg failed.", count);
+            goto RESTART_TIMER;
+        }
+        if (data != NULL && paylength > 0) {
+            if (payload != NULL) {
+                /* 2bytes type + 4bytes length */
+                char * payload_tmp;
+                payload_tmp = (char *)realloc(payload, (totalsize + paylength + 6));
+                if (payload_tmp == NULL) {
+                    goto RESTART_TIMER;
+                } else {
+                    payload = payload_tmp;
+                }
+            }
+            else {
+                CW_CREATE_OBJECT_SIZE_ERR(payload, paylength + 6, {goto RESTART_TIMER;});
+            }
+
+            /* radio status  notice */
+            save_payload_type(payload + totalsize, DC_PAYLOAD_RADIO_STATUS_NOTICE);
+            save_payload_length(payload + totalsize + 2, paylength);
+
+            if (data) {
+                CW_COPY_MEMORY(payload + totalsize + 6, data, paylength);
+                free(data);
+            }
+            totalsize += (paylength + 6);
+        }
+    }
+
 
     if (payload != NULL && totalsize > 0) {
         memset(&dc_resp, 0, sizeof(dc_resp));
@@ -543,6 +611,9 @@ static void dc_sta_notice_timer_handler(void *arg)
 RESTART_TIMER:
     if (stas) {
         free(stas);
+    }
+    if (radio_stats) {
+        free(radio_stats);
     }
     if (dc_start_sta_notice_timer() != 0) {
         CWDebugLog("Start sta status notice timer failed.");

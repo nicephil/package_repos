@@ -52,6 +52,8 @@ typedef struct device_info{
     char country[4];
 } device_info_s;
 
+#define WLAN_RADIO_STATUS_FIXLEN        (18)
+
 #define WLAN_STA_STATUS_FIXLEN          (36 + 18 + 8) /* don't include updated/ssid/user */
 #define WLAN_STA_QUERY_FIXLEN           (35 + 18 + 8)/* don't include stat/updated/ssid/user */
 #define WLAN_STA_UPDATE_FIXLEN          (17 + 4 + 42) /* only include len/mac/ip/portal_mode/name_len+ rssi */
@@ -69,7 +71,20 @@ typedef enum {
 #define MAX_AUTH_USERNAME_LEN 64
 #define MAX_CLIENT_TYPE_LEN 32
 #define MAX_LOCATION_LEN 64
+#define SYS_INTF_NAME_SIZE 24
 #endif
+
+struct wlan_radio_stat {
+    unsigned short len;
+    unsigned char ifname_len;
+    char ifname[SYS_INTF_NAME_SIZE+1];
+    unsigned char chan_util;
+    unsigned char  error_rate;
+    unsigned char retry_rate;
+    unsigned int snr;
+    unsigned int tx_rate;
+    unsigned int rx_rate;
+};
 
 struct wlan_sta_stat {
     char updated;
@@ -139,9 +154,6 @@ struct device_update_info {
     char wds_mode;
 };
 
-#if OK_PATCH
-#define SYS_INTF_NAME_SIZE 24
-#endif
 struct device_interface_info {
     unsigned short len;
     char interface_len;
@@ -216,6 +228,7 @@ extern CWBool assemble_devctrlresp_frag(CWProtocolMessage **completeMsgPtr,
 extern CWBool parse_devctrlreq_frag(char *buf, int readBytes, CWProtocolMessage *reassembledMsg, CWBool *dataFlagPtr);
 extern CWBool assemble_dev_updateinfo(char **info, int *len);
 extern CWBool assemble_vendor_devinfo(char **info, int *len);
+extern CWBool assemble_wlan_radio_status_elem(char **payload, int *len, struct wlan_radio_stat *stats, int count);
 extern CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
     struct wlan_sta_stat *stas, int count, int type);
 extern CWBool assemble_interface_info_elem(char **payload, int *len,

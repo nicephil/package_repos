@@ -4,6 +4,7 @@
 
 do_load_ath10k_board_bin() {
 	local board=$(ar71xx_board_name)
+    local model=$(ar71xx_model)
 	local mtdblock=$(find_mtd_part art)
 
         [ -n "$mtdblock" ] || return
@@ -18,7 +19,12 @@ do_load_ath10k_board_bin() {
 	                dd if=${mtdblock} of=${dir}/board.bin \
 	                        bs=1 skip=20480 count=2116
                         mkdir -p ${cal_data_path}
-                        dd if=${mtdblock} of=${cal_data_path}/wifi0.caldata bs=32 count=377 skip=128
+                        if [ "$model" = "WL8200-I2" -o "$model" = "A920" ]
+                        then
+                            dd if=${mtdblock} of=${cal_data_path}/wifi0.caldata bs=32 count=34 skip=128
+                        else
+                            dd if=${mtdblock} of=${cal_data_path}/wifi0.caldata bs=32 count=377 skip=128
+                        fi
                         dd if=${mtdblock} of=${cal_data_path}/wifi1.caldata bs=32 count=377 skip=640
                         base_mac="$(cat /sys/class/net/eth0/address)"
                         mac="${base_mac%:*}:`printf "%02x" $((0x${base_mac##*:} + 8))`"

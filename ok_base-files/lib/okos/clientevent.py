@@ -53,6 +53,7 @@ class Client(Thread):
     def handle_event(self):
         clientevent = self.queue.get()
         self.clientevent = clientevent
+        syslog(LOG_DEBUG, "++>mac:%s event:%s" % (self.mac, clientevent.event))
         # 1. handle connected event
         if clientevent.event == 'AP-STA-CONNECTED':
             # 1.1 query auth
@@ -88,7 +89,6 @@ class Client(Thread):
         elif clientevent.event == 'AP-STA-DISCONNECTED':
             # 2.1 stop handling and exit process
             if self.queue.empty():
-                self.term = True
                 # 2.2 clean up
                 if self.last_acl_type == 1:
                     self.set_whitelist(120, 1)
@@ -101,6 +101,8 @@ class Client(Thread):
                     # self.set_blacklist(0, 0)
                     pass
                 self.set_ratelimit(0, 0, clientevent.ath, 0)
+                if self.queue.empty():
+                    self.term = True
             else:
                 syslog(LOG_DEBUG, "NEW EVENT Comming")
         elif clientevent.event == 'TERM':
@@ -274,7 +276,7 @@ class Manager(object):
                 event = ''
             except KeyboardInterrupt:
                 sys.exit(0)
-            syslog(LOG_INFO, "==>ath:%s, mac:%s, event:%s" % (ath,
+            syslog(LOG_INFO, "=++=>ath:%s, mac:%s, event:%s" % (ath,
                                                               mac,
                                                               event))
             # 4. handle wifi driver down event
@@ -291,9 +293,9 @@ class Manager(object):
                 domain = get_domain()
                 syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
                        (device_mac, auth_url, domain))
-                # 4.2 system service restart
-                os.system("/etc/init.d/whitelist restart >/dev/null 2>&1")
-                os.system("/etc/init.d/qos restart >/dev/null 2>&1")
+                # 4.2 interface is down, do not restart interface related service
+                # os.system("/etc/init.d/whitelist restart >/dev/null 2>&1")
+                # os.system("/etc/init.d/qos restart >/dev/null 2>&1")
                 # 4.3 collect memory
                 gc.collect()
 
@@ -335,8 +337,8 @@ class Manager(object):
 
             # 8. gc
             gc.collect()
-            for c in threading.enumerate():
-                syslog(LOG_DEBUG, 'CCC> %s' % str(c))
+            #for c in threading.enumerate():
+            #    syslog(LOG_DEBUG, 'CCC> %s' % str(c))
             # rt = gc.collect()
             # print "%d unreachable" % rt
             # garbages = gc.garbage
@@ -344,6 +346,11 @@ class Manager(object):
             # for garbage in garbages:
             #     print str(garbage)
             # pdb.set_trace()
+
+            # 9. add log
+            syslog(LOG_INFO, "=--=>ath:%s, mac:%s, event:%s" % (ath,
+                                                              mac,
+                                                              event))
 
 
 def main():
