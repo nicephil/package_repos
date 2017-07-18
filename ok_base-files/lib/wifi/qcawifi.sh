@@ -1987,6 +1987,7 @@ config wifi-device  wifi$devidx
     option frag 2346
     option distance 1
     option enable_ol_stats 1
+    option log_level 0
 
 EOF
 	devidx=$(($devidx - 1))
