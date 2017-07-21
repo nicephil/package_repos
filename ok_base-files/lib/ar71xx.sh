@@ -436,8 +436,16 @@ ar71xx_board_detect() {
 	*"TL-MR11U")
 		name="tl-mr11u"
 		;;
-	*UniFi)
+    *"UniFi")
 		name="unifi"
+		;;
+    *"UniFi Lite")
+		name="unifi"
+        AR71XX_MODEL="lite"
+		;;
+    *"UniFi Pro")
+		name="unifi"
+        AR71XX_MODEL="pro"
 		;;
 	*WHR-G301N)
 		name="whr-g301n"
@@ -511,6 +519,8 @@ ar71xx_board_detect() {
 	[ -z "$name" ] && name="unknown"
 
 	[ -z "$AR71XX_BOARD_NAME" ] && AR71XX_BOARD_NAME="$name"
+	[ -z "$AR71XX_MODEL" ] && AR71XX_MODEL="unknown"
+
     #OK_PATCH
     [ -z "$AR71XX_MODEL" ] && {
         AR71XX_MODEL=`strings /dev/mtd5 | awk -F'[="]' '{ if ($1 == "DEV_NAME") {print $3;exit}}'`

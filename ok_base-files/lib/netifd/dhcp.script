@@ -25,7 +25,7 @@ setup_interface () {
 	# TODO: apply $broadcast
 
 	for i in $router; do
-		[ "$INTERFACE" = "lan1" ] && proto_add_ipv4_route 0.0.0.0 0 "$i"
+		[ "$INTERFACE" = "lan1" -o "$INTERFACE" = "lan" ] && proto_add_ipv4_route 0.0.0.0 0 "$i"
 		[ ! "$INTERFACE" = "lan1" ] && proto_add_ipv4_route "$ip" "$subnet" "$i"
 	done
 
