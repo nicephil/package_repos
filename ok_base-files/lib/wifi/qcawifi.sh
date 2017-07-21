@@ -350,7 +350,7 @@ load_qcawifi() {
     fi
 # The internal direct attach radio should always be wifi0
 	case "$board_name" in
-                ap152 | ap147 | ap151 | ap135 | ap137)
+                ap152 | ap147 | ap151 | ap135 | ap137 | unifi)
 			append umac_args "wifi_start_idx=1"
 		;;
 	esac
