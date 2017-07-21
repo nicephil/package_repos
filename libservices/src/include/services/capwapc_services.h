@@ -40,7 +40,7 @@
 #define CAPWAPC_CFG_OPTION_MAXRETRANS  "max_retran"
 
 #define CAPWAPC_DEFAULT_ENABLE        1
-#define CAPWAPC_DEFAULT_SERVER        "redirector.oakridge.io"
+#define CAPWAPC_DEFAULT_SERVER        "redirector.oakridge.vip"
 #define CAPWAPC_DEFAULT_CTRLPORT      5246
 #define CAPWAPC_DEFAULT_MTU           1300
 #define CAPWAPC_DEFAULT_DISCINTV      5
