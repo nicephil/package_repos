@@ -519,14 +519,13 @@ ar71xx_board_detect() {
 	[ -z "$name" ] && name="unknown"
 
 	[ -z "$AR71XX_BOARD_NAME" ] && AR71XX_BOARD_NAME="$name"
-	[ -z "$AR71XX_MODEL" ] && AR71XX_MODEL="unknown"
 
     #OK_PATCH
     [ -z "$AR71XX_MODEL" ] && {
         AR71XX_MODEL=`strings /dev/mtd5 | awk -F'[="]' '{ if ($1 == "DEV_NAME") {print $3;exit}}'`
     }
-    #else
-	#[ -z "$AR71XX_MODEL" ] && AR71XX_MODEL="$machine"
+	[ -z "$AR71XX_MODEL" ] && AR71XX_MODEL="$machine"
+	[ -z "$AR71XX_MODEL" ] && AR71XX_MODEL="unknown"
     #end OK_PATCH
 
 	[ -e "/tmp/sysinfo/" ] || mkdir -p "/tmp/sysinfo/"
