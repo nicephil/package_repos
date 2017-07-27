@@ -1974,7 +1974,7 @@ config wifi-device  wifi$devidx
     option hwmode	${mode_11}
     option htmode auto
     option disabled 0
-    option txpower 27
+    option txpower 31
     option wmm 1
     option bintval 100
     option shortgi 1

@@ -651,6 +651,19 @@ static int g_pinfo_init = 0;
 static struct product_info g_pinfo;
 
 
+#define UBNT_PRO_PRODUCTION_NAME "ubntpro"
+
+int cfg_is_ubnt_pro(void)
+{
+    struct product_info info = {0};
+    cfg_get_product_info(&info);
+    if (!strcmp(info.production, UBNT_PRO_PRODUCTION_NAME)) {
+        return 1;
+    }
+
+    return 0;
+}
+
 int cfg_get_product_info(struct product_info * info)
 {
     if (g_pinfo_init) {

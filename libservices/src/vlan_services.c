@@ -78,6 +78,13 @@ int vlan_create(int vlanid, int endid)
         } else {
             cfg_set_option_value(tuple, "0t 1t");
         }
+        if (cfg_is_ubnt_pro()) {
+            if (vlanid == 1) {
+                cfg_set_option_value(tuple, "0t 2");
+            } else {
+                cfg_set_option_value(tuple, "0t 2t");
+            }
+        }
 
         //set default value here
         //network.lan1.vlan_name
