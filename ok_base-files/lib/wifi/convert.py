@@ -2,7 +2,7 @@
 
 import sys
 
-fw_size = 12064
+fw_size = 2116
 
 
 def cal_checksum(fdata):
@@ -15,11 +15,13 @@ def cal_checksum(fdata):
 
 if __name__ == '__main__':
     # 1. argument parse
-    if len(sys.argv) != 2 or (len(sys.argv) == 2 and len(sys.argv[1]) != 17):
-        print "convert.py <mac>"
-        print "example: conver.py 00:11:22:33:44:55"
+    if len(sys.argv) != 3 or (len(sys.argv) == 3 and len(sys.argv[1]) != 17 and
+                              len(sys.argv[2]) != 0):
+        print "convert.py <mac> <fwsize>"
+        print "example: conver.py 00:11:22:33:44:55 2116"
         sys.exit(-1)
     newmac = sys.argv[1].split(':')
+    fw_size = int(sys.argv[2])
     # 2. read bin to memory
     f = open('wifi1.caldata', 'rb')
     fdata = bytearray(f.read(fw_size))
@@ -45,10 +47,10 @@ if __name__ == '__main__':
     fdata[3] = new_checksum >> 8
     fdata[2] = new_checksum & 0xFF
     # 5. verify
-    #sum_all = cal_checksum(fdata)
-    #if sum_all != 0xFFFF:
-    #    print "change failure!"
-    #    sys.exit(-2)
+    # sum_all = cal_checksum(fdata)
+    # if sum_all != 0xFFFF:
+    #     print "change failure!"
+    #     sys.exit(-2)
     # 6. write into bin
     f2 = open('wifi1.caldata', 'wb+')
     print "fdata.len: " + str(len(fdata))

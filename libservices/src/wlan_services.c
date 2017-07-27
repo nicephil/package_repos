@@ -1072,7 +1072,7 @@ int wlan_set_channel(int radio_id, int value)
 int wlan_set_max_power(int radio_id, int value)
 {
     char tuple[128];
-    //wireless.wifi1.txpower=27
+    //wireless.wifi1.txpower=31
     sprintf(tuple, "wireless.wifi%d.txpower", radio_id);
     if (value) {
         cfg_set_option_value_int(tuple, value);

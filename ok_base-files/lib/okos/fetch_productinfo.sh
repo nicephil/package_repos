@@ -3,13 +3,14 @@
 . /lib/ar71xx.sh
 
 board=$(ar71xx_board_name)
+model=$(ar71xx_model)
 
 case "$board" in
 unifi)
     mac=$(hexdump -e '1/1 "%x:"' -n6 /dev/mtd7)
     mac=${mac%:*}
     echo -e "config productinfo productinfo"
-    echo -e  "\toption production ubntunifi"
+    echo -e  "\toption production ubnt${model}"
     echo -e "\toption serial aabbccddeeff"
     echo -e "\toption mac ${mac}"
     ;;
