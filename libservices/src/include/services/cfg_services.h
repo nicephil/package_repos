@@ -154,6 +154,8 @@ struct product_info {
 
 
 extern int cfg_is_ubnt_pro(void);
+extern int cfg_is_ubnt_lite(void);
+extern int cfg_is_w282(void);
 extern int cfg_get_product_info(struct product_info * info);
 enum upgrade_failed_e{
     MTDDEV_GET_FAILED = -1,

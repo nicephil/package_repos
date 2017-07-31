@@ -120,10 +120,16 @@ wzr-hp-g450h)
 	;;
 
 ap152)
-	ucidef_set_interface_lan_with_vlan "eth0.1 eth0.4090" "1"
-    ucidef_add_switch "switch0" "1" "1"
-    ucidef_add_switch_vlan_with_name "switch0" "1" "0t 1"
-    ucidef_add_switch_vlan_with_name "switch0" "4090" "0t 2"
+    if [ "model" = "W282" ]
+    then
+        ucidef_set_interface_lan_with_vlan "eth0 eth1" "1"
+        ucidef_add_switch "eth1" "1" "0"
+    else
+        ucidef_set_interface_lan_with_vlan "eth0.1 eth0.4090" "1"
+        ucidef_add_switch "switch0" "1" "1"
+        ucidef_add_switch_vlan_with_name "switch0" "1" "0t 1"
+        ucidef_add_switch_vlan_with_name "switch0" "4090" "0t 2"
+    fi
     ;;
 
 unifi)
@@ -278,9 +284,15 @@ ap143)
 	;;
 
 ap147)
-	ucidef_set_interfaces_lan_wan "eth1" "eth0"
-	ucidef_add_switch "eth1" "1" "1"
-	ucidef_add_switch_vlan "eth1" "1" "0 1 2 3 4"
+    if [ "model" = "W282" ]
+    then
+	    ucidef_set_interface_lan_with_vlan "eth0 eth1" "1"
+        ucidef_add_switch "eth1" "1" "0"
+    else
+        ucidef_set_interfaces_lan_wan "eth1" "eth0"
+        ucidef_add_switch "eth1" "1" "1"
+        ucidef_add_switch_vlan "eth1" "1" "0 1 2 3 4"
+    fi
 	;;
 
 cus531 |\
