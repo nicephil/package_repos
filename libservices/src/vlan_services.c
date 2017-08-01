@@ -61,6 +61,19 @@ int vlan_create(int vlanid, int endid)
         cfg_set_option_value(tuple, "dhcp");
         sprintf(tuple, "network.lan%d.igmp_snooping", vlanid);
         cfg_set_option_value_int(tuple, 1);
+        
+        //set default value here
+        //network.lan1.vlan_name
+        sprintf(tuple, "network.lan%d.vlan_name", i);
+        sprintf(buf, "VLAN %04d", i);
+        cfg_set_option_value(tuple, buf);
+        sprintf(tuple, "network.lan%d.vlan_description", i);
+        cfg_set_option_value(tuple, buf);
+
+        // w282 and ubnt_lite_lr no need setup switch
+        if (is_product_w282() || is_product_ubnt_lite()) {
+            return 0;
+        }
 
         //network.vlan1=switch_vlan
         sprintf(buf, "vlan%d", vlanid);
@@ -86,13 +99,6 @@ int vlan_create(int vlanid, int endid)
             }
         }
 
-        //set default value here
-        //network.lan1.vlan_name
-        sprintf(tuple, "network.lan%d.vlan_name", i);
-        sprintf(buf, "VLAN %04d", i);
-        cfg_set_option_value(tuple, buf);
-        sprintf(tuple, "network.lan%d.vlan_description", i);
-        cfg_set_option_value(tuple, buf);
     }
 
     return 0;
