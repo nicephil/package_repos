@@ -115,6 +115,10 @@ int vlan_destroy(int vlanid, int endid)
         //network.lan1=interface
         sprintf(tuple, "network.lan%d=interface", vlanid);
         cfg_del_section(tuple);
+
+        if (cfg_is_w282() || cfg_is_ubnt_lite())  {
+            return 0;
+        }
         //network.vlan1=switch_vlan
         sprintf(tuple, "network.vlan%d=switch_vlan", vlanid);
         cfg_del_section(tuple);
