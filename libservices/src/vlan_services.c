@@ -71,7 +71,7 @@ int vlan_create(int vlanid, int endid)
         cfg_set_option_value(tuple, buf);
 
         // w282 and ubnt_lite_lr no need setup switch
-        if (is_product_w282() || is_product_ubnt_lite()) {
+        if (cfg_is_w282() || cfg_is_ubnt_lite()) {
             return 0;
         }
 
