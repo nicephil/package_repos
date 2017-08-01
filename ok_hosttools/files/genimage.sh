@@ -1,6 +1,6 @@
 #!/bin/bash
 swversion=$1
-origin_files__bin_files="openwrt-ar71xx-generic-ap152-16M-squashfs-sysupgrade.bin|bin_ap152_16M.app openwrt-ar71xx-generic-ap147-16M-squashfs-sysupgrade.bin|bin_ap147_16M.app openwrt-ar71xx-generic-ubnt-unifi-lite-squashfs-sysupgrade.bin|bin_ubnt_unifi_lite.app openwrt-ar71xx-generic-ubnt-unifi-pro-squashfs-sysupgrade.bin|bin_ubnt_unifi_pro.app"
+origin_files__bin_files="openwrt-ar71xx-generic-ap152-16M-squashfs-sysupgrade.bin|bin_ap152_16M.app openwrt-ar71xx-generic-ubnt-unifi-lite-squashfs-sysupgrade.bin|bin_ubnt_unifi_lite.app openwrt-ar71xx-generic-ubnt-unifi-pro-squashfs-sysupgrade.bin|bin_ubnt_unifi_pro.app"
 
 
 

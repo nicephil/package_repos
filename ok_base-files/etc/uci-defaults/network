@@ -120,7 +120,7 @@ wzr-hp-g450h)
 	;;
 
 ap152)
-    if [ "model" = "W282" ]
+    if [ "$model" = "W282" ]
     then
         ucidef_set_interface_lan_with_vlan "eth0 eth1" "1"
         ucidef_add_switch "eth1" "1" "0"
