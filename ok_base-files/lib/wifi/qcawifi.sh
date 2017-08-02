@@ -1938,6 +1938,7 @@ detect_qcawifi() {
 			*11abgn) mode_11=ng;;
 			*11an) mode_11=na;;
 			*11an/ac) mode_11=ac;;
+            *11a/ac) mode_11=ac;;
 			*11abgn/ac) mode_11=ac;;
 		esac
 		if [ -f /sys/class/net/${dev}/nssoffload ] && [ $(cat /sys/class/net/${dev}/nssoffload) == "capable" ]; then
