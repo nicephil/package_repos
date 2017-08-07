@@ -653,6 +653,7 @@ static struct product_info g_pinfo;
 
 #define UBNT_PRO_PRODUCTION_NAME "ubntpro"
 #define UBNT_LITE_PRODUCTION_NAME "ubntlite"
+#define UBNT_LR_PRODUCTION_NAME "ubntlr"
 #define W282_PRODUCTION_NAME "W282"
 
 int cfg_is_ubnt_pro(void)
@@ -670,7 +671,8 @@ int cfg_is_ubnt_lite(void)
 {
     struct product_info info = {0};
     cfg_get_product_info(&info);
-    if (!strcmp(info.production, UBNT_LITE_PRODUCTION_NAME)) {
+    if (!strcmp(info.production, UBNT_LITE_PRODUCTION_NAME) ||
+            !strcmp(info.production, UBNT_LR_PRODUCTION_NAME)) {
         return 1;
     }
 

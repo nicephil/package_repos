@@ -441,7 +441,6 @@ ar71xx_board_detect() {
 		;;
     *"UniFi Lite")
 		name="unifi"
-        AR71XX_MODEL="lite"
 		;;
     *"UniFi Pro")
 		name="unifi"
@@ -521,8 +520,24 @@ ar71xx_board_detect() {
 	[ -z "$AR71XX_BOARD_NAME" ] && AR71XX_BOARD_NAME="$name"
 
     #OK_PATCH
-    [ -z "$AR71XX_MODEL" ] && {
+    [ "$name" = "ap152" -a -z "$AR71XX_MODEL" ] && {
         AR71XX_MODEL=`strings /dev/mtd5 | awk -F'[="]' '{ if ($1 == "DEV_NAME") {print $3;exit}}'`
+    }
+    [ "$name" = "unifi" -a -z "$AR71XX_MODEL" ] && {
+        system_id=`hexdump -e '1/1 "%x"' -n2 -s12 /dev/mtd7`
+        case "$system_id" in
+            "e517")
+                AR71XX_MODEL="lite"
+                ;;
+            "e527")
+                AR71XX_MODEL="lr"
+                ;;
+            "e537")
+                AR71XX_MODEL="pro"
+                ;;
+            "*")
+                ;;
+        esac
     }
 	[ -z "$AR71XX_MODEL" ] && AR71XX_MODEL="$machine"
 	[ -z "$AR71XX_MODEL" ] && AR71XX_MODEL="unknown"

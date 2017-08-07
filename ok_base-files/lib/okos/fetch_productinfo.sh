@@ -11,7 +11,7 @@ unifi)
     mac=${mac%:*}
     echo -e "config productinfo productinfo"
     echo -e  "\toption production ubnt${model}"
-    echo -e "\toption serial aabbccddeeff"
+    echo -e "\toption serial ${mac}"
     echo -e "\toption mac ${mac}"
     ;;
 *)
