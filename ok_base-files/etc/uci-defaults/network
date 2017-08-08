@@ -133,7 +133,7 @@ ap152)
     ;;
 
 unifi)
-    if [ "$model" = "lite" ]
+    if [ "$model" = "lite" -o "$model" = "lr" ]
     then
 	    ucidef_set_interface_lan_with_vlan "eth0 eth0.1 eth0.4090" "1"
     else
