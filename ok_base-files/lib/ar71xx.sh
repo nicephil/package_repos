@@ -439,13 +439,6 @@ ar71xx_board_detect() {
     *"UniFi")
 		name="unifi"
 		;;
-    *"UniFi Lite")
-		name="unifi"
-		;;
-    *"UniFi Pro")
-		name="unifi"
-        AR71XX_MODEL="pro"
-		;;
 	*WHR-G301N)
 		name="whr-g301n"
 		;;
