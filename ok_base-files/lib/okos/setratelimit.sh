@@ -20,7 +20,7 @@ logger -p 7 -t clientevent "++setratelimit:mac:$mac, tx_rate_limit:$tx_rate_limi
 [ -z "$action" ] && action="1"
 
 [ "$action" = "0" ] && {
-    /lib/okos/qos.sh del $mac
+    /lib/okos/qos.sh del $mac 2>&1 | logger -p 7 -t clientevent
     logger -p 7 -t clientevent "==/lib/okos/qos.sh del $mac"
 }
 
@@ -33,7 +33,7 @@ logger -p 7 -t clientevent "++setratelimit:mac:$mac, tx_rate_limit:$tx_rate_limi
     config_get qos_weight ${st_name} bandwidth_priority
 
     # 2. set the right limit
-    /lib/okos/qos.sh add $mac $qos_weight ${tx_rate_limit} ${rx_rate_limit} $ath
+    /lib/okos/qos.sh add $mac $qos_weight ${tx_rate_limit} ${rx_rate_limit} $ath 2&>1 | logger -p 7 -t clientevent
     logger -p 7 -t clientevent "==/lib/okos/qos.sh add $mac $qos_weight ${tx_rate_limit} ${rx_rate_limit} $ath"
 }
 
