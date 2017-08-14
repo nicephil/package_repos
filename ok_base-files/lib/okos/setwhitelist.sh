@@ -4,7 +4,9 @@ mac=$1
 time=$2
 action=$3 # 1 means set, 0 means unset
 
-logger -p 7 -t clientevent "setwhitelist:mac:$mac, time:$time, action:$action"
+lock -s /tmp/whitelist.lock
+
+logger -t clientevent "++setwhitelist:mac:$mac, time:$time, action:$action"
 
 atjobs_dir="/var/spool/cron/atjobs"
 
@@ -42,6 +44,8 @@ then
 
     # 5. add it into whitelist
     add $mac
+    logger -t clientevent "==setwhitelist:mac:$mac, time:$time, action:$action"
+    lock -u /tmp/whitelist.lock
 
     exit 0
 fi
@@ -65,3 +69,5 @@ then
         fi
     done 
 fi
+logger -t clientevent "==setwhitelist:mac:$mac, time:$time, action:$action"
+lock -u /tmp/whitelist.lock

@@ -5,7 +5,8 @@ time=$2
 action=$3 # 1 means set, 0 means unset
 time=240
 
-logger -p 7 -t clientevent "setblacklist:mac:$mac, time:$time, action:$action"
+lock -s /tmp/blacklist.lock
+logger -t clientevent "++setblacklist:mac:$mac, time:$time, action:$action"
 
 atjobs_dir="/var/spool/cron/atjobs"
 
@@ -44,6 +45,8 @@ then
     # 6. kickoff it
     iwconfig 2>/dev/null | awk '/ath/{system("iwpriv "$1" kickmac '"$mac"'");}'
 
+    logger -t clientevent "==setblacklist:mac:$mac, time:$time, action:$action"
+    lock -u /tmp/blacklist.lock
     exit 0
 fi
 
@@ -65,3 +68,6 @@ then
         fi
     done 
 fi
+
+logger -t clientevent "==setblacklist:mac:$mac, time:$time, action:$action"
+lock -u /tmp/blacklist.lock
