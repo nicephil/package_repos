@@ -5,7 +5,21 @@ time=$2
 action=$3 # 1 means set, 0 means unset
 time=240
 
+trap 'setblacklist_trap; exit' INT TERM ABRT QUIT ALRM
+
+setblacklist_trap () {
+    logger -t setblacklist "gets trap"
+    lock -u /tmp/blacklist.lock
+}
+
+
 lock -s /tmp/blacklist.lock
+
+
+
+
+
+
 logger -t clientevent "++setblacklist:mac:$mac, time:$time, action:$action"
 
 atjobs_dir="/var/spool/cron/atjobs"
