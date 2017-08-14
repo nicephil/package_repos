@@ -947,7 +947,7 @@ enable_qcawifi() {
 			       if [ -f /sys/class/net/$device/5g_maxchwidth ]; then
 			           maxchwidth="$(cat /sys/class/net/$device/5g_maxchwidth)"
                    # disable VHT160 when htmode set to auto
-				   [ -n "$maxchwidth" -a "$maxchwidth" != "160"] && hwmode=11ACVHT$maxchwidth
+				   [ -n "$maxchwidth" -a "$maxchwidth" != "160" ] && hwmode=11ACVHT$maxchwidth
 			       fi
                                if [ "$mode" == "sta" ]; then
                                    cat /sys/class/net/$device/hwmodes | grep  "11AC_VHT80_80"
