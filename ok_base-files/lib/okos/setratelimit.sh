@@ -6,6 +6,14 @@ rx_rate_limit=$3
 ath=$4
 action=$5
 
+trap 'setratelimit_trap; exit' INT TERM ABRT QUIT ALRM
+
+setratelimit_trap () {
+    logger -t setratelimit "gets trap"
+    lock -u /tmp/qos.lock
+}
+
+
 lock -s /tmp/qos.lock
 
 [ -z "$ath" ] && {

@@ -5,6 +5,14 @@ then
     exit 0
 fi
 
+trap 'getifaceinfo_trap; exit' INT TERM ABRT QUIT ALRM
+
+getifaceinfo_trap () {
+    logger -t getifaceinfo "gets trap"
+    rm -rf /tmp/ifaceinfo.lock
+}
+
+
 touch /tmp/ifaceinfo.lock
 
 

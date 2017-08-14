@@ -5,8 +5,16 @@ then
     exit 0
 fi
 
-touch /tmp/getstainfo.lock
 
+trap 'getstainfo_trap; exit' INT TERM ABRT QUIT ALRM
+
+getstainfo_trap () {
+    logger -t getstainfo "gets trap"
+    rm -rf /tmp/getstainfo.lock
+}
+
+
+touch /tmp/getstainfo.lock
 
 dbfile="/tmp/statsinfo.db"
 arpfile="/tmp/arptables.db"
