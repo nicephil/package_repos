@@ -29,5 +29,9 @@ do
             nice -n -20 hostapd_cli -p /var/run/hostapd-wifi${ath:3:1} -i $ath -a /lib/wifi/wifievent.sh -B
         }
     done
+    ps w | logger -t supervisor -p 7
+    top -n 1 | logger -t supervisor -p 7
+    ls -la /tmp | logger -t supervisor -p 7
+    df | logger -t supervisor -p 7
 done
 
