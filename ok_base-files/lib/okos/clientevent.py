@@ -33,6 +33,9 @@ class Client(Thread):
         self.term = False
         self.clientevent = None
         self.last_acl_type = 0
+        self.last_tx_rate_limit = 0
+        self.last_rx_rate_limit = 0
+        self.last_ath = ''
         self.name = mac
 
     def put_event(self, ath, event):
@@ -57,16 +60,21 @@ class Client(Thread):
         # 1. handle connected event
         if clientevent.event == 'AP-STA-CONNECTED':
             # 1.1 query auth
-            acl_type, time, tx_rate_limit, rx_rate_limit, remain_time = \
-                self.query_auth()
+            acl_type, time, tx_rate_limit, rx_rate_limit, remain_time, \
+                username = self.query_auth()
             syslog(LOG_DEBUG, "mac:%s acl_type:%s time:%s tx_rate_limit:%s \
-                   rx_rate_limit:%s remain_time:%s" % (repr(self.mac),
-                                                       repr(acl_type),
-                                                       repr(time),
-                                                       repr(tx_rate_limit),
-                                                       repr(rx_rate_limit),
-                                                       repr(remain_time)))
+                   rx_rate_limit:%s remain_time:%s username:%s" % \
+                   (repr(self.mac),
+                   repr(acl_type),
+                   repr(time),
+                   repr(tx_rate_limit),
+                   repr(rx_rate_limit),
+                   repr(remain_time),
+                   repr(username)))
             self.last_acl_type = acl_type
+            self.last_tx_rate_limit = tx_rate_limit
+            self.last_rx_rate_limit = rx_rate_limit
+            self.last_ath = clientevent.ath
             if acl_type == 1:
                 # 1.2 set_whitelist
                 self.set_whitelist(time, 1)
@@ -80,10 +88,6 @@ class Client(Thread):
                     self.set_whitelist(0, 0)
                 else:
                     self.set_whitelist(remain_time, 1)
-            # 1.5 set_ratelimit
-            self.set_ratelimit(tx_rate_limit, rx_rate_limit,
-                               clientevent.ath,
-                               1)
 
         # 2. disconnected event
         elif clientevent.event == 'AP-STA-DISCONNECTED':
@@ -105,10 +109,19 @@ class Client(Thread):
                     self.term = True
             else:
                 syslog(LOG_DEBUG, "NEW EVENT Comming")
+
+        # 3. term event
         elif clientevent.event == 'TERM':
             self.term = True
             sys.exit(0)
-        # 3. Unknow Event
+
+        # 4. station ip changed event
+        elif clientevent.event == 'STA-IP-CHANGED':
+            # 1.5 set_ratelimit
+            self.set_ratelimit(self.last_tx_rate_limit, self.last_rx_rate_limit,
+                               self.last_ath,
+                               1)
+        # 5. Unknow Event
         else:
             syslog(LOG_WARNING, "Unknow Event on %s %s" %
                    (self.mac, clientevent.event))
@@ -208,7 +221,8 @@ class Client(Thread):
         username, acl_type, time, tx_rate_limit, rx_rate_limit = \
             struct.unpack_from(fmt, ss_str, offset)
         acl_type = ord(acl_type)
-        return acl_type, time, tx_rate_limit, rx_rate_limit, remain_time
+        return acl_type, time, tx_rate_limit, rx_rate_limit, remain_time, \
+            username
 
     def set_whitelist(self, time, action):
         os.system("/lib/okos/setwhitelist.sh %s %d %d >/dev/null 2>&1" %
