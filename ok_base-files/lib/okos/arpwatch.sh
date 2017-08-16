@@ -16,10 +16,8 @@ log ()
 run ()
 {
     local cmd=$1
-    local pri=$2
-    [ -z $pri ] && pri=8
     log $LOG_DEBUG "$cmd"
-    eval "$cmd" 2>&1 | logger -t arpwatch_hook -p $pri
+    eval "$cmd" 2>&1 | logger -t arpwatch_hook -p $LOG_DEBUG
 }
 
 arpwatch_trap ()
