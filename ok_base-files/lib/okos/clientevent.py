@@ -61,15 +61,16 @@ class Client(Thread):
         if clientevent.event == 'AP-STA-CONNECTED':
             # 1.1 query auth
             acl_type, time, tx_rate_limit, rx_rate_limit, remain_time, \
-                user_name = self.query_auth()
+                username = self.query_auth()
             syslog(LOG_DEBUG, "mac:%s acl_type:%s time:%s tx_rate_limit:%s \
-                   rx_rate_limit:%s remain_time:%s user_name:%s" % \
+                   rx_rate_limit:%s remain_time:%s username:%s" % \
                    (repr(self.mac),
                    repr(acl_type),
                    repr(time),
                    repr(tx_rate_limit),
                    repr(rx_rate_limit),
-                   repr(remain_time)))
+                   repr(remain_time),
+                   repr(username)))
             self.last_acl_type = acl_type
             self.last_tx_rate_limit = tx_rate_limit
             self.last_rx_rate_limit = rx_rate_limit
