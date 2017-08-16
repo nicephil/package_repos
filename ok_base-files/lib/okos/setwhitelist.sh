@@ -12,7 +12,7 @@ setwhitelist_trap () {
 }
 
 
-lock -s /tmp/whitelist.lock
+lock /tmp/whitelist.lock
 
 logger -t clientevent "++setwhitelist:mac:$mac, time:$time, action:$action"
 

@@ -14,7 +14,7 @@ setratelimit_trap () {
 }
 
 
-lock -s /tmp/qos.lock
+lock /tmp/qos.lock
 
 [ -z "$ath" ] && {
 ath=`apstats -s -m $mac|awk '/VAP/{print $7}'`
