@@ -13,7 +13,7 @@ setblacklist_trap () {
 }
 
 
-lock -s /tmp/blacklist.lock
+lock /tmp/blacklist.lock
 
 
 

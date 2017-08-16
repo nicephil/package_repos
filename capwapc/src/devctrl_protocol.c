@@ -550,7 +550,7 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
                 if (stas[i].updated) {
                     number++;
                     size += WLAN_STA_UPDATE_FIXLEN;
-                    size += stas[i].name_len;
+                    size += stas[i].name_len + stas[i].client_hostname_len;
                 }
             }
             if (number > 0) {
@@ -580,7 +580,7 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
                 continue;
             }
             
-            sta->len = WLAN_STA_UPDATE_FIXLEN + sta->name_len;
+            sta->len = WLAN_STA_UPDATE_FIXLEN + sta->name_len + stas->client_hostname_len;
             
             CWProtocolStore16(&msg, sta->len);
             CWProtocolStoreRawBytes(&msg, (char *)(sta->mac), 6);
@@ -598,6 +598,9 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
             CWProtocolStore8(&msg, sta->retry_rate);
             CWProtocolStore32(&msg, sta->nrxrt);
             CWProtocolStore32(&msg, sta->ntxrt);
+            CWProtocolStore8(&msg, sta->client_hostname_len);
+            CWProtocolStoreRawBytes(&msg, sta->client_hostname, sta->client_hostname_len);
+            CWProtocolStore8(&msg, sta->psmode);
         }
     }
     else {
