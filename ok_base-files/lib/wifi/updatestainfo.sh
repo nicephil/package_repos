@@ -47,6 +47,9 @@ case "$event" in
         #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
         sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
     ;;
+
+    *)
+    ;;
     
 esac
 
