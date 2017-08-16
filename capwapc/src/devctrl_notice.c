@@ -221,6 +221,11 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
         stas[row].client_hostname_len = strlen(stas[row].client_hostname);
     }
 
+    /*psmode*/
+    if (argv[26]) {
+        stas[row].psmode = atoi(argv[26]);
+    }
+
     /*location*/
     cfg_get_option_value(CAPWAPC_CFG_OPTION_LOCATION_TUPLE, stas[row].location, MAX_LOCATION_LEN);
     stas[row].location_len = strlen(stas[row].location);
@@ -417,7 +422,8 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
                                 || pre->rs_level != cur->rs_level
                                 || pre->portal_mode != cur->portal_mode /* new portal mode */
                             || pre->name_len != cur->name_len /* new username */
-                            || strncmp(pre->user, cur->user, pre->name_len) != 0) {
+                            || strncmp(pre->user, cur->user, pre->name_len) != 0
+                            || pre->psmode != cur->psmode) {
                             cur->updated = 1;
                             cur->delta_txB = cur->txB - pre->txB;
                             cur->delta_rxB = cur->rxB - pre->rxB;
