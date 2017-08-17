@@ -14,7 +14,7 @@ log ()
 run ()
 {
     local cmd=$1
-    echo "==> ${cmd}" | logger -t qosscript -p 8
+    echo "==> ${cmd}" | logger -t qosscript -p $LOG_DEBUG
     [ -z "$debug" ] && $cmd
 }
 qos_trap ()
@@ -276,7 +276,7 @@ add_filters ()
 #
 #    rc=$( get_ip $mac $ifname )
 #    log $LOG_DEBUG "get_ip()=>$rc <"
-#    [ -z "$rc" ] && $LOG_WARNING "Get IP failed." && return 1
+#    [ -z "$rc" ] && log $LOG_WARNING "Get IP failed." && return 1
 #    OIFS=$IFS;IFS=' ';set -- $rc;ip=$1;ifname=$2;IFS=$OIFS
 #    log $LOG_DEBUG "Add: Get IP:$ip & IFNAME:$ifname ."
 #    
@@ -343,7 +343,7 @@ add ()
 
     rc=$( get_ip $mac $ifname )
     log $LOG_DEBUG "get_ip()=>$rc <"
-    [ -z "$rc" ] && $LOG_WARNING "Get IP failed and exit." && return 1
+    [ -z "$rc" ] && log $LOG_WARNING "Get IP failed and exit." && return 1
     OIFS=$IFS;IFS=' ';set -- $rc;ip=$1;ifname=$2;IFS=$OIFS
     log $LOG_DEBUG "Add: Get IP:$ip & IFNAME:$ifname ."
     
