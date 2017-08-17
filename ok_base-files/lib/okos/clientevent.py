@@ -88,6 +88,10 @@ class Client(Thread):
                     self.set_whitelist(0, 0)
                 else:
                     self.set_whitelist(remain_time, 1)
+            # 1.5 set_ratelimit
+            self.set_ratelimit(tx_rate_limit, rx_rate_limit,
+                               clientevent.ath,
+                               1)
 
         # 2. disconnected event
         elif clientevent.event == 'AP-STA-DISCONNECTED':
@@ -105,6 +109,8 @@ class Client(Thread):
                     # self.set_blacklist(0, 0)
                     pass
                 self.set_ratelimit(0, 0, clientevent.ath, 0)
+                os.system("sqlite3 -echo /tmp/arptables.db \"delete from 'br-lan1' \
+                          where MAC='%s' COLLATE NOCASE;\" | logger -t clientevent" % self.mac)
                 if self.queue.empty():
                     self.term = True
             else:
