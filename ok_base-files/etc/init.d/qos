@@ -4,10 +4,10 @@ START=45
 
 start ()
 {
-    /lib/okos/qos.sh start
+    /lib/okos/qos.sh start 2>&1 | logger -t qos -p 6
 }
 
 stop ()
 {
-    /lib/okos/qos.sh stop
+    /lib/okos/qos.sh stop 2>&1 | logger -t qos -p 6
 }
