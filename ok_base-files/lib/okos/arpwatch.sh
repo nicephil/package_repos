@@ -70,8 +70,8 @@ new_entry ()
     local brname=$1
     local mac=$2
     local ip=$3
-    local hostname=$4
-    local ts=$5
+    local ts=$4
+    local hostname=$5
 
     log $LOG_INFO "New Entry for mac[${mac} ip[${ip}] hostname[${hostname}] on timestamp[${ts}]"
     
@@ -109,8 +109,8 @@ ip_changed ()
     local mac=$2
     local oldip=$3
     local ip=$4
-    local hostname=$5
-    local ts=$6
+    local ts=$5
+    local hostname=$6
 
     log $LOG_DEBUG "IP Changed for mac[${mac}] from [${oldip}] to [${ip}]"
     
