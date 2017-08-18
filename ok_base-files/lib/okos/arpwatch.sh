@@ -126,7 +126,7 @@ ip_changed ()
 arpwatch_hook ()
 {
     local brname=$1
-    local mac=$2
+    local mac=`echo $2 | tr 'A-Z' 'a-z'`
     local ip=$3
     local ts=$4
     local hostname=$5
