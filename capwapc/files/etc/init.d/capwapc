@@ -92,7 +92,7 @@ start() {
     rm -rf /tmp/getstainfo.lock /tmp/fresharplist.lock
     generate_config
     ulimit -c unlimited
-    service_start /usr/sbin/$APP
+    service_start /bin/nice -n -20 /usr/sbin/$APP
 }
 
 
