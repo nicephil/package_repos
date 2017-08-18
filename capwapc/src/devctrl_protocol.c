@@ -580,7 +580,7 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
                 continue;
             }
             
-            sta->len = WLAN_STA_UPDATE_FIXLEN + sta->name_len + stas->client_hostname_len;
+            sta->len = WLAN_STA_UPDATE_FIXLEN + sta->name_len + sta->client_hostname_len;
             
             CWProtocolStore16(&msg, sta->len);
             CWProtocolStoreRawBytes(&msg, (char *)(sta->mac), 6);
