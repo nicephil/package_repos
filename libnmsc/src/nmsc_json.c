@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include "nmsc/nmsc.h"
 #include "nmsc_util.h"
-#include "json/json.h"
+#include "json-c/json.h"
 #include "nmsc_json_entry.h"
 #include "nmsc_json.h"
 

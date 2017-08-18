@@ -7,7 +7,7 @@
 #include "devctrl_protocol.h"
 #include "devctrl_payload.h"
 #include "devctrl_notice.h"
-#include "json/json.h"
+#include "json-c/json.h"
 #include "nmsc/nmsc.h"
 
 #include "services/cfg_services.h"

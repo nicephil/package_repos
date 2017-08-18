@@ -1,7 +1,7 @@
 #ifndef __NMSC_H__
 #define __NMSC_H__
 
-#include "json/json.h"
+#include "json-c/json.h"
  
 /* both dc_eror and dc_node will notiy to the NMS,
  * need keep the order to synchronize with NMS

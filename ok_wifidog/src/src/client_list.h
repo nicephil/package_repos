@@ -28,6 +28,8 @@
 #ifndef _CLIENT_LIST_H_
 #define _CLIENT_LIST_H_
 
+#include <pthread.h>
+
 
 /** Global mutex to protect access to the client list */
 extern pthread_mutex_t client_list_mutex;
