@@ -81,7 +81,7 @@ get_id ()
 
     local mac=$1
 
-    local ck=`grep "${mac}" ${id_file}`
+    local ck=`grep -i "${mac}" ${id_file}`
     log $LOG_DEBUG "get_id(): $ck ."
 
     # Reture entry corresponding to given MAC.
@@ -90,7 +90,7 @@ get_id ()
 
 new_id ()
 {
-    local mac=$1
+    local mac=`echo $1 | tr 'A-Z' 'a-z'`
     local ip=$2
     local ifname=$3
     log $LOG_DEBUG "new_id(): ( MAC:$mac , IP:$ip , IFNAME:$ifname )"
@@ -320,7 +320,7 @@ add_filters ()
 add ()
 {
     # add aa:bb:cc:dd:ee:ff pri tx_up rx_up ifname
-    local mac=$1
+    local mac=`echo $1 | tr 'A-Z' 'a-z'`
     local pri=$2
     local tx
     [ ! -z $3 ] && tx=$3 || tx=$FULL_SPEED_eth0
@@ -451,7 +451,7 @@ del_tc_by_ip_ifname ()
 
 del ()
 {
-    local mac=$1
+    local mac=`echo $1 | tr 'A-Z' 'a-z'`
     local ifname=$2
     log $LOG_DEBUG "Del: $@ ."
 
