@@ -10,7 +10,7 @@ define Package/libnmsc
 	SECTION:=Oakridge
 	CATEGORY:=Oakridge Software
 	TITLE:=User Level System Library
-	DEPENDS:= +libpthread +libservices
+	DEPENDS:= +libpthread +libservices +libjson-c
 endef
 
 define Package/libnmsc/description

@@ -9,7 +9,7 @@
 #include <errno.h>
 #include "nmsc/nmsc.h"
 #include "nmsc_util.h"
-#include "json/json.h"
+#include "json-c/json.h"
 
 
 #include "services/hostname_services.h"

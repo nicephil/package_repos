@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include "json/json.h"
+#include "json-c/json.h"
 #include "nmsc/nmsc.h"
 #include "nmsc_util.h"
 #include "nmsc_json_node.h"
