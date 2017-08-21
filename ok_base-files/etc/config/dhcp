@@ -21,11 +21,30 @@ config dnsmasq
 	#list bogusnxdomain     '64.94.110.11'
 	option localservice	1  # disable to allow DNS requests from non-local subnets
 
-config dhcp lan
-	option interface	lan
+config dhcp lan4091
+	option interface	lan4091
 	option start 	100
 	option limit	150
 	option leasetime	12h
+
+config dhcp lan4092
+	option interface	lan4902
+	option start 	100
+	option limit	150
+	option leasetime	12h
+
+config dhcp lan4093
+	option interface	lan4093
+	option start 	100
+	option limit	150
+	option leasetime	12h
+
+config dhcp lan4094
+	option interface	lan4094
+	option start 	100
+	option limit	150
+	option leasetime	12h
+
 
 config dhcp wan
 	option interface	wan
