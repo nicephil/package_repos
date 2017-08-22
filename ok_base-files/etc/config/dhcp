@@ -28,7 +28,7 @@ config dhcp lan4091
 	option leasetime	12h
 
 config dhcp lan4092
-	option interface	lan4902
+	option interface	lan4092
 	option start 	100
 	option limit	150
 	option leasetime	12h
