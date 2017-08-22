@@ -3,7 +3,7 @@
         {
         sleep 3
         . /lib/functions/network.sh; network_get_gateway _gateway lan1
-        route add -host log.networkworld365.com gw $_gateway br-lan1
+        route add -host log.networkworld365.com gw $_gateway wan
         } &
     }
 }
