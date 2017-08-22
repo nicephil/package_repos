@@ -123,15 +123,15 @@ struct device_update_info* chk_dev_updateinfo(void)
 		return NULL;
 	}
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, "br-lan1", sizeof(ifr.ifr_name));
+	strncpy(ifr.ifr_name, "eth0.4090", sizeof(ifr.ifr_name));
 	if (ioctl(sk, SIOCGIFADDR, &ifr) < 0) {
-        syslog(LOG_ERR, "no such interface: br-lan1");
+        syslog(LOG_ERR, "no such interface: eth0.4090");
 		close(sk);
 		return NULL;
 	}
 
     paddr = (struct sockaddr_in *) &ifr.ifr_addr;
-    info.ip = paddr->sin_addr.s_addr;
+    info.ip = ntohl(paddr->sin_addr.s_addr);
 
     if (ioctl(sk, SIOCGIFNETMASK, &ifr) < 0) {
 		close(sk);
@@ -139,7 +139,7 @@ struct device_update_info* chk_dev_updateinfo(void)
 	}
 
     paddr = (struct sockaddr_in *) &ifr.ifr_netmask;
-    info.netmask = paddr->sin_addr.s_addr;
+    info.netmask = ntohl(paddr->sin_addr.s_addr);
     gethostname(info.hostname, HOST_NAME_MAX);
     info.len = strlen(info.hostname);
 	close(sk);
@@ -227,15 +227,15 @@ static int get_device_info(device_info_s *devinfo)
 		return -1;
 	}
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, "br-lan1", sizeof(ifr.ifr_name));
+	strncpy(ifr.ifr_name, "eth0.4090", sizeof(ifr.ifr_name));
 	if (ioctl(sk, SIOCGIFADDR, &ifr) < 0) {
-        syslog(LOG_ERR, "no interface: br-lan1");
+        syslog(LOG_ERR, "no interface: eth0.4090");
 		close(sk);
 		return -1;
 	}
 
     paddr = (struct sockaddr_in *) &ifr.ifr_addr;
-    devinfo->ip = paddr->sin_addr.s_addr;
+    devinfo->ip = ntohl(paddr->sin_addr.s_addr);
 
     if (ioctl(sk, SIOCGIFNETMASK, &ifr) < 0) {
 		close(sk);
@@ -243,7 +243,7 @@ static int get_device_info(device_info_s *devinfo)
 	}
 
     paddr = (struct sockaddr_in *) &ifr.ifr_netmask;
-    devinfo->netmask = paddr->sin_addr.s_addr;
+    devinfo->netmask = ntohl(paddr->sin_addr.s_addr);
 	close(sk);
 
     /* uptime in second unit */
