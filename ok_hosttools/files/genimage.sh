@@ -1,6 +1,6 @@
 #!/bin/bash
 swversion=$1
-origin_files__bin_files="openwrt-ar71xx-generic-ap152-16M-squashfs-sysupgrade.bin|bin_ap152_16M.app openwrt-ar71xx-generic-ubnt-unifi-squashfs-sysupgrade.bin|bin_ubnt_unifi.app lede-ramips-mt7621-ubnt-erx-squashfs-sysupgrade.tar:bin_ubnt_erx.app"
+origin_files__bin_files="openwrt-ar71xx-generic-ap152-16M-squashfs-sysupgrade.bin|bin_ap152_16M.app openwrt-ar71xx-generic-ubnt-unifi-squashfs-sysupgrade.bin|bin_ubnt_unifi.app lede-ramips-mt7621-ubnt-erx-squashfs-sysupgrade.tar|bin_ubnt_erx.app"
 
 
 
