@@ -437,3 +437,6 @@ if [ ! -s /etc/config/system ]; then
 	for key in $keys; do generate_led $key; done
 fi
 uci commit
+#OK_PATCH
+cp /etc/config/netowrk /etc/defcfg/network
+#end of OK_PATCH
