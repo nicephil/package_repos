@@ -9,20 +9,8 @@ must select it in menuconfig before compile it
 7. commit .config and .defconfig, in order to add it as default
 
 # Module Descripts
-* app_example
-An application example
-* kmod_example
-A kernel module example
-* capwapc_sim
-A capwap simulator
 * capwapc
 main capwap client on AP
-* libcfg
-main config management library
-* libok_util
-oakridge's util APIs, e.g. list
-* libif
-interface library
 * libnmsc
 nmsc json parser
 * libservices
