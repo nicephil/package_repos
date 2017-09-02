@@ -513,7 +513,7 @@ function net.routes6(callback)
 end
 
 function net.pingtest(host)
-	return os.execute("ping -c1 '"..host:gsub("'", '').."' >/dev/null 2>&1")
+	return os.execute("ping -c1 -W5 '"..host:gsub("'", '').."' >/dev/null 2>&1")
 end
 
 

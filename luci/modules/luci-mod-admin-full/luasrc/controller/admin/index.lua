@@ -12,14 +12,18 @@ function index()
 	end
 
 	local page   = node("admin")
-	page.target  = firstchild()
 	page.title   = _("Administration")
 	page.order   = 10
     -- OK_PATCH
     local s = require "luci.sys"
-    if not s.checkpasswd("root", "oakridge") then
+	page.target  = alias("admin", "network", "network")
+    -- registered if passwd is not default
+    if s.user.checkpasswd("root", "oakridge") ~= true then
 	    page.sysauth = "root"
 	    page.sysauth_authenticator = "htmlauth"
+        if s.net.pingtest("8.8.8.8") ~= 0 then
+	        page.target  = alias("admin", "network", "diagnostics")
+        end
     end
     -- end of OK_PATCH
 	page.ucidata = true
