@@ -1,6 +1,6 @@
 #!/bin/bash
 swversion=$1
-origin_files__bin_files="openwrt-ar71xx-generic-ap152-16M-squashfs-sysupgrade.bin|bin_ap152_16M.app|ap152 openwrt-ar71xx-generic-ubnt-unifi-squashfs-sysupgrade.bin|bin_ubnt_unifi.app|ubntunifi lede-ramips-mt7621-ubnt-erx-squashfs-sysupgrade.bin|bin_ubnt_erx.app|ubnterx"
+origin_files__bin_files="lede-ramips-mt7621-ubnt-erx-squashfs-sysupgrade.bin|bin_ubnt_erx.app|ubnterx"
 server=image.oakridge.vip
 
 
