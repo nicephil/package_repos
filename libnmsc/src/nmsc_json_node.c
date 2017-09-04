@@ -593,8 +593,6 @@ int dc_hdl_node_system(struct json_object *obj)
         {"hostname", dc_hdl_node_hostname},
         {"location", dc_hdl_node_location},
         {"country_code", dc_hdl_node_country},
-        {"domain_name", dc_hdl_node_domain_name},
-        {"auth_url", dc_hdl_node_auth_url}
     };
     int i, obj_saved, ret, node = dc_node_system;
     
@@ -1505,6 +1503,7 @@ ERROR_OUT:
 
 int dc_hdl_node_vlan(struct json_object *obj)
 {
+#if !OK_PATCH
     struct vlan {
         int   id;
         char name[33];
@@ -1600,6 +1599,9 @@ ERROR_OUT:
     vlan_list_id_free(&idlist);
 
     return ret;
+#else
+    return 0;
+#endif
 }
 
 static int dc_nat_vlan_reserved(struct vlan_showinfo *info)
@@ -3826,6 +3828,7 @@ static inline int if_support_11ac(unsigned int id)
 
 int dc_hdl_node_wlan(struct json_object *obj)
 {
+#if !OK_PATCH
     struct service_templates st_json_cfg;
     struct radio_list rd_json_cfg;
     struct portal_schemes ps_json_cfg;
@@ -5075,10 +5078,14 @@ ERROR_OUT:
     }
     
     return ret;
+#else
+    return 0;
+#endif
 }
 
 int dc_hdl_node_vlan_port(struct json_object *obj)
 {
+#if !OK_PATCH
     struct vlan_port {
         char name[33];
         int  rdid;
@@ -5226,10 +5233,14 @@ ERROR_OUT:
     }
 
     return ret;
+#else
+    return 0;
+#endif
 }
 
 int dc_hdl_node_interface(struct json_object *obj)
 {
+#if !OK_PATCH
     struct if_enable {
         int enable;
         char name[33];
@@ -5290,6 +5301,9 @@ int dc_hdl_node_interface(struct json_object *obj)
     free(interfaces.config);
 
     return ret;    
+#else
+    return 0;
+#endif
 }
 
 int dc_hdl_node_capwap(struct json_object *obj)
