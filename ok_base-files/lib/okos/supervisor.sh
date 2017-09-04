@@ -4,6 +4,15 @@ while :
 do
     sleep 30
 
+    if [ "`uci get dhcp.@dnsmasq[0].address 2>/dev/null`" = "/#/192.168.2.1" ]
+    then
+        ping -c1 -W5 8.8.8.8 >/dev/null 2>&1
+        if [ "$?" = "0" ] 
+        then
+            uci del_list dhcp.@dnsmasq[0].address='/#/192.168.2.1';uci commit dhcp;/etc/init.d/dnsmasq restart;
+        fi
+    fi
+
     [ -z "`pgrep -f capwapc`" ] && {
         logger -t supervisor -p 5 "CAPWAP is exit abnormally, restart it !!!"
         /etc/init.d/capwapc restart
