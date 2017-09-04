@@ -438,5 +438,5 @@ if [ ! -s /etc/config/system ]; then
 fi
 uci commit
 #OK_PATCH
-cp /etc/config/netowrk /etc/defcfg/network
+cp /etc/config/network /etc/defcfg/network
 #end of OK_PATCH
