@@ -6,18 +6,29 @@ module("luci.controller.admin.index", package.seeall)
 function index()
 	local root = node()
 	if not root.target then
+        local s = require "luci.sys"
 		root.target = alias("admin")
 		root.index = true
 	end
 
 	local page   = node("admin")
-	page.target  = firstchild()
 	page.title   = _("Administration")
 	page.order   = 10
-	page.sysauth = "root"
-	page.sysauth_authenticator = "htmlauth"
+    -- OK_PATCH
+    local s = require "luci.sys"
+	page.target  = alias("admin", "network", "network")
+    -- registered if passwd is not default
+    if s.user.checkpasswd("root", "oakridge") ~= true then
+	    page.sysauth = "root"
+	    page.sysauth_authenticator = "htmlauth"
+        if s.net.pingtest("8.8.8.8") ~= 0 then
+	        page.target  = alias("admin", "network", "diagnostics")
+        end
+    end
+    -- end of OK_PATCH
 	page.ucidata = true
 	page.index = true
+
 
 	-- Empty services menu to be populated by addons
 	entry({"admin", "services"}, firstchild(), _("Services"), 40).index = true
