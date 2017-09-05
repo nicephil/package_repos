@@ -6,23 +6,16 @@ local fs = require "nixio.fs"
 local ut = require "luci.util"
 local pt = require "luci.tools.proto"
 local nw = require "luci.model.network"
-local fw = require "luci.model.firewall"
 
 arg[1] = arg[1] or ""
 
 local has_dnsmasq  = fs.access("/etc/config/dhcp")
-local has_firewall = fs.access("/etc/config/firewall")
 
 m = Map("network", translate("Interfaces") .. " - " .. arg[1]:upper(), translate("On this page you can configure the network interfaces. You can bridge several interfaces by ticking the \"bridge interfaces\" field and enter the names of several network interfaces separated by spaces. You can also use <abbr title=\"Virtual Local Area Network\">VLAN</abbr> notation <samp>INTERFACE.VLANNR</samp> (<abbr title=\"for example\">e.g.</abbr>: <samp>eth0.1</samp>)."))
 m.redirect = luci.dispatcher.build_url("admin", "network", "network")
 m:chain("wireless")
 
-if has_firewall then
-	m:chain("firewall")
-end
-
 nw.init(m.uci)
-fw.init(m.uci)
 
 
 local net = nw:get_network(arg[1])
@@ -297,41 +290,6 @@ if not net:is_virtual() then
 	ifname_multi:depends("type", "bridge")
 	ifname_multi.cfgvalue = ifname_single.cfgvalue
 	ifname_multi.write = ifname_single.write
-end
-
-
-if has_firewall then
-	fwzone = s:taboption("firewall", Value, "_fwzone",
-		translate("Create / Assign firewall-zone"),
-		translate("Choose the firewall zone you want to assign to this interface. Select <em>unspecified</em> to remove the interface from the associated zone or fill out the <em>create</em> field to define a new zone and attach the interface to it."))
-
-	fwzone.template = "cbi/firewall_zonelist"
-	fwzone.network = arg[1]
-	fwzone.rmempty = false
-
-	function fwzone.cfgvalue(self, section)
-		self.iface = section
-		local z = fw:get_zone_by_network(section)
-		return z and z:name()
-	end
-
-	function fwzone.write(self, section, value)
-		local zone = fw:get_zone(value)
-
-		if not zone and value == '-' then
-			value = m:formvalue(self:cbid(section) .. ".newzone")
-			if value and #value > 0 then
-				zone = fw:add_zone(value)
-			else
-				fw:del_network(section)
-			end
-		end
-
-		if zone then
-			fw:del_network(section)
-			zone:add_network(section)
-		end
-	end
 end
 
 
