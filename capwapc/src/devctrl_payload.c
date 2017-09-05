@@ -369,7 +369,6 @@ ERROR_OUT:
 
 static int dc_image_upgrade_response(devctrl_block_s *dc_block, void *reserved)
 {
-#if !OK_PATCH
     char *json_data = NULL, *payload;
     int paylength = 0, ret = 0, code = 0; 
 
@@ -399,9 +398,6 @@ static int dc_image_upgrade_response(devctrl_block_s *dc_block, void *reserved)
     CW_FREE_OBJECT(payload);
     
     return ret;
-#else
-    return 0;
-#endif
 }
 
 static int dc_reboot_handler(struct tlv *payload, void **reserved)
