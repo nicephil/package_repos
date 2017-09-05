@@ -11,11 +11,8 @@
 	<div class="errorbox"><%:Invalid passcode! Please try again.%></div>
 	<% end -%>
 
-	<div class="cbi-map">
-		<h2 name="content"><%:Authorization Required%></h2>
-		<div class="cbi-map-descr">
-			<%:Please enter your passcode.%>
-		</div>
+	<div class="cbi-map" style="text-align:center">
+		<h2 name="content"><%:Sign in to manage your internet connection%></h2>
 		<fieldset class="cbi-section"><fieldset class="cbi-section-node">
                 <div class="cbi-value" style="display:none"> <%# hiden username by OK_PATCH -%>
 				<label class="cbi-value-title"><%:Username%></label>
@@ -24,7 +21,7 @@
 				</div>
 			</div>
 			<div class="cbi-value cbi-value-last">
-				<label class="cbi-value-title"><%:Password%></label>
+				<label class="cbi-value-title"><%:Router Passcode%></label>
 				<div class="cbi-value-field">
 					<input class="cbi-input-password" type="password" name="luci_password" />
 				</div>
@@ -33,7 +30,7 @@
 	</div>
 
 	<div>
-		<input type="submit" value="<%:Login%>" class="cbi-button cbi-button-apply" />
+		<input type="submit" value="<%:Sign In%>" class="cbi-button cbi-button-apply" />
 	</div>
 </form>
 <script type="text/javascript">//<![CDATA[
