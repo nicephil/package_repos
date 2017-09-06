@@ -6,7 +6,16 @@
 # So, no more wireless network should be considered on gateway side.
 ################################################################################
 
-. ./gre.sh
+. $( dirname $0 )/gre.sh
+
+test ()
+{
+    local i=1
+    while [ $i -lt 200 ]; do
+        i=$(( $i + 1 ))
+        add_on_router 172.16.15.$i
+    done
+}
 
 case "$1" in
     start)
@@ -23,6 +32,9 @@ case "$1" in
         shift 1
         [ $# != 1 ] && echo "$0 add xxx.xxx.xxx.xxx" && exit 1
         add_on_router $1
+        ;;
+    test)
+        test
         ;;
     *)
         echo "Usage:"

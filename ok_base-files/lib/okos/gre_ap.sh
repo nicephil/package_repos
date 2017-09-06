@@ -1,6 +1,6 @@
 #!/bin/sh
 
-. ./gre.sh
+. $( dirname $0 )/gre.sh
 
 case "$1" in
     start)
