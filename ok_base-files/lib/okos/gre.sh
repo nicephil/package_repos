@@ -106,8 +106,6 @@ create_gre ()
     run "ip link add link $link name $name type gretap remote $remote_ip local $local_ip ttl 255"
     run "ip link set $name up"
     run "brctl addif $GUEST_LAN $name"
-
-    run "ip link set dev eth0 mtu 1600"
 }
 
 ipstr2hex ()
@@ -129,6 +127,7 @@ add_on_apgw ()
     local remote_ip=$1
 
     create_gre $PLAIN_LAN $remote_ip "${PRE_GRE_NAME}${remote_ip}"
+    run "ip link set dev eth0 mtu 1600"
 }
 
 add_on_ap ()
@@ -136,6 +135,7 @@ add_on_ap ()
     local remote_ip=$( ip r | awk '/default/{print $3}' )
 
     create_gre $PLAIN_LAN $remote_ip $GRE_NAME
+    run "ip link set dev eth0 mtu 1600"
 }
 
 
