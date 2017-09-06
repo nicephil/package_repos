@@ -1,4 +1,30 @@
 #!/bin/sh
+################################################################################
+# README
+# 
+# INPUT:
+#   This script should be called in ARPWatch with parameters: bridge name,
+#   ip address, mac address, time stamp, hostname. Hostname should be optional.
+#
+#   This script will be triggered when
+#   1) arpwatch finds a new ARP entry, or
+#   2) a host changed its ip address, or 
+#   3) an existed host resend ARP out for every 5 minutes.
+#
+# PROCESS:
+#   It will distinguish the cases by querying local database. There are 3 cases
+#   should be handled in this script:
+#   1) New Entry
+#   2) New Activity
+#   3) IP changed
+#
+# TARGET:
+#   The ideal is that we adandon all the features in arpwatch, just use it as
+#   capture tool of ARP. For host name updating, we can create a cron job to 
+#   update local arp database. But right now, didn't find out a utilitize to 
+#   query hostname yet.
+#
+################################################################################
 
 #. /lib/okos/arp_events.sh
 
