@@ -11,17 +11,20 @@
 	<div class="errorbox"><%:Invalid passcode! Please try again.%></div>
 	<% end -%>
 
-	<div class="cbi-map" style="text-align:center">
-		<h2 name="content"><%:Sign in to manage your internet connection%></h2>
+	<div class="cbi-map">
+		<h2 name="content"><%:Authorization Required%></h2>
+		<div class="cbi-map-descr">
+			<%:Please enter your passcode.%>
+		</div>
 		<fieldset class="cbi-section"><fieldset class="cbi-section-node">
-                <div class="cbi-value" style="display:none"> <%# hiden username by OK_PATCH -%>
+			<div class="cbi-value" style="display:none">
 				<label class="cbi-value-title"><%:Username%></label>
 				<div class="cbi-value-field">
 					<input class="cbi-input-user" type="text" name="luci_username" value="<%=duser%>" />
 				</div>
 			</div>
 			<div class="cbi-value cbi-value-last">
-				<label class="cbi-value-title"><%:Router Passcode%></label>
+				<label class="cbi-value-title"><%:Password%></label>
 				<div class="cbi-value-field">
 					<input class="cbi-input-password" type="password" name="luci_password" />
 				</div>
@@ -30,7 +33,7 @@
 	</div>
 
 	<div>
-		<input type="submit" value="<%:Sign In%>" class="cbi-button cbi-button-apply" />
+		<input type="submit" value="<%:Login%>" class="cbi-button cbi-button-apply" />
 	</div>
 </form>
 <script type="text/javascript">//<![CDATA[

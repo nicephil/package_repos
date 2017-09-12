@@ -19,6 +19,6 @@ config internal sauth
 	option sessiontime 3600
 	
 config internal ccache
-	option enable 0
+	option enable 1
 		
 config internal themes

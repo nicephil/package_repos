@@ -512,11 +512,10 @@ function net.routes6(callback)
 	end
 end
 
---OK_PATCH
 function net.pingtest(host)
-	return os.execute("ping -c1 -W5 '"..host:gsub("'", '').."' >/dev/null 2>&1")
+	return os.execute("ping -c1 -W4 '"..host:gsub("'", '').."' >/dev/null 2>&1")
 end
---end of OK_PATCH
+
 
 process = {}
 

