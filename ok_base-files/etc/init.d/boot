@@ -48,6 +48,13 @@ boot() {
     # OK_PATCH
     # generate productinfo
     /lib/okos/fetch_productinfo.sh > /etc/config/productinfo
+    [ "`uci get productinfo.productinfo.production`" = "ubnterx" ] && {
+        [ -d /sys/class/gpio ] && {
+            echo 0 > /sys/class/gpio/export
+            echo out > /sys/class/gpio/gpio0/direction
+            echo 1 > /sys/class/gpio/gpio0/value
+        }
+    }
     ## end OK_PATCH
 	
 	# temporary hack until configd exists
