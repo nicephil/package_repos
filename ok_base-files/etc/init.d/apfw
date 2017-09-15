@@ -12,6 +12,7 @@ start ()
     $CMD -A $FW_CHAIN -m state --state RELATED,ESTABLISHED -j ACCEPT 
     $CMD -A $FW_CHAIN -m state --state INVALID -j DROP 
     $CMD -A $FW_CHAIN -p icmp -j ACCEPT 
+    $CMD -A $FW_CHAIN -p tcp -m tcp --dport 7787 -m state --state NEW -j ACCEPT 
     $CMD -A $FW_CHAIN -p tcp -m tcp --dport 22 -m state --state NEW -j ACCEPT 
     $CMD -A $FW_CHAIN -p tcp -m tcp --dport 2060 -j ACCEPT 
     $CMD -A $FW_CHAIN -i ath50 -p udp -m udp --dport 67 -j ACCEPT 
