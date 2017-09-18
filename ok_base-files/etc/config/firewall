@@ -8,11 +8,7 @@ config defaults
 
 config zone
 	option name		lan
-	list   network		'lan4091'
-	list   network		'lan4092'
-	list   network		'lan4093'
-	list   network		'lan4094'
-	list   network		'lan4095'
+	list   network		'lan'
 	option input		ACCEPT
 	option output		ACCEPT
 	option forward		ACCEPT

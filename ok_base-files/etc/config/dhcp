@@ -20,32 +20,12 @@ config dnsmasq
 	#list notinterface	lo
 	#list bogusnxdomain     '64.94.110.11'
 	option localservice	1  # disable to allow DNS requests from non-local subnets
-    list address '/#/192.168.2.1'
 
-config dhcp lan4091
-	option interface	lan4091
+config dhcp lan
+	option interface	lan
 	option start 	100
 	option limit	150
 	option leasetime	12h
-
-config dhcp lan4092
-	option interface	lan4092
-	option start 	100
-	option limit	150
-	option leasetime	12h
-
-config dhcp lan4093
-	option interface	lan4093
-	option start 	100
-	option limit	150
-	option leasetime	12h
-
-config dhcp lan4094
-	option interface	lan4094
-	option start 	100
-	option limit	150
-	option leasetime	12h
-
 
 config dhcp wan
 	option interface	wan
