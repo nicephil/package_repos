@@ -68,6 +68,8 @@ function sanity_check_get()
 end
 
 function response_json(response)
+    http.header("Access-Control-Allow-Origin", "*")
+    http.header("Access-Control-Allow-Credentials", "true")
     http.prepare_content("application/json")
     http.write_json(response)
     http.close()
