@@ -159,6 +159,7 @@ ramips_setup_interfaces()
 		ucidef_add_switch "switch0" \
 			"0:lan:4090" "1:lan:4091" "2:lan:4092" "3:lan:4093" "4:wan:4094" "6@eth0"
 		;;
+		ucidef_set_interface_wan "eth0.2" "none"
 #end of OK_PATCH
 	awapn2403)
 		ucidef_add_switch "switch0" \
