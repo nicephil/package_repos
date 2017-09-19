@@ -151,15 +151,13 @@ generate_switch_vlans_ports() {
 		for role in $roles; do
 			json_select "$role"
 				json_get_vars ports
-                json_get_vars role
 			json_select ..
-            role=${role:3}
 
 			uci -q batch <<-EOF
-                set network.vlan${role}='switch_vlan'
-				set network.vlan${role}.device='$switch'
-				set network.vlan${role}.vlan='$role'
-				set network.vlan${role}.ports='$ports'
+				add network switch_vlan
+				set network.@switch_vlan[-1].device='$switch'
+				set network.@switch_vlan[-1].vlan='$role'
+				set network.@switch_vlan[-1].ports='$ports'
 			EOF
 		done
 
@@ -437,6 +435,3 @@ if [ ! -s /etc/config/system ]; then
 	for key in $keys; do generate_led $key; done
 fi
 uci commit
-#OK_PATCH
-cp /etc/config/network /etc/defcfg/network
-#end of OK_PATCH

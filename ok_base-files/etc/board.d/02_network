@@ -154,20 +154,13 @@ ramips_setup_interfaces()
 		ucidef_add_switch "switch0" \
 			"1:lan" "2:lan" "3:lan" "4:lan" "0:wan" "6@eth0"
 		;;
-
 # OK_PATCH
-    ubnt-erx)
+	ubnt-erx)
 		ucidef_add_switch "switch0" \
-			"1:lan4091" "2:lan4092" "3:lan4093" "4:lan4094" "0:wan4090" "6@eth0"
-        ucidef_set_interface_raw "wan4090" "eth1" "none"
-        ucidef_set_interface_raw "wan" "eth0.4090" "dhcp"
-        ucidef_set_interface_raw "lan4091" "eth0.4091" "static"
-        ucidef_set_interface_raw "lan4092" "eth0.4092" "static"
-        ucidef_set_interface_raw "lan4093" "eth0.4093" "static"
-        ucidef_set_interface_raw "lan4094" "eth0.4094" "static"
-        ;;
-# end of OK_PATCH
-
+			"0:lan:4090" "1:lan:4091" "2:lan:4092" "3:lan:4093" "4:wan:4094" "6@eth0"
+		;;
+		ucidef_set_interface_wan "eth0.2" "none"
+#end of OK_PATCH
 	awapn2403)
 		ucidef_add_switch "switch0" \
 			"0:lan" "1:wan" "6@eth0"
