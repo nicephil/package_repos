@@ -4,6 +4,8 @@ CFG=/etc/board.json
 
 . /usr/share/libubox/jshn.sh
 
+. /lib/ramips.sh
+
 [ -s $CFG ] || /bin/board_detect || exit 1
 [ -s /etc/config/network -a -s /etc/config/system ] && exit 0
 
@@ -226,8 +228,8 @@ generate_static_system() {
 	uci -q batch <<-EOF
 		delete system.@system[0]
 		add system system
-		set system.@system[-1].hostname='LEDE'
-		set system.@system[-1].timezone='UTC'
+		set system.@system[-1].hostname='oakridge'
+		set system.@system[-1].timezone='CST-8'
 		set system.@system[-1].ttylogin='0'
 		set system.@system[-1].log_size='64'
 		set system.@system[-1].urandom_seed='0'
@@ -434,4 +436,33 @@ if [ ! -s /etc/config/system ]; then
 	json_get_keys keys led
 	for key in $keys; do generate_led $key; done
 fi
+
+#OK_PATCH change vlan
+board=$(ramips_board_name)
+
+case $board in
+    ubnt-erx)
+        uci -q batch <<-EOF
+            set network.lan.ifname='eth0.4000'
+            set network.lan_dev.name='eth0.4000'
+            set network.wan.proto='none'
+            set network.wan.ifname='eth0.4094'
+            set network.wan6.ifname='eth0.4094'
+            set network.wan_dev.name='eth0.4094'
+            rename network.@switch_vlan[0]='vlan4000'
+            set network.vlan4000.vlan='4000'
+            rename network.@switch_vlan[1]='vlan4094'
+            set network.vlan4094.vlan='4094'
+EOF
+        ;;
+    *)
+        ;;
+esac
+
+#end of OK_PATCH
+
 uci commit
+
+#OK_PATCH
+cp /etc/config/network /etc/defcfg/network
+#end of OK_PATCH
