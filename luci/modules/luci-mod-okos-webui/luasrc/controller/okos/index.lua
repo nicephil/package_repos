@@ -23,7 +23,7 @@ function index()
     entry({"okos", "haspasscode"}, call("action_haspasscode"), _("CheckHasPasscode"))
     entry({"okos", "login"}, call("action_login"), _("Login)"))
     entry({"okos", "internetstatus"}, call("action_internetstatus"), _("InternetStatus"))
-    entry({"okos", "querywan"}, call("action_querywan"), _("QueryWAN"))
+    entry({"okos", "queryifs"}, call("action_queryifs"), _("QueryInterfaces"))
     entry({"okos", "configwan"}, call("action_configwan"), _("ConfigWAN"))
     entry({"okos", "renewip"}, call("action_renewip"), _("RenewIP"))
     entry({"okos", "diag"}, call("action_diag"), _("Diag"))
@@ -48,7 +48,14 @@ function sanity_check_json()
     -- sanity check
     local hm = http.getenv("REQUEST_METHOD")
     local ct = http.getenv("CONTENT_TYPE")
-    if hm ~= "POST" or not ct:match("^application/json") then
+    if hm == "OPTIONS" then
+        http.header("access-control-allow-credentials", "true")
+        http.header("access-control-allow-methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE")
+        http.header("access-control-allow-origin", "*")
+        http.status(200, "OK") 
+        http.close()
+        return false
+    elseif hm ~= "POST" or not ct:match("^application/json") then
         http.status(400, "Bad Request")
         http.close()
         return false
@@ -165,8 +172,27 @@ function action_internetstatus()
     response_json(response)
 end
 
--- get current wan information
-function action_querywan()
+local p2l_names = { }                                             
+p2l_names['eth0.4090'] = 'e0'                            
+p2l_names['eth0.4091'] = 'e1'
+p2l_names['eth0.4092'] = 'e2'
+p2l_names['eth0.4093'] = 'e3'
+p2l_names['eth0.4094'] = 'e4'
+p2l_names['br-lan'] = 'switch'          
+
+
+local l2p_names = { }                                             
+l2p_names['e0'] = 'eth0.4090'                            
+l2p_names['e1'] = 'eth0.4091'
+l2p_names['e2'] = 'eth0.4092'
+l2p_names['e3'] = 'eth0.4093'
+l2p_names['e4'] = 'eth0.4094'
+l2p_names['switch'] = 'br-lan'          
+
+
+
+-- get all interfaces information
+function action_queryifs()
     -- sanity check --
     if not sanity_check_get() then
         return
@@ -176,6 +202,21 @@ function action_querywan()
     local response = { }
     --[[
     response = {
+    e4: {
+        ifname = "eth0.4094",
+        mac = "F0:9F:C2:6D:24:7F",
+        proto = "dhcp",
+        ipaddr = "192.165.1.183",
+        netmask = "255.255.255.0",
+        gateway = "192.165.1.254",
+        dns = ["114.114.114.114", "8.8.8.8"],
+        username = "oakridge", 
+        password = "oakridge",
+        mtu = "1500",
+        sid = "WAN",
+        up = "1"
+    }
+    switch: {
         ifname = "eth0.4090",
         mac = "F0:9F:C2:6D:24:7F",
         proto = "dhcp",
@@ -186,23 +227,47 @@ function action_querywan()
         username = "oakridge", 
         password = "oakridge",
         mtu = "1500"
+        sid = "WAN",
+        up = "1"
+    }
     }
     ]]--
-    local wandev = nw:get_wandev()
-    local tmp = nw:get_protocol("static", "wan")
-    local wanp = nw:get_protocol(tmp:get("proto"), "wan") 
-    response.mac = wandev:mac()
-    response.mtu = wandev:_ubus("mtu")
-    response.ifname = wanp:ifname()
-    response.proto = wanp:proto()
-    response.ipaddr = wanp:ipaddr()
-    response.netmask = wanp:netmask()
-    response.gateway = wanp:gwaddr()
-    response.dns = wanp:dnsaddrs()
-    response.username = wanp:get("username")
-    response.password = wanp:get("password")
+                                                           
+   for _,nt in pairs(nw:get_networks()) do
+        if nt.sid ~= "loopback" then
+            local tp = nw:get_protocol("static", nt.sid)
+            local np = nw:get_protocol(tp:get("proto"), nt.sid)            
+            local npdev = np:get_interface()
+            local ifname = np:ifname()
+            ifname = p2l_names[ifname]
+            response[ifname] = { }
+            local res = response[ifname]
+            res.ifname = np:ifname()
+            res.mac = npdev:mac()
+            res.up = npdev:is_up()
+            res.sid = nt.sid
+            res.mtu = npdev:_ubus("mtu")
+            res.proto = np:proto()
+            if res.up then
+                res.ipaddr = np:ipaddr()            
+                res.netmask = np:netmask()        
+                res.gateway = np:gwaddr()
+                res.dns = np:dnsaddrs()                                
+            else
+                -- not up, should get static from config
+                if re.proto == "static" then
+                    res.ipaddr = np:get("ipaddr")
+                    res.netmask = np:get("netmask")
+                    res.gateway = np:get("gateway")
+                    res.dns = np:get("dns")
+                end
+            end
+            res.username = np:get("username")                                                    
+            res.password = np:get("password")              
+        end                   
+    end      
 
-    -- response --
+        -- response --
     response_json(response)
     
 end
@@ -256,12 +321,19 @@ function action_configwan()
     response.errcode = 0
 
     -- del existing ifname network
-    local ifn = nw:get_interface(input.ifname)
-    local n = ifn:get_network() 
-    nw:del_network(n.sid)
+    local ifn = nw:get_interface(l2p_names[input.ifname])
+    if ifn == nil then
+        -- should be in switch, setup a vlan interface
+        local tp = nw:get_protocol("static")
+        local switch_ports = tp:get("vlan4000", "ports")
+        dumptable(switch_ports)
+    else
+        local n = ifn:get_network() 
+        nw:del_network(n.sid)
+    end
     -- del existing wan network
     nw:del_network("wan")
-
+--[[
     -- setup new network
     local net =  { }
     if input.proto == "static" then
@@ -277,7 +349,7 @@ function action_configwan()
     else
         response.errcode = 1
     end
-
+]]--
     -- response --
     response_json(response)
 

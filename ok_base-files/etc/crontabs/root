@@ -1,1 +1,1 @@
-*/10 * * * * /lib/okos/apstats.sh
+*/10 * * * * /lib/okos/devstats.sh
