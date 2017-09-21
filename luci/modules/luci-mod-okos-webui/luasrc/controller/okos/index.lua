@@ -66,7 +66,14 @@ end
 function sanity_check_get()
     -- sanity check
     local hm = http.getenv("REQUEST_METHOD")
-    if hm ~= "GET" then
+    if hm == "OPTIONS" then
+        http.header("access-control-allow-credentials", "true")
+        http.header("access-control-allow-methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE")
+        http.header("access-control-allow-origin", "*")
+        http.status(200, "OK") 
+        http.close()
+        return false
+    elseif hm ~= "GET" then
         http.status(400, "Bad Request")
         http.close()
         return false
