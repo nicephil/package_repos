@@ -237,6 +237,7 @@ function action_queryifs()
         if nt.sid ~= "loopback" then
             local tp = nw:get_protocol("static", nt.sid)
             local np = nw:get_protocol(tp:get("proto"), nt.sid)            
+            if np ~= nil then
             local npdev = np:get_interface()
             local ifname = np:ifname()
             ifname = p2l_names[ifname]
@@ -255,7 +256,7 @@ function action_queryifs()
                 res.dns = np:dnsaddrs()                                
             else
                 -- not up, should get static from config
-                if re.proto == "static" then
+                if res.proto == "static" then
                     res.ipaddr = np:get("ipaddr")
                     res.netmask = np:get("netmask")
                     res.gateway = np:get("gateway")
@@ -264,7 +265,8 @@ function action_queryifs()
             end
             res.username = np:get("username")                                                    
             res.password = np:get("password")              
-        end                   
+            end                   
+        end
     end      
 
         -- response --
@@ -321,19 +323,20 @@ function action_configwan()
     response.errcode = 0
 
     -- del existing ifname network
-    local ifn = nw:get_interface(l2p_names[input.ifname])
+    input.ifname = l2p_names[input.ifname]
+    local ifn = nw:get_interface(input.ifname)
     if ifn == nil then
-        -- should be in switch, setup a vlan interface
-        local tp = nw:get_protocol("static")
-        local switch_ports = tp:get("vlan4000", "ports")
-        dumptable(switch_ports)
+        -- no vlan interface
+        response.errcode = 1
+        dumptable(response)
+        response_json(response)
+        return
     else
         local n = ifn:get_network() 
         nw:del_network(n.sid)
     end
     -- del existing wan network
     nw:del_network("wan")
---[[
     -- setup new network
     local net =  { }
     if input.proto == "static" then
@@ -349,10 +352,9 @@ function action_configwan()
     else
         response.errcode = 1
     end
-]]--
+    
     -- response --
     response_json(response)
-
 end
 
 
