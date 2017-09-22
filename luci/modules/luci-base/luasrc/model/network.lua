@@ -346,6 +346,13 @@ function commit(self, ...)
 	_uci:load(...)
 end
 
+-- OK_PATCH
+function revert(self, ...)
+    _uci:revert(...)
+    _uci:load(...)
+end
+-- end of OK_PATCH
+
 function ifnameof(self, x)
 	if utl.instanceof(x, interface) then
 		return x:name()

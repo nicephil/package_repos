@@ -8,6 +8,7 @@ local sys = require "luci.sys"
 local json = require "luci.json"
 local nw = require "luci.model.network".init()
 local string = require "string"
+local uci = require "luci.model.uci".cursor()
 
 module("luci.controller.okos.index", package.seeall)
 
@@ -28,6 +29,7 @@ function index()
     entry({"okos", "renewip"}, call("action_renewip"), _("RenewIP"))
     entry({"okos", "diag"}, call("action_diag"), _("Diag"))
     entry({"okos", "querydiag"}, call("action_querydiag"), _("QueryDiag"))
+    entry({"okos", "devumac"}, call("action_devumac"), _("DeviceUniqueMAC"))
     entry({"okos", "regdev"}, call("action_regdev"), _("RegDev"))
 end
 
@@ -191,17 +193,6 @@ p2l_names['eth0.4093'] = 'e3'
 p2l_names['eth0.4094'] = 'e4'
 p2l_names['br-lan'] = 'switch'          
 
-
-local l2p_names = { }                                             
-l2p_names['e0'] = 'eth0.4090'                            
-l2p_names['e1'] = 'eth0.4091'
-l2p_names['e2'] = 'eth0.4092'
-l2p_names['e3'] = 'eth0.4093'
-l2p_names['e4'] = 'eth0.4094'
-l2p_names['switch'] = 'br-lan'          
-
-
-
 -- get all interfaces information
 function action_queryifs()
     -- sanity check --
@@ -251,14 +242,21 @@ function action_queryifs()
             if np ~= nil then
             local npdev = np:get_interface()
             local ifname = np:ifname()
-            ifname = p2l_names[ifname]
-            response[ifname] = { }
-            local res = response[ifname]
-            res.ifname = np:ifname()
+            if np:proto() == "pppoe" then
+                ifname = np:get("ifname")
+            end
+            local lifname = p2l_names[ifname]
+            response[#response+1] = { }
+            local res = response[#response]
+            res.lname = lifname
+            res.ifname = ifname
             res.mac = npdev:mac()
             res.up = npdev:is_up()
             res.sid = nt.sid
             res.mtu = npdev:_ubus("mtu")
+            if res.mtu == nil then
+                res.mtu = np:get("mtu")
+            end
             res.proto = np:proto()
             if res.up then
                 res.ipaddr = np:ipaddr()            
@@ -298,6 +296,7 @@ function action_configwan()
     --[[
     input = {
         proto = "dhcp",
+        lname = "e4",
         ifname = "eth0.4090",
         ipaddr = "192.165.1.168",
         netmask = "255.255.255.0",
@@ -334,12 +333,10 @@ function action_configwan()
     response.errcode = 0
 
     -- del existing ifname network
-    input.ifname = l2p_names[input.ifname]
     local ifn = nw:get_interface(input.ifname)
     if ifn == nil then
         -- no vlan interface
         response.errcode = 1
-        dumptable(response)
         response_json(response)
         return
     else
@@ -372,16 +369,42 @@ end
 -- do renew ip
 function action_renewip()
     -- sanity check --
-    if not sanity_check_get() then
+    if not sanity_check_json() then
         return
     end
+    
+    -- parse json
+    local hc = http.content()
+    local input, rc, err = json.decode(hc)
+    --[[
+    input = {
+        lname = 'e0',
+        ifname = 'eth0.4090'
+    }
+    ]]--
 
     -- process --
-    sys.call("killall -SIGUSR1 udhcpc; sleep 10")
-    
+    -- del existing ifname network
+    local ifn = nw:get_interface(input.ifname)
+    if ifn == nil then
+        -- no vlan interface
+        response.errcode = 1
+        response_json(response)
+        return
+    else
+        local n = ifn:get_network() 
+        nw:del_network(n.sid)
+    end
+    -- del existing wan network
+    nw:del_network("wan")
+    -- setup new network
+    local net =  { }
+    net = nw:add_network("wan", {proto="dhcp"})
+
     local response = { }
     --[[
     response = {
+        lname = "e0",
         ifname = "eth0.4090",
         ipaddr = "192.165.1.183",
         netmask = "255.255.255.0",
@@ -390,14 +413,26 @@ function action_renewip()
         errcode = 0
     }
     ]]--
-    local wanp = nw:get_protocol("dhcp", "wan") 
-    response.ifname = wanp:ifname()
-    response.ipaddr = wanp:ipaddr()
-    response.netmask = wanp:netmask()
-    response.gateway = wanp:gwaddr()
-    response.dns = wanp:dnsaddrs()
-    response.errcode = 0
-
+    if net then
+        net:add_interface(input.ifname)
+        nw:save("network")
+        response.errcode = sys.call("env -i /bin/ubus call network reload;sleep 3")
+        if response.errcode == 0 then
+            local wanp = nw:get_protocol("dhcp", "wan") 
+            response.lname = input.lname
+            response.ifname = wanp:ifname()
+            response.ipaddr = wanp:ipaddr()
+            response.netmask = wanp:netmask()
+            response.gateway = wanp:gwaddr()
+            response.dns = wanp:dnsaddrs()
+            response.errcode = 0
+            nw:revert("network")
+            sys.call("env -i /bin/ubus call network reload")
+        end
+    else
+        response.errcode = 1
+    end
+   
     -- response --
     response_json(response)
  
@@ -463,8 +498,9 @@ function action_querydiag()
     response.errcode = -1
     response.step = input.step
     local log = sys.dmesg()
+    local np =nw:get_protocol("static","wan")
     if input.step == 1 then
-        if log:match("ppp") == nil then
+        if log:match("ppp") ~= nil then
             response.errcode = -1
         else
             if log:match("Unable to complete PPPoE Discovery") ~= nil then
@@ -486,24 +522,27 @@ function action_querydiag()
             response.step = 3
         end
     elseif input.step == 3 then
-        if log:match("netifd: wan .*: udhcpc: performing DHCP renew") == nil then
+        if np:ipaddr() == nil then
             response.errcode = 1
+            response.step = 3
         else
-            if log:match("netifd: wan .* : udhcpc: .* obtained") == nil then
-                response.errcode = 1
-            else
-                response.errcode = 0
-            end
+            response.errcode = 0
             response.step = 4
         end
     elseif input.step == 4 then
         if sys.net.pingtest("www.baidu.com") ~= 0 then
-            response.step = 5
+            response.step = 4
             response.errcode = 1
+        else
+            response.errcode = 0
+            response.step = 5
         end
     elseif input.step == 5 then
         if sys.net.pingtest("cloud.oakridge.vip") ~=0 then
             response.errcode = 1
+            response.step = 5
+        else
+            response.errcode = 0
             response.step = -1
         end
     end
@@ -512,7 +551,29 @@ function action_querydiag()
     response_json(response)
 end
 
--- register device
+-- fetch device unique mac
+function action_devumac()
+    -- sanity check --
+    if not sanity_check_get() then
+        return
+    end
+
+    -- process --
+    local response = { }
+    --[[
+    response = {
+        errocode = 0,
+        mac = "00:11:22:33:44:55"
+    }
+    ]]--
+    response.errcode = 0
+    response.mac = uci:get("productinfo", "productinfo", "mac") 
+
+    -- response --
+    response_json(response)
+end
+
+-- register device response from cloud
 function action_regdev()
     -- sanity check --
     if not sanity_check_json() then
