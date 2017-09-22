@@ -73,7 +73,7 @@ config uhttpd main
 	# HTTP Keep-Alive, specifies the timeout for persistent
 	# HTTP/1.1 connections. Setting this to 0 will disable
 	# persistent HTTP connections.
-	option http_keepalive	20
+	option http_keepalive	0
 
 	# TCP Keep-Alive, send periodic keep-alive probes
 	# over established connections to detect dead peers.
@@ -108,6 +108,9 @@ config uhttpd main
 	# resources.
 #	list httpauth prefix_user
 
+	# CORS enable
+#	option ubus_cors '1'
+
 
 # Defaults for automatic certificate and key generation
 config cert defaults
@@ -124,7 +127,7 @@ config cert defaults
 	option location		Unknown
 
 	# Common name
-	option commonname	'LEDE'
+	option commonname	'oakridge'
 
 # config httpauth prefix_user
 #	option prefix /protected/url/path
