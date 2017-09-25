@@ -9,3 +9,4 @@ rm -rf /tmp/blacklist.lock
 /etc/init.d/wifidog restart&
 /etc/init.d/whitelist restart&
 /etc/init.d/qos restart&
+/etc/init.d/lbd restart&
