@@ -13,10 +13,10 @@ SERVICE_STOP_TIME=3
 
 CONFIG_FILE="/etc/capwapc/config.wtp"
 
-. /lib/functions.sh
 
 buffer=""
 
+. /lib/functions.sh
 config_cb() {
     local type="$1"
     local name="$2"
