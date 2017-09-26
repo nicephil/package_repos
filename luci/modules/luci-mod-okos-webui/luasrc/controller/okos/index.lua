@@ -416,7 +416,7 @@ function action_renewip()
     if net then
         net:add_interface(input.ifname)
         nw:save("network")
-        response.errcode = sys.call("env -i /bin/ubus call network reload;sleep 3")
+        response.errcode = sys.call("env -i /bin/ubus call network reload;sleep 8")
         if response.errcode == 0 then
             local wanp = nw:get_protocol("dhcp", "wan") 
             response.lname = input.lname
@@ -426,6 +426,9 @@ function action_renewip()
             response.gateway = wanp:gwaddr()
             response.dns = wanp:dnsaddrs()
             response.errcode = 0
+            if response.ipaddr == nil then
+                response.errcode = 1
+            end
             nw:revert("network")
             sys.call("env -i /bin/ubus call network reload")
         end
@@ -454,7 +457,8 @@ function action_diag()
         errcode = 0
     }
     ]]--
-    response.errcode = sys.call("env -i /bin/ubus call network reload")
+    sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/192.168.1.1';/etc/init.d/dnsmasq reload;sleep 2")
+    response.errcode = sys.call("env -i /bin/ubus call network reload;sleep 2")
     sys.call("/etc/init.d/log restart")
     tmp = nw:get_protocol("static", "wan")
     response.proto = tmp:get("proto")
@@ -500,15 +504,17 @@ function action_querydiag()
     local log = sys.dmesg()
     local np =nw:get_protocol("static","wan")
     if input.step == 1 then
-        if log:match("ppp") ~= nil then
-            response.errcode = -1
+        if log:match("ppp") == nil then
+            response.errcode = 1
+            response.step = 1
         else
             if log:match("Unable to complete PPPoE Discovery") ~= nil then
                 response.errcode = 1
+                response.step = 1
             else
                 response.errcode = 0
+                response.step = 2
             end
-            response.step = 2
         end
     elseif input.step == 2 then
         if log:match("ppp") == nil then
@@ -545,6 +551,13 @@ function action_querydiag()
             response.errcode = 0
             response.step = -1
         end
+    end
+
+    if response.errcode == 1 then
+        sys.call("uci revert dhcp;/etc/init.d/dnsmasq reload;sleep 3")
+    end
+    if response.errocode == 0 and response.step == -1 then
+        sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/192.168.1.1';uci commit dhcp;/etc/init.d/dnsmasq reload;sleep 3")
     end
 
     -- response --

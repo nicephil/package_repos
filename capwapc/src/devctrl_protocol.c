@@ -123,9 +123,9 @@ struct device_update_info* chk_dev_updateinfo(void)
 		return NULL;
 	}
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, "eth0.4090", sizeof(ifr.ifr_name));
+	strncpy(ifr.ifr_name, "eth0.4094", sizeof(ifr.ifr_name));
 	if (ioctl(sk, SIOCGIFADDR, &ifr) < 0) {
-        syslog(LOG_ERR, "no such interface: eth0.4090");
+        syslog(LOG_ERR, "no such interface: eth0.4094");
 		close(sk);
 		return NULL;
 	}
@@ -227,9 +227,9 @@ static int get_device_info(device_info_s *devinfo)
 		return -1;
 	}
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, "eth0.4090", sizeof(ifr.ifr_name));
+	strncpy(ifr.ifr_name, "eth0.4094", sizeof(ifr.ifr_name));
 	if (ioctl(sk, SIOCGIFADDR, &ifr) < 0) {
-        syslog(LOG_ERR, "no interface: eth0.4090");
+        syslog(LOG_ERR, "no interface: eth0.4094");
 		close(sk);
 		return -1;
 	}
