@@ -1808,25 +1808,26 @@ static int dc_router_config_handler(struct tlv *payload, void **reserved)
 
     char terminated = payload->v[payload->l];
     payload->v[payload->l] = 0;
-    char *command = (char *)malloc(strlen(prog) + strlen(payload->v) + 8);
-    sprintf(command, "%s \"%s\"", prog, payload);
-
+    char *env = (char *)malloc(payload->l + 4);
+    strcpy(env, payload->v);
+    CWLog("System env:json_data=%s", env);
+    setenv("json_data", env, 1);
 
     struct dc_handle_result *result = (struct dc_handle_result *)malloc(sizeof(struct dc_handle_result));
     memset(result, 0, sizeof(struct dc_handle_result));
 
     int ret = 0;
 
-    ret = system(command);
+    ret = system(prog);
     result->code = WEXITSTATUS(ret);
 
-    free (command);
+    free (env);
     payload->v[payload->l] = terminated;
     *reserved = result;
     return 0;
 }
 
-static int dc_prepare_router_response(void *reserved)
+static char *dc_prepare_router_response(void *reserved)
 {
     struct dc_handle_result {
         int  code;
@@ -1834,7 +1835,6 @@ static int dc_prepare_router_response(void *reserved)
     };
     int code = ((struct dc_handle_result *)reserved)->code;
 
-    struct dc_handle_result result;
     json_object *resp_obj = NULL, *data_obj = NULL;
     char *json_string, *json_data_str;
     
@@ -1846,9 +1846,10 @@ static int dc_prepare_router_response(void *reserved)
     json_object_object_add(data_obj, "code", json_object_new_int(code));
     json_data_str = malloc(strlen(json_object_to_json_string(data_obj)) + 1);
     if (!json_data_str) {
+        json_object_put(data_obj);
         return NULL;
     }
-    strcpy(json_data_str, json_object_to_json_string(json_data_str));
+    strcpy(json_data_str, json_object_to_json_string(data_obj));
     json_object_put(data_obj);
 
 #define ROUTER_MESSAGE_OPERATE_TYPE_COMMON 10000
@@ -1860,13 +1861,11 @@ static int dc_prepare_router_response(void *reserved)
     
     json_object_object_add(resp_obj, "operate_type", json_object_new_int(ROUTER_MESSAGE_OPERATE_TYPE_COMMON));    
 
-    struct product_info info = {0};
-    cfg_get_product_info(&info);
-    json_object_object_add(resp_obj, "mac", json_object_new_string(info.mac));
     json_object_object_add(resp_obj, "data", json_object_new_string(json_data_str));
 
     json_string = malloc(strlen(json_object_to_json_string(resp_obj)) + 1);
     if (!json_string) {
+        json_object_put(resp_obj);
         free(json_data_str);
         return NULL;
     }
@@ -1887,9 +1886,8 @@ static int dc_router_config_response(devctrl_block_s *dc_block, void *reserved)
     char *json_data = NULL, *payload;
     int paylength = 0, ret = 0; 
 
-   
      json_data = dc_prepare_router_response(reserved);
-     if (!json_data) {
+     if (json_data) {
         paylength = strlen(json_data);
      }
 
