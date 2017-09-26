@@ -47,9 +47,8 @@ then
     exit
 fi
 
-config_load network
 
-add_list_into_json_array()
+function add_list_into_json_array()
 {
     local value="$1"
     local array_name="$2"
@@ -59,9 +58,30 @@ add_list_into_json_array()
     json_select ..
 }
 
+function fetch_ddns_config()
+{
+    local section="$1"
+    local __tmp1=""
+    json_add_object
+    json_add_string key "$section"
+    config_get __tmp1 "$section" service_name
+    json_add_string service_name "$__tmp1"
+    config_get __tmp1 "$section" domain
+    json_add_string domain "$__tmp1"
+    config_get __tmp1 "$section"  username
+    json_add_string username "$__tmp1"
+    config_get __tmp1 "$section" password
+    json_add_string password "$__tmp1"
+    json_add_int state 0
+    json_add_int update_time 0
+    json_close_object
+}
+
+
 # 4. generate json file
 function generate_json()
 {
+
 network_get_interfaces ifcs
 
 json_init
@@ -77,6 +97,10 @@ do
 
     network_get_lname _tmp1 "$ifname"
     json_add_string name "$_tmp1"
+
+    local proto
+    network_get_protocol proto "$ifc"
+    json_add_string proto "$proto"
 
     # 0:WAN,1:LAN,2:BRIDGE
     local l_type
@@ -94,7 +118,11 @@ do
             l_type=''
             ;;
     esac
-    json_add_string "type" "$l_type"
+    if [ "$proto" = "none" ]
+    then
+        l_type = '3'
+    fi
+    json_add_int "type" "$l_type"
 
     network_get_status _tmp1 "$ifc"
     json_add_int state "$_tmp1"
@@ -108,9 +136,6 @@ do
     network_get_uptime _tmp1 "$ifc"
     json_add_int uptime "$_tmp1"
 
-    local proto
-    network_get_protocol proto "$ifc"
-    json_add_string proto "$proto"
 
     if [ "$state" = "0" -a "$proto" = "static" ]
     then
@@ -118,12 +143,20 @@ do
         network_get_ipaddrs _tmp1 "$ifc"
         json_select_array ips
             json_add_object
+                config_load network
                 config_get _tmp1 "$ifc" ipaddr
                 json_add_string ip "$_tmp1"
                 config_get _tmp1 "$ifc" netmask
                 json_add_string netmask "$_tmp1"
                 config_get _tmp1 "$ifc" gateway
                 json_add_string gateway "$_tmp1"
+                if [ "$l_type" = "0" ]
+                then
+                    json_select_array ddnss
+                    config_load ddns
+                    config_foreach fetch_ddns_config service
+                    json_select ..
+                fi
             json_close_object
         json_select ..
     else
@@ -132,6 +165,7 @@ do
         json_select_array ips
             json_add_object
                 json_add_string key ""
+                config_load network
                 config_get _tmp1 "$ifc" username
                 json_add_string pppoe_username "$_tmp1"
                 config_get _tmp1 "$ifc" password
@@ -142,6 +176,13 @@ do
                 json_add_string netmask "$_tmp1"
                 network_get_gateway _tmp1 "$ifc"
                 json_add_string gateway "$_tmp1"
+                if [ "$l_type" = "0" ]
+                then
+                    json_select_array ddnss
+                    config_load ddns
+                    config_foreach fetch_ddns_config service
+                    json_select ..
+                fi
             json_close_object
         json_select ..
     fi
@@ -174,12 +215,8 @@ json_add_string data "$jsdump"
 
 json_data=$(json_dump)
 
-# echo $json_data
-
-# WAN
-
-exit
+echo $json_data
 
 # 6. upload json file to nms
-URL="http://${mas_server}/nms/api/device/router/interface"
-curl -i -X POST -H "'Content-type':'application/x-www-form-urlencoded', 'charset':'utf-8', 'Accept': 'text/plain'" -d "$json_data" $URL
+URL="http://${mas_server}/nms/api/device/router/info"
+curl -i -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "$json_data" $URL
