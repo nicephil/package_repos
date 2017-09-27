@@ -2,7 +2,7 @@
 
 DEBUG="$1"
 [ -n "$DEBUG" ] && {
-    export 'json_data={"data":"{\"config\":\"ddns\",\"name\":\"ddns_test\",\"type\":\"service\",\"values\":{\"enabled\":\"1\",\"username\":\"largepuppet\",\"password\":\"wodemima\",\"service_name\":\"3322.org\",\"domain\":\"largepuppet.f3322.net\",\"interface\":\"wan\"}}","operate_type":3}'
+    export 'json_data={"data":"{\"config\":\"ddns\",\"name\":\"ddns_test\",\"type\":\"service\",\"values\":{\"enabled\":\"1\",\"username\":\"largepuppet\",\"password\":\"wodemima\",\"service_name\":\"3322.org\",\"domain\":\"largepuppet.f3322.net\",\"interface\":\"wan\",\"lookup_host\":\"largepuppet.f3322.net\"}}","operate_type":3}'
 }
 
 function config_log()
@@ -39,13 +39,13 @@ function handle_ddns()
             ret="$?"
             [ "$ret" != "0" ] && return 1
             $lucihelper -S "$section" -- start
-            sleep 5
+            sleep 10
             pid=$(cat /var/run/ddns/"$section".pid 2>/dev/null)
-            ready=$(grep "No answer" /var/run/ddns/"$section".dat 2>/dev/null)
-            ubus call uci delete "{\"config\":\"ddns\", \"section\":\"$section\"}"
+            ready=$(egrep "good|nochg" /var/run/ddns/"$section".dat 2>/dev/null)
+            ubus call uci revert "{\"config\":\"ddns\"}"
             kill -6 "$pid"
             config_log "$pid,$ready,$section"
-            [ -z "$pid" -o -n "$ready" ] && return 1
+            [ -z "$pid" -o -z "$ready" ] && return 1
             return 0
             ;;
         "4") # config
