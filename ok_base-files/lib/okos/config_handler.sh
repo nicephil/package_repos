@@ -44,6 +44,7 @@ function handle_ddns()
             ready=$(egrep "good|nochg" /var/run/ddns/"$section".dat 2>/dev/null)
             ubus call uci revert "{\"config\":\"ddns\"}"
             kill -6 "$pid"
+            rm -rf /var/run/ddns/"$section".pid /var/run/ddns/"$section".dat
             config_log "$pid,$ready,$section"
             [ -z "$pid" -o -z "$ready" ] && return 1
             return 0
