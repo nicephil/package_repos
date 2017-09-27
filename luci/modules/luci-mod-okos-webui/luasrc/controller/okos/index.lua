@@ -457,8 +457,8 @@ function action_diag()
         errcode = 0
     }
     ]]--
-    sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/192.168.1.1';/etc/init.d/dnsmasq reload;sleep 2")
-    response.errcode = sys.call("env -i /bin/ubus call network reload;sleep 2")
+    sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/192.168.1.1';/etc/init.d/dnsmasq reload;")
+    response.errcode = sys.call("env -i /bin/ubus call network reload;sleep 5")
     sys.call("/etc/init.d/log restart")
     tmp = nw:get_protocol("static", "wan")
     response.proto = tmp:get("proto")
@@ -501,6 +501,7 @@ function action_querydiag()
     ]]--
     response.errcode = -1
     response.step = input.step
+    sys.call("sleep 3")
     local log = sys.dmesg()
     local np =nw:get_protocol("static","wan")
     if input.step == 1 then
