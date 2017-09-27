@@ -72,8 +72,17 @@ function fetch_ddns_config()
     json_add_string username "$__tmp1"
     config_get __tmp1 "$section" password
     json_add_string password "$__tmp1"
-    json_add_int state 0
-    json_add_int update_time 0
+    local pid=$(cat /var/run/ddns/"$section".pid 2>/dev/null)
+    local upt=$(cat /var/run/ddns/"$section".update 2>/dev/null)
+    __tmp1=$(grep 'No anwser' /var/run/ddns/"$section".dat 2>/dev/null)
+    if [ -z "$pid" -o -z "$upt" -o -n "$__tmp1" ]
+    then
+        json_add_int state 0
+        json_add_int update_time 0
+    else
+        json_add_int state 1
+        json_add_init update_time "$upt"
+    fi
     json_close_object
 }
 

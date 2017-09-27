@@ -444,6 +444,7 @@ case $board in
     ubnt-erx)
         uci -q batch <<-EOF
             set network.lan.ifname='eth0.4000'
+            set network.lan.ipaddr='172.16.254.254'
             set network.lan_dev.name='eth0.4000'
             set network.wan.proto='none'
             set network.wan.ifname='eth0.4094'

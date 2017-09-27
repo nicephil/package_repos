@@ -4,12 +4,12 @@ while :
 do
     sleep 30
 
-    if [ "`uci get dhcp.@dnsmasq[0].address 2>/dev/null`" = "/#/192.168.1.1" ]
+    if [ "`uci get dhcp.@dnsmasq[0].address 2>/dev/null`" = "/#/172.16.254.254" ]
     then
         ping -c1 -W5 8.8.8.8 >/dev/null 2>&1
         if [ "$?" = "0" ] 
         then
-            uci del_list dhcp.@dnsmasq[0].address='/#/192.168.1.1';uci commit dhcp;/etc/init.d/dnsmasq restart;
+            uci del_list dhcp.@dnsmasq[0].address='/#/172.16.254.254';uci commit dhcp;/etc/init.d/dnsmasq restart;
         fi
     fi
 
