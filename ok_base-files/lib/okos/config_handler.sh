@@ -2,7 +2,8 @@
 
 DEBUG="$1"
 [ -n "$DEBUG" ] && {
-    export 'json_data={"data":"{\"config\":\"ddns\",\"name\":\"ddns_test\",\"type\":\"service\",\"values\":{\"enabled\":\"1\",\"username\":\"largepuppet\",\"password\":\"wodemima\",\"service_name\":\"3322.org\",\"domain\":\"largepuppet.f3322.net\",\"interface\":\"wan\",\"lookup_host\":\"largepuppet.f3322.net\"}}","operate_type":3}'
+    #export 'json_data={"data":"{\"config\":\"ddns\",\"name\":\"ddns_test\",\"type\":\"service\",\"values\":{\"enabled\":\"1\",\"username\":\"largepuppet\",\"password\":\"wodemima\",\"service_name\":\"3322.org\",\"domain\":\"largepuppet.f3322.net\",\"interface\":\"wan\",\"lookup_host\":\"largepuppet.f3322.net\"}}","operate_type":3}'
+    export 'json_data={"data":"{\"config\":\"firewall\",\"name\":\"portforwarding_3\",\"type\":\"redirect\",\"values\":{\"src\":\"wan\",\"proto\":\"tcp\",\"dest\":\"lan\",\"display_name\":\"ssh\",\"src_dport\":\"2222\",\"dest_ip\":\"172.16.254.254\",\"dest_port\":\"22\"}}","operate_type":6}'
 }
 
 function config_log()
@@ -13,6 +14,38 @@ function config_log()
     else
         logger -t 'router_config' $@
     fi
+}
+
+function handle_port_forwarding()
+{
+    local ops="$1"
+    local json_data="$2"
+    local section=""
+    local name=""
+    local ret=""
+    json_init
+    json_load "$json_data"
+    json_get_vars name
+    section="$name"
+    ubus call uci delete "{\"config\":\"firewall\",\"section\":\"$section\"}" 2>/dev/null
+    case "$ops" in
+        "6") # config
+            ubus call uci add "$json_data"
+            ret="$?"
+            [ "$ret" != "0" ] && return 1
+            ubus call uci commit "{\"config\":\"firewall\"}"
+            /etc/init.d/firewall reload
+            return 0
+            ;;
+        "7") # delete
+            ubus call uci delete "{\"config\":\"firewall\",\"section\":\"$section\"}"
+            ret="$?"
+            [ "$ret" != "0" ] && return 1
+            ubus call uci commit "{\"config\":\"firewall\"}"
+            return 0
+            ;;
+    esac
+    return 0
 }
 
 function handle_ddns()
@@ -88,6 +121,15 @@ config_log "$operate_type" "$data"
 case "$operate_type" in
     "3"|"4"|"5")
         if ! handle_ddns "$operate_type" "$data"
+        then
+            config_log "failed"
+            return 1
+        fi
+        config_log "success"
+        return 0
+        ;;
+    "6"|"7")
+        if ! handle_port_forwarding "$operate_type" "$data"
         then
             config_log "failed"
             return 1
