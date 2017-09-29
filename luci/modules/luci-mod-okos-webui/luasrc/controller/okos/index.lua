@@ -416,7 +416,7 @@ function action_renewip()
     if net then
         net:add_interface(input.ifname)
         nw:save("network")
-        response.errcode = sys.call("env -i /bin/ubus call network reload;sleep 8")
+        response.errcode = sys.call("env -i /bin/ubus call network restart;sleep 8")
         if response.errcode == 0 then
             local wanp = nw:get_protocol("dhcp", "wan") 
             response.lname = input.lname
@@ -430,7 +430,7 @@ function action_renewip()
                 response.errcode = 1
             end
             nw:revert("network")
-            sys.call("env -i /bin/ubus call network reload")
+            sys.call("env -i /bin/ubus call network start")
         end
     else
         response.errcode = 1
