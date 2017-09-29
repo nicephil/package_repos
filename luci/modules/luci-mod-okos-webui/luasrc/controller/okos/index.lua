@@ -416,7 +416,7 @@ function action_renewip()
     if net then
         net:add_interface(input.ifname)
         nw:save("network")
-        response.errcode = sys.call("env -i /bin/ubus call network reload;sleep 8")
+        response.errcode = sys.call("ifdown wan;sleep 1;ifup wan;sleep 7")
         if response.errcode == 0 then
             local wanp = nw:get_protocol("dhcp", "wan") 
             response.lname = input.lname
@@ -430,7 +430,7 @@ function action_renewip()
                 response.errcode = 1
             end
             nw:revert("network")
-            sys.call("env -i /bin/ubus call network reload")
+            sys.call("ifdown wan; sleep 1; ifup wan")
         end
     else
         response.errcode = 1
@@ -458,8 +458,8 @@ function action_diag()
     }
     ]]--
     sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/172.16.254.254';/etc/init.d/dnsmasq reload;")
-    response.errcode = sys.call("env -i /bin/ubus call network reload;sleep 3")
-    sys.call("/etc/init.d/log restart")
+    sys.call("/etc/init.d/log restart;sleep 1")
+    response.errcode = sys.call("ifdown wan; sleep 1; ifup wan;sleep 3")
     tmp = nw:get_protocol("static", "wan")
     response.proto = tmp:get("proto")
 
@@ -502,7 +502,7 @@ function action_querydiag()
     response.errcode = -1
     response.step = input.step
     sys.call("sleep 2")
-    local log = sys.dmesg()
+    local log = sys.syslog()
     local np =nw:get_protocol("static","wan")
     if input.step == 1 then
         if log:match("ppp") == nil then
@@ -522,7 +522,7 @@ function action_querydiag()
             response.errcode = 1
             response.step = 2
         else
-            if log:match("Authentication success,Welcome!") == nil then
+            if log:match("authentication succeeded") == nil then
                 response.errcode = 1
                 response.step = 2
             else
@@ -559,6 +559,7 @@ function action_querydiag()
     if response.errcode == 1 then
         sys.call("uci revert dhcp;/etc/init.d/dnsmasq reload;sleep 3")
     end
+
     if response.errocode == 0 and response.step == -1 then
         sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/172.16.254.254';uci commit dhcp;/etc/init.d/dnsmasq reload;sleep 3")
     end
