@@ -519,14 +519,16 @@ function action_querydiag()
         end
     elseif input.step == 2 then
         if log:match("ppp") == nil then
-            response.errcode = -1
+            response.errcode = 1
+            response.step = 2
         else
-            if log:match("Unable to complete PPPoE Discovery") ~= nil then
+            if log:match("Authentication success,Welcome!") == nil then
                 response.errcode = 1
+                response.step = 2
             else
                 response.errcode = 0
+                response.step = 3
             end
-            response.step = 3
         end
     elseif input.step == 3 then
         if np:ipaddr() == nil then
