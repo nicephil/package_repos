@@ -152,7 +152,7 @@ struct product_info {
     unsigned long   bootloader_buildtime;
 };
 
-
+extern int cfg_get_wan_ifname(char *name);
 extern int cfg_is_ubnt_pro(void);
 extern int cfg_is_ubnt_lite(void);
 extern int cfg_is_w282(void);

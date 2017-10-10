@@ -2,7 +2,7 @@ config capwapc 'global'
         option enable '1'
 
 config capwapc 'server'
-        option mas_server 'redirector.oakridge.vip'
+        option def_server 'redirector.oakridge.vip'
 
 config capwapc 'wtp'
         option ctrl_port '5246'

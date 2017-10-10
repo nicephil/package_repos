@@ -111,13 +111,13 @@ do
     network_get_protocol proto "$ifc"
     json_add_string proto "$proto"
 
-    # 0:WAN,1:LAN,2:BRIDGE
-    local l_type
+    # 0:WAN,1:LAN,2:BRIDGE,3:FREE
+    local l_type=''
     case "$ifc" in
-        'lan')
+        'lan4000'|'lan4001')
             l_type='2'
             ;;
-        'lan[0-9].*')
+        'lan405'*)
             l_type='1'
             ;;
         'wan')
@@ -129,7 +129,7 @@ do
     esac
     if [ "$proto" = "none" ]
     then
-        l_type = '3'
+        l_type='3'
     fi
     json_add_int "type" "$l_type"
 
@@ -224,7 +224,7 @@ json_add_string data "$jsdump"
 
 json_data=$(json_dump)
 
-echo $json_data
+#echo $json_data
 
 # 6. upload json file to nms
 URL="http://${mas_server}/nms/api/device/router/info"

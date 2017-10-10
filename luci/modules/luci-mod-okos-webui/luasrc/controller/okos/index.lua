@@ -186,12 +186,12 @@ function action_internetstatus()
 end
 
 local p2l_names = { }                                             
-p2l_names['eth0.4090'] = 'e0'                            
-p2l_names['eth0.4091'] = 'e1'
-p2l_names['eth0.4092'] = 'e2'
-p2l_names['eth0.4093'] = 'e3'
-p2l_names['eth0.4094'] = 'e4'
-p2l_names['br-lan'] = 'switch'          
+p2l_names['eth0.4050'] = 'e0'                            
+p2l_names['eth0.4051'] = 'e1'
+p2l_names['eth0.4052'] = 'e2'
+p2l_names['eth0.4053'] = 'e3'
+p2l_names['eth0.4054'] = 'e4'
+p2l_names['br-lan4000'] = 'switch'          
 
 -- get all interfaces information
 function action_queryifs()
@@ -205,7 +205,7 @@ function action_queryifs()
     --[[
     response = {
     e4: {
-        ifname = "eth0.4094",
+        ifname = "eth0.4054",
         mac = "F0:9F:C2:6D:24:7F",
         proto = "dhcp",
         ipaddr = "192.165.1.183",
@@ -219,7 +219,7 @@ function action_queryifs()
         up = "1"
     }
     switch: {
-        ifname = "eth0.4090",
+        ifname = "eth0.4050",
         mac = "F0:9F:C2:6D:24:7F",
         proto = "dhcp",
         ipaddr = "192.165.1.183",
@@ -297,7 +297,7 @@ function action_configwan()
     input = {
         proto = "dhcp",
         lname = "e4",
-        ifname = "eth0.4090",
+        ifname = "eth0.4050",
         ipaddr = "192.165.1.168",
         netmask = "255.255.255.0",
         gateway = "192.165.1.254",
@@ -379,7 +379,7 @@ function action_renewip()
     --[[
     input = {
         lname = 'e0',
-        ifname = 'eth0.4090'
+        ifname = 'eth0.4050'
     }
     ]]--
 
@@ -405,7 +405,7 @@ function action_renewip()
     --[[
     response = {
         lname = "e0",
-        ifname = "eth0.4090",
+        ifname = "eth0.4050",
         ipaddr = "192.165.1.183",
         netmask = "255.255.255.0",
         gateway = "192.165.1.254",
