@@ -690,6 +690,12 @@ int cfg_is_w282(void)
     return 0;
 }
 
+int cfg_get_wan_ifname(char *name)
+{
+    strcpy(name, "eth0.4054");
+    return 0;
+}
+
 int cfg_get_product_info(struct product_info * info)
 {
     if (g_pinfo_init) {

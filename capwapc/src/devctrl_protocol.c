@@ -117,15 +117,18 @@ struct device_update_info* chk_dev_updateinfo(void)
     int ret, sk;
     struct ifreq ifr;
     struct sockaddr_in *paddr;
+    char wan_ifname[128] = {0};
+
+    cfg_get_wan_ifname(wan_ifname);
 
     sk = socket(PF_INET, SOCK_DGRAM, 0);
 	if (sk < 0) {
 		return NULL;
 	}
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, "eth0.4094", sizeof(ifr.ifr_name));
+	strncpy(ifr.ifr_name, wan_ifname, sizeof(ifr.ifr_name));
 	if (ioctl(sk, SIOCGIFADDR, &ifr) < 0) {
-        syslog(LOG_ERR, "no such interface: eth0.4094");
+        syslog(LOG_ERR, "no such interface: %s", wan_ifname);
 		close(sk);
 		return NULL;
 	}
@@ -221,15 +224,17 @@ static int get_device_info(device_info_s *devinfo)
     int ret, sk;
     struct ifreq ifr;
     struct sockaddr_in *paddr;
+    char wan_ifname[128] = {0};
+    cfg_get_wan_ifname(wan_ifname);
 
     sk = socket(PF_INET, SOCK_DGRAM, 0);
 	if (sk < 0) {
 		return -1;
 	}
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, "eth0.4094", sizeof(ifr.ifr_name));
+	strncpy(ifr.ifr_name, wan_ifname, sizeof(ifr.ifr_name));
 	if (ioctl(sk, SIOCGIFADDR, &ifr) < 0) {
-        syslog(LOG_ERR, "no interface: eth0.4094");
+        syslog(LOG_ERR, "no interface: %s", wan_ifname);
 		close(sk);
 		return -1;
 	}

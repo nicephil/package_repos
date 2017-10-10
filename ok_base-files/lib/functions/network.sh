@@ -358,22 +358,22 @@ network_get_lname()
 {
     local lname
     case "$2" in
-        "br-lan")
+        "br-lan4000")
             lname="switch"
             ;;
-        "eth0.4090")
+        "eth0.4050")
             lname="e0"
             ;;
-        "eth0.4091")
+        "eth0.4051")
             lname="e1"
             ;;
-        "eth0.4092")
+        "eth0.4052")
             lname="e2"
             ;;
-        "eth0.4093")
+        "eth0.4053")
             lname="e3"
             ;;
-        "eth0.4094")
+        "eth0.4054")
             lname="e4"
             ;;
         *)

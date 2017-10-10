@@ -446,14 +446,16 @@ case $board in
             set network.lan.ifname='eth0.4000'
             set network.lan.ipaddr='172.16.254.254'
             set network.lan_dev.name='eth0.4000'
+            rename network.lan='lan4000'
+            rename network.lan_dev='lan4000_dev'
             set network.wan.proto='none'
-            set network.wan.ifname='eth0.4094'
+            set network.wan.ifname='eth0.4054'
             delete network.wan6
-            set network.wan_dev.name='eth0.4094'
+            set network.wan_dev.name='eth0.4054'
             rename network.@switch_vlan[0]='vlan4000'
             set network.vlan4000.vlan='4000'
-            rename network.@switch_vlan[1]='vlan4094'
-            set network.vlan4094.vlan='4094'
+            rename network.@switch_vlan[1]='vlan4054'
+            set network.vlan4054.vlan='4054'
 EOF
         ;;
     *)

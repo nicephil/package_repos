@@ -114,10 +114,10 @@ do
     # 0:WAN,1:LAN,2:BRIDGE
     local l_type
     case "$ifc" in
-        'lan')
+        'lan4000')
             l_type='2'
             ;;
-        'lan[0-9].*')
+        'lan40[0-9].*')
             l_type='1'
             ;;
         'wan')

@@ -157,7 +157,7 @@ ramips_setup_interfaces()
 # OK_PATCH
 	ubnt-erx)
 		ucidef_add_switch "switch0" \
-			"0:lan:4090" "1:lan:4091" "2:lan:4092" "3:lan:4093" "4:wan:4094" "6@eth0"
+			"0:lan:4050" "1:lan:4051" "2:lan:4052" "3:lan:4053" "4:wan:4054" "6@eth0"
 		;;
 #end of OK_PATCH
 	awapn2403)
