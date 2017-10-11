@@ -193,6 +193,16 @@ p2l_names['eth0.4053'] = 'e3'
 p2l_names['eth0.4054'] = 'e4'
 p2l_names['br-lan4000'] = 'switch'          
 
+function swport_is_up(ifname)
+    local port = ifname:sub(-1)
+    local str = sys.exec("swconfig dev switch0 port " .. port .. " show 2>/dev/null")
+    if str == nil or str:match("up") == nil then
+        return false
+    else
+        return true
+    end
+end
+
 -- get all interfaces information
 function action_queryifs()
     -- sanity check --
@@ -251,7 +261,11 @@ function action_queryifs()
             res.lname = lifname
             res.ifname = ifname
             res.mac = npdev:mac()
-            res.up = npdev:is_up()
+            if ifname:match("eth0") then
+                res.up = swport_is_up(ifname)
+            else
+                res.up = npdev:is_up()
+            end
             res.sid = nt.sid
             res.mtu = npdev:_ubus("mtu")
             if res.mtu == nil then
