@@ -129,12 +129,19 @@ function handle_common_action()
                     "2")
                         ubus call uci delete "$data"
                         ;;
+                    "*")
+                        config_log "unknown action $action"
+                        uci revert
+                        return 0
+                        ;;
                 esac
 			json_select ..
 		done
 		json_select ..
 
         uci commit
+        /etc/init.d/network reload
+        /etc/init.d/dnsmasq reload
 	fi
     return 0
 }
