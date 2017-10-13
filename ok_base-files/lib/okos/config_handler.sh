@@ -2,9 +2,10 @@
 
 DEBUG="$1"
 [ -n "$DEBUG" ] && {
+    export 'json_data={"data":"","operate_type":1}'
     #export 'json_data={"data":"{\"config\":\"ddns\",\"name\":\"ddns_test\",\"type\":\"service\",\"values\":{\"enabled\":\"1\",\"username\":\"largepuppet\",\"password\":\"wodemima\",\"service_name\":\"3322.org\",\"domain\":\"largepuppet.f3322.net\",\"interface\":\"wan\",\"lookup_host\":\"largepuppet.f3322.net\"}}","operate_type":3}'
     #export 'json_data={"data":"{\"config\":\"firewall\",\"name\":\"portforwarding_3\",\"type\":\"redirect\",\"values\":{\"src\":\"wan\",\"proto\":\"tcp\",\"dest\":\"lan\",\"display_name\":\"ssh\",\"src_dport\":\"2222\",\"dest_ip\":\"172.16.254.254\",\"dest_port\":\"22\"}}","operate_type":6}'
-    export 'json_data={"data":"{\"actions\":[{\"action\":0,\"data\":\"{\\\"enabled\\\":\\\"1\\\",\\\"interface\\\":\\\"wan\\\"}\"},{\"action\":1,\"data\":\"{\\\"enabled\\\":\\\"0\\\",\\\"interface\\\":\\\"lan4000\\\"}\"}]}","operate_type":"8"}'
+    #export 'json_data={"data":"{\"actions\":[{\"action\":0,\"data\":\"{\\\"enabled\\\":\\\"1\\\",\\\"interface\\\":\\\"wan\\\"}\"},{\"action\":1,\"data\":\"{\\\"enabled\\\":\\\"0\\\",\\\"interface\\\":\\\"lan4000\\\"}\"}]}","operate_type":"8"}'
 }
 
 function config_log()
@@ -146,6 +147,15 @@ function handle_common_action()
     return 0
 }
 
+function handle_common_action()
+{
+    local ops="$1"
+    local json_data="$2"
+    local ret=""
+    /lib/okos/devstats.sh
+    return 0
+}
+ 
 . /usr/share/libubox/jshn.sh
 . /lib/functions.sh
 . /lib/ramips.sh
@@ -161,6 +171,16 @@ json_get_vars operate_type data
 config_log "$operate_type" "$data"
 
 case "$operate_type" in
+    "1")
+        if ! handle_queryif "$operate_type" "$data"
+        then
+            config_log "$operate_type $data failed"
+            return 1
+        fi
+        config_log "$operate_type $data success"
+        return 0
+        ;;
+
     "3"|"4"|"5")
         if ! handle_ddns "$operate_type" "$data"
         then
