@@ -87,6 +87,7 @@ struct service_template_json {
 #if OK_PATCH
     int  bandwidth_priority;
     int client_isolation;
+    int type;
 #endif
 };
             
@@ -1962,6 +1963,7 @@ static int dc_parse_node_service_template(struct json_object *obj,
 #if OK_PATCH
         {"bandwidth_priority",    json_type_int,    NULL, sizeof(service_template.bandwidth_priority)}, 
         {"client_isolation",      json_type_int,    NULL, sizeof(service_template.client_isolation)}, 
+        {"type",                  json_type_int,    NULL, sizeof(service_template.type)}, 
 #endif
     };   
     struct json_object *array;
@@ -2016,6 +2018,7 @@ static int dc_parse_node_service_template(struct json_object *obj,
 #if OK_PATCH
         paires[j++].value = &(service_templates->config[service_templates->num].bandwidth_priority);
         paires[j++].value = &(service_templates->config[service_templates->num].client_isolation);
+        paires[j++].value = &(service_templates->config[service_templates->num].type);
 #endif
         
         service_templates->config[service_templates->num].uplink_limit_enable = -1;
@@ -3865,6 +3868,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
 #if OK_PATCH
         .bandwidth_priority = 3,
         .client_isolation = 0,
+        .type = 0
 #endif
     };
     
@@ -4259,6 +4263,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
 #if OK_PATCH
         CHECK_DEFAULT_INTEGER_CONFIG(st_json->bandwidth_priority, st_def_cfg.bandwidth_priority);
         CHECK_DEFAULT_INTEGER_CONFIG(st_json->client_isolation, st_def_cfg.client_isolation);
+        CHECK_DEFAULT_INTEGER_CONFIG(st_json->client_isolation, st_def_cfg.type);
 #endif
     }
 
@@ -4289,6 +4294,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
 #if OK_PATCH
                     && st_json->bandwidth_priority == st_cur->bandwidth_priority
                     && st_json->client_isolation == st_cur->client_isolation
+                    && st_json->type = st_cur->type
 #endif
                     ) {
                     if (st_json->cipher == WLAN_CIPHER_WEP40) {
@@ -4436,7 +4442,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
         }
 
 #if OK_PATCH
-        // add bandwidth_priority and client_isolation
+        // add bandwidth_priority and client_isolation, guest network type
         ret = wlan_set_bandwidth_priority(stid, st_json->bandwidth_priority);
         if (ret) {
             nmsc_log("Set service template %d bandwidth_priority %d failed for %d.", stid, 
@@ -4449,6 +4455,14 @@ int dc_hdl_node_wlan(struct json_object *obj)
         if (ret) {
             nmsc_log("Set service template %d client_isolation %d failed for %d.", stid, 
                 st_json->client_isolation, ret);
+            ret = dc_error_code(dc_error_commit_failed, node, ret); 
+            goto ERROR_OUT;
+        }
+
+        ret = wlan_set_nettype(stid, st_json->type);
+        if (ret) {
+            nmsc_log("Set service template %d guest network type %d failed for %d.", stid, 
+                st_json->type, ret);
             ret = dc_error_code(dc_error_commit_failed, node, ret); 
             goto ERROR_OUT;
         }

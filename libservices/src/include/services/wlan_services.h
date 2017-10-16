@@ -175,6 +175,7 @@ struct wlan_service_template {
 #if OK_PATCH
     int bandwidth_priority;
     int client_isolation;
+    int type;
 #endif
 };
 
@@ -379,6 +380,7 @@ extern int wlan_set_gtk_lifetime_enable(int stid, int value);
 // add bandwidth_priority and client_isolation
 extern int wlan_set_bandwidth_priority(int stid, int value);
 extern int wlan_set_client_isolation(int stid, int value);
+extern int wlan_set_nettype(int stid, int value);
 #endif
 extern int wlan_set_static_client_uplink_rate_limit_value(int stid, unsigned int value);
 extern int wlan_set_dynamic_client_uplink_rate_limit_value(int stid, unsigned int value);

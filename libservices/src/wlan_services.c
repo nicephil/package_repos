@@ -371,7 +371,10 @@ static int wlan_service_template_list(struct uci_package *p, void *arg)
                     stinfo->wlan_st_info[num].bandwidth_priority = atoi(o->v.string);
                 }
                 else if (strcmp(o->e.name, "client_isolation") == 0) {
-                    stinfo->wlan_st_info[num].bandwidth_priority = atoi(o->v.string);
+                    stinfo->wlan_st_info[num].client_isolation = atoi(o->v.string);
+                }
+                else if (strcmp(o->e.name, "type") == 0) {
+                    stinfo->wlan_st_info[num].type = atoi(o->v.string);
                 }
                 
             }
@@ -554,6 +557,7 @@ int wlan_create_service_template(int stid)
 #if OK_PATCH
     st->bandwidth_priority = 3;
     st->client_isolation = 0;
+    st->type = 0;
 #endif
     */
 
@@ -653,6 +657,10 @@ int wlan_create_service_template(int stid)
     
     //wlan_service_template.ServiceTemplate1.client_isolation='0'
     sprintf(tuple, "wlan_service_template.ServiceTemplate%d.client_isolation", stid);
+    cfg_set_option_value_int(tuple, 0);
+
+    //wlan_service_template.ServiceTemplate1.type='0'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.type", stid);
     cfg_set_option_value_int(tuple, 0);
 #endif
 
@@ -802,6 +810,14 @@ int wlan_set_client_isolation(int stid, int value)
     //wlan_service_template.ServiceTemplate1.client_isolation='0'
     char tuple[128];
     sprintf(tuple, "wlan_service_template.ServiceTemplate%d.client_isolation", stid);
+    cfg_set_option_value_int(tuple, value);
+}
+
+int wlan_set_nettype(int stid, int value)
+{
+    //wlan_service_template.ServiceTemplate1.type='0'
+    char tuple[128];
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.type", stid);
     cfg_set_option_value_int(tuple, value);
 }
 #endif
