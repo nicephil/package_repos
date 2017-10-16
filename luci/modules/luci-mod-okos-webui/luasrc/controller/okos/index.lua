@@ -31,6 +31,7 @@ function index()
     entry({"okos", "querydiag"}, call("action_querydiag"), _("QueryDiag"))
     entry({"okos", "devumac"}, call("action_devumac"), _("DeviceUniqueMAC"))
     entry({"okos", "regdev"}, call("action_regdev"), _("RegDev"))
+    entry({"okos", "setgre"}, call("action_setgre"), _("SetGRE"))
 end
 
 function dumptable(t)
@@ -258,7 +259,7 @@ function action_queryifs()
             local lifname = p2l_names[ifname]
             response[#response+1] = { }
             local res = response[#response]
-            res.lname = lifname
+            res.lname = lifnamep
             res.ifname = ifname
             res.mac = npdev:mac()
             if ifname:match("eth0") then
@@ -644,3 +645,113 @@ function action_regdev()
     -- response --
     response_json(response)
 end
+
+-- set gre interface from ap
+function action_setgre()
+    -- sanity check --
+    if not sanity_check_json() then
+        return
+    end
+    
+    -- parse json
+    local hc = http.content()
+    local input, rc, err = json.decode(hc)
+    --[[
+    input = {
+        has_guestnet = true,
+        macaddr = "00:11:22:33:44:55",
+        ipaddr = "172.16.0.120",
+        gateway = "172.16.0.1",
+        timestamp = 1234
+    }
+    ]]--
+    if input.has_guestnet == nil or input.macaddr == nil or input.ipaddr == nil or
+        input.gateway == nil then
+        http.status(400, "Bad Request");
+        http.close()
+        return
+    end
+
+    -- process --
+    local response = { }
+    --[[
+    response = {
+        errcode = 0,
+        isolate_guest = 1
+    }
+    ]]--
+    response.errcode = 0
+    
+    -- 1. get which lan
+    local nt
+    local gresid
+    for _,nt in pairs(nw:get_networks()) do
+        local sid = nt.sid
+        if sid:match("lan") then
+            local np = nw:get_protocol("static", sid)
+            if np:get("ipaddr") == input.gateway then
+                gresid = sid
+                break
+            end
+        end
+    end
+
+    -- 2. which gre bridge lan
+    -- lanxxxx - grexxxx gre bridge
+    gresid = gresid:gsub("lan","gre")
+
+    local grenp = nw:get_protocol("static", gresid)
+    if grenp == nil then
+        response.isolate_guest = false
+    else
+        response.isolate_guest = true
+    end
+
+    -- 3. which greinterface
+    local grenetsid = (input.macaddr):gsub(":","")
+    grenetsid = grenetsid:sub(4,-1)
+    local grenet = nw:get_protocol("static", grenetsid)
+    if grenet:get("proto") ~= "gretap" then
+        grenet = nil
+    end
+    local change = false
+    
+    if input.has_guestnet and response.isolate_guest then
+        -- setup new gre network if no existing gre interface
+        if grenet == nil then
+            grenet = nw:add_network(grenetsid, {proto="gretap", ipaddr=input.gateway, peeraddr=input.ipaddr, network=gresid})
+            change = true
+        else
+            if grenet:get("ipaddr") ~= input.gateway then
+                grenet:set("ipaddr", input.gateway)
+                change = true
+            end
+            if grenet:get("peeraddr") ~= input.ipaddr then
+                grenet:set("peeraddr", input.ipaddr)
+                change = true
+            end
+            if grenet:get("network") ~= gresid then
+                grenet:set("network", gresid)
+                change = true
+            end
+        end
+    else
+        -- no guest network, delete protential virtual gre interface
+        -- del existing virtual gre interface network
+        if grenet ~= nil then
+            nw:del_network(grenetsid)
+            change = true
+        end
+    end
+
+    if change then
+        nw:commit("network")
+        sys.call("/etc/init.d/network reload")
+    end
+
+
+    -- response --
+    response_json(response)
+end
+
+
