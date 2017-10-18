@@ -1821,6 +1821,11 @@ static int dc_router_config_handler(struct tlv *payload, void **reserved)
     ret = system(prog);
     result->code = WEXITSTATUS(ret);
 
+    char *tmp = getenv("result");
+    if (tmp) {
+        CWLog("Result env:%s", tmp);
+    }
+
     free (env);
     payload->v[payload->l] = terminated;
     *reserved = result;
