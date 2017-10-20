@@ -1382,6 +1382,11 @@ int wlan_set_bind(int radio_id, int stid)
     cfg_set_option_value(tuple, buf);
     sprintf(tuple, "wireless.ath%d%d.l2tif", radio_id, stid);
     cfg_set_option_value(tuple, buf);
+
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.type", stid);
+    cfg_get_option_value(tuple, buf, sizeof(buf));
+    sprintf(tuple, "wireless.ath%d%d.type", radio_id, stid);
+    cfg_set_option_value(tuple, buf);
 #endif
 
 
