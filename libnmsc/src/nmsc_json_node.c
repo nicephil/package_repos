@@ -4263,7 +4263,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
 #if OK_PATCH
         CHECK_DEFAULT_INTEGER_CONFIG(st_json->bandwidth_priority, st_def_cfg.bandwidth_priority);
         CHECK_DEFAULT_INTEGER_CONFIG(st_json->client_isolation, st_def_cfg.client_isolation);
-        CHECK_DEFAULT_INTEGER_CONFIG(st_json->client_isolation, st_def_cfg.type);
+        CHECK_DEFAULT_INTEGER_CONFIG(st_json->type, st_def_cfg.type);
 #endif
     }
 
@@ -4294,7 +4294,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
 #if OK_PATCH
                     && st_json->bandwidth_priority == st_cur->bandwidth_priority
                     && st_json->client_isolation == st_cur->client_isolation
-                    && st_json->type = st_cur->type
+                    && st_json->type == st_cur->type
 #endif
                     ) {
                     if (st_json->cipher == WLAN_CIPHER_WEP40) {
