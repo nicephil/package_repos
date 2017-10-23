@@ -15,6 +15,13 @@ config zone
 	list   network		'lan4052'
 	list   network		'lan4053'
 	list   network		'lan4054'
+	list   network		'gre4000'
+    list   network      'gre4049'
+	list   network		'gre4050'
+	list   network		'gre4051'
+	list   network		'gre4052'
+	list   network		'gre4053'
+	list   network		'gre4054'
 	option input		ACCEPT
 	option output		ACCEPT
 	option forward		ACCEPT

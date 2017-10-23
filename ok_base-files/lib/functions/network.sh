@@ -346,7 +346,7 @@ network_get_macaddr()
 # 1: destination variable
 network_get_interfaces()
 {
-    ifs="`ubus list | awk -F '.' '/interface./{if(!match($3,"loopback"))print $3}'`"
+    ifs="`ubus list | awk -F '.' '/interface./{if(!match($3,"loopback")&&length($3)!=9)print $3}'`"
     export "$1=$ifs"
     return 0
 }
