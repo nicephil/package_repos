@@ -9,12 +9,17 @@ config defaults
 config zone
 	option name		lan
 	list   network		'lan4000'
-    list   network      'lan4049'
 	list   network		'lan4050'
 	list   network		'lan4051'
 	list   network		'lan4052'
 	list   network		'lan4053'
 	list   network		'lan4054'
+	list   network		'gre4000'
+	list   network		'gre4050'
+	list   network		'gre4051'
+	list   network		'gre4052'
+	list   network		'gre4053'
+	list   network		'gre4054'
 	option input		ACCEPT
 	option output		ACCEPT
 	option forward		ACCEPT

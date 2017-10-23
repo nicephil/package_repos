@@ -346,7 +346,7 @@ network_get_macaddr()
 # 1: destination variable
 network_get_interfaces()
 {
-    ifs="`ubus list | awk -F '.' '/interface./{if(!match($3,"loopback"))print $3}'`"
+    ifs="`ubus list | awk -F '.' '/interface./{if(!match($3,"loopback")&&length($3)!=9)print $3}'`"
     export "$1=$ifs"
     return 0
 }
@@ -356,8 +356,22 @@ network_get_interfaces()
 # 2: pname
 network_get_lname()
 {
+    local var="$1"
     local lname
-    case "$2" in
+    local pname="$2"
+    local gre=0
+    if [ "${pname:0:6}" = "br-gre" ]
+    then
+        gre=1
+        if [ "$pname" = "br-gre4000" ]
+        then
+            pname="br-lan${pname:6}"
+        else
+            pname="eth0.${pname:6}"
+        fi
+    fi
+
+    case "$pname" in
         "br-lan4000")
             lname="switch"
             ;;
@@ -380,8 +394,14 @@ network_get_lname()
             return 1
             ;;
     esac
+    
+    if [ "$gre" = "1" ]
+    then
+        lname="${lname}.guest"
+    fi
 
-    export "$1=$lname"
+    unset $var
+    export "$var=$lname"
     return 0
 }
 
