@@ -247,7 +247,7 @@ function action_queryifs()
     ]]--
                                                            
    for _,nt in pairs(nw:get_networks()) do
-        if nt.sid ~= "loopback" then
+        if nt.sid ~= "loopback" and not (nt.sid):match("gre") then
             local tp = nw:get_protocol("static", nt.sid)
             local np = nw:get_protocol(tp:get("proto"), nt.sid)            
             if np ~= nil then
@@ -259,7 +259,7 @@ function action_queryifs()
             local lifname = p2l_names[ifname]
             response[#response+1] = { }
             local res = response[#response]
-            res.lname = lifnamep
+            res.lname = lifname
             res.ifname = ifname
             res.mac = npdev:mac()
             if ifname:match("eth0") then
@@ -359,7 +359,13 @@ function action_configwan()
         nw:del_network(n.sid)
     end
     -- del existing wan network
+    local np = nw:get_protocol("dhcp", "wan")            
+    local wifname = np:ifname()
     nw:del_network("wan")
+    -- set free lan interface
+    if (wifname == input.ifname) then
+        nw:add_network("lan" .. wifname:sub(4,-1), {proto="none", ifname=wifname})
+    end
     -- setup new network
     local net =  { }
     if input.proto == "static" then
