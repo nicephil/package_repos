@@ -706,11 +706,12 @@ function action_setgre()
     -- lanxxxx - grexxxx gre bridge
     gresid = gresid:gsub("lan","gre")
 
-    local grenp = nw:get_protocol("static", gresid)
-    if grenp == nil then
-        response.isolate_guest = false
-    else
-        response.isolate_guest = true
+    response.isolate_guest = false
+    for _,nt in pairs(nw:get_networks()) do
+        local sid = nt.sid
+        if sid:match(gresid) then
+            response.isolate_guest = true
+        end
     end
 
     -- 3. which greinterface
