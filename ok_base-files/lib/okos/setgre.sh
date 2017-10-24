@@ -19,51 +19,83 @@ check_guestnetwork()
     local var="$2"
 
     config_get _type "$section" "type"
-    if [ -n "$var" -a "$var" = "0" ]
+
+    # ignore no-existing ath interface
+    ifconfig "$section" > /dev/null 2>&1
+    if [ "$?" = "1" ]
+    then
+        return 0
+    fi
+
+    if [ -z "$var" ]
     then
         if [ "$_type" = "1" ]
         then
             _has_guestnet=1
             return 1
         fi
-    elif [ -n "$var" -a "$var" = "1" ]
-    then
-        if [ "$_type" = "1" ]
-        then
-            # 1. remvoe from existing bridge
-            config_get _lan "$section" "network"
-            brctl show "br-${_lan}" | grep "$section" 2>&1 > /dev/null
+        return 0
+    fi
+
+    config_get _lan "$section" "network"
+    case "$var""$_type" in
+        "00"|"01"|"10"|"1"|"0") # no isolation
+            # 1. check and remove ath from gre bridge
+            brctl show "br-gre4000" | grep "$section" > /dev/null 2>&1
             if [ "$?" = "0" ]
             then
-                brctl delif "br-${_lan}" "$section"
+                brctl delif "br-gre4000" "$section"
             fi
-            # 2. create gre bridge
-            brctl show | grep "br-gre4000" 2>&1 > /dev/null
+            # 2. check and add ath into normal bridge
+            brctl show "br-${_lan}" | grep "$section" > /dev/null 2>&1
+            if [ "$?" = "1" ]
+            then
+                brctl addif "br-${_lan}" "$section" > /dev/null 2>&1
+            fi
+            ;;
+        "11") # isolation, and guest network
+            # 1. create gre bridge
+            brctl show | grep "br-gre4000" > /dev/null 2>&1
             if [ "$?" = "1" ]
             then
                 brctl addbr "br-gre4000"
             fi
-            # 3. add virtual gre bridge
-            ip link show "gre4tap" 2>&1 >/dev/null
+            # 2. add virtual gre interface
+            ip link show "gre4tap" >/dev/null 2>&1
             if [ "$?" = "1" ]
             then
                 ip link add "gre4tap" type gretap remote "$_gateway" local "$_ipaddr"
+                ip link set "gre4tap" up
             fi
-            ip link set "gre4tap" up
-            # 3. add related ath interface to gre bridge
-            brctl show "br-gre4000" | grep "gre4tap" 2>&1 > /dev/null
+            # 3. add related gre interface to gre bridge
+            brctl show "br-gre4000" | grep "gre4tap" > /dev/null 2>&1
             if [ "$?" = "1" ]
             then
-                brctl addif "br-gre4000" "$section"
                 brctl addif "br-gre4000" "gre4tap"
             fi
-        fi
-    fi
+            # 4. remvoe from existing bridge
+            brctl show "br-${_lan}" | grep "$section" > /dev/null 2>&1
+            if [ "$?" = "0" ]
+            then
+                brctl delif "br-${_lan}" "$section"
+            fi
+            # 4. add related ath interface to gre bridge
+            brctl show "br-gre4000" | grep "$section" > /dev/null 2>&1
+            if [ "$?" = "1" ]
+            then
+                brctl addif "br-gre4000" "$section" > /dev/null 2>&1
+            fi
+            ;;
+        "*")
+            echo "unknown isolation type"
+            ;;
+    esac
+
     return 0
 }
 
 config_load wireless
-config_foreach check_guestnetwork "wifi-iface" "0"
+config_foreach check_guestnetwork "wifi-iface"
 
 json_init
 json_add_boolean has_guestnet "$_has_guestnet"
