@@ -25,8 +25,8 @@ config dnsmasq
 
 config dhcp lan4000
 	option interface	lan4000
-	option start 	100
-	option limit	150
+	option start 	1
+	option limit	200
 	option leasetime	12h
 
 config dhcp wan
