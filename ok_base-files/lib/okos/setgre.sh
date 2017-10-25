@@ -13,6 +13,38 @@ config_get _mac productinfo mac
 _timestamp="`date +%s`"
 _has_guestnet="0"
 
+setup_grenet()
+{
+    # 1. create gre bridge
+    brctl show | grep "br-gre4000" > /dev/null 2>&1
+    if [ "$?" = "1" ]
+    then
+        brctl addbr "br-gre4000"
+        ip link set "br-gre4000" up
+        uci set network.gre4000="interface"
+        uci set network.gre4000.type="bridge"
+    fi
+    # 2. add virtual gre interface
+    ip link show "gre4tap" >/dev/null 2>&1
+    if [ "$?" = "1" -o "`uci get network.gre4tap.ipaddr 2>/dev/null`" != "$_ipaddr" ]
+    then
+        ip link del "gre4tap" type gretap 2>/dev/null
+        ip link add "gre4tap" type gretap remote "$_gateway" local "$_ipaddr"
+        ip link set "gre4tap" up
+        uci set network.gre4tap="interface"
+        uci set network.gre4tap.proto="gretap"
+        uci set network.gre4tap.ipaddr="$_ipaddr"
+        uci set network.gre4tap.peeraddr="$_gateway"
+    fi
+    # 3. add related gre interface to gre bridge
+    brctl show "br-gre4000" | grep "gre4tap" > /dev/null 2>&1
+    if [ "$?" = "1" ]
+    then
+        brctl addif "br-gre4000" "gre4tap"
+    fi
+    ip link set dev eth0 mtu 1600
+}
+
 check_guestnetwork()
 {
     local section="$1"
@@ -27,6 +59,7 @@ check_guestnetwork()
         return 0
     fi
 
+    # query config
     if [ -z "$var" ]
     then
         if [ "$_type" = "1" ]
@@ -38,6 +71,7 @@ check_guestnetwork()
     fi
 
     config_get _lan "$section" "network"
+
     case "$var""$_type" in
         "00"|"01"|"10"|"1"|"0") # no isolation
             # 1. check and remove ath from gre bridge
@@ -53,39 +87,22 @@ check_guestnetwork()
                 brctl addif "br-${_lan}" "$section" > /dev/null 2>&1
             fi
             ;;
+
         "11") # isolation, and guest network
-            # 1. create gre bridge
-            brctl show | grep "br-gre4000" > /dev/null 2>&1
-            if [ "$?" = "1" ]
-            then
-                brctl addbr "br-gre4000"
-            fi
-            # 2. add virtual gre interface
-            ip link show "gre4tap" >/dev/null 2>&1
-            if [ "$?" = "1" ]
-            then
-                ip link add "gre4tap" type gretap remote "$_gateway" local "$_ipaddr"
-                ip link set "gre4tap" up
-            fi
-            # 3. add related gre interface to gre bridge
-            brctl show "br-gre4000" | grep "gre4tap" > /dev/null 2>&1
-            if [ "$?" = "1" ]
-            then
-                brctl addif "br-gre4000" "gre4tap"
-            fi
-            # 4. remvoe from existing bridge
+            # 1. remove from existing bridge
             brctl show "br-${_lan}" | grep "$section" > /dev/null 2>&1
             if [ "$?" = "0" ]
             then
                 brctl delif "br-${_lan}" "$section"
             fi
-            # 4. add related ath interface to gre bridge
+            # 2. add related ath interface to gre bridge
             brctl show "br-gre4000" | grep "$section" > /dev/null 2>&1
             if [ "$?" = "1" ]
             then
                 brctl addif "br-gre4000" "$section" > /dev/null 2>&1
             fi
             ;;
+
         "*")
             echo "unknown isolation type"
             ;;
@@ -111,14 +128,17 @@ echo "===>$json_data"
 # upload json file to gateway
 URL="http://${_gateway}/cgi-bin/luci/okos/setgre"
 
-response=$(curl -s -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "$json_data" $URL 2>/dev/null)
+response=$(curl -m 10 -s -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "$json_data" $URL 2>/dev/null)
 
 echo "----->$response"
 
 json_load "$response"
 json_get_var _isolate_guest "isolate_guest"
 
+if [ "$isolate_guest" != "0" -a "$_has_guestnet" != "0" ]
+then
+    setup_grenet
+fi
+
 config_load wireless
 config_foreach check_guestnetwork "wifi-iface" "$_isolate_guest"
-
-
