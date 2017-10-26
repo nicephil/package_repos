@@ -71,6 +71,7 @@ check_guestnetwork()
     fi
 
     config_get _lan "$section" "network"
+    config_get _encryption "$section" "encryption"
 
     case "$var""$_type" in
         "00"|"01"|"10"|"1"|"0") # no isolation
@@ -85,6 +86,12 @@ check_guestnetwork()
             if [ "$?" = "1" ]
             then
                 brctl addif "br-${_lan}" "$section" > /dev/null 2>&1
+                if [ "$_encryption" != "open" ]
+                then
+                    wpa_cli -g /var/run/hostapd/global raw REMOVE "$section"
+                    sed -i "s/bridge=gre4000/bridge=br-${_lan}/" /var/run/hostapd-$section.conf
+                    wpa_cli -g /var/run/hostapd/global raw ADD bss_config=$section:/var/run/hostapd-$section.conf
+                fi 
             fi
             ;;
 
@@ -100,6 +107,12 @@ check_guestnetwork()
             if [ "$?" = "1" ]
             then
                 brctl addif "br-gre4000" "$section" > /dev/null 2>&1
+                if [ "$_encryption" != "open" ]
+                then
+                    wpa_cli -g /var/run/hostapd/global raw REMOVE "$section"
+                    sed -i "s/bridge=br-${_lan}/bridge=gre4000/" /var/run/hostapd-$section.conf
+                    wpa_cli -g /var/run/hostapd/global raw ADD bss_config=$section:/var/run/hostapd-$section.conf
+                fi 
             fi
             ;;
 
