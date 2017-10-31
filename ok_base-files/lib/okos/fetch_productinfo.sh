@@ -6,7 +6,7 @@ board=$(ramips_board_name)
 
 case "$board" in
 ubnt-erx)
-    mac=$(hexdump -e '1/1 "%x:"' -n6 /dev/mtd2)
+    mac=$(hexdump -e '1/1 "%02x:"' -n6 /dev/mtd2)
     mac=${mac%:*}
     serial=`echo $mac | tr -d :`
     echo -e "config productinfo productinfo"
