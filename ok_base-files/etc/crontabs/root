@@ -1,1 +1,1 @@
-*/1 * * * * /lib/okos/devstats.sh
+*/1 * * * * export has_ifjson=1;/lib/okos/devstats.sh

@@ -1,10 +1,17 @@
-[ "$INTERFACE" = "lan1" ] && {
+[ "$INTERFACE" = "wan" ] && {
     [ "$ACTION" = "ifup" -o "$ACTION" = "ifupdate" ] && {
         {
         sleep 3
         . /lib/functions/network.sh; network_get_gateway _gateway lan1
         route add -host log.networkworld365.com gw $_gateway wan
         } &
+    }
+}
+
+[ "$INTERFACE" = "lan4000" ] && {
+    [ "$ACTION" = "ifup" -o "$ACTION" = "ifupdate" ] && {
+        . /lib/functions.sh; config_load network;config_get lan_ipaddr lan4000 ipaddr
+        sed -i "s/\(list address '\/router.oakridge.vip\/\).*/\1${lan_ipaddr}'/g" /etc/config/dhcp;/etc/init.d/dnsmasq restart
     }
 }
 

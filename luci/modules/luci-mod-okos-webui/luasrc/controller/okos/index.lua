@@ -178,7 +178,7 @@ function action_internetstatus()
     }
     ]]--
     response.errcode = 0
-    if sys.net.pingtest("139.196.188.253") ~= 0 then
+    if sys.net.pingtest("8.8.8.8") ~= 0 and sys.net.pingtest("114.114.114.114") ~= 0 then
         response.errcode = 1
     end
 
@@ -568,7 +568,7 @@ function action_querydiag()
             response.step = 5
         end
     elseif input.step == 5 then
-        if sys.net.pingtest("cloud.oakridge.vip") ~=0 then
+        if sys.net.pingtest("cloud.oakridge.io") ~=0 then
             response.errcode = 1
             response.step = 5
         else
@@ -753,7 +753,7 @@ function action_setgre()
 
     if change then
         nw:commit("network")
-        sys.call("/etc/init.d/network reload")
+        sys.call("/etc/init.d/network restart")
     end
 
 
