@@ -2,7 +2,7 @@
 
 DEBUG="$1"
 [ -n "$DEBUG" ] && {
-    export 'json_data={"data":"","operate_type":9}'
+    export 'json_data={"data":"","operate_type":11}'
     #export 'json_data={"data":"{\"config\":\"ddns\",\"name\":\"ddns_test\",\"type\":\"service\",\"values\":{\"enabled\":\"1\",\"username\":\"largepuppet\",\"password\":\"wodemima\",\"service_name\":\"3322.org\",\"domain\":\"largepuppet.f3322.net\",\"interface\":\"wan\",\"lookup_host\":\"largepuppet.f3322.net\"}}","operate_type":3}'
     #export 'json_data={"data":"{\"config\":\"firewall\",\"name\":\"portforwarding_3\",\"type\":\"redirect\",\"values\":{\"src\":\"wan\",\"proto\":\"tcp\",\"dest\":\"lan\",\"display_name\":\"ssh\",\"src_dport\":\"2222\",\"dest_ip\":\"172.16.254.254\",\"dest_port\":\"22\"}}","operate_type":6}'
     #export 'json_data={"data":"{\"actions\":[{\"action\":0,\"data\":\"{\\\"enabled\\\":\\\"1\\\",\\\"interface\\\":\\\"wan\\\"}\"},{\"action\":1,\"data\":\"{\\\"enabled\\\":\\\"0\\\",\\\"interface\\\":\\\"lan4000\\\"}\"}]}","operate_type":"8"}'
@@ -162,7 +162,16 @@ function handle_queryclient()
     local ops="$1"
     local json_data="$2"
     local ret=""
-    has_ifjson=0 has_clientjson=1 /lib/okos/devstats.sh 
+    has_clientjson=1 /lib/okos/devstats.sh 
+    return 0
+}
+
+function handle_queryrt()
+{
+    local ops="$1"
+    local json_data="$2"
+    local ret=""
+    has_cpumemjson=1 has_rtnetstatsjson=1 has_rtclientstatsjson=1 /lib/okos/devstats.sh 
     return 0
 }
 
@@ -220,6 +229,15 @@ case "$operate_type" in
         ;;
     "9")
         if ! handle_queryclient "$operate_type" "$data"
+        then
+            config_log "$operate_type $data failed"
+            return 1
+        fi
+        config_log "$operate_type $data success"
+        return 0
+        ;;
+    "11")
+        if ! handle_queryrt "$operate_type" "$data"
         then
             config_log "$operate_type $data failed"
             return 1

@@ -32,11 +32,11 @@ json_select_object() {
 
 
 # 1. read config
-
 config_load capwapc
 config_get mas_server server mas_server
 if [ -z "$mas_server" ]
 then
+    echo "failed: get mas_server"
     exit
 fi
 
@@ -44,9 +44,9 @@ config_load productinfo
 config_get mac productinfo mac
 if [ -z "$mac" ]
 then
+    echo "failed: get mac"
     exit
 fi
-
 
 function add_list_into_json_array()
 {
@@ -85,7 +85,6 @@ function fetch_ddns_config()
     fi
     json_close_object
 }
-
 
 # 4. generate json file
 function generate_ifjson()
@@ -269,7 +268,7 @@ function generate_ifjson()
     done
     json_select ..
 
-    export "$vname=$(json_dump)"
+    export "${vname}=$(json_dump)"
     return 0
 }
 
@@ -317,14 +316,129 @@ function generate_clientjson()
     done
 
     json_select ..
-    export "$vname=$(json_dump)"
+    export "${vname}=$(json_dump)"
+    return 0
 }
 
-has_ifson=${has_ifjson:=1}
-generate_ifjson ifjson
+
+function generate_cpumemjson()
+{
+    local vname="$1"
+    local cpuinfo="`cat /proc/cpuinfo`"
+    local cpus=$(echo "$cpuinfo"|awk '{
+        if (match($1, "processor")) {
+            a ++;
+        }
+    }
+    END {
+        print a;
+    }
+    ')
+    local cpu_frequency=$(echo "$cpuinfo"|awk '/BogoMIPS/{print $3;exit}')
+    local topinfo="`top -n1 -b`"
+    local cpu_load=$(echo "$topinfo"| awk '{
+        if (match($1, "CPU:")) {
+            a=substr($8,1,length($8)-1);
+            print 100-a;
+        }
+    }')
+
+    local mem_info=$(echo "$topinfo"|awk '{
+        if (match($1, "Mem:")) {
+            a=substr($2,1,length($2)-1)
+            b=substr($4,1,length($4)-1)
+            t=(a+b)
+            v=(a/t)*100
+            print t"_"v;
+        }
+    }')
+
+    OIFS=$IFS;IFS='_';set -- $mem_info;mem_total=$1;mem_load=$2;IFS=$OIFS
+    local mem_type="DDR2"
+    local mem_frequency="440"
+
+    json_init
+    json_add_int cpus "$cpus"
+    json_add_string cpu_frequency "${cpu_frequency}MHz"
+    json_add_int cpu_load "$cpu_load"
+    json_add_string mem_total "${mem_total}K"
+    json_add_string mem_type "$mem_type"
+    json_add_string mem_frequency "${mem_frequency}MHz"
+    json_add_int mem_load "$mem_load"
+
+    export "${vname}=$(json_dump)"
+    return 0
+}
+
+. /lib/okos/trafstats.sh
+
+function generate_rtnetstatsjson()
+{
+    local vname="$1"
+    enable_wan_stats
+    fetch_wan_stats wan_down wan_up
+    json_init
+    json_add_int tx_bytes "$wan_up"
+    json_add_int rx_bytes "$wan_down"
+    json_add_string bandwidth "10M"
+
+    export "${vname}=$(json_dump)"
+    return 0
+}
+
+function generate_rtclientstatsjson()
+{
+    local vname="$1"
+    enable_lan_stats
+    fetch_lan_stats lan_stats
+    json_init
+    json_select_array "list"
+    for stat in ${lan_stats}
+    do
+        OIFS=$IFS;IFS='_';set -- $stat;__ip=$1;__mac=$2;__up=$4;__down=$5;IFS=$OIFS
+        json_add_object
+        json_add_string mac "$__mac"
+        json_add_int tx_bytes "$__up"
+        json_add_int rx_bytes "$__down"
+        json_close_object
+    done
+    json_select ..
+
+    export "${vname}=$(json_dump)"
+    return 0
+}
 
 
-generate_clientjson clientjson
+has_ifjson=${has_ifjson:=0}
+if [ "$has_ifjson" = "1" ]
+then
+    generate_ifjson ifjson
+fi
+
+
+has_clientjson=${has_clientjson:=0}
+if [ "$has_clientjson" = "1" ]
+then
+    generate_clientjson clientjson
+fi
+
+has_cpumemjson=${has_cpumemjson:=0}
+if [ "$has_cpumemjson" ]
+then
+    generate_cpumemjson cpumemjson
+fi
+
+has_rtnetstatsjson=${has_rtnetstatsjson:=0}
+if [ "$has_rtnetstatsjson" ]
+then
+    generate_rtnetstatsjson rtnetstatsjson
+fi
+
+has_rtclientstatsjson=${has_rtclientstatsjson:=0}
+if [ "$has_rtclientstatsjson" = "1" ]
+then
+    generate_rtclientstatsjson rtclientstatsjson
+fi
 
 # 5. final json data
 json_init
@@ -345,6 +459,33 @@ then
     json_add_string data "$clientjson"
     json_close_object
 fi
+if [ "$has_cpumemjson" = "1" ]
+then
+    json_add_object
+    json_add_int operate_type "12"
+    json_add_string mac "$mac"
+    json_add_string data "$cpumemjson"
+    json_close_object
+fi
+if [ "$has_rtnetstatsjson" = "1" ]
+then
+    json_add_object
+    json_add_int operate_type "13"
+    json_add_string mac "$mac"
+    json_add_int timestamp "`date +%s`"
+    json_add_string data "$rtnetstatsjson"
+    json_close_object
+fi
+if [ "$has_rtclientstatsjson" = "1" ]
+then
+    json_add_object
+    json_add_int operate_type "14"
+    json_add_string mac "$mac"
+    json_add_string data "$rtclientstatsjson"
+    json_close_object
+fi
+
+
 json_select ..
 
 json_data=$(json_dump)
