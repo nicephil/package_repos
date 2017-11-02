@@ -357,7 +357,7 @@ network_get_interfaces()
 network_get_lname()
 {
     local var="$1"
-    local lname
+    local lname=""
     local pname="$2"
     local gre=0
     if [ "${pname:0:6}" = "br-gre" ]
@@ -391,6 +391,7 @@ network_get_lname()
             lname="e4"
             ;;
         *)
+            echo "unknow interface"
             return 1
             ;;
     esac
@@ -400,7 +401,7 @@ network_get_lname()
         lname="${lname}.guest"
     fi
 
-    unset $var
+    unset "$var"
     export "$var=$lname"
     return 0
 }

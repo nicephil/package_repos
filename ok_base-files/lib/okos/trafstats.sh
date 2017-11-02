@@ -90,12 +90,101 @@ function fetch_lan_stats()
     return 0
 }
 
+function handle_interface ()
+{
+    local section="$1"
+    local var="$2"
 
-#enable_wan_stats
-#fetch_wan_stats up down
-#enable_lan_stats
-#fetch_lan_stats lan_stats
+    case "$section" in
+        "lan"*|"wan"*|"gre"*)
+            config_get _if_ifname "$section" "ifname"
 
+            if [ -z "$_if_ifname" ] 
+            then
+                continue
+            fi
+
+            if [ -n "$var" -a "$var" = "enable" ]
+            then
+                if [ "$section" = "wan" ]
+                then
+                    iptables -S iface_downlink_stats_rule 2>&1 | grep "wan" >/dev/null 2>&1
+                    if [ "$?" == "1" ]
+                    then
+                        iptables -I iface_uplink_stats_rule -o ${_ifname} -m comment --comment "wan uplink status"
+                        iptables -I iface_downlink_stats_rule -i ${_ifname} -m comment --comment "wan downlink status"
+                    fi
+                else
+                    iptables -S iface_downlink_stats_rule 2>&1 | grep "${_if_ifname}" >/dev/null 2>&1
+                    if [ "$?" == "1" ]
+                    then
+                        iptables -I iface_uplink_stats_rule -o ${_ifname} -i ${_if_ifname}
+                        iptables -I iface_downlink_stats_rule -i ${_ifname} -o ${_if_ifname}
+                    fi
+                fi
+            fi
+
+            if [ -n "$var" -a "$var" = "fetch" ]
+            then
+                if [ "$section" = "wan" ]
+                then
+                    local _uplink=$(echo "$interface_uplinks" | awk '/wan/{print $3}')
+                    local _downlink=$(echo "$interface_downlinks" | awk '/wan/{print $3}')
+                    _uplink=${_uplink:=0}
+                    _downlink=${_downlink:=0}
+                    append interfaces_stats "${_if_ifname}_${_uplink}_${_downlink}"
+                else
+                    local _uplink=$(echo "$interface_uplinks" | awk '/'"${_if_ifname}"'/{print $3}')
+                    local _downlink=$(echo "$interface_downlinks" | awk '/'"${_if_ifname}"'/{print $3}')
+                    _uplink=${_uplink:=0}
+                    _downlink=${_downlink:=0}
+                    append interfaces_stats "${_if_ifname}_${_uplink}_${_downlink}"
+                fi
+            fi
+            return 0
+            ;;
+        "*")
+            return 1
+            ;;
+    esac
+   
+    return 0
+}
+
+function enable_interface_stats()
+{
+    config_load network
+    config_foreach handle_interface interface  "enable"
+
+    return 0
+}
+
+function disable_interface_stats()
+{
+    iptables -F iface_uplink_stats_rule
+    iptables -F iface_downlink_stats_rule
+    return 0
+}
+
+function fetch_interface_stats()
+{
+    local vname="$1"
+    local interface_uplinks=$(iptables -L iface_uplink_stats_rule -n -v --line-number -x )
+    local interface_downlinks=$(iptables -L iface_downlink_stats_rule -n -v --line-number -x)
+    local interfaces_stats=""
+    iptables -Z iface_uplink_stats_rule
+    iptables -Z iface_downlink_stats_rule
+    config_load network
+    config_foreach handle_interface interface  "fetch"
+    unset "$vname"
+    export  "${vname}=${interfaces_stats}"
+
+    return 0
+}
+
+
+#enable_interface_stats
+#fetch_interface_stats _interfaces_stats
 
 
 
