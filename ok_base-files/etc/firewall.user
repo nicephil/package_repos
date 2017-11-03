@@ -19,11 +19,7 @@ iptables -I forwarding_rule -m comment --comment "forward downlink statistics" -
 
 iptables -I forwarding_rule -m comment --comment "wan uplink statistics" -j wan_uplink_stats_rule
 iptables -I forwarding_rule -m comment --comment "wan downlink statistics" -j wan_downlink_stats_rule
-iptables -I output_rule -m comment --comment "wan uplink statistics" -j wan_uplink_stats_rule
-iptables -I input_rule -m comment --comment "wan downlink statistics" -j wan_downlink_stats_rule
 
 
 iptables -I forwarding_rule -m comment --comment "forward interface uplink statistics" -j iface_uplink_stats_rule
 iptables -I forwarding_rule -m comment --comment "forward interface downlink statistics" -j iface_downlink_stats_rule
-iptables -I output_rule -m comment --comment "output interface uplink statistics" -j iface_uplink_stats_rule
-iptables -I input_rule -m comment --comment "input interface downlink statistics" -j iface_downlink_stats_rule

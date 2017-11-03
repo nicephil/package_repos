@@ -11,8 +11,8 @@ function enable_wan_stats()
     iptables -S wan_downlink_stats_rule 2>&1 | grep "${_ifname}" >/dev/null 2>&1
     if [ "$?" == "1" ]
     then
-        iptables -I wan_uplink_stats_rule -o ${_ifname}
-        iptables -I wan_downlink_stats_rule -i ${_ifname}
+        iptables -I wan_uplink_stats_rule -i ${_ifname}
+        iptables -I wan_downlink_stats_rule -o ${_ifname}
     fi
 }
 
@@ -111,8 +111,8 @@ function handle_interface ()
                     iptables -S iface_downlink_stats_rule 2>&1 | grep "wan" >/dev/null 2>&1
                     if [ "$?" == "1" ]
                     then
-                        iptables -I iface_uplink_stats_rule -o ${_ifname} -m comment --comment "wan uplink status"
-                        iptables -I iface_downlink_stats_rule -i ${_ifname} -m comment --comment "wan downlink status"
+                        iptables -I iface_uplink_stats_rule -i ${_ifname} -m comment --comment "wan uplink status"
+                        iptables -I iface_downlink_stats_rule -o ${_ifname} -m comment --comment "wan downlink status"
                     fi
                 else
                     iptables -S iface_downlink_stats_rule 2>&1 | grep "${_if_ifname}" >/dev/null 2>&1
