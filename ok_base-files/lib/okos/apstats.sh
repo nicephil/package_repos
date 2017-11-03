@@ -33,9 +33,11 @@ do
 
     OIFS=$IFS;IFS='_';set -- $iface_stats;__iface=$1;__uplink=$2;__downlink=$3;IFS=$OIFS
     network_get_lname _iface_lname  "${__iface}"
+    json_add_object
     json_add_string "name" "${_iface_lname}"
     json_add_int "Tx_Data_Bytes" "$__uplink"
     json_add_int "Rx_Data_Bytes" "$__downlink"
+    json_close_object
 done
 json_close_array
 
