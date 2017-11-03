@@ -144,6 +144,7 @@ function generate_ifjson()
         json_add_string proto "$proto"
         
         json_add_int "type" "$l_type"
+        json_add_int "clients" "$(awk '/'"${ifname}"'/{if(match($3,"0x2"))a++}END{print a}' /proc/net/arp)"
 
         local state
         network_get_phy_status state _tmp2 _tmp3 "$ifname"
