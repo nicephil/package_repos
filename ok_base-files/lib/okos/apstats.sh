@@ -5,11 +5,12 @@
 
 # 1. get mac and timestamp
 config_load capwapc
-config_get _mas_server "capwapc" "mas_server"
+config_get mas_server "server" "mas_server"
 timestamp="`date +%s`"
 
 config_load productinfo
 config_get mac "productinfo" "mac"
+mac="$(echo "$mac" | tr -d ":")"
 
 
 # 2. generate json file
@@ -23,14 +24,14 @@ fetch_interface_stats _interfaces_stats
 json_init
 
 
-json_add_string "mac" "`echo ${mac} | sed 's/://g'`"
-json_add_int "timestamp" "`date +%s`"
+json_add_string "mac" "${mac}"
+json_add_int "timestamp" "${timestamp}"
 
 json_add_array "INTERFACE_STAT"
 for iface_stats in $_interfaces_stats
 do
 
-    OIFS=$IFS;IFS='_';set -- $iface_stats;__iface=$1;__uplink=$2;__downlink=$3IFS=$OIFS
+    OIFS=$IFS;IFS='_';set -- $iface_stats;__iface=$1;__uplink=$2;__downlink=$3;IFS=$OIFS
     network_get_lname _iface_lname  "${__iface}"
     json_add_string "name" "${_iface_lname}"
     json_add_int "Tx_Data_Bytes" "$__uplink"
@@ -39,6 +40,7 @@ done
 json_close_array
 
 # 8. generate .json
+rm -rf /tmp/apstats_${mac}_*.json
 json_file="apstats_${mac}_${timestamp}.json"
 json_dump 2>/dev/null | tee /tmp/${json_file}
 
