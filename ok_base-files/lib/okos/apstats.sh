@@ -7,11 +7,20 @@
 config_load capwapc
 config_get mas_server "server" "mas_server"
 timestamp="`date +%s`"
+if [ -z "$mac_server" ]
+then
+    echo "mas_server is not set"
+    exit
+fi
 
 config_load productinfo
 config_get mac "productinfo" "mac"
 mac="$(echo "$mac" | tr -d ":")"
-
+if [ -z "$mac" ]
+then
+    echo "mac is not set"
+    exit
+fi
 
 # 2. generate json file
 . /usr/share/libubox/jshn.sh
