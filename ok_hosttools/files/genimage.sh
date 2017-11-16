@@ -24,8 +24,8 @@ cat ${origin_file}.tar.gz >> ${bin_file}
     mv ${bin_file} ${swversion}_${bin_file}
     mv ${origin_file}.tar.gz ${swversion}_${origin_file}.tar.gz
     # upload
-    scp ${swversion}_${bin_file} ${swversion}_${origin_file}.tar.gz image@${server}:/var/www/html/images/ap/${rdir}/.
-    ssh image@${server} "cd /var/www/html/images/ap/${rdir};
+    scp ${swversion}_${bin_file} ${swversion}_${origin_file}.tar.gz image@${server}:/var/www/html/images/ap/${rdir}/sysloader/.
+    ssh image@${server} "cd /var/www/html/images/ap/${rdir}/sysloader;
     unlink latest-bin.app;ln -s ${swversion}_${bin_file} latest-bin.app;
     unlink latest-sysupgrade.bin.tar.gz; ln -s ${swversion}_${origin_file}.tar.gz latest-sysupgrade.bin.tar.gz"
 }
