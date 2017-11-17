@@ -1093,7 +1093,11 @@ int wlan_set_max_power(int radio_id, int value)
     if (value) {
         cfg_set_option_value_int(tuple, value);
     } else {
-        cfg_set_option_value(tuple, "auto");
+        if (radio_id == 0) {
+            cfg_set_option_value_int(tuple, 5);
+        } else {
+            cfg_set_option_value(tuple, "auto");
+        }
     }
 
     return 0;

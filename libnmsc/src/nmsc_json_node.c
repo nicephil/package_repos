@@ -3876,7 +3876,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
         .id = 0,
         .mode = (DOT11_RADIO_MODE_G | DOT11_RADIO_MODE_N),
         .channel = 6,
-        .max_power = 0,
+        .max_power = 5,
         .dot11nonly = 0,
         .ampdu = 1,
         .bandwidth = 0,
