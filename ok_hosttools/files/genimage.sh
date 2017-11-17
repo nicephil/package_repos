@@ -17,6 +17,6 @@ gzip -c "${origin_file}" > "${bin_file}"
     # upload
     scp ${swversion}_${bin_file} image@${server}:/var/www/html/images/ap/${rdir}/okos/.
     ssh image@${server} "cd /var/www/html/images/ap/${rdir}/okos;
-    unlink latest-bin.gz;ln -s ${swversion}_${bin_file} latest-bin.gz;"
+    unlink latest-okos.gz;ln -s ${swversion}_${bin_file} latest-okos.gz;"
 }
 done
