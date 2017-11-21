@@ -706,6 +706,7 @@ enable_qcawifi() {
     iwpriv "$phy" set_min_snr_en $rssi_access                                              
     config_get rssi_access_threshold "$device" rssi_access_thresold -92            
     iwpriv "$phy" set_min_snr $((rssi_access_threshold+97))  
+    iwpriv "$phy" chutil_enab 1
     # end of OK_PATCH
 
 	config_get_bool enable_ol_stats "$device" enable_ol_stats
@@ -983,6 +984,7 @@ enable_qcawifi() {
 		config_get_bool shpreamble "$vif" shpreamble 1
         shpreamble=${shpreamble:-$_shpreamble}
 		[ -n "$shpreamble" ] && iwpriv "$ifname" shpreamble "${shortgi}"
+        iwpriv "$ifname" chutil_enab 1
         #end of OK_PATCH
 
 		config_get_bool disablecoext "$vif" disablecoext
