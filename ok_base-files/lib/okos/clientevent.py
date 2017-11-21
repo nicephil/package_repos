@@ -107,6 +107,7 @@ class Client(Thread):
                 elif self.last_acl_type == 0:
                     # self.set_whitelist(0, 0)
                     # self.set_blacklist(0, 0)
+                    os.system("wdctl reset %s &" % self.mac)
                     pass
                 self.set_ratelimit(0, 0, clientevent.ath, 0)
                 os.system("sqlite3 -echo /tmp/arptables.db \"delete from 'br-lan1' \
