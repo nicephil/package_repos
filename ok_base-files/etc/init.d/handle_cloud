@@ -1,0 +1,19 @@
+#!/bin/sh /etc/rc.common
+START=99
+STOP=50
+
+SERVICE_DAEMONIZE=1
+#SERVICE_WRITE_PID=1
+#SERVICE_USE_PID=1
+SERVICE_STOP_TIME=3
+
+start () {
+    service_start /lib/okos/supervisor.sh
+}
+
+stop () {
+    service_stop /lib/okos/supervisor.sh
+    killall -6 supervisor.sh
+}
+
+
