@@ -55,11 +55,12 @@
 @todo Also pass MAC adress? 
 @todo This thread loops infinitely, need a watchdog to verify that it is still running?
 */
+pthread_cond_t client_polling_cond = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t client_polling_cond_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 void
 thread_client_timeout_check(const void *arg)
 {
-    pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-    pthread_mutex_t cond_mutex = PTHREAD_MUTEX_INITIALIZER;
     struct timespec timeout;
 
     timeout.tv_sec = time(NULL) + 5;
@@ -68,13 +69,13 @@ thread_client_timeout_check(const void *arg)
     while (1) {
 
         /* Mutex must be locked for pthread_cond_timedwait... */
-        pthread_mutex_lock(&cond_mutex);
+        pthread_mutex_lock(&client_polling_cond_mutex);
 
         /* Thread safe "sleep" */
-        pthread_cond_timedwait(&cond, &cond_mutex, &timeout);
+        pthread_cond_timedwait(&client_polling_cond, &client_polling_cond_mutex, &timeout);
 
         /* No longer needs to be locked */
-        pthread_mutex_unlock(&cond_mutex);
+        pthread_mutex_unlock(&client_polling_cond_mutex);
 
         debug(LOG_DEBUG, "<ClientTimeout>: Running client checking...");
 

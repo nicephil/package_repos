@@ -31,6 +31,9 @@
 #include "httpd.h"
 #include "client_list.h"
 
+extern pthread_cond_t client_polling_cond;
+extern pthread_mutex_t client_polling_cond_mutex;
+
 /**
  * @brief Authentication codes returned by auth server.
  *

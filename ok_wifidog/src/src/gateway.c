@@ -204,6 +204,7 @@ get_clients_from_parent(void)
                             client->fw_connection_state = atoi(value);
                         } else if (strcmp(key, "fd") == 0) {
                             client->fd = atoi(value);
+#if 0
                         } else if (strcmp(key, "counters_incoming") == 0) {
                             client->counters.incoming_history = (unsigned long long)atoll(value);
                             client->counters.incoming = client->counters.incoming_history;
@@ -214,6 +215,7 @@ get_clients_from_parent(void)
                             client->counters.outgoing_delta = 0;
                         } else if (strcmp(key, "counters_last_updated") == 0) {
                             client->counters.last_updated = atol(value);
+#endif
 #if OK_PATCH /* Add more elements for client */
                         } else if (strcmp(key, "auth_mode") == 0) {
                             client->auth_mode = (unsigned int)atoi(value);
@@ -225,6 +227,8 @@ get_clients_from_parent(void)
                             client->last_flushed = atol(value);
                         } else if (strcmp(key, "if_name") == 0) {
                             client->if_name = safe_strdup(value);
+                        } else if (strcmp(key, "flag") == 0) {
+                            client->flag = atoi(value);
 #endif /* OK_PATCH */
                         } else {
                             debug(LOG_NOTICE, "I don't know how to inherit key [%s] value [%s] from parent", key,

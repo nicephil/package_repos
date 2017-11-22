@@ -364,7 +364,7 @@ okos_wdctl_restart(int afd, const char *_1, const char *_2)
         while (client) {
             safe_asprintf(&tempstring,
                           "CLIENT|ip=%s|mac=%s|fw_connection_state=%u"
-                          "|fd=%d|auth_mode=%u|user_name=%s"
+                          "|fd=%d|auth_mode=%u|user_name=%s|flag=%d"
                           "|remain_time=%u|last_flushed=%lu|if_name=%s\n",
                           client->ip, client->mac, client->fw_connection_state,
                           client->fd, client->auth_mode, client->user_name,

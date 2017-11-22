@@ -58,7 +58,7 @@ typedef struct _t_client {
     int fd;                             /**< @brief Client HTTP socket (valid only
 					     during login before one of the
 					     _http_* function is called */
-    t_counters counters;                /**< @brief Counters for input/output of the client. */
+    //t_counters counters;                /**< @brief Counters for input/output of the client. */
 
     /** Client Local informaion **/
     char *ip;
@@ -74,6 +74,8 @@ typedef struct _t_client {
     char *user_name;
 
     //char *token;
+    /** flag to indicate whether this element should be polled in timeout thread. **/
+    int flag;   // 0: No need; 1: Enable polling.
 
 } t_client;
 
@@ -155,6 +157,9 @@ char * okos_delete_clients_by_scheme(const char *, const char *, int *);
 t_client *client_list_find_by_ssid(const char *, const char *);
 t_client *client_list_find_by_scheme(const char *, const char *);
 
+void client_list_set_polling_flag(t_client *);
+void client_list_unset_polling_flag(t_client *);
+int client_list_polling_flag(t_client *);
 
 
 #endif

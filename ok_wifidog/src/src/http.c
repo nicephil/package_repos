@@ -335,8 +335,10 @@ static void okos_add_validation_client(t_client **p_client)
     LOCK_CLIENT_LIST();
     t_client *old = client_list_find_by_ssid(client->mac, client->ssid->ssid);
     if (NULL == old) {
+        client_list_set_polling_flag(client);
         client_list_insert_client(&client);
         if (client) {
+            pthread_cond_signal(&client_polling_cond);
             fw_allow(client, FW_MARK_KNOWN);
             debug(LOG_DEBUG, "<client_info>\t Insert a new VALIDATION client"
                     "{%s, %s, %s, remain_time:%ld}.",
@@ -367,6 +369,7 @@ static void okos_try_to_add_client_into_list(t_client **p_client)
     if (NULL == p_old) {
         debug(LOG_DEBUG, "<client_info>\t Insert New ALLOWED client {%s, %s, %s}",
                 client->ip, client->mac, client->if_name);
+        client_list_unset_polling_flag(client);
         client_list_insert_client(&client);
         if (client) {
             fw_allow(client, FW_MARK_KNOWN);
@@ -375,6 +378,7 @@ static void okos_try_to_add_client_into_list(t_client **p_client)
         debug(LOG_INFO, "<client_info>\t ALLOWED Client"
                 "{%s, %s, %s, remain_time:%ld} is already in.",
                 p_old->ip, p_old->mac, p_old->if_name, p_old->remain_time);
+        client_list_unset_polling_flag(p_old);
         okos_client_list_flush_all(p_old, client);
     }
 

@@ -89,24 +89,27 @@ static pthread_mutex_t client_list_status_mutex = PTHREAD_MUTEX_INITIALIZER;
 } while (0)
 
 void okos_client_list_created(void)
-{
+{/*
     LOCK_LIST_STATUS("New");
     client_list_status = ClientListNew;
     UNLOCK_LIST_STATUS("New");
+    */
 }
 
 void okos_client_list_updated(void)
-{
+{/*
     LOCK_LIST_STATUS("update");
     client_list_status = ClientListUpdated;
     UNLOCK_LIST_STATUS("update");
+    */
 }
 
 void okos_client_list_checked(void)
-{
+{/*
     LOCK_LIST_STATUS("check up");
     client_list_status = ClientListChecked;
     UNLOCK_LIST_STATUS("check up");
+    */
 }
 
 int okos_client_list_should_be_checked(void)
@@ -174,6 +177,22 @@ static int okos_client_list_client_complete(t_client *client)
     return 0;
 }
 
+#define CLIENT_LIST_FLAG_POLLING 0x1
+void
+client_list_set_polling_flag(t_client *client)
+{
+    client->flag |= CLIENT_LIST_FLAG_POLLING;
+}
+void
+client_list_unset_polling_flag(t_client *client)
+{
+    client->flag &= ~CLIENT_LIST_FLAG_POLLING;
+}
+int client_list_polling_flag(t_client *client)
+{
+    return client->flag & CLIENT_LIST_FLAG_POLLING;
+}
+
 void
 client_list_insert_client(t_client **p_client)
 {
@@ -231,6 +250,7 @@ static t_client * okos_client_query_mac(t_client *first, const char *mac)
 /* FIXME: if you want to use this function, you have to handle all the string element
  *
  */
+#if 0
 t_client *
 okos_client_list_add(const char *ip, const char *mac, const char *token, 
                 const unsigned int remain_time, const unsigned int auth_mode,
@@ -260,6 +280,7 @@ okos_client_list_add(const char *ip, const char *mac, const char *token,
 
     return curclient;
 }
+#endif 
 #endif
 
 void
@@ -277,15 +298,6 @@ okos_client_list_flush(t_client *client, const unsigned int remain_time)
 void
 okos_client_list_flush_all(t_client *old, t_client *cur)
 {
-#if 0
-    client_list_remove(old);
-    client_list_insert_client(cur);
-    okos_client_list_updated();
-    debug(LOG_DEBUG, "<client_info>\t Client{%s,%s,%s} got flushed with"
-            "{remain_time:%ld, authmode:%d, user_name:%s}",
-            cur->ip, cur->mac, cur->if_name,
-            cur->remain_time, cur->auth_mode, cur->user_name);
-#else
     old->remain_time = cur->remain_time;
     old->last_flushed = cur->last_flushed;
     old->auth_mode = cur->auth_mode;
@@ -297,7 +309,6 @@ okos_client_list_flush_all(t_client *old, t_client *cur)
             "{remain_time:%ld, authmode:%d, user_name:%s}",
             old->ip, old->mac, old->if_name,
             old->remain_time, old->auth_mode, old->user_name);
-#endif
 }
 #if 0
 t_client *
@@ -447,6 +458,7 @@ client_dup(const t_client * src)
 #else
     new->token = safe_strdup(src->token);
 #endif
+#if 0
     new->counters.incoming = src->counters.incoming;
     new->counters.incoming_history = src->counters.incoming_history;
     new->counters.incoming_delta = src->counters.incoming_delta;
@@ -454,7 +466,7 @@ client_dup(const t_client * src)
     new->counters.outgoing_history = src->counters.outgoing_history;
     new->counters.outgoing_delta = src->counters.outgoing_delta;
     new->counters.last_updated = src->counters.last_updated;
-
+#endif
 #if OK_PATCH
     new->auth_mode = src->auth_mode;
     new->user_name = safe_strdup(src->user_name);
@@ -463,7 +475,9 @@ client_dup(const t_client * src)
 
     new->if_name = safe_strdup(src->if_name);
     new->ifx = src->ifx;
-    new->ssid= src->ssid;
+    new->ssid = src->ssid;
+
+    new->flag = src->flag;
 #endif /* OK_PATCH */
 
     new->next = NULL;
