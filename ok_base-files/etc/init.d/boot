@@ -18,6 +18,7 @@ uci_apply_defaults() {
 }
 
 boot() {
+    mount -t ubi /dev/ubi0_1 /overlay
 	[ -f /proc/mounts ] || /sbin/mount_root
 	[ -f /proc/jffs2_bbc ] && echo "S" > /proc/jffs2_bbc
 	[ -f /proc/net/vlan/config ] && vconfig set_name_type DEV_PLUS_VID_NO_PAD
