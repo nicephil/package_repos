@@ -54,4 +54,5 @@ service() {
 # OK_PATCH
 alias iwsta='iwconfig 2>/dev/null | awk '"'"'/ath/{print $1;system("wlanconfig "$1" list");}'"'"
 alias iwap='iwconfig 2>/dev/null | awk '"'"'/ath/{print $1;system("wlanconfig "$1" list ap");}'"'"
+alias stop='killall handle_cloud.sh;killall wget;rm -rf /tmp/okos.gz'
 #end of OK_PATCH

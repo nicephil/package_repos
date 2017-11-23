@@ -87,6 +87,7 @@ sleep 1
 
 
 # 7. jump to okos entry
-echo "--->jump to new okos ${OKOS_FILE} by kexec -e" | logger -t 'handle_cloud'
+echo "--->delay ${BOOT_DELAY} and jump to new okos ${OKOS_FILE} by kexec -e" | logger -t 'handle_cloud'
 
+[ -n "${BOOT_DELAY}" ] && sleep ${BOOT_DELAY}
 kexec -d -e
