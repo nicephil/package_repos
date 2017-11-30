@@ -32,7 +32,7 @@ BOOT_DELAY=""
 
 while [ -z "$OKOS_MD5SUM" -o -z "$IMAGE_URL" ]
 do
-    URL="http://${ADDR}:${PORT}/device_register/?key=${KEY}"
+    URL="http://${ADDR}:${PORT}/restful/device_register/?key=${KEY}"
     echo curl -vv -m 10 -s -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "$json_data" $URL |  logger -t 'handle_cloud'
     response=$(curl -m 10 -s -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "$json_data" $URL 2>/dev/ttyS0)
     echo "----->$response" | logger -t 'handle_cloud'
@@ -87,7 +87,7 @@ sleep 1
 
 
 # 7. jump to okos entry
-echo "--->delay ${BOOT_DELAY} and jump to new okos ${OKOS_FILE} by kexec -e" | logger -t 'handle_cloud'
-
 [ -n "${BOOT_DELAY}" ] && sleep ${BOOT_DELAY}
+echo "--->jump to new okos ${OKOS_FILE} by kexec -e" | logger -t 'handle_cloud'
+
 kexec -d -e
