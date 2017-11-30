@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 #include <sys/stat.h> 
 #include <time.h>
 #include <sqlite3.h>
@@ -1795,6 +1796,139 @@ static int dc_cli_finished(void *reserved)
     return 0;
 }
 
+#if OK_PATCH
+/*
+ * handle router config request
+ */
+static int dc_router_config_handler(struct tlv *payload, void **reserved)
+{
+    struct dc_handle_result {
+        int  code;
+        char key[32];
+    };
+    char *prog = "/lib/okos/config_handler.sh";
+
+    char terminated = payload->v[payload->l];
+    payload->v[payload->l] = 0;
+    char *env = (char *)malloc(payload->l + 4);
+    strcpy(env, payload->v);
+    CWLog("System env:json_data=%s", env);
+    setenv("json_data", env, 1);
+
+    struct dc_handle_result *result = (struct dc_handle_result *)malloc(sizeof(struct dc_handle_result));
+    memset(result, 0, sizeof(struct dc_handle_result));
+
+    int ret = 0;
+
+    ret = system(prog);
+    result->code = WEXITSTATUS(ret);
+
+    char *tmp = getenv("result");
+    if (tmp) {
+        CWLog("Result env:%s", tmp);
+    }
+
+    free (env);
+    payload->v[payload->l] = terminated;
+    *reserved = result;
+    return 0;
+}
+
+static char *dc_prepare_router_response(void *reserved)
+{
+    struct dc_handle_result {
+        int  code;
+        char key[32];
+    };
+    int code = ((struct dc_handle_result *)reserved)->code;
+
+    json_object *resp_obj = NULL, *data_obj = NULL;
+    char *json_string, *json_data_str;
+    
+    data_obj = json_object_new_object();
+    if (!data_obj) {
+        return NULL;
+    }
+
+    json_object_object_add(data_obj, "code", json_object_new_int(code));
+    json_data_str = malloc(strlen(json_object_to_json_string(data_obj)) + 1);
+    if (!json_data_str) {
+        json_object_put(data_obj);
+        return NULL;
+    }
+    strcpy(json_data_str, json_object_to_json_string(data_obj));
+    json_object_put(data_obj);
+
+#define ROUTER_MESSAGE_OPERATE_TYPE_COMMON 10000
+    resp_obj = json_object_new_object();
+    if (!resp_obj) {
+        free(json_data_str);
+        return NULL;
+    }
+    
+    json_object_object_add(resp_obj, "operate_type", json_object_new_int(ROUTER_MESSAGE_OPERATE_TYPE_COMMON));    
+
+    json_object_object_add(resp_obj, "data", json_object_new_string(json_data_str));
+
+    json_string = malloc(strlen(json_object_to_json_string(resp_obj)) + 1);
+    if (!json_string) {
+        json_object_put(resp_obj);
+        free(json_data_str);
+        return NULL;
+    }
+
+    strcpy(json_string, json_object_to_json_string(resp_obj));
+    json_object_put(resp_obj);
+
+    free(json_data_str);
+
+    return json_string;
+}
+
+/*
+ * handle router config response
+ */
+static int dc_router_config_response(devctrl_block_s *dc_block, void *reserved)
+{
+    char *json_data = NULL, *payload;
+    int paylength = 0, ret = 0; 
+
+     json_data = dc_prepare_router_response(reserved);
+     if (json_data) {
+        paylength = strlen(json_data);
+     }
+
+    /* 2bytes type + 4bytes length */
+    CW_CREATE_OBJECT_SIZE_ERR(payload, paylength + 6, {free(json_data); return -1;});
+
+    /* config result with json format */
+    save_payload_type(payload, DC_PAYLOAD_ROUTER_CONFIG_RESULT);
+    save_payload_length(payload + 2, paylength);
+
+    if (json_data) {
+        CW_COPY_MEMORY(payload + 6, json_data, paylength);
+        free(json_data);
+    }
+
+    ret = dc_response(payload, paylength + 6, dc_block);
+
+    CW_FREE_OBJECT(payload);
+    
+    return 0;
+}
+
+/*
+ * clean up resource
+ */
+static int dc_router_config_finished(void *reserved)
+{
+    if (reserved) {
+        free(reserved);
+    }
+    return 0;
+}
+#endif
+
 static int dc_flowsta_handler(struct tlv *payload, void **reserved)
 {
 #define CALC_RATE_PERIOD    2
@@ -2019,6 +2153,11 @@ struct dc_payloadfunc_table dc_payload_handler[] = {
 
     {DC_PAYLOAD_FLOWSTA_REQ, 
         dc_flowsta_handler, dc_flowsta_response, dc_flowsta_finished},
+
+#if OK_PATCH
+    {DC_PAYLOAD_ROUTER_CONFIG_REQ, 
+        dc_router_config_handler, dc_router_config_response, dc_router_config_finished},
+#endif
 };
 
 
