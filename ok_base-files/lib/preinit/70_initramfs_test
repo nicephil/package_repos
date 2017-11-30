@@ -1,0 +1,18 @@
+#!/bin/sh
+# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2010 Vertical Communications
+
+initramfs_test() {
+    echo "---> initramfs_test $INITRAMFS"
+    if [ -n "$INITRAMFS" ]; then
+	boot_run_hook initramfs
+	preinit_ip_deconfig
+    # OK_PATCH
+    mount -t ubifs ubi0:ubi_rootfs_data /overlay 
+    # end of OK_PATCH
+	break
+    fi
+}
+
+boot_hook_add preinit_main initramfs_test
+
