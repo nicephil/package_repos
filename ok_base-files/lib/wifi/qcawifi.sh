@@ -1193,7 +1193,7 @@ enable_qcawifi() {
             config_set "$vif" maclist " "                     
             config_set "$vif" macfilter " "                   
             config_load wlan_service_template                      
-            [ "$vif" != "ath50" ] && st_name="ServiceTemplate${vif:4}"                      
+            [ "$vif" != "ath50" -o "$vif" != "ath60" ] && st_name="ServiceTemplate${vif:4}"                      
             config_get _acl "$st_name" acl                       
 
 		    [ -n "$_acl" ] && {
@@ -2009,6 +2009,16 @@ config wifi-iface ath50
     option network dwan
     option mode ap
     option ssid ok_${ssid_tmp}
+    option encryption psk-mixed
+    option key oakridge
+    option hidden 1
+
+config wifi-iface ath60
+    option device wifi1
+    option ifname ath60
+    option network dwan
+    option mode ap
+    option ssid ok_${ssid_tmp}_5G
     option encryption psk-mixed
     option key oakridge
     option hidden 1

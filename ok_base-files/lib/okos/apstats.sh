@@ -127,7 +127,7 @@ for data_cur in `echo $datas_cur`
 do
     OIFS=$IFS; IFS="|"; set -- $data_cur; ath=$1;radio=$2;txB=$3;rxB=$4; IFS=$OIFS
     # echo "--------->"$ath $radio $txB $rxB
-    if [ "$ath" = "ath50" ]
+    if [ "$ath" = "ath50"  -o "$ath" = "ath60" ]
     then
         continue
     fi

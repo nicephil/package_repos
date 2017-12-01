@@ -6,8 +6,8 @@ dbfile="/tmp/stationinfo.db"
 tablename="STAINFO"
 CMD=
 
-# ath50 is for debug, so ignore it
-if [ "$ath" = "ath50" ]
+# ath50/ath60 is for debug, so ignore it
+if [ "$ath" = "ath50" && "$ath" = "ath60" ]
 then
     exit 0
 fi

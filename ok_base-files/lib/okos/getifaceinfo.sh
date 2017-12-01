@@ -63,7 +63,7 @@ done
 
 iwconfig 2> /dev/null | awk '{
                               
-if (match($1,"ath") && !match($1, "ath50")) {        
+if (match($1,"ath") && !match($1, "ath50") && !match($1, "ath60")) {        
     ifname=mac=vlan=ssid=ipaddr=maskaddr=chan=txpower=mode=bandwidth="";
     radio_index=substr($1,4,1)
     "(. /lib/functions.sh;config_load wireless;config_get  _vlan "$1" network;echo $_vlan;)" | getline vlan

@@ -3,11 +3,11 @@
 DEBUG="$1"
 [ -n "$DEBUG" ] && {
     # cpumem info
-    export 'json_data={"data":"","operate_type":12}'
+    # export 'json_data={"data":"{\"cpu_memory\":1}","operate_type":12}'
     # channel scanning
-    # export 'json_data={"data":"","operate_type":16}'
+    export 'json_data={"data":"","operate_type":15}'
     # config channel
-    # export 'json_data={"data":"","operate_type":17}'
+    # export 'json_data={"data":"{\"r24_channel\":1,\"r5_channel\":149}","operate_type":17}'
 }
 
 config_log()
@@ -33,25 +33,62 @@ json_get_vars operate_type data
 
 config_log "$operate_type" "$data"
 
-handle_cpumeminfo()
+handle_devstats()
 {
-    has_cpumemjson=1 /lib/okos/devstats.sh
+    local ops="$1"
+    local json_data="$2"
+    local ret=""
+
+    json_init
+    json_load "$json_data"
+    json_get_vars cpu_memory
+
+    if [ "$cpu_memory" = "1" ]
+    then
+        has_cpumemjson=1 /lib/okos/devstats.sh
+    fi
     return 0
 }
 
  handle_chscanning()
 {
+    local ops="$1"
+    local json_data="$2"
+    local ret=""
+
+    # 1. check icm process exists or not
+    if [ -z "$(pgrep 'icm')" ]
+    then
+        icm -i /tmp/icmseldebug.csv >/dev/null 2>&1 &
+        (sleep 50; has_chscanningjson=1 /lib/okos/devstats.sh) &
+    fi
+
     return 0
 }
 
- handle_setschan()
+ handle_setchan()
 {
+    local ops="$1"
+    local json_data="$2"
+    local ret=""
+
+    json_init
+    json_load "$json_data"
+    json_get_vars r24_channel r5_channel
+
+    iw_tmp="$(iwconfig 2>&1 | awk '/ath/{print $1}')"
+    ath0=$(echo "$iw_tmp" | awk '/ath0/{print $1;exit}')
+    ath1=$(echo "$iw_tmp" | awk '/ath1/{print $1;exit}')
+
+    [ -n "$ath0" -a -n "$r24_channel" ] && iwconfig "$ath0" channel "$r24_channel"
+    [ -n "$ath1" -a -n "$r5_channel" ] && iwconfig "$ath1" channel "$r5_channel"
+
     return 0
 }
 
 case "$operate_type" in
     "12")
-        if ! handle_cpumeminfo "$operate_type" "$data"
+        if ! handle_devstats "$operate_type" "$data"
         then
             config_log "$operate_type $data failed"
             return 1
