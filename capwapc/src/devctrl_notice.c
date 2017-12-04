@@ -355,23 +355,58 @@ static int dc_get_wlan_radio_stats(struct wlan_radio_stat **stats)
         count  = 0;
         return count;
     }
+
+    FILE *stream = NULL;
+    int chutil = 0;
+    int per = 0;
+    int ret = 0;
+
     strcpy(cur_stats[0].ifname, "wifi1");
     cur_stats[0].ifname_len = strlen(cur_stats[0].ifname);
-    cur_stats[0].chan_util = 20;
-    cur_stats[0].error_rate = 1;
+
+    stream = popen("apstats -r -i wifi1 | awk -F'=' '{if(match($1,\"Channel Utilization\"))chutil=$2;if(match($1,\"Total PER\"))per=$2;}END{print chutil\"_\"per}'", "r");
+    ret = fscanf(stream, "%d_%d", &(cur_stats[0].chan_util), &(cur_stats[0].error_rate));
+    if (ret != 2) {
+        cur_stats[0].chan_util = 0;
+        cur_stats[0].error_rate = 0;
+    }
+    pclose(stream);
+
+    stream = popen("iwconfig ath60 | awk -F'[: =]+' '{if(match($2$3,\"BitRate\"))bitrate=$4;if(match($2$3,\"LinkQuality\"))noise=$11;}END{print bitrate\"_\"noise}'", "r");
+    ret = fscanf(stream, "%d_%d", &(cur_stats[0].tx_rate), &(cur_stats[0].noise_level));
+    if ( ret != 2) {
+        cur_stats[0].tx_rate = 0;
+        cur_stats[0].noise_level = -97;
+    }
+    pclose(stream);
+
+    cur_stats[0].rx_rate = cur_stats[0].tx_rate;
     cur_stats[0].retry_rate = 3;
-    cur_stats[0].snr = 40;
-    cur_stats[0].tx_rate = 1024;
-    cur_stats[0].rx_rate = 4096;
+
+
 
     strcpy(cur_stats[1].ifname, "wifi0");
     cur_stats[1].ifname_len = strlen(cur_stats[1].ifname);
-    cur_stats[1].chan_util = 60;
-    cur_stats[1].error_rate = 10;
-    cur_stats[1].retry_rate = 30;
-    cur_stats[1].snr = 20;
-    cur_stats[1].tx_rate = 1024;
-    cur_stats[1].rx_rate = 2048;
+
+    stream = popen("apstats -r -i wifi0 | awk -F'=' '{if(match($1,\"Channel Utilization\"))chutil=$2;if(match($1,\"Total PER\"))per=$2;}END{print chutil\"_\"per}'", "r");
+    ret = fscanf(stream, "%d_%d", &(cur_stats[1].chan_util), &(cur_stats[1].error_rate));
+    if (ret != 2) {
+        cur_stats[1].chan_util = 0;
+        cur_stats[1].error_rate = 0;
+    }
+    pclose(stream);
+
+    stream = popen("iwconfig ath50 | awk -F'[: =]+' '{if(match($2$3,\"BitRate\"))bitrate=$4;if(match($2$3,\"LinkQuality\"))noise=$11;}END{print bitrate\"_\"noise}'", "r");
+    ret = fscanf(stream, "%d_%d", &(cur_stats[1].tx_rate), &(cur_stats[1].noise_level));
+    if ( ret != 2) {
+        cur_stats[1].tx_rate = 0;
+        cur_stats[1].noise_level = -97;
+    }
+    pclose(stream);
+
+    cur_stats[1].rx_rate = cur_stats[1].tx_rate;
+    cur_stats[1].retry_rate = 3;
+
 
     *stats = cur_stats;
 

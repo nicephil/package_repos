@@ -37,6 +37,7 @@ fi
 
 config_load wireless
 
+
 for i in `seq 0 1`
 do
     ifname="wifi$i"
@@ -50,8 +51,14 @@ do
     [ "$_disabled" = "1" ] && state="0"
     config_get mac $ifname macaddr
     config_get chan $ifname channel
+    [ "$chan" = "auto" -o "$chan" = "0" ] && {
+        [ "$i" = "0" ] && chan=$(iwinfo ath50 info | awk -F '[: ]+' '/Channel/{print $5}')
+        [ "$i" = "1" ] && chan=$(iwinfo ath60 info | awk -F '[: ]+' '/Channel/{print $5}')
+    }
+    [ "$i" = "0" ] && export "chan_2=$chan"
+    [ "$i" = "1" ] && export "chan_5=$chan"
+
     config_get txpower $ifname txpower
-    [ "$txpower" = "auto" ] && txpower="20"
     config_get mode $ifname hwmode
     config_get bandwidth $ifname htmode
         
@@ -67,7 +74,11 @@ if (match($1,"ath") && !match($1, "ath50") && !match($1, "ath60")) {
     ifname=mac=vlan=ssid=ipaddr=maskaddr=chan=txpower=mode=bandwidth="";
     radio_index=substr($1,4,1)
     "(. /lib/functions.sh;config_load wireless;config_get  _vlan "$1" network;echo $_vlan;)" | getline vlan
-    "(. /lib/functions.sh;config_load wireless;config_get  _chan wifi"radio_index" channel;echo $_chan;)" | getline chan
+    if (match(radio_index, "0")) {
+        chan=ENVIRON["chan_2"];
+    } else {
+        chan=ENVIRON["chan_5"];
+    }
     "(. /lib/functions.sh;config_load wireless;config_get  _mode wifi"radio_index" hwmode;echo $_mode;)" | getline mode
     "(. /lib/functions.sh;config_load wireless;config_get  _bandwidth wifi"radio_index" htmode;echo $_bandwidth;)" | getline bandwidth
     ifname=$1;

@@ -495,7 +495,7 @@ CWBool assemble_wlan_radio_status_elem(char **payload, int *len, struct wlan_rad
         CWProtocolStore8(&msg, stat->error_rate); /* error_rate */
         CWProtocolStore8(&msg, stat->retry_rate); /* retry_rate */
 
-        CWProtocolStore32(&msg, stat->snr); /* snr */
+        CWProtocolStore32(&msg, stat->noise_level); /* noise_level */
 
         CWProtocolStore32(&msg, stat->tx_rate); /* tx_rate */
         CWProtocolStore32(&msg, stat->rx_rate); /* rx_rate */
