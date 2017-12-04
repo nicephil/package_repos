@@ -81,7 +81,7 @@ struct wlan_radio_stat {
     unsigned char chan_util;
     unsigned char  error_rate;
     unsigned char retry_rate;
-    unsigned int noise_level;
+    int noise_level;
     unsigned int tx_rate;
     unsigned int rx_rate;
 };

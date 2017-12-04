@@ -77,8 +77,8 @@ handle_devstats()
     json_get_vars r24_channel r5_channel
 
     iw_tmp="$(iwconfig 2>&1 | awk '/ath/{print $1}')"
-    ath0=$(echo "$iw_tmp" | awk '/ath0/{print $1;exit}')
-    ath1=$(echo "$iw_tmp" | awk '/ath1/{print $1;exit}')
+    ath0=$(echo "$iw_tmp" | awk '/ath50/{print $1;exit}')
+    ath1=$(echo "$iw_tmp" | awk '/ath60/{print $1;exit}')
 
     [ -n "$ath0" -a -n "$r24_channel" ] && iwconfig "$ath0" channel "$r24_channel"
     [ -n "$ath1" -a -n "$r5_channel" ] && iwconfig "$ath1" channel "$r5_channel"
