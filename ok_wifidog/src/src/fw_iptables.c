@@ -353,6 +353,7 @@ iptables_fw_init(void)
     int proxy_port = config->proxy_port;
     int sn;
 
+#ifdef OKOS_CONTROL_FW_BY_WIFIDOG
     iptables_do_command("-t filter -N Portal");
     iptables_do_command("-t nat -N Portal");
     iptables_do_command("-t mangle -N Portal");
@@ -360,6 +361,7 @@ iptables_fw_init(void)
     iptables_do_command("-t filter -A FORWARD -j Portal");
     iptables_do_command("-t nat -A PREROUTING -j Portal");
     iptables_do_command("-t mangle -A PREROUTING -j Portal");
+#endif
 
     iptables_do_command("-t nat -N " CHAIN_GLOBAL);
 
@@ -693,9 +695,12 @@ iptables_fw_destroy(void)
 
     iptables_fw_destroy_mention("filter", "FORWARD", CHAIN_TO_INTERNET);
     */
+
+#ifdef OKOS_CONTROL_FW_BY_WIFIDOG
     iptables_fw_destroy_mention("filter", "FORWARD", "Portal");
     iptables_fw_destroy_mention("nat", "PREROUTING", "Portal");
     iptables_fw_destroy_mention("mangle", "PREROUTING", "Portal");
+#endif
 
     iptables_do_command("-t filter -F Portal");
     iptables_do_command("-t nat -F Portal");
@@ -790,9 +795,11 @@ iptables_fw_destroy(void)
     iptables_do_command("-t filter -X " CHAIN_KNOWN);
     iptables_do_command("-t filter -X " CHAIN_UNKNOWN);
 
+#ifdef OKOS_CONTROL_FW_BY_WIFIDOG
     iptables_do_command("-t filter -X Portal");
     iptables_do_command("-t nat -X Portal");
     iptables_do_command("-t mangle -X Portal");
+#endif
 
     return 1;
 }
