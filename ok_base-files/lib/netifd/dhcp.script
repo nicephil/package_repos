@@ -25,8 +25,12 @@ setup_interface () {
 	# TODO: apply $broadcast
 
 	for i in $router; do
-		[ "$INTERFACE" = "lan1" -o "$INTERFACE" = "lan" ] && proto_add_ipv4_route 0.0.0.0 0 "$i"
-		[ ! "$INTERFACE" = "lan1" ] && proto_add_ipv4_route "$ip" "$subnet" "$i"
+		if [ "$INTERFACE" = "lan1" -o "$INTERFACE" = "lan" ]
+        then
+            proto_add_ipv4_route 0.0.0.0 0 "$i"
+        else
+		    proto_add_ipv4_route "$ip" "$subnet"  "$i" 100
+        fi
 	done
 
 	# CIDR STATIC ROUTES (rfc3442)

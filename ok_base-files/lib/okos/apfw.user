@@ -1,0 +1,119 @@
+#!/bin/sh 
+
+
+CMD="iptables"
+
+set_static_statistics_rules ()
+{
+    # set user statistics chains
+    $CMD -N client_wan_downlink_traf
+    $CMD -N client_wan_uplink_traf
+
+    # statistics rule
+    $CMD -A wan_downlink_traf -s 192.168.0.0/16 -j RETURN 
+    $CMD -A wan_downlink_traf -s 172.16.0.0/12 -j RETURN 
+    $CMD -A wan_downlink_traf -s 10.0.0.0/8 -j RETURN 
+    $CMD -A wan_downlink_traf -j client_wan_downlink_traf 
+
+    $CMD -A wan_uplink_traf -d 192.168.0.0/16 -j RETURN 
+    $CMD -A wan_uplink_traf -d 172.16.0.0/12 -j RETURN 
+    $CMD -A wan_uplink_traf -d 10.0.0.0/8 -j RETURN 
+    $CMD -A wan_uplink_traf -j client_wan_uplink_traf 
+}
+
+
+set_static_firewall_rules ()
+{
+    $CMD -A Firewall -m state --state RELATED,ESTABLISHED -j ACCEPT 
+    $CMD -A Firewall -m state --state INVALID -j DROP 
+    $CMD -A Firewall -p icmp -j ACCEPT 
+    $CMD -A Firewall -p tcp -m tcp --dport 7787 -m state --state NEW -j ACCEPT 
+    $CMD -A Firewall -p tcp -m tcp --dport 22 -m state --state NEW -j ACCEPT 
+    $CMD -A Firewall -p tcp -m tcp --dport 2060 -j ACCEPT 
+    $CMD -A Firewall -i ath50 -p udp -m udp --dport 67 -j ACCEPT 
+    $CMD -A Firewall -i lo -p udp -m udp --dport 53 -j ACCEPT
+    $CMD -A Firewall -p tcp -m tcp --dport 80 -j ACCEPT 
+}
+
+set_static_whitelist_rules ()
+{
+    $CMD -t nat -I WhiteList -d 10.10.111.111/32 -p tcp -m tcp --dport 80 -j REDIRECT --to-ports 2060
+}
+
+
+
+# put other user defined chains' rules here
+
+set_other_static_chains_rules ()
+{
+    set_static_statistics_rules
+
+    set_static_firewall_rules
+
+    set_static_whitelist_rules
+}
+
+
+# set the global static chains and 1 level rules
+set_global_static_chains_rules()
+{
+    lock /tmp/.iptables.lock
+
+    # filter table
+    # firewall
+    $CMD -P INPUT DROP
+    $CMD -P FORWARD ACCEPT
+    $CMD -P OUTPUT ACCEPT
+    $CMD -N Firewall
+
+    # wifidog chains
+    $CMD -N Portal
+
+    # whitelist chain
+    $CMD -N WhiteList
+
+    # statistics chains
+    $CMD -N wan_downlink_traf
+    $CMD -N wan_uplink_traf
+
+
+    #### make sure ordering of rules
+    # firewall rule
+    $CMD -A INPUT -j Firewall 
+
+    # statistic rule
+    $CMD -A FORWARD -j wan_downlink_traf 
+    $CMD -A FORWARD -j wan_uplink_traf 
+
+    # firewall rule
+    $CMD -A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT 
+    # whitelist rule
+    $CMD -A FORWARD -j WhiteList 
+    # wifidog rule
+    $CMD -A FORWARD -j Portal 
+
+    # nat table
+    # wifidog
+    $CMD -t nat -P PREROUTING ACCEPT
+    $CMD -t nat -P INPUT ACCEPT
+    $CMD -t nat -P OUTPUT ACCEPT
+    $CMD -t nat -P POSTROUTING ACCEPT
+
+    $CMD -t nat -N Portal
+    # whitelist chain
+    $CMD -t nat -N WhiteList
+
+    ##### make sure the ordering of rule
+    # whitelist rule
+    $CMD -t nat -A PREROUTING -j WhiteList 
+    # wifidog rule
+    $CMD -t nat -A PREROUTING -j Portal 
+
+
+    ## set other user defined static rules
+    set_other_static_chains_rules
+
+    lock -u /tmp/.iptables.lock
+}
+
+

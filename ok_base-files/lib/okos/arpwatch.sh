@@ -89,7 +89,7 @@ new_activity ()
     local ts=$4
     local hostname=$5
 
-    #log $LOG_DEBUG "New Activity for mac[${mac}] ip[${ip}] hostname[${hostname}] timestamp[${ts}]"
+    log $LOG_DEBUG "New Activity for mac[${mac}] ip[${ip}] hostname[${hostname}] timestamp[${ts}]"
 
     if [ -z $hostname ]; then
         hostname=`host $ip`

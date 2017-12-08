@@ -30,7 +30,7 @@ OAKMGR_PUB=""
 
 while :
 do
-    URL="http://${ADDR}:${PORT}/restful/device_register/?key=${KEY}"
+    URL="http://${ADDR}:${PORT}/redirector/v1/device/register/?key=${KEY}"
     echo curl -vv -m 10 -s -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "$json_data" $URL |  logger -t 'handle_cloud'
     response=$(curl -m 10 -s -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "$json_data" $URL 2>/dev/ttyS0)
     echo "----->$response" | logger -t 'handle_cloud'
@@ -59,3 +59,11 @@ done
 echo "====> set new oakmgr: $OAKMGR_PUB" | logger -t 'handle_cloud'
 uci set capwapc.server.mas_server="$OAKMGR_PUB"; uci commit capwapc;
 /etc/init.d/capwapc restart
+
+while [ -z $(grep "$OAKMGR_PUB" /etc/capwapc/config.wtp 2>/dev/null) ]
+do
+    sleep 3
+    echo "+++> set new oakmgr: $OAKMGR_PUB" | logger -t 'handle_cloud'
+    uci set capwapc.server.mas_server="$OAKMGR_PUB"; uci commit capwapc;
+    /etc/init.d/capwapc restart
+done

@@ -63,14 +63,14 @@ class Client(Thread):
             acl_type, time, tx_rate_limit, rx_rate_limit, remain_time, \
                 username = self.query_auth()
             syslog(LOG_DEBUG, "mac:%s acl_type:%s time:%s tx_rate_limit:%s \
-                   rx_rate_limit:%s remain_time:%s username:%s" % \
+                   rx_rate_limit:%s remain_time:%s username:%s" %
                    (repr(self.mac),
-                   repr(acl_type),
-                   repr(time),
-                   repr(tx_rate_limit),
-                   repr(rx_rate_limit),
-                   repr(remain_time),
-                   repr(username)))
+                    repr(acl_type),
+                    repr(time),
+                    repr(tx_rate_limit),
+                    repr(rx_rate_limit),
+                    repr(remain_time),
+                    repr(username)))
             self.last_acl_type = acl_type
             self.last_tx_rate_limit = tx_rate_limit
             self.last_rx_rate_limit = rx_rate_limit
@@ -110,8 +110,13 @@ class Client(Thread):
                     os.system("wdctl reset %s &" % self.mac)
                     pass
                 self.set_ratelimit(0, 0, clientevent.ath, 0)
-                os.system("sqlite3 -echo /tmp/arptables.db \"delete from 'br-lan1' \
-                          where MAC='%s' COLLATE NOCASE;\" | logger -t clientevent" % self.mac)
+                os.system("sqlite3 -echo /tmp/arptables.db \"delete from \
+                          'br-lan1' where MAC='%s' COLLATE NOCASE;\" \
+                          | logger -t clientevent" % self.mac)
+                # del client into client traffic track in iptables
+                syslog(LOG_DEBUG, "del_client_track:%s" % self.mac)
+                self.set_client_track(0)
+
                 if self.queue.empty():
                     self.term = True
             else:
@@ -124,10 +129,14 @@ class Client(Thread):
 
         # 4. station ip changed event
         elif clientevent.event == 'STA-IP-CHANGED':
-            # 1.5 set_ratelimit
+            # 4.1 set_ratelimit
             self.set_ratelimit(self.last_tx_rate_limit, self.last_rx_rate_limit,
                                self.last_ath,
                                1)
+            # 4.2 add client into client traffic track in iptables
+            syslog(LOG_DEBUG, "add_client_track:%s" % self.mac)
+            self.set_client_track(1)
+
         # 5. Unknow Event
         else:
             syslog(LOG_WARNING, "Unknow Event on %s %s" %
@@ -252,6 +261,15 @@ class Client(Thread):
                    action))
         pass
 
+    def set_client_track(self, action):
+        if action:
+            os.system(". /lib/okos/trafstats.sh; add_client_track %s" %
+                      self.mac)
+        else:
+            os.system(". /lib/okos/trafstats.sh; del_client_track %s" %
+                      self.mac)
+        pass
+
     def run(self):
         while not self.term:
             self.handle_event()
@@ -297,9 +315,10 @@ class Manager(object):
                 event = ''
             except KeyboardInterrupt:
                 sys.exit(0)
-            syslog(LOG_INFO, "=++=>ath:%s, mac:%s, event:%s" % (ath,
-                                                              mac,
-                                                              event))
+            syslog(LOG_INFO, "=++=>ath:%s, mac:%s, event:%s" %
+                   (ath,
+                    mac,
+                    event))
             # 4. handle wifi driver down event
             if ath == '/lib/wifi':
                 # free all existing clients
@@ -314,7 +333,8 @@ class Manager(object):
                 domain = get_domain()
                 syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
                        (device_mac, auth_url, domain))
-                # 4.2 interface is down, do not restart interface related service
+                # 4.2 interface is down, do not restart interface
+                # related service
                 # os.system("/etc/init.d/whitelist restart >/dev/null 2>&1")
                 # os.system("/etc/init.d/qos restart >/dev/null 2>&1")
                 # 4.3 collect memory
@@ -358,7 +378,7 @@ class Manager(object):
 
             # 8. gc
             gc.collect()
-            #for c in threading.enumerate():
+            # for c in threading.enumerate():
             #    syslog(LOG_DEBUG, 'CCC> %s' % str(c))
             # rt = gc.collect()
             # print "%d unreachable" % rt
@@ -369,9 +389,10 @@ class Manager(object):
             # pdb.set_trace()
 
             # 9. add log
-            syslog(LOG_INFO, "=--=>ath:%s, mac:%s, event:%s" % (ath,
-                                                              mac,
-                                                              event))
+            syslog(LOG_INFO, "=--=>ath:%s, mac:%s, event:%s" %
+                   (ath,
+                    mac,
+                    event))
 
 
 def main():
