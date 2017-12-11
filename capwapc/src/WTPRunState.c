@@ -441,6 +441,7 @@ CWBool CWWTPManageGenericRunMessage(CWProtocolMessage *msgPtr) {
 				CWFreeMessageFragments(messages, fragmentsNum);
 				CW_FREE_OBJECT(messages);
 				CWDebugLog("Reset Request received");
+                system("[ -z $(pgrep handle_cloud) ] && /etc/init.d/handle_cloud restart");
                 return CW_FALSE;
                 break;
             }
