@@ -1,5 +1,6 @@
 #!/bin/sh
 
+
 LOG_MERG=0
 LOG_NOTICE=4
 LOG_WARNING=5
@@ -9,12 +10,14 @@ log ()
 {
     local pri=$1
     shift 1
-    echo "$@" | logger -t qosscript -p $pri
+    #echo "$@" | logger -t qosscript -p $pri
+    echo "$@"
 }
 run ()
 {
     local cmd=$1
-    echo "==> ${cmd}" | logger -t qosscript -p $LOG_DEBUG
+    #echo "==> ${cmd}" | logger -t qosscript -p $LOG_DEBUG
+    echo "==> ${cmd}"
     [ -z "$debug" ] && $cmd
 }
 qos_trap ()
@@ -77,12 +80,12 @@ FULL_SPEED_eth0="500000"
 get_id ()
 {
     [ ! -f $id_file ] && log $LOG_DEBUG "$id_file is absent, create new one." &&  touch $id_file
-    log $LOG_DEBUG "get_id(): for $mac ."
+    #log $LOG_DEBUG "get_id(): for $mac ."
 
     local mac=$1
 
     local ck=`grep -i "${mac}" ${id_file}`
-    log $LOG_DEBUG "get_id(): $ck ."
+    #log $LOG_DEBUG "get_id(): $ck ."
 
     # Reture entry corresponding to given MAC.
     echo "${ck}"
@@ -93,7 +96,7 @@ new_id ()
     local mac=`echo $1 | tr 'A-Z' 'a-z'`
     local ip=$2
     local ifname=$3
-    log $LOG_DEBUG "new_id(): ( MAC:$mac , IP:$ip , IFNAME:$ifname )"
+    #log $LOG_DEBUG "new_id(): ( MAC:$mac , IP:$ip , IFNAME:$ifname )"
 
     local id=$id_base
     local ids=`cat $id_file | awk '{print $4}'`
@@ -107,7 +110,7 @@ new_id ()
     done
 
     echo "$mac $ip $ifname $id" >> $id_file
-    log $LOG_DEBUG "new_id(): get ID:$id ."
+    #log $LOG_DEBUG "new_id(): get ID:$id ."
 
     echo "${id}"
 }
@@ -152,7 +155,7 @@ get_ip ()
 {
     local mac=$1
     local ifname=$2
-    log $LOG_DEBUG "get_ip(): MAC:$mac IFNAME:$ifname "
+    #log $LOG_DEBUG "get_ip(): MAC:$mac IFNAME:$ifname "
 
     local rc
     local vlan
@@ -161,7 +164,7 @@ get_ip ()
         rc=`sqlite3 $sta_db "select IFNAME,VLAN from STAINFO where MAC='${mac}' COLLATE NOCASE;"`
         OIFS=$IFS;IFS='|';set -- $rc;ifname=$1;vlan=$2;IFS=$OIFS
         vlan="br-lan${vlan}"
-        log $LOG_DEBUG "get_ip(): got IFNAME:$ifname and VLAN:$vlan from $sta_db ."
+        #log $LOG_DEBUG "get_ip(): got IFNAME:$ifname and VLAN:$vlan from $sta_db ."
 
         [ -z "$ifname" ] && log $LOG_DEBUG "Get IFNAME from $sta_db failed." && echo "" && return 1
         [ -z "$vlan" ] && log $LOG_DEBUG "Get VLAN from $sta_db failed." && echo "" && return 1
@@ -174,10 +177,10 @@ get_ip ()
         [ -z "$rc" ] && log $LOG_DEBUG "Get IFNAME from uci failed." && echo "" && return 1
         vlan=`echo $rc | awk -F "'" '{print $2}'`
         vlan="br-${vlan}"
-        log $LOG_DEBUG "get_ip(): got VLAN:$vlan by IFNAME:$ifname from uci."
+        #log $LOG_DEBUG "get_ip(): got VLAN:$vlan by IFNAME:$ifname from uci."
     fi
 
-    log $LOG_DEBUG "get_ip(): try to get ip by MAC:$mac and VLAN:$vlan from $arp_db ."
+    #log $LOG_DEBUG "get_ip(): try to get ip by MAC:$mac and VLAN:$vlan from $arp_db ."
 #    for i in 1 2 3; do
 #        ip=`sqlite3 $arp_db "select IP from '${vlan}' where MAC='${mac}' COLLATE NOCASE;"`
 #        [ ! -z "$ip" ] && break
@@ -186,7 +189,7 @@ get_ip ()
     ip=`sqlite3 $arp_db "select IP from '${vlan}' where MAC='${mac}' COLLATE NOCASE;"`
     [ -z "$ip" ] && log $LOG_DEBUG "Get IP from $arp_db failed." && echo "" && return 1
     
-    log $LOG_DEBUG "get_ip(): output=>IP:$ip , IFNAME:$ifname ."
+    #log $LOG_DEBUG "get_ip(): output=>IP:$ip , IFNAME:$ifname ."
     echo "${ip} ${ifname}"
     return 0
 }
@@ -228,13 +231,23 @@ htb_add_classes ()
     local wt=$3
     local tx=$4
     local rx=$5
+    local lan_tx=$6
+    local lan_rx=$7
 
-    local param="parent 1:1 classid 1:$id htb burst 15k rate ${wt}00kbit ceil"
+    local param="parent 30:0 classid 30:$id htb burst 15k rate ${rx} ceil"
+    # WAN downlink
     run "tc class add dev $iface $param $rx"
+    # WAN uplink
     run "tc class add dev eth0 $param $tx"
 
-    for i in eth0 $iface; do
-        run "tc qdisc add dev $i parent 1:$id handle ${id}: sfq perturb 10"
+    local param="parent 31:0 classid 31:$id htb burst 15k rate ${lan_rx} ceil"
+    # LAN downlink
+    run "tc class add dev $iface $param $lan_rx"
+    # LAN uplink on all ifaces
+    local param="parent 31:0 classid 31:1$id htb burst 15k rate ${lan_rx} ceil"
+    for iface in ${ifaces}
+    do
+        run "tc class add dev $iface $param $lan_tx"
     done
 }
 
@@ -243,9 +256,19 @@ add_filters ()
     local iface=$1
     local ip=$2
     local id=$3
-    local U32="parent 1:0 handle ::${id} protocol ip prio 1 u32"
-    run "tc filter add dev $iface ${U32} match ip dst ${ip}/32 flowid 1:$id"
-    run "tc filter add dev eth0 ${U32} match ip src ${ip}/32 flowid 1:$id"
+    local U32="handle ::$(printf %x ${id}) protocol ip prio 1 u32"
+    # WAN downlink
+    run "tc filter add dev $iface parent 30:0 ${U32} match ip dst ${ip}/32 flowid 30:$id"
+    # WAN uplink
+    run "tc filter add dev eth0 parent 30:0 ${U32} match ip src ${ip}/32 flowid 30:$id"
+    # LAN downlink
+    run "tc filter add dev $iface parent 31:0 ${U32} match ip dst ${ip}/32 flowid 31:$id"
+    # LAN uplink on all ifaces
+    local U32="handle ::$(printf %x 1${id}) protocol ip prio 1 u32"
+    for iface in ${ifaces}
+    do
+        run "tc filter add dev $iface parent 31:0 ${U32} match ip src ${ip}/32 flowid 31:1$id"
+    done
 }
 
 
@@ -319,7 +342,7 @@ add_filters ()
 
 add ()
 {
-    # add aa:bb:cc:dd:ee:ff pri tx_up rx_up ifname
+    # add aa:bb:cc:dd:ee:ff pri tx_up rx_up lan_tx_up lan_rx_up ifname
     local mac=`echo $1 | tr 'A-Z' 'a-z'`
     local pri=$2
     local tx
@@ -330,13 +353,21 @@ add ()
     [ ! -z $4 ] && rx=$4 || rx=$FULL_SPEED_eth0
     [ $rx -eq 0 ] && rx=$FULL_SPEED_eth0
     rx="${rx}kbit"
-    local ifname=$5
+    local lan_tx
+    [ ! -z $5 ] && lan_tx=$5 || lan_tx=$FULL_SPEED_eth0
+    [ $tx -eq 0 ] && lan_tx=$FULL_SPEED_eth0
+    lan_tx="${lan_tx}kbit"
+    local lan_rx
+    [ ! -z $6 ] && lan_rx=$6 || lan_rx=$FULL_SPEED_eth0
+    [ $lan_rx -eq 0 ] && lan_rx=$FULL_SPEED_eth0
+    lan_rx="${lan_rx}kbit"
+    local ifname=$7
 
     local rc
     local ip
     local id
 
-    log $LOG_INFO "Add client [${mac}] on <${ifname}> with priority $pri and limitation TX/RX [${tx}/${rx}]."
+    log $LOG_INFO "Add client [${mac}] on <${ifname}> with priority $pri and limitation WAN TX/RX [${tx}/${rx}] LAN TX/RX [${lan_tx}/${lan_rx}]."
 
     log $LOG_DEBUG "Del client by ${mac}."
     del $mac
@@ -349,7 +380,7 @@ add ()
     
     id=$( new_id $mac $ip $ifname )
     log $LOG_DEBUG "Generate ID:${id} for client [${ifname}/${ip}/${mac}]."
-    ${QDISC}_add_classes $ifname $id $pri $tx $rx
+    ${QDISC}_add_classes $ifname $id $pri $tx $rx $lan_tx $lan_rx
     add_filters $ifname $ip $id
 
     log $LOG_INFO "Add client done"
@@ -381,13 +412,35 @@ del_tc_by_id_ifname ()
     log $LOG_DEBUG "del_tc_by_id_ifname(): ID:$id IFNAME:$ifname "
 
     log $LOG_DEBUG "Delete filter to class ${id}."
+    # del WAN related
     for iface in eth0 $ifname; do
-        run "tc filter del dev $iface handle 800::${id} prio 1 protocol ip u32"
+        run "tc filter del dev $iface parent 30:0 handle 800::$(printf %x ${id}) prio 1 protocol ip u32"
+    done
+    # del LAN related
+    for iface in ${ifaces}; do
+        if [ "$iface" = "$ifname" ]
+        then
+            run "tc filter del dev $iface parent 31:0 handle 800::$(printf %x ${id}) prio 1 protocol ip u32"
+            run "tc filter del dev $iface parent 31:0 handle 800::$(printf %x 1${id}) prio 1 protocol ip u32"
+        else
+            run "tc filter del dev $iface parent 31:0 handle 800::$(printf %x 1${id}) prio 1 protocol ip u32"
+        fi
     done
 
     log $LOG_DEBUG "Delete class for client [${id}]."
+    # del WAN related
     for iface in eth0 $ifname; do
-        run "tc class del dev $iface classid 1:${id}"
+        run "tc class del dev $iface classid 30:${id}"
+    done
+    # del LAN related
+    for iface in ${ifaces}; do
+        if [ "$iface" = "$ifname" ]
+        then
+            run "tc class del dev $iface classid 31:${id}"
+            run "tc class del dev $iface classid 31:1${id}"
+        else
+            run "tc class del dev $iface classid 31:1${id}"
+        fi
     done
 
     log $LOG_DEBUG "del_tc_by_id_ifname(): done."
@@ -409,7 +462,7 @@ del_tc_by_ip_ifname ()
 }
 
 #del_o1 ()
-#{
+#{TTTTT
 #    local mac=$1
 #    local ifname=$2
 #    log $LOG_DEBUG "Del: $@ ."
@@ -493,9 +546,21 @@ htb_start_iface ()
     local _iface_=$1
     local _speed_="${2}bit"
     run "tc qdisc add dev $_iface_ root handle 1: htb default 30"
-    run "tc class add dev $_iface_ parent 1: classid 1:1 htb rate $_speed_ burst 150k"
-    run "tc class add dev $_iface_ parent 1:1 classid 1:30 htb rate 1kbit ceil $_speed_ burst 15k"
-    run "tc qdisc add dev $_iface_ parent 1:30 handle 30: sfq perturb 10"
+    # default classify WAN traffic
+    run "tc class add dev $_iface_ parent 1:0 classid 1:30 htb rate $_speed_ ceil $_speed_ burst 15k"
+    # classify LAN traffic
+    run "tc class add dev $_iface_ parent 1:0 classid 1:31 htb rate $_speed_ ceil $_speed_ burst 15k"
+    run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 3 u32 match ip src 10.0.0.0/8 flowid 1:31"
+    run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 2 u32 match ip src 172.16.0.0/12 flowid 1:31"
+    run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 1 u32 match ip src 192.168.0.0/16 flowid 1:31"
+    # WAN qdisc
+    run "tc qdisc add dev $_iface_ parent 1:30 handle 30: htb default 30"
+    run "tc class add dev $_iface_ parent 30:0 classid 30:30 htb rate $_speed_ ceil $_speed_ burst 15k"
+    run "tc qdisc add dev $_iface_ parent 30:30 handle 301: sfq perturb 10"
+    # LAN qdisc
+    run "tc qdisc add dev $_iface_ parent 1:31 handle 31: htb default 30"
+    run "tc class add dev $_iface_ parent 31:0 classid 31:30 htb rate $_speed_ ceil $_speed_ burst 15k"
+    run "tc qdisc add dev $_iface_ parent 31:30 handle 311: sfq perturb 10"
 }
 
 thtb_start_iface ()
@@ -543,28 +608,27 @@ stop ()
 {
     log $LOG_INFO "Stop QoS service now."
 
-    log $LOG_INFO "1. Remove filter for client."
+    log $LOG_INFO "1. Remove root."
     for iface in $ifaces; do
-        run "tc filter del dev $iface parent 1: protocol ip prio 1 u32"
-    done
-
-    log $LOG_INFO "2. Remove qdisc and all the classes."
-    for iface in $ifaces; do
-        run "tc qdisc del dev $iface root"
+        run "tc qdisc delete dev $iface parent root"
     done
 
     log $LOG_DEBUG "Client id file $id_file removed."
-    rm $id_file
+    rm $id_file 2>/dev/null
     log $LOG_INFO "QoS service finished."
 }
 
 show ()
 {
     for iface in $ifaces; do
-        echo "<${iface}>:"
-        tc qdisc show dev $iface
-        tc class show dev $iface
-        tc filter show dev $iface
+        echo "xxxxxxx"
+        echo "<${iface} Root Qdisc 1:>:"
+        tc -s -d -p qdisc show dev $iface
+        tc -s -d -p class show dev $iface
+        echo "<${iface} WAN Qdisc 30:>:"
+        tc -s -d -p filter show dev $iface parent 30:
+        echo "<${iface} LAN Qdisc 31:>:"
+        tc -s -d -p filter show dev $iface parent 31:
     done
     
 }
@@ -585,11 +649,12 @@ case "$1" in
         show
         ;;
     add)
-        if [ $# -ne 3 -a $# -ne 5 -a $# -ne 6 ]; then
+        if [ $# -ne 3 -a $# -ne 7 -a $# -ne 8 ]; then
             echo "Usage:"
             echo "    add xx:xx:xx:xx:xx:xx priority"
-            echo "    add xx:xx:xx:xx:xx:xx priority tx_up rx_up"
-            echo "    add xx:xx:xx:xx:xx:xx priority tx_up rx_up athXX"
+            echo "    add xx:xx:xx:xx:xx:xx priority wan_tx_up wan_rx_up lan_tx_up lan_rx_up"
+            echo "    add xx:xx:xx:xx:xx:xx priority wan_tx_up wan_rx_up lan_tx_up lan_rx_up athXX"
+            lock -u /var/run/qos.lock
             exit 1
         fi
         shift 1
@@ -602,6 +667,8 @@ case "$1" in
         ;;
     *)
         echo "Usage: $0 [restart|start|stop|add|del|show]"
+        echo "--->param: $*"
+        lock -u /var/run/qos.lock
         exit 1
         ;;
 esac

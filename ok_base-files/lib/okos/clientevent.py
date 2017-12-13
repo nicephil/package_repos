@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+# import necessary modules
 import os
 import gc
 import sys
@@ -17,6 +18,7 @@ from syslog import syslog, LOG_INFO, LOG_WARNING, LOG_ERR, LOG_DEBUG
 # import pdb
 
 
+# Class describes client's event object
 class ClientEvent(object):
     """ Describes client event """
     def __init__(self, ath, event):
@@ -24,6 +26,7 @@ class ClientEvent(object):
         self.event = event
 
 
+# Class describes client object with event handler
 class Client(Thread):
     """ Describes client """
     def __init__(self, mac):
@@ -35,9 +38,12 @@ class Client(Thread):
         self.last_acl_type = 0
         self.last_tx_rate_limit = 0
         self.last_rx_rate_limit = 0
+        self.last_tx_rate_limit_local = 0
+        self.last_rx_rate_limit_local = 0
         self.last_ath = ''
         self.name = mac
 
+    # add a new event in queue
     def put_event(self, ath, event):
         # 1. new client event
         clientevent = ClientEvent(ath, event)
@@ -52,75 +58,100 @@ class Client(Thread):
         else:
             queue.put_nowait(clientevent)
 
+    # handler for AP-STA-CONNECTED event
+    def handle_connected_event(self, clientevent):
+        # 1.1 query auth
+        acl_type, time, tx_rate_limit, rx_rate_limit, \
+            tx_rate_limit_local, rx_rate_limit_local, remain_time, \
+            username = self.query_auth()
+        syslog(LOG_DEBUG, "mac:%s acl_type:%s time:%s tx_rate_limit:%s \
+               rx_rate_limit:%s rx_rate_limit_local:%s \
+               tx_rate_limit_local:%s remain_time:%s username:%s" %
+               (repr(self.mac),
+                repr(acl_type),
+                repr(time),
+                repr(tx_rate_limit),
+                repr(rx_rate_limit),
+                repr(tx_rate_limit_local),
+                repr(rx_rate_limit_local),
+                repr(remain_time),
+                repr(username)))
+        self.last_acl_type = acl_type
+        self.last_tx_rate_limit = tx_rate_limit
+        self.last_rx_rate_limit = rx_rate_limit
+        self.last_tx_rate_limit_local = tx_rate_limit_local
+        self.last_rx_rate_limit_local = rx_rate_limit_local
+        self.last_ath = clientevent.ath
+        if acl_type == 1:
+            # 1.2 set_whitelist
+            self.set_whitelist(time, 1)
+        elif acl_type == 3:
+            # 1.3 set_blacklist
+            self.set_blacklist(time, 1)
+        elif acl_type == 0:
+            # 1.4 none acl, so check
+            self.set_blacklist(0, 0)
+            if remain_time == 0:
+                self.set_whitelist(0, 0)
+            else:
+                self.set_whitelist(remain_time, 1)
+        # 1.5 set_ratelimit
+        self.set_ratelimit(tx_rate_limit, rx_rate_limit,
+                           clientevent.ath,
+                           1)
+
+    # handle AP-STA-DISCONNECTED event
+    def handle_disconnected_event(self, clientevent):
+        # 2.1 stop handling and exit process
+        if self.queue.empty():
+            # 2.2 clean up
+            if self.last_acl_type == 1:
+                self.set_whitelist(120, 1)
+                pass
+            elif self.last_acl_type == 3:
+                # self.set_blacklist(0, 0)
+                pass
+            elif self.last_acl_type == 0:
+                # self.set_whitelist(0, 0)
+                # self.set_blacklist(0, 0)
+                os.system("wdctl reset %s &" % self.mac)
+                pass
+            self.set_ratelimit(0, 0, clientevent.ath, 0)
+            os.system("sqlite3 -echo /tmp/arptables.db \"delete from \
+                      'br-lan1' where MAC='%s' COLLATE NOCASE;\" \
+                      | logger -t clientevent" % self.mac)
+            # del client into client traffic track in iptables
+            syslog(LOG_DEBUG, "del_client_track:%s" % self.mac)
+            self.set_client_track(0)
+
+            if self.queue.empty():
+                self.term = True
+        else:
+            syslog(LOG_DEBUG, "NEW EVENT Comming")
+
+    # handle STA-IP-CHANGED event
+    def handle_ip_changed_event(self, clientevent):
+        # 4.1 set_ratelimit
+        self.set_ratelimit(self.last_tx_rate_limit, self.last_rx_rate_limit,
+                           self.last_ath,
+                           1)
+        # 4.2 add client into client traffic track in iptables
+        syslog(LOG_DEBUG, "add_client_track:%s" % self.mac)
+        self.set_client_track(1)
+
     # @profile
+    # main event handler
     def handle_event(self):
         clientevent = self.queue.get()
         self.clientevent = clientevent
         syslog(LOG_DEBUG, "++>mac:%s event:%s" % (self.mac, clientevent.event))
         # 1. handle connected event
         if clientevent.event == 'AP-STA-CONNECTED':
-            # 1.1 query auth
-            acl_type, time, tx_rate_limit, rx_rate_limit, remain_time, \
-                username = self.query_auth()
-            syslog(LOG_DEBUG, "mac:%s acl_type:%s time:%s tx_rate_limit:%s \
-                   rx_rate_limit:%s remain_time:%s username:%s" %
-                   (repr(self.mac),
-                    repr(acl_type),
-                    repr(time),
-                    repr(tx_rate_limit),
-                    repr(rx_rate_limit),
-                    repr(remain_time),
-                    repr(username)))
-            self.last_acl_type = acl_type
-            self.last_tx_rate_limit = tx_rate_limit
-            self.last_rx_rate_limit = rx_rate_limit
-            self.last_ath = clientevent.ath
-            if acl_type == 1:
-                # 1.2 set_whitelist
-                self.set_whitelist(time, 1)
-            elif acl_type == 3:
-                # 1.3 set_blacklist
-                self.set_blacklist(time, 1)
-            elif acl_type == 0:
-                # 1.4 none acl, so check
-                self.set_blacklist(0, 0)
-                if remain_time == 0:
-                    self.set_whitelist(0, 0)
-                else:
-                    self.set_whitelist(remain_time, 1)
-            # 1.5 set_ratelimit
-            self.set_ratelimit(tx_rate_limit, rx_rate_limit,
-                               clientevent.ath,
-                               1)
+            self.handle_connected_event(clientevent)
 
         # 2. disconnected event
         elif clientevent.event == 'AP-STA-DISCONNECTED':
-            # 2.1 stop handling and exit process
-            if self.queue.empty():
-                # 2.2 clean up
-                if self.last_acl_type == 1:
-                    self.set_whitelist(120, 1)
-                    pass
-                elif self.last_acl_type == 3:
-                    # self.set_blacklist(0, 0)
-                    pass
-                elif self.last_acl_type == 0:
-                    # self.set_whitelist(0, 0)
-                    # self.set_blacklist(0, 0)
-                    os.system("wdctl reset %s &" % self.mac)
-                    pass
-                self.set_ratelimit(0, 0, clientevent.ath, 0)
-                os.system("sqlite3 -echo /tmp/arptables.db \"delete from \
-                          'br-lan1' where MAC='%s' COLLATE NOCASE;\" \
-                          | logger -t clientevent" % self.mac)
-                # del client into client traffic track in iptables
-                syslog(LOG_DEBUG, "del_client_track:%s" % self.mac)
-                self.set_client_track(0)
-
-                if self.queue.empty():
-                    self.term = True
-            else:
-                syslog(LOG_DEBUG, "NEW EVENT Comming")
+            self.handle_disconnected_event(clientevent)
 
         # 3. term event
         elif clientevent.event == 'TERM':
@@ -129,13 +160,7 @@ class Client(Thread):
 
         # 4. station ip changed event
         elif clientevent.event == 'STA-IP-CHANGED':
-            # 4.1 set_ratelimit
-            self.set_ratelimit(self.last_tx_rate_limit, self.last_rx_rate_limit,
-                               self.last_ath,
-                               1)
-            # 4.2 add client into client traffic track in iptables
-            syslog(LOG_DEBUG, "add_client_track:%s" % self.mac)
-            self.set_client_track(1)
+            self.handle_ip_changed_event(clientevent)
 
         # 5. Unknow Event
         else:
@@ -143,6 +168,7 @@ class Client(Thread):
                    (self.mac, clientevent.event))
         syslog(LOG_DEBUG, "-->mac:%s event:%s" % (self.mac, clientevent.event))
 
+    # query auth server and fetch info
     def query_auth(self):
         try:
             global auth_url
@@ -162,6 +188,7 @@ class Client(Thread):
         del(response)
         return self.unpack_info(response_str)
 
+    # pack the info for auth query
     def pack_info(self):
         """
         struct info {
@@ -179,7 +206,7 @@ class Client(Thread):
         }
         """
         clientevent = self.clientevent
-        version = 4
+        version = 5
         global device_mac
         client_mac = self.mac
         client_ip = 0
@@ -205,6 +232,7 @@ class Client(Thread):
             ss_str += chr(ord(item) ^ 0xDA)
         return binascii.b2a_hex(ss_str)
 
+    # unpack the info from auth server
     def unpack_info(self, response_str):
         """
         struct auth {
@@ -218,7 +246,9 @@ class Client(Thread):
             char acl_type;
             int time;
             int tx_rate_limit;
-            int tx_rate_limit;
+            int rx_rate_limit;
+            int tx_rate_limit_local;
+            int rx_rate_limit_local;
         }
         """
         _, response_str = response_str.strip('\n').split('=')
@@ -233,11 +263,13 @@ class Client(Thread):
         mac_num = ord(mac_num)
         username_len = ord(username_len)
         offset = struct.calcsize(fmt)
-        fmt = '!%dsciii' % username_len
-        username, acl_type, time, tx_rate_limit, rx_rate_limit = \
+        fmt = '!%dsciiiii' % username_len
+        username, acl_type, time, tx_rate_limit, rx_rate_limit, \
+            tx_rate_limit_local, rx_rate_limit_local = \
             struct.unpack_from(fmt, ss_str, offset)
         acl_type = ord(acl_type)
-        return acl_type, time, tx_rate_limit, rx_rate_limit, remain_time, \
+        return acl_type, time, tx_rate_limit, rx_rate_limit, \
+            tx_rate_limit_local, rx_rate_limit_local, remain_time, \
             username
 
     def set_whitelist(self, time, action):
@@ -270,11 +302,13 @@ class Client(Thread):
                       self.mac)
         pass
 
+    # main thread
     def run(self):
         while not self.term:
             self.handle_event()
 
 
+# Class describes the manager
 class Manager(object):
     """ Describes manager communication with pipe """
     def __init__(self):
@@ -293,7 +327,74 @@ class Manager(object):
         self.pipe_f = os.open(self.pipe_name, os.O_SYNC |
                               os.O_CREAT | os.O_RDWR)
 
+    # handle /lib/wifi event
+    def handle_wifi_down_event(self, ath, mac, event):
+        # free all existing clients
+        for k in self.client_dict.keys():
+            self.client_dict[k].term = True
+            self.client_dict[k].put_event('ath00', 'TERM')
+        self.client_dict.clear()
+        # 4.1 retrieve the global information
+        global auth_url
+        auth_url = get_auth_url()
+        global domain
+        domain = get_domain()
+        syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
+               (device_mac, auth_url, domain))
+        # 4.2 interface is down, do not restart interface
+        # related service
+        # os.system("/etc/init.d/whitelist restart >/dev/null 2>&1")
+        # os.system("/etc/init.d/qos restart >/dev/null 2>&1")
+        # 4.3 collect memory
+        gc.collect()
+
+        for c in threading.enumerate():
+            syslog(LOG_DEBUG, 'FFF> %s' % str(c))
+
+    # dispatch each client event
+    def dispatch_client_event(self, ath, mac, event):
+        # 1. find or create Client object by client mac
+        if mac not in self.client_dict.keys():
+            # 1.1 new one
+            client = Client(mac)
+            self.client_dict[mac] = client
+            # 1.2 run it
+            client.daemon = True
+            client.start()
+        else:
+            client = self.client_dict[mac]
+            if (not client.is_alive()) or client.term:
+                client.term = True
+                del(client)
+                client = Client(mac)
+                self.client_dict[mac] = client
+                client.daemon = True
+                client.start()
+
+        # 2. add event into client event queue
+        client.put_event(ath, event)
+
+        # 3. clean up dead process
+        for key in self.client_dict.keys():
+            if (not self.client_dict[key].is_alive()) or \
+               self.client_dict[key].term:
+                self.client_dict[key].term = True
+                del(self.client_dict[key])
+
+        # 4. gc
+        gc.collect()
+        # for c in threading.enumerate():
+        #    syslog(LOG_DEBUG, 'CCC> %s' % str(c))
+        # rt = gc.collect()
+        # print "%d unreachable" % rt
+        # garbages = gc.garbage
+        # print "\n%d garbages:" % len(garbages)
+        # for garbage in garbages:
+        #     print str(garbage)
+        # pdb.set_trace()
+
     # @profile
+    # pipe line loop
     def handle_pipe_loop(self):
         # loop processing pipe event
         while True:
@@ -321,74 +422,16 @@ class Manager(object):
                     event))
             # 4. handle wifi driver down event
             if ath == '/lib/wifi':
-                # free all existing clients
-                for k in self.client_dict.keys():
-                    self.client_dict[k].term = True
-                    self.client_dict[k].put_event('ath00', 'TERM')
-                self.client_dict.clear()
-                # 4.1 retrieve the global information
-                global auth_url
-                auth_url = get_auth_url()
-                global domain
-                domain = get_domain()
-                syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
-                       (device_mac, auth_url, domain))
-                # 4.2 interface is down, do not restart interface
-                # related service
-                # os.system("/etc/init.d/whitelist restart >/dev/null 2>&1")
-                # os.system("/etc/init.d/qos restart >/dev/null 2>&1")
-                # 4.3 collect memory
-                gc.collect()
-
-                for c in threading.enumerate():
-                    syslog(LOG_DEBUG, 'FFF> %s' % str(c))
-
+                self.handle_wifi_down_event(ath, mac, event)
                 continue
             elif event == 'AP-DISABLED' or len(mac) == 0:
                 gc.collect()
                 continue
 
             # 5. handle client event
-            if mac not in self.client_dict.keys():
-                # 5.1 new one
-                client = Client(mac)
-                self.client_dict[mac] = client
-                # 5.2 run it
-                client.daemon = True
-                client.start()
-            else:
-                client = self.client_dict[mac]
-                if (not client.is_alive()) or client.term:
-                    client.term = True
-                    del(client)
-                    client = Client(mac)
-                    self.client_dict[mac] = client
-                    client.daemon = True
-                    client.start()
+            self.dispatch_client_event(ath, mac, event)
 
-            # 6. add event into client event queue
-            client.put_event(ath, event)
-
-            # 7. clean up dead process
-            for key in self.client_dict.keys():
-                if (not self.client_dict[key].is_alive()) or \
-                   self.client_dict[key].term:
-                    self.client_dict[key].term = True
-                    del(self.client_dict[key])
-
-            # 8. gc
-            gc.collect()
-            # for c in threading.enumerate():
-            #    syslog(LOG_DEBUG, 'CCC> %s' % str(c))
-            # rt = gc.collect()
-            # print "%d unreachable" % rt
-            # garbages = gc.garbage
-            # print "\n%d garbages:" % len(garbages)
-            # for garbage in garbages:
-            #     print str(garbage)
-            # pdb.set_trace()
-
-            # 9. add log
+            # 6. add log
             syslog(LOG_INFO, "=--=>ath:%s, mac:%s, event:%s" %
                    (ath,
                     mac,
