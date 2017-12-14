@@ -110,6 +110,16 @@ set_global_static_chains_rules()
     $CMD -t nat -A PREROUTING -j Portal 
 
 
+    # mangle table
+    $CMD -t mangle -P PREROUTING ACCEPT
+    $CMD -t mangle -P INPUT ACCEPT
+    $CMD -t mangle -P FORWARD ACCEPT
+    $CMD -t mangle -P OUTPUT ACCEPT
+    $CMD -t mangle -P POSTROUTING ACCEPT
+    $CMD -t mangle -N Portal
+    $CMD -t mangle -A PREROUTING -j Portal 
+
+
     ## set other user defined static rules
     set_other_static_chains_rules
 
