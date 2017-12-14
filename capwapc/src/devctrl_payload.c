@@ -126,10 +126,10 @@ static int dc_json_config_finished(void *reserved)
     return 0;
 }
 
-static inline int dc_set_ratelimit_sta(const char *mac, int tx_rate_limit, int rx_rate_limit)
+static inline int dc_set_ratelimit_sta(const char *mac, int tx_rate_limit, int rx_rate_limit, int tx_rate_limit_local, int rx_rate_limit_local)
 {
     char buf[128];
-    sprintf(buf, "/lib/okos/setratelimit.sh %s %d %d", mac, tx_rate_limit, rx_rate_limit);
+    sprintf(buf, "/lib/okos/setratelimit.sh %s %d %d %d %d", mac, tx_rate_limit, rx_rate_limit, tx_rate_limit_local, rx_rate_limit_local);
     system(buf);
     return 0;
 }
@@ -456,6 +456,8 @@ static int dc_portal_offline_handler(struct tlv *payload, void **reserved)
         int time;
         int tx_rate_limit;
         int rx_rate_limit;
+        int tx_rate_limit_local;
+        int rx_rate_limit_local;
     };
     struct portal_cmd json_cfg = {0};
     struct node_pair_save paires[] = {
@@ -464,6 +466,8 @@ static int dc_portal_offline_handler(struct tlv *payload, void **reserved)
         {"time", json_type_int, &(json_cfg.time), sizeof(json_cfg.time)},
         {"tx_rate_limit", json_type_int, &(json_cfg.tx_rate_limit), sizeof(json_cfg.tx_rate_limit)},
         {"rx_rate_limit", json_type_int, &(json_cfg.rx_rate_limit), sizeof(json_cfg.rx_rate_limit)},
+        {"tx_rate_limit_local", json_type_int, &(json_cfg.tx_rate_limit_local), sizeof(json_cfg.tx_rate_limit_local)},
+        {"rx_rate_limit_local", json_type_int, &(json_cfg.rx_rate_limit_local), sizeof(json_cfg.rx_rate_limit_local)},
 
     }; 
     int operate_type;
@@ -581,14 +585,14 @@ static int dc_portal_offline_handler(struct tlv *payload, void **reserved)
                 }
                 break;
             case OT_RATELIMIT:
-                if ((ret = dc_set_ratelimit_sta(json_cfg.mac, json_cfg.tx_rate_limit, json_cfg.rx_rate_limit) != 0)) {
-                    CWLog("Try to set ratelimit sta %s attached the ssid %s failed for tx_rate_limit %d rx_rate_limit %d.", 
-                            json_cfg.mac, "ALL", json_cfg.tx_rate_limit, json_cfg.rx_rate_limit);
+                if ((ret = dc_set_ratelimit_sta(json_cfg.mac, json_cfg.tx_rate_limit, json_cfg.rx_rate_limit, json_cfg.tx_rate_limit_local, json_cfg.rx_rate_limit_local) != 0)) {
+                    CWLog("Try to set ratelimit sta %s attached the ssid %s failed for tx_rate_limit %d rx_rate_limit %d tx_rate_limit_local %d rx_rate_limit_local %d.", 
+                            json_cfg.mac, "ALL", json_cfg.tx_rate_limit, json_cfg.rx_rate_limit, json_cfg.tx_rate_limit_local, json_cfg.rx_rate_limit_local);
                 }
                 break;
             default:
-                    CWLog("Unknown operate_type %d, sta %s, portal_scheme %s, time %d,  tx_rate_limit %d rx_rate_limit %d.", 
-                            operate_type, json_cfg.mac, json_cfg.scheme, json_cfg.time, json_cfg.tx_rate_limit, json_cfg.rx_rate_limit);
+                    CWLog("Unknown operate_type %d, sta %s, portal_scheme %s, time %d,  tx_rate_limit %d rx_rate_limit %d tx_rate_limit_local %d rx_rate_limit_local %d.", 
+                            operate_type, json_cfg.mac, json_cfg.scheme, json_cfg.time, json_cfg.tx_rate_limit, json_cfg.rx_rate_limit, json_cfg.tx_rate_limit_local, json_cfg.rx_rate_limit_local);
                     ret = dc_error_commit_failed;
                     goto ERROR_OUT;
                 break;

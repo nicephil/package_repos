@@ -97,6 +97,7 @@ class Client(Thread):
                 self.set_whitelist(remain_time, 1)
         # 1.5 set_ratelimit
         self.set_ratelimit(tx_rate_limit, rx_rate_limit,
+                           tx_rate_limit_local, rx_rate_limit_local,
                            clientevent.ath,
                            1)
 
@@ -116,7 +117,7 @@ class Client(Thread):
                 # self.set_blacklist(0, 0)
                 os.system("wdctl reset %s &" % self.mac)
                 pass
-            self.set_ratelimit(0, 0, clientevent.ath, 0)
+            self.set_ratelimit(0, 0, 0, 0, clientevent.ath, 0)
             os.system("sqlite3 -echo /tmp/arptables.db \"delete from \
                       'br-lan1' where MAC='%s' COLLATE NOCASE;\" \
                       | logger -t clientevent" % self.mac)
@@ -133,6 +134,8 @@ class Client(Thread):
     def handle_ip_changed_event(self, clientevent):
         # 4.1 set_ratelimit
         self.set_ratelimit(self.last_tx_rate_limit, self.last_rx_rate_limit,
+                           self.last_tx_rate_limit_local,
+                           self.last_rx_rate_limit_local,
                            self.last_ath,
                            1)
         # 4.2 add client into client traffic track in iptables
@@ -284,11 +287,15 @@ class Client(Thread):
                    action))
         pass
 
-    def set_ratelimit(self, tx_rate_limit, rx_rate_limit, ath, action):
-        os.system("/lib/okos/setratelimit.sh %s %d %d %s %d >/dev/null 2>&1" %
+    def set_ratelimit(self, tx_rate_limit, rx_rate_limit,
+                      tx_rate_limit_local, rx_rate_limit_local, ath, action):
+        os.system("/lib/okos/setratelimit.sh %s %d %d %d \
+                  %d %s %d >/dev/null 2>&1" %
                   (self.mac,
                    tx_rate_limit,
                    rx_rate_limit,
+                   tx_rate_limit_local,
+                   rx_rate_limit_local,
                    ath,
                    action))
         pass

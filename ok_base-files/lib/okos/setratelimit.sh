@@ -3,8 +3,10 @@
 mac=$1
 tx_rate_limit=$2
 rx_rate_limit=$3
-ath=$4
-action=$5
+tx_rate_limit_local=$4
+rx_rate_limit_local=$5
+ath=$6
+action=$7
 
 trap 'setratelimit_trap; exit' INT TERM ABRT QUIT ALRM
 
@@ -21,7 +23,7 @@ ath=`apstats -s -m $mac|awk '/VAP/{print $7}'`
 ath="${ath:0:5}"
 }
      
-logger -t clientevent "++setratelimit:mac:$mac, tx_rate_limit:$tx_rate_limit, rx_rate_limit:$rx_rate_limit, ath:$ath, action:$action"
+logger -t clientevent "++setratelimit:mac:$mac, tx_rate_limit:$tx_rate_limit, rx_rate_limit:$rx_rate_limit, tx_rate_limit_local:$tx_rate_limit_local, rx_rate_limit_local:$rx_rate_limit_local, ath:$ath, action:$action"
 
 [ -z "$ath" ] && {lock -u /tmp/qos.lock;exit}
 
@@ -41,8 +43,8 @@ logger -t clientevent "++setratelimit:mac:$mac, tx_rate_limit:$tx_rate_limit, rx
     config_get qos_weight ${st_name} bandwidth_priority
 
     # 2. set the right limit
-    /lib/okos/qos.sh add $mac $qos_weight ${tx_rate_limit} ${rx_rate_limit} $ath 2>&1 | logger -t clientevent
-    logger -t clientevent "==/lib/okos/qos.sh add $mac $qos_weight ${tx_rate_limit} ${rx_rate_limit} $ath"
+    /lib/okos/qos.sh add $mac $qos_weight ${tx_rate_limit} ${rx_rate_limit} ${tx_rate_limit_local} ${rx_rate_limit_local} $ath 2>&1 | logger -t clientevent
+    logger -t clientevent "==/lib/okos/qos.sh add $mac $qos_weight ${tx_rate_limit} ${rx_rate_limit} ${tx_rate_limit_local} ${rx_rate_limit_local} $ath"
 }
 
 lock -u /tmp/qos.lock
