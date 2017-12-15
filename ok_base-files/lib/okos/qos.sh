@@ -234,20 +234,22 @@ htb_add_classes ()
     local lan_tx=$6
     local lan_rx=$7
 
-    local param="parent 30:0 classid 30:$id htb burst 15k rate ${rx} ceil"
+    local param="parent 30:1 classid 30:$id htb burst 15k rate 1kbit ceil"
+    local param_wt="parent 30:1 classid 30:$id htb burst 15k rate ${wt}00kbit ceil"
     # WAN downlink
     run "tc class add dev $iface $param $rx"
     # WAN uplink
-    run "tc class add dev eth0 $param $tx"
+    local param="parent 30:1 classid 30:$id htb burst 15k rate ${wt}00kbit ceil"
+    run "tc class add dev eth0 $param_wt $tx"
 
-    local param="parent 31:0 classid 31:$id htb burst 15k rate ${lan_rx} ceil"
+    local param="parent 31:1 classid 31:$id htb burst 15k rate 1kbit ceil"
+    local param_wt="parent 31:1 classid 31:1$id htb burst 15k rate ${wt}00kbit ceil"
     # LAN downlink
     run "tc class add dev $iface $param $lan_rx"
     # LAN uplink on all ifaces
-    local param="parent 31:0 classid 31:1$id htb burst 15k rate ${lan_rx} ceil"
     for iface in ${ifaces}
     do
-        run "tc class add dev $iface $param $lan_tx"
+        run "tc class add dev $iface $param_wt $lan_tx"
     done
 }
 
@@ -355,7 +357,7 @@ add ()
     rx="${rx}kbit"
     local lan_tx
     [ ! -z $5 ] && lan_tx=$5 || lan_tx=$FULL_SPEED_eth0
-    [ $tx -eq 0 ] && lan_tx=$FULL_SPEED_eth0
+    [ $lan_tx -eq 0 ] && lan_tx=$FULL_SPEED_eth0
     lan_tx="${lan_tx}kbit"
     local lan_rx
     [ ! -z $6 ] && lan_rx=$6 || lan_rx=$FULL_SPEED_eth0
@@ -546,20 +548,30 @@ htb_start_iface ()
     local _iface_=$1
     local _speed_="${2}bit"
     run "tc qdisc add dev $_iface_ root handle 1: htb default 30"
+    run "tc class add dev $_iface_ parent 1:0 classid 1:1 htb rate $_speed_ ceil $_speed_ burst 150k"
     # default classify WAN traffic
-    run "tc class add dev $_iface_ parent 1:0 classid 1:30 htb rate $_speed_ ceil $_speed_ burst 15k"
+    run "tc class add dev $_iface_ parent 1:1 classid 1:30 htb rate 1kbit ceil $_speed_ burst 15k"
     # classify LAN traffic
-    run "tc class add dev $_iface_ parent 1:0 classid 1:31 htb rate $_speed_ ceil $_speed_ burst 15k"
-    run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 3 u32 match ip src 10.0.0.0/8 flowid 1:31"
-    run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 2 u32 match ip src 172.16.0.0/12 flowid 1:31"
-    run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 1 u32 match ip src 192.168.0.0/16 flowid 1:31"
+    run "tc class add dev $_iface_ parent 1:1 classid 1:31 htb rate 1kbit ceil $_speed_ burst 15k"
+    if [ "$_iface_" = "eth0" ]
+    then
+        run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 3 u32 match ip dst 10.0.0.0/8 flowid 1:31"
+        run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 2 u32 match ip dst 172.16.0.0/12 flowid 1:31"
+        run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 1 u32 match ip dst 192.168.0.0/16 flowid 1:31"
+    else
+        run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 3 u32 match ip src 10.0.0.0/8 flowid 1:31"
+        run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 2 u32 match ip src 172.16.0.0/12 flowid 1:31"
+        run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 1 u32 match ip src 192.168.0.0/16 flowid 1:31"
+    fi
     # WAN qdisc
     run "tc qdisc add dev $_iface_ parent 1:30 handle 30: htb default 30"
-    run "tc class add dev $_iface_ parent 30:0 classid 30:30 htb rate $_speed_ ceil $_speed_ burst 15k"
+    run "tc class add dev $_iface_ parent 30:0 classid 30:1 htb rate $_speed_ ceil $_speed_ burst 150k"
+    run "tc class add dev $_iface_ parent 30:1 classid 30:30 htb rate 1kbit ceil $_speed_ burst 15k"
     run "tc qdisc add dev $_iface_ parent 30:30 handle 301: sfq perturb 10"
     # LAN qdisc
     run "tc qdisc add dev $_iface_ parent 1:31 handle 31: htb default 30"
-    run "tc class add dev $_iface_ parent 31:0 classid 31:30 htb rate $_speed_ ceil $_speed_ burst 15k"
+    run "tc class add dev $_iface_ parent 31:0 classid 31:1 htb rate $_speed_ ceil $_speed_"
+    run "tc class add dev $_iface_ parent 31:1 classid 31:30 htb rate 1kbit ceil $_speed_ burst 15k"
     run "tc qdisc add dev $_iface_ parent 31:30 handle 311: sfq perturb 10"
 }
 
@@ -625,6 +637,7 @@ show ()
         echo "<${iface} Root Qdisc 1:>:"
         tc -s -d -p qdisc show dev $iface
         tc -s -d -p class show dev $iface
+        tc -s -d -p filter show dev $iface
         echo "<${iface} WAN Qdisc 30:>:"
         tc -s -d -p filter show dev $iface parent 30:
         echo "<${iface} LAN Qdisc 31:>:"
