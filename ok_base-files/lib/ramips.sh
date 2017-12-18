@@ -286,6 +286,11 @@ ramips_board_detect() {
 	*"MiWiFi Mini")
 		name="miwifi-mini"
 		;;
+    # OK_PATCH
+	*"MiWiFi 3")
+		name="miwifi-3"
+		;;
+    #end of OK_PATCH
 	*"MiWiFi Nano")
 		name="miwifi-nano"
 		;;
