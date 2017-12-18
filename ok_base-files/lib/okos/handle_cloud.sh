@@ -3,7 +3,6 @@
 # 1. include scripts
 . /lib/functions.sh
 . /usr/share/libubox/jshn.sh
-. /lib/ar71xx.sh
 
 # 2. fetch device info
 config_load "productinfo"
