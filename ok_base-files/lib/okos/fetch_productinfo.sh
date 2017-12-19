@@ -14,6 +14,16 @@ ubnt-erx)
     echo -e "\toption serial ${serial}"
     echo -e "\toption mac ${mac}"
     ;;
+
+miwifi-3)
+    mac=$(cat /sys/class/net/eth0/address)
+    serial=`echo $mac | tr -d :`
+    echo -e "config productinfo productinfo"
+    echo -e  "\toption production miwifi3"
+    echo -e "\toption serial ${serial}"
+    echo -e "\toption mac ${mac}"
+    ;;
+
 *)
     ;;
 esac
