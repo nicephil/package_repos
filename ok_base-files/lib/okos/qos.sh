@@ -18,7 +18,7 @@ run ()
     local cmd=$1
     #echo "==> ${cmd}" | logger -t qosscript -p $LOG_DEBUG
     echo "==> ${cmd}"
-    [ -z "$debug" ] && $cmd
+    [ -z "$debug" ] && eval "$cmd"
 }
 qos_trap ()
 {
@@ -166,15 +166,15 @@ get_ip ()
         vlan="br-lan${vlan}"
         #log $LOG_DEBUG "get_ip(): got IFNAME:$ifname and VLAN:$vlan from $sta_db ."
 
-        [ -z "$ifname" ] && log $LOG_DEBUG "Get IFNAME from $sta_db failed." && echo "" && return 1
-        [ -z "$vlan" ] && log $LOG_DEBUG "Get VLAN from $sta_db failed." && echo "" && return 1
+        #[ -z "$ifname" ] && log $LOG_DEBUG "Get IFNAME from $sta_db failed." && echo "" && return 1
+        #[ -z "$vlan" ] && log $LOG_DEBUG "Get VLAN from $sta_db failed." && echo "" && return 1
     else
         if [ ! -z "$debug" ]; then
             rc="'lan3000'"
         else
             rc=`uci -q show wireless.${ifname}.network`
         fi
-        [ -z "$rc" ] && log $LOG_DEBUG "Get IFNAME from uci failed." && echo "" && return 1
+        # [ -z "$rc" ] && log $LOG_DEBUG "Get IFNAME from uci failed." && echo "" && return 1
         vlan=`echo $rc | awk -F "'" '{print $2}'`
         vlan="br-${vlan}"
         #log $LOG_DEBUG "get_ip(): got VLAN:$vlan by IFNAME:$ifname from uci."
@@ -187,7 +187,7 @@ get_ip ()
 #        sleep 1
 #    done
     ip=`sqlite3 $arp_db "select IP from '${vlan}' where MAC='${mac}' COLLATE NOCASE;"`
-    [ -z "$ip" ] && log $LOG_DEBUG "Get IP from $arp_db failed." && echo "" && return 1
+    # [ -z "$ip" ] && log $LOG_DEBUG "Get IP from $arp_db failed." && echo "" && return 1
     
     #log $LOG_DEBUG "get_ip(): output=>IP:$ip , IFNAME:$ifname ."
     echo "${ip} ${ifname}"
@@ -234,23 +234,31 @@ htb_add_classes ()
     local lan_tx=$6
     local lan_rx=$7
 
-    local param="parent 30:1 classid 30:$id htb burst 15k rate 1kbit ceil"
-    local param_wt="parent 30:1 classid 30:$id htb burst 15k rate ${wt}00kbit ceil"
     # WAN downlink
+    local param="parent 1:1 classid 1:$id htb burst 15k rate $((${wt}*12))kbit ceil"
     run "tc class add dev $iface $param $rx"
     # WAN uplink
-    local param="parent 30:1 classid 30:$id htb burst 15k rate ${wt}00kbit ceil"
-    run "tc class add dev eth0 $param_wt $tx"
+    run "tc class add dev eth0 $param $tx"
 
-    local param="parent 31:1 classid 31:$id htb burst 15k rate 1kbit ceil"
-    local param_wt="parent 31:1 classid 31:1$id htb burst 15k rate ${wt}00kbit ceil"
     # LAN downlink
+    local param="parent 1:1 classid 1:1$id htb burst 15k rate $((${wt}*12))kbit ceil"
     run "tc class add dev $iface $param $lan_rx"
     # LAN uplink on all ifaces
+    local param="parent 1:1 classid 1:2$id htb burst 15k rate $((${wt}*12))kbit ceil"
     for iface in ${ifaces}
     do
-        run "tc class add dev $iface $param_wt $lan_tx"
+        run "tc class add dev $iface $param $lan_tx"
     done
+}
+
+ip2int()
+{
+    local A=$(echo $1 | cut -d '.' -f1)
+    local B=$(echo $1 | cut -d '.' -f2)
+    local C=$(echo $1 | cut -d '.' -f3)
+    local D=$(echo $1 | cut -d '.' -f4)
+    local result=$(($A<<24|$B<<16|$C<<8|$D))
+    echo $result
 }
 
 add_filters ()
@@ -258,18 +266,34 @@ add_filters ()
     local iface=$1
     local ip=$2
     local id=$3
-    local U32="handle ::$(printf %x ${id}) protocol ip prio 1 u32"
+    local ip_int="$(ip2int $ip)"
+    ip_int="$(printf %04x $ip_int)"
+
     # WAN downlink
-    run "tc filter add dev $iface parent 30:0 ${U32} match ip dst ${ip}/32 flowid 30:$id"
+    local wan_downlink_ematch="not u32(u32 0xc0a80000 0xffff0000 at 12) and not u32(u32 0xac100000 0xfff00000 at 12) and not u32(u32 0x0a000000 0xff000000 at 12)"
+    local wan_downlink_ip_ematch="u32(u32 0x${ip_int} 0xfffffffe at 16)"
+    local ematch="handle $(printf %x ${id}) protocol ip prio 3 basic match '${wan_downlink_ip_ematch} and ${wan_downlink_ematch}'"
+    run "tc filter add dev $iface parent 1:0 ${ematch} flowid 1:${id}"
+
     # WAN uplink
-    run "tc filter add dev eth0 parent 30:0 ${U32} match ip src ${ip}/32 flowid 30:$id"
+    local wan_uplink_ematch="not u32(u32 0xc0a80000 0xffff0000 at 16) and not u32(u32 0xac100000 0xfff00000 at 16) and not u32(u32 0x0a000000 0xff000000 at 16)"
+    local wan_uplink_ip_ematch="u32(u32 0x${ip_int} 0xfffffffe at 12)"
+    local ematch="handle $(printf %x ${id}) protocol ip prio 3 basic match '${wan_uplink_ip_ematch} and ${wan_uplink_ematch}'"
+    run "tc filter add dev eth0 parent 1:0 ${ematch} flowid 1:${id}"
+
     # LAN downlink
-    run "tc filter add dev $iface parent 31:0 ${U32} match ip dst ${ip}/32 flowid 31:$id"
+    local lan_downlink_ematch="(u32(u32 0xc0a80000 0xffff0000 at 12) or u32(u32 0xac100000 0xfff00000 at 12) or u32(u32 0x0a000000 0xff000000 at 12))"
+    local lan_downlink_ip_ematch="u32(u32 0x${ip_int} 0xfffffffe at 16)"
+    local ematch="handle $(printf %x 1${id}) protocol ip prio 1 basic match '${lan_downlink_ip_ematch} and ${lan_downlink_ematch}'"
+    run "tc filter add dev $iface parent 1:0 ${ematch} flowid 1:1${id}"
+
     # LAN uplink on all ifaces
-    local U32="handle ::$(printf %x 1${id}) protocol ip prio 1 u32"
-    for iface in ${ifaces}
+    local lan_uplink_ematch="(u32(u32 0xc0a80000 0xffff0000 at 16) or u32(u32 0xac100000 0xfff00000 at 16) or u32(u32 0x0a000000 0xff000000 at 16))"
+    local lan_uplink_ip_ematch="u32(u32 0x${ip_int} 0xfffffffe at 12)"
+    local ematch="handle $(printf %x 2${id}) protocol ip prio 2 basic match '${lan_uplink_ip_ematch} and ${lan_uplink_ematch}'"
+    for _iface in ${ifaces}
     do
-        run "tc filter add dev $iface parent 31:0 ${U32} match ip src ${ip}/32 flowid 31:1$id"
+        run "tc filter add dev $_iface parent 1:0 ${ematch} flowid 1:2${id}"
     done
 }
 
@@ -416,32 +440,32 @@ del_tc_by_id_ifname ()
     log $LOG_DEBUG "Delete filter to class ${id}."
     # del WAN related
     for iface in eth0 $ifname; do
-        run "tc filter del dev $iface parent 30:0 handle 800::$(printf %x ${id}) prio 1 protocol ip u32"
+        run "tc filter del dev $iface parent 1:0 handle $(printf %x ${id}) prio 3 protocol ip basic"
     done
     # del LAN related
     for iface in ${ifaces}; do
         if [ "$iface" = "$ifname" ]
         then
-            run "tc filter del dev $iface parent 31:0 handle 800::$(printf %x ${id}) prio 1 protocol ip u32"
-            run "tc filter del dev $iface parent 31:0 handle 800::$(printf %x 1${id}) prio 1 protocol ip u32"
+            run "tc filter del dev $iface parent 1:0 handle $(printf %x 1${id}) prio 1 protocol ip basic"
+            run "tc filter del dev $iface parent 1:0 handle $(printf %x 2${id}) prio 2 protocol ip basic"
         else
-            run "tc filter del dev $iface parent 31:0 handle 800::$(printf %x 1${id}) prio 1 protocol ip u32"
+            run "tc filter del dev $iface parent 1:0 handle $(printf %x 2${id}) prio 2 protocol ip basic"
         fi
     done
 
     log $LOG_DEBUG "Delete class for client [${id}]."
     # del WAN related
     for iface in eth0 $ifname; do
-        run "tc class del dev $iface classid 30:${id}"
+        run "tc class del dev $iface classid 1:${id}"
     done
     # del LAN related
     for iface in ${ifaces}; do
         if [ "$iface" = "$ifname" ]
         then
-            run "tc class del dev $iface classid 31:${id}"
-            run "tc class del dev $iface classid 31:1${id}"
+            run "tc class del dev $iface classid 1:1${id}"
+            run "tc class del dev $iface classid 1:2${id}"
         else
-            run "tc class del dev $iface classid 31:1${id}"
+            run "tc class del dev $iface classid 1:2${id}"
         fi
     done
 
@@ -547,32 +571,11 @@ htb_start_iface ()
 {
     local _iface_=$1
     local _speed_="${2}bit"
-    run "tc qdisc add dev $_iface_ root handle 1: htb default 30"
+    run "tc qdisc add dev $_iface_ root handle 1: htb default 30 r2q 1"
     run "tc class add dev $_iface_ parent 1:0 classid 1:1 htb rate $_speed_ ceil $_speed_ burst 150k"
-    # default classify WAN traffic
-    run "tc class add dev $_iface_ parent 1:1 classid 1:30 htb rate 1kbit ceil $_speed_ burst 15k"
-    # classify LAN traffic
-    run "tc class add dev $_iface_ parent 1:1 classid 1:31 htb rate 1kbit ceil $_speed_ burst 15k"
-    if [ "$_iface_" = "eth0" ]
-    then
-        run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 3 u32 match ip dst 10.0.0.0/8 flowid 1:31"
-        run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 2 u32 match ip dst 172.16.0.0/12 flowid 1:31"
-        run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 1 u32 match ip dst 192.168.0.0/16 flowid 1:31"
-    else
-        run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 3 u32 match ip src 10.0.0.0/8 flowid 1:31"
-        run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 2 u32 match ip src 172.16.0.0/12 flowid 1:31"
-        run "tc filter add dev $_iface_ protocol ip parent 1:0 prio 1 u32 match ip src 192.168.0.0/16 flowid 1:31"
-    fi
-    # WAN qdisc
-    run "tc qdisc add dev $_iface_ parent 1:30 handle 30: htb default 30"
-    run "tc class add dev $_iface_ parent 30:0 classid 30:1 htb rate $_speed_ ceil $_speed_ burst 150k"
-    run "tc class add dev $_iface_ parent 30:1 classid 30:30 htb rate 1kbit ceil $_speed_ burst 15k"
-    run "tc qdisc add dev $_iface_ parent 30:30 handle 301: sfq perturb 10"
-    # LAN qdisc
-    run "tc qdisc add dev $_iface_ parent 1:31 handle 31: htb default 30"
-    run "tc class add dev $_iface_ parent 31:0 classid 31:1 htb rate $_speed_ ceil $_speed_"
-    run "tc class add dev $_iface_ parent 31:1 classid 31:30 htb rate 1kbit ceil $_speed_ burst 15k"
-    run "tc qdisc add dev $_iface_ parent 31:30 handle 311: sfq perturb 10"
+    # default class
+    run "tc class add dev $_iface_ parent 1:1 classid 1:30 htb rate 12kbit ceil $_speed_ burst 150k"
+    run "tc qdisc add dev $_iface_ parent 1:30 handle 30: sfq perturb 10"
 }
 
 thtb_start_iface ()
@@ -633,15 +636,11 @@ stop ()
 show ()
 {
     for iface in $ifaces; do
-        echo "xxxxxxx"
-        echo "<${iface} Root Qdisc 1:>:"
+        echo "------ [$iface] ------"
         tc -s -d -p qdisc show dev $iface
         tc -s -d -p class show dev $iface
         tc -s -d -p filter show dev $iface
-        echo "<${iface} WAN Qdisc 30:>:"
-        tc -s -d -p filter show dev $iface parent 30:
-        echo "<${iface} LAN Qdisc 31:>:"
-        tc -s -d -p filter show dev $iface parent 31:
+        echo "------ [END] ------"
     done
     
 }
