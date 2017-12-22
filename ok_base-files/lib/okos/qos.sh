@@ -272,25 +272,25 @@ add_filters ()
     # WAN downlink
     local wan_downlink_ematch="not u32(u32 0xc0a80000 0xffff0000 at 12) and not u32(u32 0xac100000 0xfff00000 at 12) and not u32(u32 0x0a000000 0xff000000 at 12)"
     local wan_downlink_ip_ematch="u32(u32 0x${ip_int} 0xfffffffe at 16)"
-    local ematch="handle $(printf %x ${id}) protocol ip prio 3 basic match '${wan_downlink_ip_ematch} and ${wan_downlink_ematch}'"
+    local ematch="prio ${id} protocol ip basic match '${wan_downlink_ip_ematch} and ${wan_downlink_ematch}'"
     run "tc filter add dev $iface parent 1:0 ${ematch} flowid 1:${id}"
 
     # WAN uplink
     local wan_uplink_ematch="not u32(u32 0xc0a80000 0xffff0000 at 16) and not u32(u32 0xac100000 0xfff00000 at 16) and not u32(u32 0x0a000000 0xff000000 at 16)"
     local wan_uplink_ip_ematch="u32(u32 0x${ip_int} 0xfffffffe at 12)"
-    local ematch="handle $(printf %x ${id}) protocol ip prio 3 basic match '${wan_uplink_ip_ematch} and ${wan_uplink_ematch}'"
+    local ematch="prio ${id} protocol ip basic match '${wan_uplink_ip_ematch} and ${wan_uplink_ematch}'"
     run "tc filter add dev eth0 parent 1:0 ${ematch} flowid 1:${id}"
 
     # LAN downlink
     local lan_downlink_ematch="(u32(u32 0xc0a80000 0xffff0000 at 12) or u32(u32 0xac100000 0xfff00000 at 12) or u32(u32 0x0a000000 0xff000000 at 12))"
     local lan_downlink_ip_ematch="u32(u32 0x${ip_int} 0xfffffffe at 16)"
-    local ematch="handle $(printf %x 1${id}) protocol ip prio 1 basic match '${lan_downlink_ip_ematch} and ${lan_downlink_ematch}'"
+    local ematch="prio 1${id} protocol ip basic match '${lan_downlink_ip_ematch} and ${lan_downlink_ematch}'"
     run "tc filter add dev $iface parent 1:0 ${ematch} flowid 1:1${id}"
 
     # LAN uplink on all ifaces
     local lan_uplink_ematch="(u32(u32 0xc0a80000 0xffff0000 at 16) or u32(u32 0xac100000 0xfff00000 at 16) or u32(u32 0x0a000000 0xff000000 at 16))"
     local lan_uplink_ip_ematch="u32(u32 0x${ip_int} 0xfffffffe at 12)"
-    local ematch="handle $(printf %x 2${id}) protocol ip prio 2 basic match '${lan_uplink_ip_ematch} and ${lan_uplink_ematch}'"
+    local ematch="prio 2${id} protocol ip basic match '${lan_uplink_ip_ematch} and ${lan_uplink_ematch}'"
     for _iface in ${ifaces}
     do
         run "tc filter add dev $_iface parent 1:0 ${ematch} flowid 1:2${id}"
@@ -440,16 +440,16 @@ del_tc_by_id_ifname ()
     log $LOG_DEBUG "Delete filter to class ${id}."
     # del WAN related
     for iface in eth0 $ifname; do
-        run "tc filter del dev $iface parent 1:0 handle $(printf %x ${id}) prio 3 protocol ip basic"
+        run "tc filter del dev $iface parent 1:0 prio ${id}"
     done
     # del LAN related
     for iface in ${ifaces}; do
         if [ "$iface" = "$ifname" ]
         then
-            run "tc filter del dev $iface parent 1:0 handle $(printf %x 1${id}) prio 1 protocol ip basic"
-            run "tc filter del dev $iface parent 1:0 handle $(printf %x 2${id}) prio 2 protocol ip basic"
+            run "tc filter del dev $iface parent 1:0 prio 1${id}"
+            run "tc filter del dev $iface parent 1:0 prio 2${id}"
         else
-            run "tc filter del dev $iface parent 1:0 handle $(printf %x 2${id}) prio 2 protocol ip basic"
+            run "tc filter del dev $iface parent 1:0 prio 2${id}" 
         fi
     done
 
@@ -546,7 +546,7 @@ del ()
     fi
 
     if [ -z "$rc2" ]; then
-        log $LOG_DEBUG "Don't know how to delet $mac on interface $iface ."
+        log $LOG_DEBUG "Don't know how to delete $mac on interface $iface ."
     else
         del_tc_by_id_ifname $id2 $ifname2
     fi
