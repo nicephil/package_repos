@@ -24,6 +24,11 @@ sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(MAC 
 case "$event" in
     "AP-STA-CONNECTED")
         
+        # add new record
+        CMD="INSERT OR REPLACE INTO ${tablename} VALUES('$mac','$ath','','','','${ath:3:1}','','','','','','','','')"
+        #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
+        sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
+
         bssid=`ifconfig $ath | awk '$1 ~ /ath/{print $5;exit}'`
         
         . /lib/functions.sh
