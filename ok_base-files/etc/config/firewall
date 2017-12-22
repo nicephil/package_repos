@@ -8,7 +8,6 @@ config defaults
 
 config zone
 	option name		lan
-    list   network      'lan4'
 	list   network		'lan4000'
 	list   network		'lan4050'
 	list   network		'lan4051'

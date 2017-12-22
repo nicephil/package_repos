@@ -20,11 +20,11 @@ config dnsmasq
 	#list notinterface	lo
 	#list bogusnxdomain     '64.94.110.11'
 	option localservice	1  # disable to allow DNS requests from non-local subnets
-#list address '/#/172.16.254.254'
-#list address '/router.oakridge.vip/172.16.254.254'
+    #list address '/#/172.16.254.254'
+    list address '/router.oakridge.vip/172.16.254.254'
 
-config dhcp lan4
-	option interface	lan4
+config dhcp lan4000
+	option interface	lan4000
 	option start 	1
 	option limit	200
 	option leasetime	12h
