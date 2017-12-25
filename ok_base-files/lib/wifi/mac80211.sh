@@ -120,7 +120,7 @@ detect_mac80211() {
 
 			set wireless.default_radio${devidx}=wifi-iface
 			set wireless.default_radio${devidx}.device=radio${devidx}
-			set wireless.default_radio${devidx}.network=lan4
+			set wireless.default_radio${devidx}.network=lan4000
 			set wireless.default_radio${devidx}.mode=ap
 			set wireless.default_radio${devidx}.ssid=LEDE-XiaoMi
 			set wireless.default_radio${devidx}.encryption=none
