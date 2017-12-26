@@ -35,7 +35,7 @@ class ToolTest(object):
 
     def delete(self, params=None, body=None):
         return self.curl('DELETE', body=body, params=params)
-    
+
 class ToolRequest(object):
     def __init__(self, url):
         self.url = url
@@ -87,15 +87,16 @@ class DeviceRegister(ApiServer):
 class OakmgrRegister(ApiServer):
     def __init__(self, target, port):
         self.path = '/redirector/v1/oakmgr/register/'
+        self.params = {}
         super(OakmgrRegister,self).__init__(target, port)
 
     def show(self, oakmgr=None, macs=None):
         if oakmgr is not None:
-            params = {'oakmgr':oakmgr}
-            return self.tool.get(params=params)
+            self.params['oakmgr'] = oakmgr
+            return self.tool.get(params=self.params)
         if macs is not None:
-            params = {'devices': macs}
-            return self.tool.get(params=params)
+            self.params['devices'] = macs
+            return self.tool.get(params=self.params)
         else:
             return self.tool.get()
 
@@ -112,6 +113,10 @@ class OakmgrRegister(ApiServer):
     def remove(self, macs, oakmgr):
         payload = {'action':'remove', 'oakmgr':oakmgr, 'devices':macs}
         return self.tool.post(body=payload)
+
+    def remove_all(self):
+        self.params['key'] = '31415926'
+        return self.tool.delete(params=self.params)
 
 class VersionRelease(ApiServer):
     def __init__(self, target, port):
@@ -135,7 +140,7 @@ class VersionRelease(ApiServer):
         return self.tool.get(params=self.params)
 
     def remove_all(self):
-        self.params = {'key':31415926}
+        self.params['key'] = '31415926'
         return self.tool.delete(params=self.params)
     
 class VersionControl(ApiServer):
@@ -191,8 +196,10 @@ def main(args):
             return svr.query(args.macs)
         elif args.add and args.oakmgr and args.macs:
             return svr.add(args.macs, args.oakmgr, args.svrport)
-        elif args.remove and args.oakmgr and args.macs:
+        elif args.delete and args.oakmgr and args.macs:
             return svr.remove(args.macs, args.oakmgr)
+        elif args.remove:
+            return svr.remove_all()
         else:
             return
     elif args.action == 'device':
@@ -244,12 +251,12 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--show', action='store_true', help='register | release | employe')
     parser.add_argument('-q', '--query', action='store_true', help='register | device')
     parser.add_argument('-a', '--add', action='store_true', help='register | release')
-    parser.add_argument('-r', '--remove', action='store_true', help='register | release')
-    parser.add_argument('-d', '--delete', action='store_true', help='release')
+    parser.add_argument('-d', '--delete', action='store_true', help='register | release')
     parser.add_argument('-b', '--bind', action='store_true', help='employe')
     parser.add_argument('-u', '--unbind', action='store_true', help='employe')
     parser.add_argument('-S', '--set_default', action='store_true', help='employe')
     parser.add_argument('-U', '--unset_default', action='store_true', help='employe')
+    #parser.add_argument('-X', '--remove', action='store_true', help='DELETE ALL entries on register | release')
 
     parser.add_argument('--oakmgr', type=str, help='IP address of Oak Manager')
     parser.add_argument('--svrport', type=str, help='port of Oak Manager')
