@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 LOG_MERG=0
 LOG_NOTICE=4
 LOG_WARNING=5
@@ -10,14 +9,12 @@ log ()
 {
     local pri=$1
     shift 1
-    #echo "$@" | logger -t qosscript -p $pri
-    echo "$@"
+    echo "$@" | logger -t qosscript -p $pri
 }
 run ()
 {
     local cmd=$1
-    #echo "==> ${cmd}" | logger -t qosscript -p $LOG_DEBUG
-    echo "==> ${cmd}"
+    echo "==> ${cmd}" | logger -t qosscript -p $LOG_DEBUG
     [ -z "$debug" ] && eval "$cmd"
 }
 qos_trap ()
@@ -80,12 +77,12 @@ FULL_SPEED_eth0="500000"
 get_id ()
 {
     [ ! -f $id_file ] && log $LOG_DEBUG "$id_file is absent, create new one." &&  touch $id_file
-    #log $LOG_DEBUG "get_id(): for $mac ."
+    log $LOG_DEBUG "get_id(): for $mac ."
 
     local mac=$1
 
     local ck=`grep -i "${mac}" ${id_file}`
-    #log $LOG_DEBUG "get_id(): $ck ."
+    log $LOG_DEBUG "get_id(): $ck ."
 
     # Reture entry corresponding to given MAC.
     echo "${ck}"
@@ -96,7 +93,7 @@ new_id ()
     local mac=`echo $1 | tr 'A-Z' 'a-z'`
     local ip=$2
     local ifname=$3
-    #log $LOG_DEBUG "new_id(): ( MAC:$mac , IP:$ip , IFNAME:$ifname )"
+    log $LOG_DEBUG "new_id(): ( MAC:$mac , IP:$ip , IFNAME:$ifname )"
 
     local id=$id_base
     local ids=`cat $id_file | awk '{print $4}'`
@@ -110,7 +107,7 @@ new_id ()
     done
 
     echo "$mac $ip $ifname $id" >> $id_file
-    #log $LOG_DEBUG "new_id(): get ID:$id ."
+    log $LOG_DEBUG "new_id(): get ID:$id ."
 
     echo "${id}"
 }
@@ -155,7 +152,7 @@ get_ip ()
 {
     local mac=$1
     local ifname=$2
-    #log $LOG_DEBUG "get_ip(): MAC:$mac IFNAME:$ifname "
+    log $LOG_DEBUG "get_ip(): MAC:$mac IFNAME:$ifname "
 
     local rc
     local vlan
@@ -164,32 +161,32 @@ get_ip ()
         rc=`sqlite3 $sta_db "select IFNAME,VLAN from STAINFO where MAC='${mac}' COLLATE NOCASE;"`
         OIFS=$IFS;IFS='|';set -- $rc;ifname=$1;vlan=$2;IFS=$OIFS
         vlan="br-lan${vlan}"
-        #log $LOG_DEBUG "get_ip(): got IFNAME:$ifname and VLAN:$vlan from $sta_db ."
+        log $LOG_DEBUG "get_ip(): got IFNAME:$ifname and VLAN:$vlan from $sta_db ."
 
-        #[ -z "$ifname" ] && log $LOG_DEBUG "Get IFNAME from $sta_db failed." && echo "" && return 1
-        #[ -z "$vlan" ] && log $LOG_DEBUG "Get VLAN from $sta_db failed." && echo "" && return 1
+        [ -z "$ifname" ] && log $LOG_DEBUG "Get IFNAME from $sta_db failed." && echo "" && return 1
+        [ -z "$vlan" ] && log $LOG_DEBUG "Get VLAN from $sta_db failed." && echo "" && return 1
     else
         if [ ! -z "$debug" ]; then
             rc="'lan3000'"
         else
             rc=`uci -q show wireless.${ifname}.network`
         fi
-        # [ -z "$rc" ] && log $LOG_DEBUG "Get IFNAME from uci failed." && echo "" && return 1
+        [ -z "$rc" ] && log $LOG_DEBUG "Get IFNAME from uci failed." && echo "" && return 1
         vlan=`echo $rc | awk -F "'" '{print $2}'`
         vlan="br-${vlan}"
-        #log $LOG_DEBUG "get_ip(): got VLAN:$vlan by IFNAME:$ifname from uci."
+        log $LOG_DEBUG "get_ip(): got VLAN:$vlan by IFNAME:$ifname from uci."
     fi
 
-    #log $LOG_DEBUG "get_ip(): try to get ip by MAC:$mac and VLAN:$vlan from $arp_db ."
+    log $LOG_DEBUG "get_ip(): try to get ip by MAC:$mac and VLAN:$vlan from $arp_db ."
 #    for i in 1 2 3; do
 #        ip=`sqlite3 $arp_db "select IP from '${vlan}' where MAC='${mac}' COLLATE NOCASE;"`
 #        [ ! -z "$ip" ] && break
 #        sleep 1
 #    done
     ip=`sqlite3 $arp_db "select IP from '${vlan}' where MAC='${mac}' COLLATE NOCASE;"`
-    # [ -z "$ip" ] && log $LOG_DEBUG "Get IP from $arp_db failed." && echo "" && return 1
+    [ -z "$ip" ] && log $LOG_DEBUG "Get IP from $arp_db failed." && echo "" && return 1
     
-    #log $LOG_DEBUG "get_ip(): output=>IP:$ip , IFNAME:$ifname ."
+    log $LOG_DEBUG "get_ip(): output=>IP:$ip , IFNAME:$ifname ."
     echo "${ip} ${ifname}"
     return 0
 }
@@ -271,25 +268,25 @@ add_filters ()
 
     # WAN downlink
     local wan_downlink_ematch="not u32(u32 0xc0a80000 0xffff0000 at 12) and not u32(u32 0xac100000 0xfff00000 at 12) and not u32(u32 0x0a000000 0xff000000 at 12)"
-    local wan_downlink_ip_ematch="u32(u32 0x${ip_int} 0xfffffffe at 16)"
-    local ematch="prio ${id} protocol ip basic match '${wan_downlink_ip_ematch} and ${wan_downlink_ematch}'"
+    local wan_downlink_ip_ematch="u32(u16 0x${ip_int:0:4} 0xffff at 16) and u32(u16 0x${ip_int:4} 0xffff at 18)"
+    local ematch="prio ${id} protocol ip basic match '${wan_downlink_ematch} and ${wan_downlink_ip_ematch}'"
     run "tc filter add dev $iface parent 1:0 ${ematch} flowid 1:${id}"
 
     # WAN uplink
     local wan_uplink_ematch="not u32(u32 0xc0a80000 0xffff0000 at 16) and not u32(u32 0xac100000 0xfff00000 at 16) and not u32(u32 0x0a000000 0xff000000 at 16)"
-    local wan_uplink_ip_ematch="u32(u32 0x${ip_int} 0xfffffffe at 12)"
+    local wan_uplink_ip_ematch="u32(u16 0x${ip_int:0:4} 0xffff at 12) and u32(u16 0x${ip_int:4} 0xffff at 14)"
     local ematch="prio ${id} protocol ip basic match '${wan_uplink_ip_ematch} and ${wan_uplink_ematch}'"
     run "tc filter add dev eth0 parent 1:0 ${ematch} flowid 1:${id}"
 
     # LAN downlink
-    local lan_downlink_ematch="(u32(u32 0xc0a80000 0xffff0000 at 12) or u32(u32 0xac100000 0xfff00000 at 12) or u32(u32 0x0a000000 0xff000000 at 12))"
-    local lan_downlink_ip_ematch="u32(u32 0x${ip_int} 0xfffffffe at 16)"
-    local ematch="prio 1${id} protocol ip basic match '${lan_downlink_ip_ematch} and ${lan_downlink_ematch}'"
+    local lan_downlink_ematch="u32(u32 0xc0a80000 0xffff0000 at 12) or u32(u32 0xac100000 0xfff00000 at 12) or u32(u32 0x0a000000 0xff000000 at 12)"
+    local lan_downlink_ip_ematch="u32(u16 0x${ip_int:0:4} 0xffff at 16) and u32(u16 0x${ip_int:4} 0xffff at 18)"
+    local ematch="prio 1${id} protocol ip basic match '${lan_downlink_ematch} and ${lan_downlink_ip_ematch}'"
     run "tc filter add dev $iface parent 1:0 ${ematch} flowid 1:1${id}"
 
     # LAN uplink on all ifaces
-    local lan_uplink_ematch="(u32(u32 0xc0a80000 0xffff0000 at 16) or u32(u32 0xac100000 0xfff00000 at 16) or u32(u32 0x0a000000 0xff000000 at 16))"
-    local lan_uplink_ip_ematch="u32(u32 0x${ip_int} 0xfffffffe at 12)"
+    local lan_uplink_ematch="u32(u32 0xc0a80000 0xffff0000 at 16) or u32(u32 0xac100000 0xfff00000 at 16) or u32(u32 0x0a000000 0xff000000 at 16)"
+    local lan_uplink_ip_ematch="u32(u16 0x${ip_int:0:4} 0xffff at 12) and u32(u16 0x${ip_int:4} 0xffff at 14)"
     local ematch="prio 2${id} protocol ip basic match '${lan_uplink_ip_ematch} and ${lan_uplink_ematch}'"
     for _iface in ${ifaces}
     do
@@ -679,7 +676,6 @@ case "$1" in
         ;;
     *)
         echo "Usage: $0 [restart|start|stop|add|del|show]"
-        echo "--->param: $*"
         lock -u /var/run/qos.lock
         exit 1
         ;;

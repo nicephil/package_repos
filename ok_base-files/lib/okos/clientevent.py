@@ -266,11 +266,29 @@ class Client(Thread):
         mac_num = ord(mac_num)
         username_len = ord(username_len)
         offset = struct.calcsize(fmt)
-        fmt = '!%dsciiiii' % username_len
-        username, acl_type, time, tx_rate_limit, rx_rate_limit, \
-            tx_rate_limit_local, rx_rate_limit_local = \
-            struct.unpack_from(fmt, ss_str, offset)
-        acl_type = ord(acl_type)
+
+        username = 0
+        acl_type = 0
+        time = 0
+        tx_rate_limit = 0
+        rx_rate_limit = 0
+        tx_rate_limit_local = 0
+        rx_rate_limit_local = 0
+
+        fmt = '!%dsciii' % username_len
+        fmt1 = '!%dsciiiii' % username_len
+        if (len(ss_str) == (offset + struct.calcsize(fmt))):
+            username, acl_type, time, tx_rate_limit, rx_rate_limit = \
+                struct.unpack_from(fmt, ss_str, offset)
+            acl_type = ord(acl_type)
+        elif (len(ss_str) == (offset + struct.calcsize(fmt1))):
+            username, acl_type, time, tx_rate_limit, rx_rate_limit,\
+                tx_rate_limit_local, rx_rate_limit_local = \
+                struct.unpack_from(fmt1, ss_str, offset)
+            acl_type = ord(acl_type)
+        else:
+            syslog(LOG_ERR, "str_len:%d" % len(ss_str))
+
         return acl_type, time, tx_rate_limit, rx_rate_limit, \
             tx_rate_limit_local, rx_rate_limit_local, remain_time, \
             username
