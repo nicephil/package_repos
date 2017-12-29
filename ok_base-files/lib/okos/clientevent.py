@@ -49,7 +49,7 @@ class Client(Thread):
         clientevent = ClientEvent(ath, event)
         queue = self.queue
 
-        # 4. put into queue if queue is empty
+        # 2. put into queue if queue is empty
         if queue.full():
             # 5. clean queue and put it
             syslog(LOG_WARNING, "Queue Full!")
@@ -82,19 +82,23 @@ class Client(Thread):
         self.last_tx_rate_limit_local = tx_rate_limit_local
         self.last_rx_rate_limit_local = rx_rate_limit_local
         self.last_ath = clientevent.ath
+
+        # 1.2 set_whitelist
         if acl_type == 1:
-            # 1.2 set_whitelist
             self.set_whitelist(time, 1)
+
+        # 1.3 set_blacklist
         elif acl_type == 3:
-            # 1.3 set_blacklist
             self.set_blacklist(time, 1)
+
+        # 1.4 none acl, so check
         elif acl_type == 0:
-            # 1.4 none acl, so check
             self.set_blacklist(0, 0)
             if remain_time == 0:
                 self.set_whitelist(0, 0)
             else:
                 self.set_whitelist(remain_time, 1)
+
         # 1.5 set_ratelimit
         self.set_ratelimit(tx_rate_limit, rx_rate_limit,
                            tx_rate_limit_local, rx_rate_limit_local,
@@ -117,18 +121,22 @@ class Client(Thread):
                 # self.set_blacklist(0, 0)
                 os.system("wdctl reset %s &" % self.mac)
                 pass
+
+            # 2.3 set ratelimit
             self.set_ratelimit(0, 0, 0, 0, clientevent.ath, 0)
-            os.system("sqlite3 -echo /tmp/arptables.db \"delete from \
-                      'br-lan1' where MAC='%s' COLLATE NOCASE;\" \
-                      | logger -t clientevent" % self.mac)
-            # del client into client traffic track in iptables
-            syslog(LOG_DEBUG, "del_client_track:%s" % self.mac)
+
+            # 2.4 clear arptables
+            self.clear_arptables()
+
+            # 2.5 del client into client traffic track in iptables
             self.set_client_track(0)
 
+            # check queu again
             if self.queue.empty():
                 self.term = True
+
         else:
-            syslog(LOG_DEBUG, "NEW EVENT Comming")
+            syslog(LOG_DEBUG, "New Event Comming")
 
     # handle STA-IP-CHANGED event
     def handle_ip_changed_event(self, clientevent):
@@ -139,7 +147,6 @@ class Client(Thread):
                            self.last_ath,
                            1)
         # 4.2 add client into client traffic track in iptables
-        syslog(LOG_DEBUG, "add_client_track:%s" % self.mac)
         self.set_client_track(1)
 
     # @profile
@@ -148,6 +155,7 @@ class Client(Thread):
         clientevent = self.queue.get()
         self.clientevent = clientevent
         syslog(LOG_DEBUG, "++>mac:%s event:%s" % (self.mac, clientevent.event))
+
         # 1. handle connected event
         if clientevent.event == 'AP-STA-CONNECTED':
             self.handle_connected_event(clientevent)
@@ -159,7 +167,6 @@ class Client(Thread):
         # 3. term event
         elif clientevent.event == 'TERM':
             self.term = True
-            sys.exit(0)
 
         # 4. station ip changed event
         elif clientevent.event == 'STA-IP-CHANGED':
@@ -169,6 +176,7 @@ class Client(Thread):
         else:
             syslog(LOG_WARNING, "Unknow Event on %s %s" %
                    (self.mac, clientevent.event))
+
         syslog(LOG_DEBUG, "-->mac:%s event:%s" % (self.mac, clientevent.event))
 
     # query auth server and fetch info
@@ -318,6 +326,12 @@ class Client(Thread):
                    action))
         pass
 
+    def clear_arptables(self):
+        os.system("sqlite3 -echo /tmp/arptables.db \"delete from \
+                    'br-lan1' where MAC='%s' COLLATE NOCASE;\" \
+                    | logger -t clientevent" % self.mac)
+        pass
+
     def set_client_track(self, action):
         if action:
             os.system(". /lib/okos/trafstats.sh; add_client_track %s" %
@@ -356,21 +370,10 @@ class Manager(object):
     def handle_wifi_down_event(self, ath, mac, event):
         # free all existing clients
         for k in self.client_dict.keys():
-            self.client_dict[k].term = True
-            self.client_dict[k].put_event('ath00', 'TERM')
-        self.client_dict.clear()
-        # 4.1 retrieve the global information
-        global auth_url
-        auth_url = get_auth_url()
-        global domain
-        domain = get_domain()
-        syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
-               (device_mac, auth_url, domain))
-        # 4.2 interface is down, do not restart interface
-        # related service
-        # os.system("/etc/init.d/whitelist restart >/dev/null 2>&1")
-        # os.system("/etc/init.d/qos restart >/dev/null 2>&1")
-        # 4.3 collect memory
+            client = self.client_dict[k]
+            client.term = True
+            client.put_event('ath00', 'TERM')
+            del(client)
         gc.collect()
 
         for c in threading.enumerate():
@@ -390,6 +393,7 @@ class Manager(object):
             client = self.client_dict[mac]
             if (not client.is_alive()) or client.term:
                 client.term = True
+                client.put_event('ath00', 'TERM')
                 del(client)
                 client = Client(mac)
                 self.client_dict[mac] = client
@@ -401,10 +405,12 @@ class Manager(object):
 
         # 3. clean up dead process
         for key in self.client_dict.keys():
-            if (not self.client_dict[key].is_alive()) or \
-               self.client_dict[key].term:
-                self.client_dict[key].term = True
-                del(self.client_dict[key])
+            client = self.client_dict[key]
+            if (not client.is_alive()) or \
+               client.term:
+                client.term = True
+                client.put_event('ath00', 'TERM')
+                del(client)
 
         # 4. gc
         gc.collect()
@@ -441,22 +447,37 @@ class Manager(object):
                 event = ''
             except KeyboardInterrupt:
                 sys.exit(0)
+
             syslog(LOG_INFO, "=++=>ath:%s, mac:%s, event:%s" %
                    (ath,
                     mac,
                     event))
+
             # 4. handle wifi driver down event
             if ath == '/lib/wifi':
                 self.handle_wifi_down_event(ath, mac, event)
-                continue
+
+            # 5. bypass AP-DISABLED event
             elif event == 'AP-DISABLED' or len(mac) == 0:
-                gc.collect()
-                continue
+                for c in threading.enumerate():
+                    syslog(LOG_DEBUG, 'FFF> %s' % str(c))
+                rt = gc.collect()
+                syslog(LOG_DEBUG, "%d unreachable" % rt)
+                garbages = gc.garbage
+                syslog(LOG_DEBUG, "\n%d garbages:" % len(garbages))
+                for garbage in garbages:
+                    syslog(LOG_DEBUG, "%s" % str(garbage))
 
-            # 5. handle client event
-            self.dispatch_client_event(ath, mac, event)
+            # 6. handle client event
+            elif len(ath) > 0 and len(mac) > 0 and len(event) > 0:
+                self.dispatch_client_event(ath, mac, event)
 
-            # 6. add log
+            # 7. Unknown
+            else:
+                syslog(LOG_INFO, "Unknown Event:%s,%s,%s" % (ath,
+                                                             mac,
+                                                             event))
+            # 8. add log
             syslog(LOG_INFO, "=--=>ath:%s, mac:%s, event:%s" %
                    (ath,
                     mac,
