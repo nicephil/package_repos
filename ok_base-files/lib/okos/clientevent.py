@@ -89,11 +89,11 @@ class Client(Thread):
 
         # 1.3 set_blacklist
         elif acl_type == 3:
-            self.set_blacklist(time, 1)
+            self.set_blacklist(time, 1, clientevent.ath)
 
         # 1.4 none acl, so check
         elif acl_type == 0:
-            self.set_blacklist(0, 0)
+            self.set_blacklist(0, 0, clientevent.ath)
             if remain_time == 0:
                 self.set_whitelist(0, 0)
             else:
@@ -114,11 +114,11 @@ class Client(Thread):
                 self.set_whitelist(120, 1)
                 pass
             elif self.last_acl_type == 3:
-                # self.set_blacklist(0, 0)
+                # self.set_blacklist(0, 0, clientevent.ath)
                 pass
             elif self.last_acl_type == 0:
                 # self.set_whitelist(0, 0)
-                # self.set_blacklist(0, 0)
+                # self.set_blacklist(0, 0 clientevent.ath)
                 os.system("wdctl reset %s &" % self.mac)
                 pass
 
@@ -307,10 +307,11 @@ class Client(Thread):
                    action))
         pass
 
-    def set_blacklist(self, time, action):
-        os.system("/lib/okos/setblacklist.sh %s %d %d >/dev/null 2>&1" %
+    def set_blacklist(self, time, action, ath):
+        os.system("/lib/okos/setblacklist.sh %s %d %d %s >/dev/null 2>&1" %
                   (self.mac, time,
-                   action))
+                   action,
+                   ath))
         pass
 
     def set_ratelimit(self, tx_rate_limit, rx_rate_limit,
