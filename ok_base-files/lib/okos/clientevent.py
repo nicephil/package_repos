@@ -227,7 +227,7 @@ class Client(Thread):
             self.term = True
 
         # 4. station ip changed event
-        elif clientevent.event == 'STA-IP-CHANGED':
+        elif clientevent.event.find('STA-IP-CHANGED', 0) == 0:
             self.handle_ip_changed_event(clientevent)
 
         # 5. Unknow Event

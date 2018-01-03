@@ -10,7 +10,6 @@ rm -rf /var/run/arpwatch.lock
 rm -rf /tmp/.iptables.lock
 /etc/init.d/wifidog restart&
 /etc/init.d/qos restart&
-/etc/init.d/lbd restart&
 /etc/init.d/arpwatch restart&
 iptables -F client_wan_uplink_traf&
 iptables -F client_wan_downlink_traf&
