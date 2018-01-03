@@ -10,6 +10,7 @@ import urllib2
 import binascii
 import threading
 from threading import Thread
+import Queue as qq
 from Queue import Queue
 from okos_utils import get_auth_url, mac_to_byte, get_mac, get_portalscheme, \
     get_ssid, get_domain
@@ -21,6 +22,8 @@ from syslog import syslog, LOG_INFO, LOG_WARNING, LOG_ERR, LOG_DEBUG
 # Class describes client's event object
 class ClientEvent(object):
     """ Describes client event """
+    __slots__ = ('ath', 'event')
+
     def __init__(self, ath, event):
         self.ath = ath
         self.event = event
@@ -29,6 +32,11 @@ class ClientEvent(object):
 # Class describes client object with event handler
 class Client(Thread):
     """ Describes client """
+    __slots__ = ('mac', 'queue', 'term', 'clientevent', 'last_acl_type',
+                 'last_tx_rate_limit', 'last_rx_rate_limit',
+                 'last_tx_rate_limit_local', 'last_rx_rate_limit_local',
+                 'last_ath')
+
     def __init__(self, mac):
         Thread.__init__(self)
         self.mac = mac
@@ -50,38 +58,39 @@ class Client(Thread):
         queue = self.queue
 
         # 2. put into queue if queue is empty
-        if queue.full():
-            # 5. clean queue and put it
-            syslog(LOG_WARNING, "Queue Full!")
-            queue.queue.clear()
+        try:
             queue.put_nowait(clientevent)
-        else:
+        except qq.Full:
+            tmp_event = self.queue.get_nowait()
+            syslog(LOG_WARNING, "%s:Queue Full, ignore %s-%s" %
+                   (self.mac, tmp_event.ath, tmp_event.event))
             queue.put_nowait(clientevent)
 
     # handler for AP-STA-CONNECTED event
     def handle_connected_event(self, clientevent):
-        # 1.1 query auth
-        acl_type, time, tx_rate_limit, rx_rate_limit, \
-            tx_rate_limit_local, rx_rate_limit_local, remain_time, \
-            username = self.query_auth()
-        syslog(LOG_DEBUG, "mac:%s acl_type:%s time:%s tx_rate_limit:%s \
-               rx_rate_limit:%s rx_rate_limit_local:%s \
-               tx_rate_limit_local:%s remain_time:%s username:%s" %
-               (repr(self.mac),
-                repr(acl_type),
-                repr(time),
-                repr(tx_rate_limit),
-                repr(rx_rate_limit),
-                repr(tx_rate_limit_local),
-                repr(rx_rate_limit_local),
-                repr(remain_time),
-                repr(username)))
-        self.last_acl_type = acl_type
-        self.last_tx_rate_limit = tx_rate_limit
-        self.last_rx_rate_limit = rx_rate_limit
-        self.last_tx_rate_limit_local = tx_rate_limit_local
-        self.last_rx_rate_limit_local = rx_rate_limit_local
-        self.last_ath = clientevent.ath
+        # 1.1 check if need to query auth again
+        if not self.last_ath or self.last_ath != clientevent.ath:
+            acl_type, time, tx_rate_limit, rx_rate_limit, \
+             tx_rate_limit_local, rx_rate_limit_local, remain_time, \
+             username = self.query_auth()
+            syslog(LOG_DEBUG, "mac:%s acl_type:%s time:%s tx_rate_limit:%s \
+                   rx_rate_limit:%s rx_rate_limit_local:%s \
+                   tx_rate_limit_local:%s remain_time:%s username:%s" %
+                   (repr(self.mac),
+                    repr(acl_type),
+                    repr(time),
+                    repr(tx_rate_limit),
+                    repr(rx_rate_limit),
+                    repr(tx_rate_limit_local),
+                    repr(rx_rate_limit_local),
+                    repr(remain_time),
+                    repr(username)))
+            self.last_acl_type = acl_type
+            self.last_tx_rate_limit = tx_rate_limit
+            self.last_rx_rate_limit = rx_rate_limit
+            self.last_tx_rate_limit_local = tx_rate_limit_local
+            self.last_rx_rate_limit_local = rx_rate_limit_local
+            self.last_ath = clientevent.ath
 
         # 1.2 set_whitelist
         if acl_type == 1:
@@ -107,52 +116,101 @@ class Client(Thread):
 
     # handle AP-STA-DISCONNECTED event
     def handle_disconnected_event(self, clientevent):
-        # 2.1 stop handling and exit process
+        # 2.1 check if need to query auth again
+        if not self.last_ath or self.last_ath != clientevent.ath:
+            acl_type, time, tx_rate_limit, rx_rate_limit, \
+                tx_rate_limit_local, rx_rate_limit_local, remain_time, \
+                username = self.query_auth()
+            syslog(LOG_DEBUG, "mac:%s acl_type:%s time:%s tx_rate_limit:%s \
+                   rx_rate_limit:%s rx_rate_limit_local:%s \
+                   tx_rate_limit_local:%s remain_time:%s username:%s" %
+                   (repr(self.mac),
+                    repr(acl_type),
+                    repr(time),
+                    repr(tx_rate_limit),
+                    repr(rx_rate_limit),
+                    repr(tx_rate_limit_local),
+                    repr(rx_rate_limit_local),
+                    repr(remain_time),
+                    repr(username)))
+            self.last_acl_type = acl_type
+            self.last_tx_rate_limit = tx_rate_limit
+            self.last_rx_rate_limit = rx_rate_limit
+            self.last_tx_rate_limit_local = tx_rate_limit_local
+            self.last_rx_rate_limit_local = rx_rate_limit_local
+            self.last_ath = clientevent.ath
+
+        # 2.2 clean up
+        if self.last_acl_type == 1:
+            self.set_whitelist(120, 1)
+            pass
+        elif self.last_acl_type == 3:
+            # self.set_blacklist(0, 0, clientevent.ath)
+            pass
+        elif self.last_acl_type == 0:
+            # self.set_whitelist(0, 0)
+            # self.set_blacklist(0, 0 clientevent.ath)
+            os.system("wdctl reset %s &" % self.mac)
+            pass
+
+        # 2.3 set ratelimit
+        self.set_ratelimit(0, 0, 0, 0, clientevent.ath, 0)
+
+        # 2.4 clear arptables
+        self.clear_arptables()
+
+        # 2.5 del client into client traffic track in iptables
+        self.set_client_track(0)
+
+        # check queue again
         if self.queue.empty():
-            # 2.2 clean up
-            if self.last_acl_type == 1:
-                self.set_whitelist(120, 1)
-                pass
-            elif self.last_acl_type == 3:
-                # self.set_blacklist(0, 0, clientevent.ath)
-                pass
-            elif self.last_acl_type == 0:
-                # self.set_whitelist(0, 0)
-                # self.set_blacklist(0, 0 clientevent.ath)
-                os.system("wdctl reset %s &" % self.mac)
-                pass
-
-            # 2.3 set ratelimit
-            self.set_ratelimit(0, 0, 0, 0, clientevent.ath, 0)
-
-            # 2.4 clear arptables
-            self.clear_arptables()
-
-            # 2.5 del client into client traffic track in iptables
-            self.set_client_track(0)
-
-            # check queu again
-            if self.queue.empty():
-                self.term = True
-
-        else:
-            syslog(LOG_DEBUG, "New Event Comming")
+            self.term = True
 
     # handle STA-IP-CHANGED event
     def handle_ip_changed_event(self, clientevent):
-        # 4.1 set_ratelimit
+        # 4.1 check if need to query auth again
+        if not self.last_ath or self.last_ath != clientevent.ath:
+            acl_type, time, tx_rate_limit, rx_rate_limit, \
+                tx_rate_limit_local, rx_rate_limit_local, remain_time, \
+                username = self.query_auth()
+            syslog(LOG_DEBUG, "mac:%s acl_type:%s time:%s tx_rate_limit:%s \
+                   rx_rate_limit:%s rx_rate_limit_local:%s \
+                   tx_rate_limit_local:%s remain_time:%s username:%s" %
+                   (repr(self.mac),
+                    repr(acl_type),
+                    repr(time),
+                    repr(tx_rate_limit),
+                    repr(rx_rate_limit),
+                    repr(tx_rate_limit_local),
+                    repr(rx_rate_limit_local),
+                    repr(remain_time),
+                    repr(username)))
+            self.last_acl_type = acl_type
+            self.last_tx_rate_limit = tx_rate_limit
+            self.last_rx_rate_limit = rx_rate_limit
+            self.last_tx_rate_limit_local = tx_rate_limit_local
+            self.last_rx_rate_limit_local = rx_rate_limit_local
+            self.last_ath = clientevent.ath
+
+        # 4.2 set_ratelimit
         self.set_ratelimit(self.last_tx_rate_limit, self.last_rx_rate_limit,
                            self.last_tx_rate_limit_local,
                            self.last_rx_rate_limit_local,
                            self.last_ath,
                            1)
-        # 4.2 add client into client traffic track in iptables
+        # 4.3 add client into client traffic track in iptables
         self.set_client_track(1)
 
     # @profile
     # main event handler
     def handle_event(self):
-        clientevent = self.queue.get()
+        try:
+            clientevent = self.queue.get(block=True, timeout=30)
+        except qq.Empty:
+            self.term = True
+            clientevent = ClientEvent('ath00', 'TERM')
+            syslog(LOG_DEBUG, "%s: exit as no more event" % self.mac)
+
         self.clientevent = clientevent
         syslog(LOG_DEBUG, "++>mac:%s event:%s" % (self.mac, clientevent.event))
 
@@ -188,10 +246,10 @@ class Client(Thread):
             response = urllib2.urlopen(url, timeout=3)
         except urllib2.HTTPError, e:
             syslog(LOG_WARNING, "HTTPError:%d %s" % (e.errno, e.strerror))
-            return 0, 0, 0, 0, 0
+            return 0, 0, 0, 0, 0, 0, 0, ''
         except Exception, e:
             syslog(LOG_WARNING, "HTTPError: %s" % str(e))
-            return 0, 0, 0, 0, 0
+            return 0, 0, 0, 0, 0, 0, 0, ''
         response_str = response.read()
         # hacky avoidance (https://bugs.python.org/issue1208304)
         response.fp._sock.recv = None
@@ -345,7 +403,10 @@ class Client(Thread):
     # main thread
     def run(self):
         while not self.term:
-            self.handle_event()
+            try:
+                self.handle_event()
+            except Exception, e:
+                syslog(LOG_WARNING, "%s: Exception - %s" % (self.mac, str(e)))
 
 
 # Class describes the manager
