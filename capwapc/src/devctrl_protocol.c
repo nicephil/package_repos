@@ -601,6 +601,11 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
             CWProtocolStore8(&msg, sta->client_hostname_len);
             CWProtocolStoreRawBytes(&msg, sta->client_hostname, sta->client_hostname_len);
             CWProtocolStore8(&msg, sta->psmode);
+            CWProtocolStore64(&msg, sta->delta_wan_rxB);
+            CWProtocolStore64(&msg, sta->delta_wan_txB);
+            CWProtocolStore32(&msg, sta->wan_arxrb);
+            CWProtocolStore32(&msg, sta->wan_atxrb);
+            CWProtocolStore32(&msg, sta->gwaddr);
         }
     }
     else {

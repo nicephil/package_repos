@@ -3,6 +3,7 @@
 mac=$1
 time=$2
 action=$3 # 1 means set, 0 means unset
+ath=$4
 time=240
 
 trap 'setblacklist_trap; exit' INT TERM ABRT QUIT ALRM
@@ -20,7 +21,7 @@ lock /tmp/blacklist.lock
 
 
 
-logger -t clientevent "++setblacklist:mac:$mac, time:$time, action:$action"
+logger -t clientevent "++setblacklist:mac:$mac, time:$time, action:$action, ath:$ath"
 
 atjobs_dir="/var/spool/cron/atjobs"
 
@@ -51,15 +52,15 @@ then
     done 
 
     # 4. add it into blacklist timer
-    echo "iwconfig 2>/dev/null | awk '/ath/{system(\"iwpriv \"\$1\" delmac $mac\");}'" | at now +$((time/60))minutes
+    echo "iwpriv $ath delmac $mac" | at now +$((time/60))minutes
 
     # 5. add it into blacklist
-    iwconfig 2>/dev/null | awk '/ath/{system("iwpriv "$1" addmac '"$mac"'");}'
+    iwpriv "$ath" addmac "$mac"
 
     # 6. kickoff it
-    iwconfig 2>/dev/null | awk '/ath/{system("iwpriv "$1" kickmac '"$mac"'");}'
+    iwpriv "$ath" kickmac "$mac"
 
-    logger -t clientevent "==setblacklist:mac:$mac, time:$time, action:$action"
+    logger -t clientevent "==setblacklist:mac:$mac, time:$time, action:$action, ath:$ath"
     lock -u /tmp/blacklist.lock
     exit 0
 fi
@@ -67,7 +68,7 @@ fi
 if [ "$action" = "0" ]
 then
     # 1. del it from blacklist
-    iwconfig 2>/dev/null | awk '/ath/{system("iwpriv "$1" delmac '"$mac"'");}'
+    iwpriv "ath" delmac "$mac"
     # 2. del it from blacklist timer
     for file in $(ls $atjobs_dir)
     do

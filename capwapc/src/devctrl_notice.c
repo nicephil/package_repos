@@ -26,7 +26,7 @@ static inline rssi_level_e dc_rssi2level(int rssi)
     }
 }
 
-//CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,SMODE,SBW,NTXRT,NRXRT,TXB,RXB,ATXRB,ARXRB,TXFS,RXES,TS,HOSTNAME)
+//CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,SMODE,SBW,NTXRT,NRXRT,TXB,RXB,ATXRB,ARXRB,TXFS,RXES,TS,HOSTNAME,WANTXB,WANRXB,GWADDR)
 static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
 {
     static int row = 0;
@@ -225,6 +225,22 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
     if (argv[26]) {
         stas[row].psmode = atoi(argv[26]);
     }
+
+    /*WANTXB*/
+    if (argv[27]) {
+        stas[row].wan_txB = atoll(argv[27]);
+    }
+
+    /*WANRXB*/
+    if (argv[28]) {
+        stas[row].wan_rxB = atoll(argv[28]);
+    }
+
+    /*GWADDR*/
+    if (argv[29]) {
+        stas[row].gwaddr = inet_addr(argv[29]);
+    }
+
 
     /*location*/
     cfg_get_option_value(CAPWAPC_CFG_OPTION_LOCATION_TUPLE, stas[row].location, MAX_LOCATION_LEN);
@@ -472,12 +488,18 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
                             cur->updated = 1;
                             cur->delta_txB = cur->txB - pre->txB;
                             cur->delta_rxB = cur->rxB - pre->rxB;
+                            cur->delta_wan_txB = cur->wan_txB - pre->wan_txB;
+                            cur->delta_wan_rxB = cur->wan_rxB - pre->wan_rxB;
                             if (cur->ts > pre->ts) {
                                 cur->atxrb = (cur->delta_txB * 8) / (cur->ts - pre->ts) / 1024;
                                 cur->arxrb = (cur->delta_rxB * 8) / (cur->ts - pre->ts) / 1024;
+                                cur->wan_atxrb = (cur->delta_wan_txB * 8) / (cur->ts - pre->ts) / 1024;
+                                cur->wan_arxrb = (cur->delta_wan_rxB * 8) / (cur->ts - pre->ts) / 1024;
                             } else {
                                 cur->atxrb = 1;
                                 cur->arxrb = 1;
+                                cur->wan_atxrb = 1;
+                                cur->wan_arxrb = 1;
                             }
                                 
                             //syslog(LOG_ERR, "O%x%x===>dtxB:%d drxB:%d txB:%d rxB:%d atx:%d arx:%d", pre->mac[4], pre->mac[5],  pre->delta_txB, pre->delta_rxB, pre->txB, pre->rxB, pre->atxrb, pre->arxrb);
