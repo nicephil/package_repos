@@ -3,7 +3,7 @@
 DEBUG="$1"
 [ -n "$DEBUG" ] && {
     # cpumem info
-    # export 'json_data={"data":"{\"cpu_memory\":1}","operate_type":12}'
+    # export 'json_data={"data":"{\"cpu_memory\":1}","operate_type":10001}'
     # channel scanning
     export 'json_data={"data":"","operate_type":15}'
     # config channel
@@ -87,7 +87,7 @@ handle_devstats()
 }
 
 case "$operate_type" in
-    "12")
+    "10001")
         if ! handle_devstats "$operate_type" "$data"
         then
             config_log "$operate_type $data failed"
