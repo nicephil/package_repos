@@ -15,7 +15,7 @@ PKG_LICENSE_FILES:=PKG-INFO
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).zip
 PKG_SOURCE_URL:=https://bitbucket.org/secdev/scapy/downloads/
-PKG_MD5SUM:=5593a5598d0e1434b844e3284cba4fbc
+PKG_MD5SUM:=1ad1d2c65ffd413e7a63cb3fc332e6a9
 
 PKG_BUILD_DEPENDS:=python python-setuptools
 
