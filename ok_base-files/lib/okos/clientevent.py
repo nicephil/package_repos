@@ -156,10 +156,7 @@ class Client(Thread):
         # 2.3 set ratelimit
         self.set_ratelimit(0, 0, 0, 0, clientevent.ath, 0)
 
-        # 2.4 clear arptables
-        self.clear_arptables()
-
-        # 2.5 del client into client traffic track in iptables
+        # 2.4 del client into client traffic track in iptables
         self.set_client_track(0)
 
         # check queue again
@@ -385,12 +382,6 @@ class Client(Thread):
                    action))
         pass
 
-    def clear_arptables(self):
-        os.system("sqlite3 -echo /tmp/arptables.db \"delete from \
-                    'br-lan1' where MAC='%s' COLLATE NOCASE;\" \
-                    | logger -t clientevent" % self.mac)
-        pass
-
     def set_client_track(self, action):
         if action:
             os.system(". /lib/okos/trafstats.sh; add_client_track %s" %
@@ -440,6 +431,26 @@ class Manager(object):
 
         for c in threading.enumerate():
             syslog(LOG_DEBUG, 'FFF> %s' % str(c))
+
+    # handle AP-DISABLED event
+    def handle_ap_disabled_event(self, ath, mac, event):
+        # get garbages info
+        for c in threading.enumerate():
+            syslog(LOG_DEBUG, 'FFF> %s' % str(c))
+        rt = gc.collect()
+        syslog(LOG_DEBUG, "%d unreachable" % rt)
+        garbages = gc.garbage
+        syslog(LOG_DEBUG, "\n%d garbages:" % len(garbages))
+        i = 0
+        for garbage in garbages:
+            i = i + 1
+            if i > 30:
+                break
+            if hasattr(garbage, "name"):
+                syslog(LOG_DEBUG, "-----> obj:%s,name:%s" %
+                       (garbage, garbage.name,))
+            else:
+                syslog(LOG_DEBUG, "%s" % str(garbage))
 
     # dispatch each client event
     def dispatch_client_event(self, ath, mac, event):
@@ -521,14 +532,7 @@ class Manager(object):
 
             # 5. bypass AP-DISABLED event
             elif event == 'AP-DISABLED' or len(mac) == 0:
-                for c in threading.enumerate():
-                    syslog(LOG_DEBUG, 'FFF> %s' % str(c))
-                rt = gc.collect()
-                syslog(LOG_DEBUG, "%d unreachable" % rt)
-                garbages = gc.garbage
-                syslog(LOG_DEBUG, "\n%d garbages:" % len(garbages))
-                for garbage in garbages:
-                    syslog(LOG_DEBUG, "%s" % str(garbage))
+                self.handle_ap_disabled_event(ath, mac, event)
 
             # 6. handle client event
             elif len(ath) > 0 and len(mac) > 0 and len(event) > 0:
