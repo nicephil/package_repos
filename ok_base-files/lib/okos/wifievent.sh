@@ -18,4 +18,4 @@ else
 fi
 
 
-/lib/wifi/updatestainfo.sh $IFNAME $CLIENT_MAC $EVENT
+/lib/okos/updatestainfo.sh $IFNAME $CLIENT_MAC $EVENT
