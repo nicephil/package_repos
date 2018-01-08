@@ -173,6 +173,7 @@ def arp_watch_hook(pkt):
         ip = pkt[ARP].psrc
         if is_valid_arp(mac, ip):
             arp_watch(mac, ip)
+            global i_count
             i_count = i_count + 1
             if i_count % 20:
                 i_count = 0
