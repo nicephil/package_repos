@@ -173,10 +173,10 @@ def arp_watch_hook(pkt):
         ip = pkt[ARP].psrc
         if is_valid_arp(mac, ip):
             arp_watch(mac, ip)
-    rt = gc.collect()
-    debug("%d unreachable" % rt)
-    garbages = gc.garbage
-    debug("\n%d garbages:" % len(garbages))
+            rt = gc.collect()
+            debug("%d unreachable" % rt)
+            garbages = gc.garbage
+            debug("\n%d garbages:" % len(garbages))
 
 def arp_watch(mac, ip):
     '''
