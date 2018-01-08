@@ -4,29 +4,28 @@ import argparse
 import subprocess
 import re
 import syslog
-from pprint import pprint
 import sqlite3
-import time
+import gc
 
 debug_mode = False
 
 def debug(s):
-    global debug_mode 
+    global debug_mode
     syslog.syslog(syslog.LOG_DEBUG, s)
     if debug_mode:
         print s
 def info(s):
-    global debug_mode 
+    global debug_mode
     syslog.syslog(syslog.LOG_INFO, s)
     if debug_mode:
         print s
 def warning(s):
-    global debug_mode 
+    global debug_mode
     syslog.syslog(syslog.LOG_WARNING, s)
     if debug_mode:
         print s
 def error(s):
-    global debug_mode 
+    global debug_mode
     syslog.syslog(syslog.LOG_ERR, s)
     if debug_mode:
         print s
@@ -90,7 +89,7 @@ class db(object):
         self.cur = self.conn.cursor()
         self.create_table()
         info("Connect to database successfully.")
-    
+
     def close(self):
         if self.conn is not None:
             info("database closed")
@@ -161,7 +160,7 @@ class db(object):
         if self.cache:
             if mac in self.cache:
                 self.cache[mac]['ip'] = ip
-                
+
 def is_valid_arp(mac, ip):
     if ip == '0.0.0.0': # ARP probe
         return False
@@ -174,6 +173,10 @@ def arp_watch_hook(pkt):
         ip = pkt[ARP].psrc
         if is_valid_arp(mac, ip):
             arp_watch(mac, ip)
+    rt = gc.collect()
+    debug("%d unreachable" % rt)
+    garbages = gc.garbage
+    debug("\n%d garbages:" % len(garbages))
 
 def arp_watch(mac, ip):
     '''
@@ -206,6 +209,7 @@ def _main(args):
         sniff(filter='arp', store=0, stop_filter=arp_watch_hook)
 
 def main(args):
+    # gc.set_debug(gc.DEBUG_LEAK)
     global arp_db
     arp_db = db('/tmp/stationinfo.db', 'STAINFO', cache=args.cache)
 

@@ -421,6 +421,14 @@ class Manager(object):
 
     # handle /lib/wifi event
     def handle_wifi_down_event(self, ath, mac, event):
+        # refetch auth_url and domain as config maybe changed
+        global auth_url
+        auth_url = get_auth_url()
+        global domain
+        domain = get_domain()
+        syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
+               (device_mac, auth_url, domain))
+
         # free all existing clients
         for k in self.client_dict.keys():
             client = self.client_dict[k]
@@ -583,8 +591,7 @@ def main():
 
     # 2. get mac info auth url from system
     gc.enable()
-    # gc.set_debug(gc.DEBUG_COLLECTABLE | gc.DEBUG_UNCOLLECTABLE |
-    #              gc.DEBUG_INSTANCES | gc.DEBUG_OBJECTS | gc.DEBUG_SAVEALL)
+    # gc.set_debug(gc.DEBUG_LEAK)
     global device_mac
     device_mac = get_mac('br-lan1')
     global auth_url

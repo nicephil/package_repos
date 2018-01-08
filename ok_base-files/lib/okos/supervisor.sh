@@ -17,6 +17,7 @@ do
     [ -z "`pgrep -f clientevent.py`" ] && {
         logger -t supervisor -p 5 "CLIENTEVENT is exit abnormally, restart it !!!"
         killall -9 clientevent.py
+        killall wifievent.sh
         rm -rf /tmp/wifievent.pipe
         /lib/okos/clientevent.py
     }

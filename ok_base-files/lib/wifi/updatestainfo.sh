@@ -15,7 +15,7 @@ fi
 # the dbfile should be delete after wifi down/up
 if [ "$ath" = "/lib/wifi" ]
 then
-    CMD="DELETE FROM sqlite_sequence WHERE name = '$tablename'"
+    CMD="DELETE FROM '$tablename'"
     #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
     sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
 fi
@@ -43,7 +43,7 @@ case "$event" in
         config_get _vlan $ath network
 
         # add new record
-        CMD="INSERT OR REPLACE INTO ${tablename} (BSSID,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN) VALUES('$bssid','$_auth','$_ps','$_ssid','${_vlan:3}')"
+        CMD="UPDATE ${tablename} SET BSSID = '$bssid', AUTHENTICATION = '$_auth', PORTAL_SCHEME = '$_ps', SSID = '$_ssid', VLAN = '${_vlan:3}' WHERE MAC = '$mac'"
         #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
         sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
     ;;

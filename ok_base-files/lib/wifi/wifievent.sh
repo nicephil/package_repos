@@ -11,6 +11,7 @@ then
     echo "$IFNAME $CLIENT_MAC $EVENT" > /tmp/wifievent.pipe &
 else
     killall -9 clientevent.py
+    killall wifievent.sh
     /lib/okos/clientevent.py
     sleep 1
     echo "$IFNAME $CLIENT_MAC $EVENT" > /tmp/wifievent.pipe &
