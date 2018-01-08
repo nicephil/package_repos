@@ -173,10 +173,13 @@ def arp_watch_hook(pkt):
         ip = pkt[ARP].psrc
         if is_valid_arp(mac, ip):
             arp_watch(mac, ip)
-            rt = gc.collect()
-            debug("%d unreachable" % rt)
-            garbages = gc.garbage
-            debug("\n%d garbages:" % len(garbages))
+            i_count = i_count + 1
+            if i_count % 20:
+                i_count = 0
+                rt = gc.collect()
+                debug("%d unreachable" % rt)
+                garbages = gc.garbage
+                debug("\n%d garbages:" % len(garbages))
 
 def arp_watch(mac, ip):
     '''
@@ -211,6 +214,8 @@ def _main(args):
 def main(args):
     # gc.set_debug(gc.DEBUG_LEAK)
     global arp_db
+    global i_count
+    i_count = 0
     arp_db = db('/tmp/stationinfo.db', 'STAINFO', cache=args.cache)
 
     if args.debug:
