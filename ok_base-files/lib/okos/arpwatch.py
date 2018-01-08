@@ -175,8 +175,8 @@ def arp_watch_hook(pkt):
             arp_watch(mac, ip)
             global i_count
             i_count = i_count + 1
-            if i_count % 20:
-                i_count = 0
+            if not (i_count % 20):
+                i_count = 1
                 rt = gc.collect()
                 debug("%d unreachable" % rt)
                 garbages = gc.garbage
@@ -216,7 +216,7 @@ def main(args):
     # gc.set_debug(gc.DEBUG_LEAK)
     global arp_db
     global i_count
-    i_count = 0
+    i_count = 1
     arp_db = db('/tmp/stationinfo.db', 'STAINFO', cache=args.cache)
 
     if args.debug:
