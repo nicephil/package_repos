@@ -109,9 +109,9 @@ generate_chscanningjson()
     local _2ch_nums="$(iwlist ath50 scanning 2>&1 | awk '/Channel/{key=substr($4,1,length($4)-1);sum[key]++;}END{for(k in sum)print k"_"sum[k];}')"
     local _5ch_nums="$(iwlist ath60 scanning 2>&1 | awk '/Channel/{key=substr($4,1,length($4)-1);sum[key]++;}END{for(k in sum)print k"_"sum[k];}')" 
 
-    echo "-------------->$ch_usabs" > /dev/ttyS0
-    echo "==============>$_2ch_nums" > /dev/ttyS0
-    echo "-------------->$_5ch_nums" > /dev/ttyS0
+    echo "-------------->$ch_usabs" | logger -t 'devstats'
+    echo "==============>$_2ch_nums" | logger -t 'devstats'
+    echo "-------------->$_5ch_nums" | logger -t 'devstats'
 
 
     json_init
@@ -201,7 +201,7 @@ generate_chscanningjson()
 
     json_select ..
 
-    export "$vname=\"$(json_dump)\""
+    export "$vname=$(json_dump)"
     return 0
 }
 
@@ -243,7 +243,7 @@ json_select ..
 
 json_data=$(json_dump)
 
-echo $json_data
+echo $json_data | logger -t 'devstats'
 
 # 4. upload json file to nms
 URL="http://${mas_server}/nms/api/device/ap/info"

@@ -1,0 +1,19 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006 OpenWrt.org
+START=60
+
+start() {
+    ulimit -c unlimited
+    /lib/okos/arpwatch.py -i br-lan &
+}
+
+stop() {
+    killall arpwatch.py
+}
+
+restart() {
+    stop
+    sleep 2
+    start
+}
+

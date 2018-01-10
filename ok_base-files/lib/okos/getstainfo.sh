@@ -17,23 +17,26 @@ getstainfo_trap () {
 touch /tmp/getstainfo.lock
 
 dbfile="/tmp/statsinfo.db"
-arpfile="/tmp/arptables.db"
 tablename="STATSINFO"
 
 . /lib/okos/trafstats.sh
 . /lib/functions/network.sh
 
 
-rm -rf $dbfile; touch $dbfile
 #echo sqlite3 $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,SMODE,SBW,NTXRT,NRXRT,TXB,RXB,ATXRB,ARXRB,TXFS,RXES,TS,HOSTNAME,PSMODE,WANTXB,WANRXB,GWADDR);COMMIT;" | logger
 sqlite3 $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(MAC TEXT PRIMARY KEY NOT NULL,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,SMODE,SBW,NTXRT,NRXRT,TXB,RXB,ATXRB,ARXRB,TXFS,RXES,TS,HOSTNAME,PSMODE,WANTXB,WANRXB,GWADDR);COMMIT;"
+#clear
+CMD="DELETE FROM '$tablename'"
+#echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
+sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
 
-#CREATE TABLE STATSINFO(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER);
+#echo sqlite3 /tmp/stationinfo.db "BEGIN TRANSACTION;CREATE TABLE STAINFO(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_HMODE,PORTAL_USER,HOSTNAME);COMMIT;" | logger
 for client in $(for ath in `iwconfig 2>/dev/null | awk '/ath/{print $1}'`;do wlanconfig $ath list sta; done | awk '$1 !~ /ADDR/{if (!(a[$1]++)) print $1}')
 do
     client_tmp=$(sqlite3 /tmp/stationinfo.db "SELECT * FROM STAINFO WHERE MAC = \"$client\"")
     [ -n "$client_tmp" ] && {
-        OIFS=$IFS;IFS='|';set -- $client_tmp;_mac=$1;_ath=$2;_radioid=$6;_bssid=$7;_ip=$8;_auth=$9;_ps=$10;_ssid=$11;_vlan=$12;_pm=$13;_pu=$14;IFS=$OIFS        
+        OIFS=$IFS;IFS='|';set -- $client_tmp;_mac=$1;_ath=$2;_radioid=$6;_bssid=$7;_ip=$8;_auth=$9;_ps=$10;_ssid=$11;_vlan=$12;_pm=$13;_pu=$14;_hostname=$15;IFS=$OIFS        
+        _hostname=${_hostname%%.*}
     }
     [ -z "$client_tmp" ] && {
         for _ath in `iwconfig 2>/dev/null | awk '/ath/{print $1}'`
@@ -63,12 +66,7 @@ do
     [ -z "$_gwaddr" ] && _gwaddr="255.255.255.255"
 
     vlan_if="br-lan${_vlan}"
-    if [ -e "$arpfile" ]
-    then
-        _ip_hostname=`sqlite3 $arpfile "SELECT IP,HOSTNAME from \"$vlan_if\" where MAC=\"$_mac\""`
-        OIFS=$IFS;IFS='|';set -- $_ip_hostname;_ip=$1;_hostname=$2;IFS=$OIFS
-        _hostname=${_hostname%%.*}
-    fi
+
     [ -z "$_ip" ] && {
         _ip=`awk '{if ($4 == "'$_mac'" && $6 == "'$vlan_if'") {print $1; exit}}' /proc/net/arp` 
     }

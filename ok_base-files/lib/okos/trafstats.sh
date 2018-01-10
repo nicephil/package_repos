@@ -25,30 +25,12 @@ get_ip ()
     local ip_var="$2"
     local ifname="$3"
     local sta_db="/tmp/stationinfo.db"
-    local arp_db="/tmp/arptables.db"
+    local sta_table="STAINFO"
     
     local rc
-    local vlan
     local ip
-    if [ -z "$ifname" ]; then
-        rc=`sqlite3 $sta_db "select IFNAME,VLAN from STAINFO where MAC='${mac}' COLLATE NOCASE;"`
-        OIFS=$IFS;IFS='|';set -- $rc;ifname=$1;vlan=$2;IFS=$OIFS
-        vlan="br-lan${vlan}"
-        
-        [ -z "$ifname" ] && return 1
-        [ -z "$vlan" ] && return 1
-    else
-        if [ ! -z "$debug" ]; then
-            rc="'lan3000'" 
-        else
-            rc=`uci -q show wireless.${ifname}.network`
-        fi  
-        [ -z "$rc" ] && return 1
-        vlan=`echo $rc | awk -F "'" '{print $2}'`
-        vlan="br-${vlan}"
-    fi  
     
-    ip=`sqlite3 $arp_db "select IP from '${vlan}' where MAC='${mac}' COLLATE NOCASE;"`
+    ip=`sqlite3 $sta_db "select IPADDR from '${sta_table}' where MAC='${mac}' COLLATE NOCASE;"`
     [ -z "$ip" ] && return 1
     
     export "${ip_var}=${ip}"
@@ -74,6 +56,7 @@ add_client_track ()
     # delete first
     del_client_track "$1"
 
+    trafstats_log "2-->add_client_track: $mac $_ip"
     # add new rule
     lock /tmp/.iptables.lock
 
@@ -92,7 +75,7 @@ del_client_track ()
 {
     local mac="$1"
 
-    trafstats_log "1-->del_client_track: $mac"
+    trafstats_log "-->del_client_track: $mac"
 
     [ -z "$mac" ] && return 1
 

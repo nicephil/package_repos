@@ -98,6 +98,7 @@ start() {
     ## OK_PATCH
     # generate productinfo
     /lib/okos/fetch_productinfo.sh > /etc/config/productinfo
+    /lib/okos/okos_init.sh
     ## end OK_PATCH
 
 

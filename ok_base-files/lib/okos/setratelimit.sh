@@ -25,7 +25,7 @@ ath="${ath:0:5}"
      
 logger -t clientevent "++setratelimit:mac:$mac, tx_rate_limit:$tx_rate_limit, rx_rate_limit:$rx_rate_limit, tx_rate_limit_local:$tx_rate_limit_local, rx_rate_limit_local:$rx_rate_limit_local, ath:$ath, action:$action"
 
-[ -z "$ath" ] && {lock -u /tmp/qos.lock;exit}
+[ ! "$ath" =~ "ath" ] && ath=""
 
 [ -z "$action" ] && action="1"
 

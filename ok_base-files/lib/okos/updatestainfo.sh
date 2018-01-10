@@ -7,25 +7,28 @@ tablename="STAINFO"
 CMD=
 
 # ath50/ath60 is for debug, so ignore it
-if [ "$ath" = "ath50" && "$ath" = "ath60" ]
+if [ "$ath" = "ath50" || "$ath" = "ath60" ]
 then
     exit 0
 fi
 
+#echo sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_HMODE,PORTAL_USER,HOSTNAME);COMMIT;" | logger
+sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(MAC TEXT PRIMARY KEY NOT NULL,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,HOSTNAME);COMMIT;"
+
 # the dbfile should be delete after wifi down/up
 if [ "$ath" = "/lib/wifi" ]
 then
-    rm -rf $dbfile
+    CMD="DELETE FROM '$tablename'"
+    #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
+    sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
+    return 0
 fi
-
-#echo sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_HMODE,PORTAL_USER);COMMIT;" | logger
-sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(MAC TEXT PRIMARY KEY NOT NULL,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER);COMMIT;"
 
 case "$event" in
     "AP-STA-CONNECTED")
         
         # add new record
-        CMD="INSERT OR REPLACE INTO ${tablename} VALUES('$mac','$ath','','','','${ath:3:1}','','','','','','','','')"
+        CMD="INSERT OR REPLACE INTO ${tablename} (MAC,IFNAME,RADIOID) VALUES('$mac','$ath','${ath:3:1}')"
         #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
         sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
 
@@ -41,7 +44,7 @@ case "$event" in
         config_get _vlan $ath network
 
         # add new record
-        CMD="INSERT OR REPLACE INTO ${tablename} VALUES('$mac','$ath','','','','${ath:3:1}','$bssid','','$_auth','$_ps','$_ssid','${_vlan:3}','','')"
+        CMD="UPDATE ${tablename} SET BSSID = '$bssid', AUTHENTICATION = '$_auth', PORTAL_SCHEME = '$_ps', SSID = '$_ssid', VLAN = '${_vlan:3}' WHERE MAC = '$mac'"
         #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
         sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
     ;;
