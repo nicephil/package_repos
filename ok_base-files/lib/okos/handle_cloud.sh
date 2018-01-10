@@ -31,8 +31,8 @@ OAKMGR_PUB=""
 while :
 do
     URL="http://${ADDR}:${PORT}/redirector/v1/device/register/?key=${KEY}"
-    echo curl -vv -m 10 -s -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "$json_data" $URL |  logger -t 'handle_cloud'
-    response=$(curl -m 10 -s -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "$json_data" $URL 2>/dev/ttyS0)
+    echo "aa>" "$json_data" $URL |  logger -t 'handle_cloud'
+    response=$(curl -q -m 10 -s -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "$json_data" $URL 2>/dev/ttyS0)
     echo "----->$response" | logger -t 'handle_cloud'
 
     if [ -z "$response" ]
@@ -42,6 +42,7 @@ do
         continue
     fi
 
+    json_init
     json_load "$response"
     json_get_var _device "device"
     json_get_var _oakmgr_pub_name "oakmgr_pub_name"

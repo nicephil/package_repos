@@ -175,7 +175,7 @@ def arp_watch_hook(pkt):
             arp_watch(mac, ip)
             global i_count
             i_count = i_count + 1
-            if not (i_count % 20):
+            if not (i_count % 40):
                 i_count = 1
                 rt = gc.collect()
                 debug("%d unreachable" % rt)
