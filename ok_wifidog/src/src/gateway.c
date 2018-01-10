@@ -554,17 +554,23 @@ main_loop(void)
     }
     pthread_detach(tid);
 
-    /* Start heartbeat thread */    
+    ping();
+    /* Start heartbeat thread */    /*
     result = pthread_create(&tid_ping, NULL, (void *)thread_ping, NULL);
     if (result != 0) {
         debug(LOG_ERR, "FATAL: Failed to create a new thread (ping) - exiting");
         termination_handler(0);
     }
     pthread_detach(tid_ping);
+    */
 
     debug(LOG_NOTICE, "<DAEMON> Waiting for connections");
     while (1) {
         r = httpdGetConnection(webserver, NULL);
+        /*
+        httpdEndRequest(r);
+        continue;
+        /**/
 
         /* We can't convert this to a switch because there might be
          * values that are not -1, 0 or 1. */

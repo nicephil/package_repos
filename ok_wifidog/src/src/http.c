@@ -66,7 +66,7 @@
 #endif
 
 
-//#define OKOS_MAKE_JOKE_WITH_CLIENT
+#define OKOS_MAKE_JOKE_WITH_CLIENT
 
 #ifdef OKOS_MAKE_JOKE_WITH_CLIENT
 #define okos_send_http_page(r, title, msg)  okos_send_page_to_stranger(r, title, msg)

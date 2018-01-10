@@ -56,7 +56,6 @@
 #include "gateway.h"
 #include "simple_http.h"
 
-static void ping(void);
 
 /** Launches a thread that periodically checks in with the wifidog auth server to perform heartbeat function.
 @param arg NULL
@@ -95,7 +94,7 @@ thread_ping(void *arg)
  * This function does the actual request.
  */
 #if OK_PATCH
-static void
+void
 ping(void)
 {
     debug(LOG_DEBUG, "<PING> ## Checking auth server connection periodly.");
