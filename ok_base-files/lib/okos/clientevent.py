@@ -442,6 +442,14 @@ class Manager(object):
 
     # handle AP-DISABLED event
     def handle_ap_disabled_event(self, ath, mac, event):
+        # refetch auth_url and domain as config maybe changed
+        global auth_url
+        auth_url = get_auth_url()
+        global domain
+        domain = get_domain()
+        syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
+               (device_mac, auth_url, domain))
+
         # get garbages info
         for c in threading.enumerate():
             syslog(LOG_DEBUG, 'FFF> %s' % str(c))
