@@ -35,7 +35,7 @@ class Client(Thread):
     __slots__ = ('mac', 'queue', 'term', 'clientevent', 'last_acl_type',
                  'last_tx_rate_limit', 'last_rx_rate_limit',
                  'last_tx_rate_limit_local', 'last_rx_rate_limit_local',
-                 'last_ath')
+                 'last_ath', 'last_remain_time')
 
     def __init__(self, mac):
         Thread.__init__(self)
@@ -49,6 +49,7 @@ class Client(Thread):
         self.last_tx_rate_limit_local = 0
         self.last_rx_rate_limit_local = 0
         self.last_ath = ''
+        self.last_remain_time = 0
         self.name = mac
 
     # add a new event in queue
@@ -90,73 +91,44 @@ class Client(Thread):
             self.last_rx_rate_limit = rx_rate_limit
             self.last_tx_rate_limit_local = tx_rate_limit_local
             self.last_rx_rate_limit_local = rx_rate_limit_local
+            self.last_remain_time = remain_time
             self.last_ath = clientevent.ath
 
         # 1.2 set_whitelist
-        if acl_type == 1:
-            self.set_whitelist(time, 1)
+        if self.last_acl_type == 1:
+            self.set_whitelist(120, 1)
 
         # 1.3 set_blacklist
-        elif acl_type == 3:
-            self.set_blacklist(time, 1, clientevent.ath)
+        elif self.last_acl_type == 3:
+            self.set_blacklist(120, 1, self.last_ath)
 
         # 1.4 none acl, so check
-        elif acl_type == 0:
-            self.set_blacklist(0, 0, clientevent.ath)
-            if remain_time == 0:
+        elif self.last_acl_type == 0:
+            self.set_blacklist(0, 0, self.last_ath)
+            if self.last_remain_time == 0:
                 self.set_whitelist(0, 0)
             else:
-                self.set_whitelist(remain_time, 1)
+                self.set_whitelist(120, 1)
 
         # 1.5 set_ratelimit
-        self.set_ratelimit(tx_rate_limit, rx_rate_limit,
-                           tx_rate_limit_local, rx_rate_limit_local,
-                           clientevent.ath,
+        self.set_ratelimit(self.last_tx_rate_limit, self.last_rx_rate_limit,
+                           self.last_tx_rate_limit_local,
+                           self.last_rx_rate_limit_local,
+                           self.last_ath,
                            1)
 
     # handle AP-STA-DISCONNECTED event
     def handle_disconnected_event(self, clientevent):
-        # 2.1 check if need to query auth again
-        if not self.last_ath or self.last_ath != clientevent.ath:
-            acl_type, time, tx_rate_limit, rx_rate_limit, \
-                tx_rate_limit_local, rx_rate_limit_local, remain_time, \
-                username = self.query_auth()
-            syslog(LOG_DEBUG, "mac:%s acl_type:%s time:%s tx_rate_limit:%s \
-                   rx_rate_limit:%s rx_rate_limit_local:%s \
-                   tx_rate_limit_local:%s remain_time:%s username:%s" %
-                   (repr(self.mac),
-                    repr(acl_type),
-                    repr(time),
-                    repr(tx_rate_limit),
-                    repr(rx_rate_limit),
-                    repr(tx_rate_limit_local),
-                    repr(rx_rate_limit_local),
-                    repr(remain_time),
-                    repr(username)))
-            self.last_acl_type = acl_type
-            self.last_tx_rate_limit = tx_rate_limit
-            self.last_rx_rate_limit = rx_rate_limit
-            self.last_tx_rate_limit_local = tx_rate_limit_local
-            self.last_rx_rate_limit_local = rx_rate_limit_local
-            self.last_ath = clientevent.ath
 
-        # 2.2 clean up
-        if self.last_acl_type == 1:
-            self.set_whitelist(120, 1)
-            pass
-        elif self.last_acl_type == 3:
-            # self.set_blacklist(0, 0, clientevent.ath)
-            pass
-        elif self.last_acl_type == 0:
-            # self.set_whitelist(0, 0)
-            # self.set_blacklist(0, 0 clientevent.ath)
-            os.system("wdctl reset %s &" % self.mac)
-            pass
-
-        # 2.3 set ratelimit
+        # 2.1 clean up whitelist
+        self.set_whitelist(0, 0)
+        # 2.2 clean up blacklist
+        # self.set_blacklist(0, 0 clientevent.ath)
+        # 2.3 clean up wd db
+        os.system("wdctl reset %s &" % self.mac)
+        # 2.4 clean up ratelimit
         self.set_ratelimit(0, 0, 0, 0, clientevent.ath, 0)
-
-        # 2.4 del client into client traffic track in iptables
+        # 2.5 del client into client traffic track in iptables
         self.set_client_track(0)
 
         # check queue again
@@ -202,7 +174,7 @@ class Client(Thread):
     # main event handler
     def handle_event(self):
         try:
-            clientevent = self.queue.get(block=True, timeout=30)
+            clientevent = self.queue.get(block=True, timeout=60)
         except qq.Empty:
             self.term = True
             clientevent = ClientEvent('ath00', 'TERM')
