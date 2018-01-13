@@ -67,9 +67,8 @@ class Client(Thread):
                    (self.mac, tmp_event.ath, tmp_event.event))
             queue.put_nowait(clientevent)
 
-    # handler for AP-STA-CONNECTED event
-    def handle_connected_event(self, clientevent):
-        # 1.1 check if need to query auth again
+    # query and save params
+    def query_and_init(self, clientevent):
         if not self.last_ath or self.last_ath != clientevent.ath:
             acl_type, time, tx_rate_limit, rx_rate_limit, \
              tx_rate_limit_local, rx_rate_limit_local, remain_time, \
@@ -94,22 +93,23 @@ class Client(Thread):
             self.last_remain_time = remain_time
             self.last_ath = clientevent.ath
 
+    # handler for AP-STA-CONNECTED event
+    def handle_connected_event(self, clientevent):
+        # 1.1 check if need to query auth again
+        self.query_and_init(clientevent)
         # 1.2 set_whitelist
         if self.last_acl_type == 1:
-            self.set_whitelist(120, 1)
-
+            self.set_whitelist(0, 1)
         # 1.3 set_blacklist
         elif self.last_acl_type == 3:
             self.set_blacklist(120, 1, self.last_ath)
-
         # 1.4 none acl, so check
         elif self.last_acl_type == 0:
             self.set_blacklist(0, 0, self.last_ath)
             if self.last_remain_time == 0:
                 self.set_whitelist(0, 0)
             else:
-                self.set_whitelist(120, 1)
-
+                self.set_whitelist(0, 1)
         # 1.5 set_ratelimit
         self.set_ratelimit(self.last_tx_rate_limit, self.last_rx_rate_limit,
                            self.last_tx_rate_limit_local,
@@ -119,7 +119,6 @@ class Client(Thread):
 
     # handle AP-STA-DISCONNECTED event
     def handle_disconnected_event(self, clientevent):
-
         # 2.1 clean up whitelist
         self.set_whitelist(0, 0)
         # 2.2 clean up blacklist
@@ -138,29 +137,7 @@ class Client(Thread):
     # handle STA-IP-CHANGED event
     def handle_ip_changed_event(self, clientevent):
         # 4.1 check if need to query auth again
-        if not self.last_ath or self.last_ath != clientevent.ath:
-            acl_type, time, tx_rate_limit, rx_rate_limit, \
-                tx_rate_limit_local, rx_rate_limit_local, remain_time, \
-                username = self.query_auth()
-            syslog(LOG_DEBUG, "mac:%s acl_type:%s time:%s tx_rate_limit:%s \
-                   rx_rate_limit:%s rx_rate_limit_local:%s \
-                   tx_rate_limit_local:%s remain_time:%s username:%s" %
-                   (repr(self.mac),
-                    repr(acl_type),
-                    repr(time),
-                    repr(tx_rate_limit),
-                    repr(rx_rate_limit),
-                    repr(tx_rate_limit_local),
-                    repr(rx_rate_limit_local),
-                    repr(remain_time),
-                    repr(username)))
-            self.last_acl_type = acl_type
-            self.last_tx_rate_limit = tx_rate_limit
-            self.last_rx_rate_limit = rx_rate_limit
-            self.last_tx_rate_limit_local = tx_rate_limit_local
-            self.last_rx_rate_limit_local = rx_rate_limit_local
-            self.last_ath = clientevent.ath
-
+        self.query_and_init(clientevent)
         # 4.2 set_ratelimit
         self.set_ratelimit(self.last_tx_rate_limit, self.last_rx_rate_limit,
                            self.last_tx_rate_limit_local,
@@ -370,6 +347,8 @@ class Client(Thread):
                 self.handle_event()
             except Exception, e:
                 syslog(LOG_WARNING, "%s: Exception - %s" % (self.mac, str(e)))
+        syslog(LOG_WARNING, "%s: thread exit,%s" % (self.mac),
+               self.queue.get_nowait())
 
 
 # Class describes the manager
