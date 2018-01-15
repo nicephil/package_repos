@@ -78,6 +78,7 @@ typedef enum dc_node {
     dc_node_wds, 
     dc_node_country_code, 
     dc_node_wlan_scan,
+    dc_node_zone,
 } dc_node;
 
 struct node_pair_save {

@@ -1,7 +1,6 @@
 config system
     option hostname	oakridge
     option timezone CST-8
-    option zonename Asia/Shanghai
     option conloglevel 8
     option klogconloglevel 8
     option cronloglevel 8

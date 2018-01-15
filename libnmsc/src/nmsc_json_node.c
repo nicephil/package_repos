@@ -452,6 +452,45 @@ static int dc_hdl_node_hostname(struct json_object *obj)
     return 0;
 }
 
+static int dc_hdl_node_zone(struct json_object *obj)
+{
+    char zone[128] = {};
+    int ret, node = dc_node_zone;
+    struct node_pair_save pair = {
+        .key   = "zone",
+        .type  = json_type_string,
+        .value = zone,
+        .size  = sizeof(zone),
+    };
+    
+    if (json_object_get_type(obj) != json_type_string) {
+        return dc_error_code(dc_error_obj_type, node, 0);
+    }
+
+    if ((ret = dc_hdl_node_default(obj, &pair, 1)) != 0) {
+        return dc_error_code(ret, node, 0);
+    }
+
+    log_node_pair(pair);
+
+
+
+
+    if (!strlen(zone) || is_default_string_config(zone)) {
+        if ((ret = zone_undo()) != 0) {
+            nmsc_log("Undo timezone failed for %d.", ret);
+            return dc_error_code(dc_error_commit_failed, node, ret);
+        }
+    }
+    else {
+        if ((ret = zone_set(zone)) != 0) {
+            nmsc_log("Set timezone failed for %d.", ret);
+            return dc_error_code(dc_error_commit_failed, node, ret);
+        }
+    }
+    return 0;
+}
+
 static int dc_hdl_node_location(struct json_object *obj)
 {
     char location[65] = {};
@@ -592,6 +631,7 @@ int dc_hdl_node_system(struct json_object *obj)
 
     struct subnode_handler system_subnodes[] = {
         {"hostname", dc_hdl_node_hostname},
+        {"zone", dc_hdl_node_zone},
         {"location", dc_hdl_node_location},
         {"country_code", dc_hdl_node_country},
         {"domain_name", dc_hdl_node_domain_name},

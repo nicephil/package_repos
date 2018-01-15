@@ -29,3 +29,17 @@ int hostname_set(const char *hostname)
     syslog(LOG_NOTICE, "Set hostname:%s\n", hostname);
     return 0;
 }
+
+int zone_undo(void)
+{
+    return zone_set(ZONE_DEFAULT);
+}
+
+int zone_set(const char *zone)
+{
+    /* update config */
+    cfg_set_option_value(SYSTEM_OPTION_ZONE_TUPLE, zone);
+
+    syslog(LOG_NOTICE, "Set timezone:%s\n", zone);
+    return 0;
+}
