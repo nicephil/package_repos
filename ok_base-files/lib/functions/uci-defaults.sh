@@ -199,6 +199,7 @@ set network.lan'$vlan'.proto='dhcp'
 set network.lan'$vlan'.dhcp_default_ip="192.168.100.20"
 set network.lan'$vlan'.dhcp_default_netmask="255.255.255.0"
 set network.lan'$vlan'.igmp_snooping='1'
+set network.lan'$vlan'.mtu='1600'
 set network.alias='alias'
 set network.alias.interface="lan$vlan"
 set network.alias.proto='static'
