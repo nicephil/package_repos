@@ -4,12 +4,12 @@ mac=$1
 time=$2
 action=$3 # 1 means set, 0 means unset
 
-trap 'setwhitelist_trap; exit' INT TERM ABRT QUIT ALRM
 
 setwhitelist_trap () {
     logger -t setwhitelist "gets trap"
     lock -u /tmp/whitelist.lock
 }
+trap 'setwhitelist_trap; exit' INT TERM ABRT QUIT ALRM
 
 
 lock /tmp/whitelist.lock

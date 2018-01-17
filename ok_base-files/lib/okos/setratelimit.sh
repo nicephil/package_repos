@@ -8,16 +8,6 @@ rx_rate_limit_local=$5
 ath=$6
 action=$7
 
-trap 'setratelimit_trap; exit' INT TERM ABRT QUIT ALRM
-
-setratelimit_trap () {
-    logger -t setratelimit "gets trap"
-    lock -u /tmp/qos.lock
-}
-
-
-lock /tmp/qos.lock
-
 [ -z "$ath" ] && {
 ath=`apstats -s -m $mac|awk '/VAP/{print $7}'`
 ath="${ath:0:5}"
@@ -46,6 +36,4 @@ logger -t clientevent "++setratelimit:mac:$mac, tx_rate_limit:$tx_rate_limit, rx
     /lib/okos/qos.sh add $mac $qos_weight ${tx_rate_limit} ${rx_rate_limit} ${tx_rate_limit_local} ${rx_rate_limit_local} $ath 2>&1 | logger -t clientevent
     logger -t clientevent "==/lib/okos/qos.sh add $mac $qos_weight ${tx_rate_limit} ${rx_rate_limit} ${tx_rate_limit_local} ${rx_rate_limit_local} $ath"
 }
-
-lock -u /tmp/qos.lock
 

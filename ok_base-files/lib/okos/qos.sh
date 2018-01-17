@@ -17,14 +17,15 @@ run ()
     echo "==> ${cmd}" | logger -t qosscript -p $LOG_DEBUG
     [ -z "$debug" ] && eval "$cmd"
 }
+
 qos_trap ()
 {
     log $LOG_DEBUG "QoS Trapped."
     lock -u /var/run/qos.lock
 }
+trap 'qos_trap; exit' INT TERM ABRT QUIT ALRM
 
 lock /var/run/qos.lock
-trap 'qos_trap; exit' INT TERM ABRT QUIT ALRM
 
 #debug=True
 QDISC="htb"

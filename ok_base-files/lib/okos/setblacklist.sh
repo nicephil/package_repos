@@ -6,13 +6,13 @@ action=$3 # 1 means set, 0 means unset
 ath=$4
 time=240
 
-trap 'setblacklist_trap; exit' INT TERM ABRT QUIT ALRM
 
 setblacklist_trap () {
     logger -t setblacklist "gets trap"
     lock -u /tmp/blacklist.lock
 }
 
+trap 'setblacklist_trap; exit' INT TERM ABRT QUIT ALRM
 
 lock /tmp/blacklist.lock
 
