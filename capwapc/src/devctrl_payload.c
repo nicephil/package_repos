@@ -331,6 +331,8 @@ static int dc_image_upgrade_handler(struct tlv *payload, void **reserved)
         goto ERROR_OUT;
     }
 
+    system("/lib/okos/stopserivces.sh");
+
     sprintf(cmd, "wget -q -T %d -O - \'%s\' | tail -c +65 | tar xzf - -O > %s", json_cfg.timeout, json_cfg.src, CST_IMG_TMP_FILE);
     ret = system(cmd);
     if (ret) {
