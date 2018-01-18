@@ -1,0 +1,20 @@
+#!/bin/sh /etc/rc.common
+
+START=45
+
+
+stop ()
+{
+    pid=`pgrep -f "wget -c $imgurl"`
+    [ -n "$pid" ] &&  kill $pid
+}
+
+
+start ()
+{
+    [ -f "/overlay/root/imgurl" ] && { 
+        imgurl="`cat /overlay/root/imgurl`"
+        wget -c "$imgurl" -O "/overlay/root/${imgurl##*/}" 2>&1 | logger -t 'predownload' & 
+    }
+}
+
