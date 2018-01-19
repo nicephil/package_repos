@@ -1,17 +1,17 @@
 #!/bin/sh
 
-if [[ -f /tmp/ifaceinfo.lock ]]
+if [ -f /tmp/ifaceinfo.lock ]
 then
     exit 0
 fi
 
-trap 'getifaceinfo_trap; exit' INT TERM ABRT QUIT ALRM
 
 getifaceinfo_trap () {
     logger -t getifaceinfo "gets trap"
     rm -rf /tmp/ifaceinfo.lock
 }
 
+trap 'getifaceinfo_trap; exit' INT TERM ABRT QUIT ALRM
 
 touch /tmp/ifaceinfo.lock
 
@@ -22,16 +22,9 @@ dbfile="/tmp/ifaceinfo.db"
 tablename="IFINFO"
 
 #CREATE TABLE IFINFO(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH);
-if [ ! -f "$dbfile" ]
-then
-    #echo sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH);COMMIT;" | logger
-    sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH);COMMIT;" 
-else
-    #echo sqlite3  $dbfile "BEGIN TRANSACTION;DROP TABLE ${tablename};COMMIT;" | logger
-    sqlite3  $dbfile "BEGIN TRANSACTION;DROP TABLE ${tablename};COMMIT;" 
-    #echo sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH);COMMIT;" | logger
-    sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH);COMMIT;" 
-fi
+# echo sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH);COMMIT;" 
+sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH);COMMIT;" 
+sqlite3 $dbfile "BEGIN TRANSACTION;DELETE FROM ${tablename};COMMIT;"
 
 . /lib/functions.sh
 
@@ -60,7 +53,12 @@ do
 
     config_get txpower $ifname txpower
     config_get mode $ifname hwmode
+
     config_get bandwidth $ifname htmode
+    [ "$bandwidth" = "auto" -o "$bandwidth" = "0" ] && {
+        [ "$i" = "0" ] && bandwidth=HT$(iwpriv ath50 get_mode | awk '{print substr($2,length($2)-1,3)}')
+        [ "$i" = "1" ] && bandwidth=HT$(iwpriv ath60 get_mode | awk '{print substr($2,length($2)-1,3)}')
+    }
         
     #echo sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\");COMMIT"
     sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\");COMMIT"

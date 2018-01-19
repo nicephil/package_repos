@@ -386,9 +386,11 @@ static int dc_get_wlan_radio_stats(struct wlan_radio_stat **stats)
     ret = fscanf(stream, "%d_%d", &chutil, &per);
     cur_stats[0].chan_util=(unsigned char)(chutil*100/255);
     cur_stats[0].error_rate=(unsigned char)per;
+    cur_stats[0].retry_rate = per/11;
     if (ret != 2) {
         cur_stats[0].chan_util = 0;
         cur_stats[0].error_rate = 0;
+        cur_stats[0].retry_rate = 0;
     }
     pclose(stream);
 
@@ -403,7 +405,6 @@ static int dc_get_wlan_radio_stats(struct wlan_radio_stat **stats)
     pclose(stream);
 
     cur_stats[0].rx_rate = cur_stats[0].tx_rate;
-    cur_stats[0].retry_rate = 3;
 
 
 
@@ -414,9 +415,11 @@ static int dc_get_wlan_radio_stats(struct wlan_radio_stat **stats)
     ret = fscanf(stream, "%d_%d", &chutil, &per);
     cur_stats[1].chan_util=(unsigned char)(chutil*100/255);
     cur_stats[1].error_rate=(unsigned char)per;
+    cur_stats[1].retry_rate = per/11;
     if (ret != 2) {
         cur_stats[1].chan_util = 0;
         cur_stats[1].error_rate = 0;
+        cur_stats[1].retry_rate = 0;
     }
     pclose(stream);
 
@@ -431,7 +434,6 @@ static int dc_get_wlan_radio_stats(struct wlan_radio_stat **stats)
     pclose(stream);
 
     cur_stats[1].rx_rate = cur_stats[1].tx_rate;
-    cur_stats[1].retry_rate = 1;
 
 
     *stats = cur_stats;
