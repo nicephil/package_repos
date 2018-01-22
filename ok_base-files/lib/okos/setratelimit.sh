@@ -15,7 +15,7 @@ ath="${ath:0:5}"
      
 logger -t clientevent "++setratelimit:mac:$mac, tx_rate_limit:$tx_rate_limit, rx_rate_limit:$rx_rate_limit, tx_rate_limit_local:$tx_rate_limit_local, rx_rate_limit_local:$rx_rate_limit_local, ath:$ath, action:$action"
 
-[ ! "$ath" =~ "ath" ] && ath=""
+[ ! "$ath" =~ "ath" ] && { logger -t clientevent "++setratelimit:ath:$ath"; return 1 }
 
 [ -z "$action" ] && action="1"
 

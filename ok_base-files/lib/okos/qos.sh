@@ -640,7 +640,7 @@ case "$1" in
         ;;
     del)
         shift 1
-        [ -z $1 ] && echo "Usage: del xx:xx:xx:xx:xx:xx [athxx] " && exit 1
+        [ -z $1 ] && echo "Usage: del xx:xx:xx:xx:xx:xx [athxx] " && {lock -u /var/run/qos.lock; exit 1}
         del $@
         ;;
     *)
