@@ -22,6 +22,10 @@ do
         /lib/okos/clientevent.py
     }
 
+    [ -z "`pgrep -f 'hostapd '`" ] && {
+        /etc/init.d/hostapd restart
+    }
+
     for ath in `ls /var/run/hostapd-wifi0 2>/dev/null` `ls /var/run/hostapd-wifi1 2>/dev/null`
     do
         pid=`pgrep -f "hostapd_cli.*${ath}.*"`
