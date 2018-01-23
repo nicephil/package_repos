@@ -488,10 +488,26 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
                             || strncmp(pre->user, cur->user, pre->name_len) != 0
                             || pre->psmode != cur->psmode) {
                             cur->updated = 1;
-                            cur->delta_txB = cur->txB - pre->txB;
-                            cur->delta_rxB = cur->rxB - pre->rxB;
-                            cur->delta_wan_txB = cur->wan_txB - pre->wan_txB;
-                            cur->delta_wan_rxB = cur->wan_rxB - pre->wan_rxB;
+                            if (cur->txB > pre->txB) {
+                                cur->delta_txB = cur->txB - pre->txB;
+                            } else {
+                                cur->delta_txB = cur->txB;
+                            }
+                            if (cur->rxB > pre->rxB) {
+                                cur->delta_rxB = cur->rxB - pre->rxB;
+                            } else {
+                                cur->delta_rxB = cur->rxB;
+                            }
+                            if (cur->wan_txB > pre->wan_txB) {
+                                cur->delta_wan_txB = cur->wan_txB - pre->wan_txB;
+                            } else {
+                                cur->delta_wan_txB = cur->wan_txB;
+                            }
+                            if(cur->wan_rxB > pre->wan_rxB) {
+                                cur->delta_wan_rxB = cur->wan_rxB - pre->wan_rxB;
+                            } else {
+                                cur->delta_wan_rxB = cur->wan_rxB;
+                            }
                             if (cur->ts > pre->ts) {
                                 cur->atxrb = (cur->delta_txB * 8) / (cur->ts - pre->ts) / 1024;
                                 cur->arxrb = (cur->delta_rxB * 8) / (cur->ts - pre->ts) / 1024;

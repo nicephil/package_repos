@@ -97,12 +97,16 @@ OIFS=$IFS; IFS="|"; set -- $wlan_data_cur; txB=$2;rxB=$3; IFS=$OIFS
 # echo "--------->"$txB $rxB
 OIFS=$IFS; IFS="|"; set -- $wlan_data_prev; txB_prev=$2;rxB_prev=$3; IFS=$OIFS
 # echo "--------->"$txB_prev $rxB_prev
-if [ "$txB" -ge "$txB_prev" -a "$rxB" -ge "$rxB_prev" ]
+if [ "$txB" -ge "$txB_prev" ]
 then
     Delta_txB=$((txB - txB_prev))
-    Delta_rxB=$((rxB - rxB_prev))
 else
     Delta_txB="$txB"
+fi
+if [ "$rxB" -ge "$rxB_prev" ]
+then
+    Delta_rxB=$((rxB - rxB_prev))
+else
     Delta_rxB="$rxB"
 fi
 # echo "+++++>"WLAN", $Delta_txB, $Delta_rxB"
@@ -137,12 +141,16 @@ do
         if [ "$ath" = "$ath_prev" ]
         then
             # echo "==========>"$ath_prev $radio_prev $txB_prev $rxB_prev
-            if [ "$txB" -ge "$txB_prev" -a "$rxB" -ge "$rxB_prev" ]
+            if [ "$txB" -ge "$txB_prev" ]
             then
                 Delta_txB=$((txB - txB_prev))
-                Delta_rxB=$((rxB - rxB_prev))
             else
                 Delta_txB="$txB"
+            fi
+            if [ "$rxB" -ge "$rxB_prev" ]
+            then
+                Delta_rxB=$((rxB - rxB_prev))
+            else
                 Delta_rxB="$rxB"
             fi
             # echo "+++++>$ath, $Delta_txB, $Delta_rxB"
