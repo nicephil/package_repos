@@ -1111,6 +1111,7 @@ static int dc_portal_ssh_tunnel_handler(struct tlv *payload, void **reserved)
     struct ssh_tunnel_result result;
     struct ssh_tunnel_cmd json_cfg;
     int error_code = 0;
+    char cmdline[128] = {0};
     struct node_pair_save paires[] = {
         {"type",        json_type_int,    &(json_cfg.type),        sizeof(json_cfg.type)},
         {"port",        json_type_int,    &(json_cfg.local_port),  sizeof(json_cfg.local_port)},
@@ -1146,6 +1147,46 @@ static int dc_portal_ssh_tunnel_handler(struct tlv *payload, void **reserved)
     strcpy(result.server, json_cfg.server);
     result.local_port = json_cfg.local_port;
     result.remote_port = json_cfg.remote_port;
+
+    switch (json_cfg.type) {
+        case 0: /* query */
+            ret = system("pgrep -f \"ssh -i\"");
+            if (ret == -1) {
+                result.state = 1;
+                ret = dc_error_commit_failed;
+                goto ERROR_OUT;
+            } else {
+                result.state = WEXITSTATUS(ret);
+            }
+            break;
+        case 1: /* open */
+            sprintf(cmdline, "ssh -i /etc/id_rsa -p 22 -y -g -f -N -T -R %d:localhost:%d %s@%s", 
+                    json_cfg.remote_port, json_cfg.local_port, json_cfg.user, json_cfg.server);
+            CWLog("---------->%s\n", cmdline);
+            ret = system(cmdline);
+            if (ret == -1) {
+                result.state = 1;
+                ret = dc_error_commit_failed;
+                goto ERROR_OUT;
+            } else {
+                result.state = WEXITSTATUS(ret);
+            }
+            break;
+        case 2: /* close */
+            ret = system("killall ssh");
+            if (ret == -1) {
+                result.state = 1;
+                ret = dc_error_commit_failed;
+                goto ERROR_OUT;
+            } else {
+                result.state = WEXITSTATUS(ret);
+            }
+            break;
+        default:
+            ret = dc_error_obj_data;
+            break;
+
+    }
     
 #if !OK_PATCH
     ssh_tunnel_info tunnel_info;
