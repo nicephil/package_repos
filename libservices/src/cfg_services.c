@@ -731,6 +731,8 @@ int cfg_get_product_info(struct product_info * info)
                 strncpy(info->mac, o_cur->v.string, sizeof(info->mac));
             } else if (!strcmp(o_cur->e.name, PRODUCTINFO_OPTION_SWVERSION)) {
                 strncpy(info->software_version, o_cur->v.string, sizeof(info->software_version));
+            } else if (!strcmp(o_cur->e.name, PRODUCTINFO_OPTION_BOOTVERSION)) {
+                strncpy(info->bootloader_version, o_cur->v.string, sizeof(info->bootloader_version));
             }
         }
     }
