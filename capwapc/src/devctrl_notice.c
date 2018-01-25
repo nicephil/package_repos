@@ -491,37 +491,39 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
                             if (cur->txB > pre->txB) {
                                 cur->delta_txB = cur->txB - pre->txB;
                             } else {
-                                cur->delta_txB = cur->txB;
+                                cur->delta_txB = 0;
                             }
                             if (cur->rxB > pre->rxB) {
                                 cur->delta_rxB = cur->rxB - pre->rxB;
                             } else {
-                                cur->delta_rxB = cur->rxB;
+                                cur->delta_rxB = 0;
                             }
                             if (cur->wan_txB > pre->wan_txB) {
                                 cur->delta_wan_txB = cur->wan_txB - pre->wan_txB;
                             } else {
-                                cur->delta_wan_txB = cur->wan_txB;
+                                cur->delta_wan_txB = 0;
                             }
                             if(cur->wan_rxB > pre->wan_rxB) {
                                 cur->delta_wan_rxB = cur->wan_rxB - pre->wan_rxB;
                             } else {
-                                cur->delta_wan_rxB = cur->wan_rxB;
+                                cur->delta_wan_rxB = 0;
                             }
                             if (cur->ts > pre->ts) {
-                                cur->atxrb = (cur->delta_txB * 8) / (cur->ts - pre->ts) / 1024;
-                                cur->arxrb = (cur->delta_rxB * 8) / (cur->ts - pre->ts) / 1024;
-                                cur->wan_atxrb = (cur->delta_wan_txB * 8) / (cur->ts - pre->ts) / 1024;
-                                cur->wan_arxrb = (cur->delta_wan_rxB * 8) / (cur->ts - pre->ts) / 1024;
+                                cur->atxrb = (unsigned int)(((long double)cur->delta_txB * 8) / (cur->ts - pre->ts) / 1024);
+                                cur->arxrb = (unsigned int)(((long double)cur->delta_rxB * 8) / (cur->ts - pre->ts) / 1024);
+                                cur->wan_atxrb = (unsigned int)(((long double)cur->delta_wan_txB * 8) / (cur->ts - pre->ts) / 1024);
+                                cur->wan_arxrb = (unsigned int)(((long double)cur->delta_wan_rxB * 8) / (cur->ts - pre->ts) / 1024);
                             } else {
-                                cur->atxrb = 1;
-                                cur->arxrb = 1;
-                                cur->wan_atxrb = 1;
-                                cur->wan_arxrb = 1;
+                                cur->atxrb = 0;
+                                cur->arxrb = 0;
+                                cur->wan_atxrb = 0;
+                                cur->wan_arxrb = 0;
                             }
                                 
-                            //syslog(LOG_ERR, "O%x%x===>dtxB:%d drxB:%d txB:%d rxB:%d atx:%d arx:%d", pre->mac[4], pre->mac[5],  pre->delta_txB, pre->delta_rxB, pre->txB, pre->rxB, pre->atxrb, pre->arxrb);
-                            //syslog(LOG_ERR, "N%x%x+++>%d %d %d %d %d %d", cur->mac[4], cur->mac[5], cur->delta_txB, cur->delta_rxB, cur->txB, cur->rxB, cur->atxrb, cur->arxrb);
+                            //syslog(LOG_ERR, "O%x%x===>ts:%lld dtxB:%lld drxB:%lld txB:%lld rxB:%lld atx:%d arx:%d", pre->mac[4], pre->mac[5],  pre->ts, pre->delta_txB, pre->delta_rxB, pre->txB, pre->rxB, pre->atxrb, pre->arxrb);
+                            //syslog(LOG_ERR, "N%x%x+++>%lld %lld %lld %lld %lld %d %d", cur->mac[4], cur->mac[5], cur->ts, cur->delta_txB, cur->delta_rxB, cur->txB, cur->rxB, cur->atxrb, cur->arxrb);
+                            //syslog(LOG_ERR, "OW%x%x===>dwan_txB:%lld dwan_rxB:%lld wan_txB:%lld wan_rxB:%lld wan_atx:%d wan_arx:%d", pre->mac[4], pre->mac[5],  pre->delta_wan_txB, pre->delta_wan_rxB, pre->wan_txB, pre->wan_rxB, pre->wan_atxrb, pre->wan_arxrb);
+                            //syslog(LOG_ERR, "NW%x%x+++>%lld %lld %lld %lld %d %d", cur->mac[4], cur->mac[5], cur->delta_wan_txB, cur->delta_wan_rxB, cur->wan_txB, cur->wan_rxB, cur->wan_atxrb, cur->wan_arxrb);
                             totalsize = dc_reserves_stas(&rse_stas, totalsize, res_count, cur, 1);
                             if (totalsize < 0) {
                                 res_count = -1;

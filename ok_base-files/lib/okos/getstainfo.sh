@@ -94,7 +94,7 @@ do
     _wan_txB=""
     _wan_rxB=""
     fetch_client_stats $_mac _wan_txB _wan_rxB
-    # echo "_wan_txB:$_wan_txB, _wan_rxB:$_wan_rxB" | logger -t getstainfo
+    # echo "_txB:$_txB,_rxB:$_rxB,_wan_txB:$_wan_txB,_wan_rxB:$_wan_rxB" | logger -t getstainfo
     [ -z "$_wan_txB" ] && _wan_txB="0"
     [ -z "$_wan_rxB" ] && _wan_rxB="0"
    

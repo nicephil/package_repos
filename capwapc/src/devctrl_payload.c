@@ -1160,7 +1160,7 @@ static int dc_portal_ssh_tunnel_handler(struct tlv *payload, void **reserved)
             }
             break;
         case 1: /* open */
-            sprintf(cmdline, "ssh -i /etc/id_rsa -p 22 -y -g -f -N -T -R %d:localhost:%d %s@%s", 
+            sprintf(cmdline, "ssh -i /etc/id_rsa -K 200 -p 22 -y -g -f -N -T -R %d:localhost:%d %s@%s", 
                     json_cfg.remote_port, json_cfg.local_port, json_cfg.user, json_cfg.server);
             CWLog("---------->%s\n", cmdline);
             ret = system(cmdline);

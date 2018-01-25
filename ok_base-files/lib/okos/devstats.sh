@@ -243,7 +243,7 @@ json_select ..
 
 json_data=$(json_dump)
 
-echo $json_data | logger -t 'devstats'
+# echo $json_data | logger -t 'devstats'
 
 # 4. upload json file to nms
 URL="http://${mas_server}/nms/api/device/ap/info"

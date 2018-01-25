@@ -101,13 +101,13 @@ if [ "$txB" -ge "$txB_prev" ]
 then
     Delta_txB=$((txB - txB_prev))
 else
-    Delta_txB="$txB"
+    Delta_txB="0"
 fi
 if [ "$rxB" -ge "$rxB_prev" ]
 then
     Delta_rxB=$((rxB - rxB_prev))
 else
-    Delta_rxB="$rxB"
+    Delta_rxB="0"
 fi
 # echo "+++++>"WLAN", $Delta_txB, $Delta_rxB"
 
@@ -145,13 +145,13 @@ do
             then
                 Delta_txB=$((txB - txB_prev))
             else
-                Delta_txB="$txB"
+                Delta_txB="0"
             fi
             if [ "$rxB" -ge "$rxB_prev" ]
             then
                 Delta_rxB=$((rxB - rxB_prev))
             else
-                Delta_rxB="$rxB"
+                Delta_rxB="0"
             fi
             # echo "+++++>$ath, $Delta_txB, $Delta_rxB"
             json_add_object "VAP" "$ath"
