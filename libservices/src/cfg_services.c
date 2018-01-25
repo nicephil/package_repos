@@ -723,16 +723,16 @@ int cfg_get_product_info(struct product_info * info)
         uci_foreach_element(&s_cur->options, e2) {
             struct uci_option *o_cur = uci_to_option(e2);
             if (!strcmp(o_cur->e.name, PRODUCTINFO_OPTION_PRODUCTION)) {
-                strncpy(info->production, o_cur->v.string, sizeof(info->production));
-                strncpy(info->model, o_cur->v.string, sizeof(info->model));
+                strncpy(info->production, o_cur->v.string, sizeof(info->production)-1);
+                strncpy(info->model, o_cur->v.string, sizeof(info->model)-1);
             } else if (!strcmp(o_cur->e.name, PRODUCTINFO_OPTION_SERIAL)) {
-                strncpy(info->serial, o_cur->v.string, sizeof(info->serial));
+                strncpy(info->serial, o_cur->v.string, sizeof(info->serial)-1);
             } else if (!strcmp(o_cur->e.name, PRODUCTINFO_OPTION_MAC)) {
-                strncpy(info->mac, o_cur->v.string, sizeof(info->mac));
+                strncpy(info->mac, o_cur->v.string, sizeof(info->mac)-1);
             } else if (!strcmp(o_cur->e.name, PRODUCTINFO_OPTION_SWVERSION)) {
-                strncpy(info->software_version, o_cur->v.string, sizeof(info->software_version));
+                strncpy(info->software_version, o_cur->v.string, sizeof(info->software_version)-1);
             } else if (!strcmp(o_cur->e.name, PRODUCTINFO_OPTION_BOOTVERSION)) {
-                strncpy(info->bootloader_version, o_cur->v.string, sizeof(info->bootloader_version));
+                strncpy(info->bootloader_version, o_cur->v.string, sizeof(info->bootloader_version)-1);
             }
         }
     }
