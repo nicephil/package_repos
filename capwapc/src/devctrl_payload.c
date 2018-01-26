@@ -1150,7 +1150,7 @@ static int dc_portal_ssh_tunnel_handler(struct tlv *payload, void **reserved)
 
     switch (json_cfg.type) {
         case 0: /* query */
-            ret = execute_cmd("ps w | awk -F\'[ :]+\'  \'/ssh -i \\/etc\\/id_rsa/{print $19}\'", cmdline, sizeof(cmdline)-1);
+            ret = execute_cmd("ps w | awk -F\'[ :]+\' \'/ssh -i \\/etc\\/id_rsa/{for(i=17;i<NR;i++){if(match($i,\"-R\"))print $(i+1)}}\'", cmdline, sizeof(cmdline)-1);
             if (ret == -1) {
                 result.state = 0;
                 ret = dc_error_commit_failed;
@@ -1158,7 +1158,7 @@ static int dc_portal_ssh_tunnel_handler(struct tlv *payload, void **reserved)
             } else {
                 if (strlen(cmdline)) {
                     result.state = 1;
-                    result.local_port = atoi(cmdline);
+                    result.remote_port = atoi(cmdline);
                     CWLog("-------->%s", cmdline);
                 } else {
                     result.state = 0;
