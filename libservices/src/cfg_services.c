@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <stdio.h>
 
 #include "services/cfg_services.h"
 
@@ -758,6 +759,27 @@ int cfg_upgrade_image(const char *imagefile)
     sprintf(buf, "(sleep 5;sysupgrade -n %s)&", imagefile);
     system(buf);
 
+    return 0;
+}
+
+
+int execute_cmd(const char *cmd, char *result, int len)   
+{
+    char buf_ps[1024]={0};
+    FILE *ptr=NULL;
+    if((ptr=popen(cmd, "r"))!=NULL) {
+        while(fgets(buf_ps, sizeof(buf_ps), ptr)!=NULL) {
+            strncat(result, buf_ps, len-strlen(result)-1);
+            if(strlen(result)+1>=len) {
+                break;
+            }
+        }
+        pclose(ptr);
+        ptr = NULL;
+    } else {
+        syslog(LOG_ERR, "%s:popen %s error\n", __FUNCTION__, cmd);
+        return -1;
+    }
     return 0;
 }
 

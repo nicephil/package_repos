@@ -166,4 +166,7 @@ enum upgrade_failed_e{
 };
 extern int cfg_upgrade_image(const char *imagefile);
 
+
+extern int execute_cmd(const char *cmd, char *result, int len);
+
 #endif /* __CFG_SERVICES_H */

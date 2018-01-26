@@ -1121,7 +1121,7 @@ static int dc_portal_ssh_tunnel_handler(struct tlv *payload, void **reserved)
         {"password",    json_type_string, json_cfg.pwd,            sizeof(json_cfg.pwd)},
     }; 
     struct json_object *root;
-    int ret;
+    int ret = 0;
     char terminated;
 
     memset(&result, 0, sizeof(result));
@@ -1150,41 +1150,57 @@ static int dc_portal_ssh_tunnel_handler(struct tlv *payload, void **reserved)
 
     switch (json_cfg.type) {
         case 0: /* query */
-            ret = system("pgrep -f \"ssh -i\"");
+            ret = execute_cmd("ps w | awk -F\'[ :]+\'  \'/ssh -i \\/etc\\/id_rsa/{print $19}\'", cmdline, sizeof(cmdline)-1);
             if (ret == -1) {
-                result.state = 1;
+                result.state = 0;
                 ret = dc_error_commit_failed;
                 goto ERROR_OUT;
             } else {
-                result.state = WEXITSTATUS(ret);
+                if (strlen(cmdline)) {
+                    result.state = 1;
+                    result.local_port = atoi(cmdline);
+                    CWLog("-------->%s", cmdline);
+                } else {
+                    result.state = 0;
+                }
+                ret = 0;
             }
             break;
         case 1: /* open */
-            sprintf(cmdline, "ssh -i /etc/id_rsa -K 200 -p 22 -y -g -f -N -T -R %d:localhost:%d %s@%s", 
-                    json_cfg.remote_port, json_cfg.local_port, json_cfg.user, json_cfg.server);
+            sprintf(cmdline, "ssh -i /etc/id_rsa -K 200 -p %d -y -g -f -N -T -R %d:localhost:22 %s@%s", 
+                    json_cfg.local_port, json_cfg.remote_port, json_cfg.user, json_cfg.server);
             ret = system(cmdline);
             if (ret == -1) {
-                result.state = 1;
+                result.state = 0;
                 ret = dc_error_commit_failed;
                 goto ERROR_OUT;
             } else {
-                result.state = WEXITSTATUS(ret);
+                if(WEXITSTATUS(ret)) {
+                    result.state = 0;
+                } else {
+                    result.state = 1;
+                }
+                ret = 0;
             }
             break;
         case 2: /* close */
-            ret = system("killall ssh");
+            ret = system("kill `pgrep -f \'ssh -i\'`");
             if (ret == -1) {
                 result.state = 1;
                 ret = dc_error_commit_failed;
                 goto ERROR_OUT;
             } else {
-                result.state = WEXITSTATUS(ret);
+                if (WEXITSTATUS(ret)) {
+                    result.state = 1;
+                } else {
+                    result.state = 0;
+                }
+                ret = 0;
             }
             break;
         default:
             ret = dc_error_obj_data;
             break;
-
     }
     
 #if !OK_PATCH
