@@ -1178,10 +1178,12 @@ static int dc_portal_ssh_tunnel_handler(struct tlv *payload, void **reserved)
             } else {
                 if(WEXITSTATUS(ret)) {
                     result.state = 0;
+                    ret = dc_error_commit_failed;
+                    goto ERROR_OUT;
                 } else {
                     result.state = 1;
+                    ret = 0;
                 }
-                ret = 0;
             }
             break;
         case 2: /* close */
@@ -1193,10 +1195,12 @@ static int dc_portal_ssh_tunnel_handler(struct tlv *payload, void **reserved)
             } else {
                 if (WEXITSTATUS(ret)) {
                     result.state = 1;
+                    ret = dc_error_commit_failed;
+                    goto ERROR_OUT;
                 } else {
                     result.state = 0;
+                    ret = 0;
                 }
-                ret = 0;
             }
             break;
         default:
