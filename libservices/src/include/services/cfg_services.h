@@ -143,8 +143,8 @@ struct product_info {
     char    production[20]; // formed at compiled time, used by inner program
     char    model[24];      // come from manufactory data, seen by custom
     char    mac[20];
-    char    bootloader_version[34];
-    char    software_version[34];
+    char    bootloader_version[24];
+    char    software_version[24];
     char    software_inner_version[24];
     char    hardware_version[24];
     char    production_match[16];
