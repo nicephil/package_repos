@@ -652,9 +652,9 @@ static int g_pinfo_init = 0;
 static struct product_info g_pinfo;
 
 
-#define UBNT_PRO_PRODUCTION_NAME "ubntpro"
-#define UBNT_LITE_PRODUCTION_NAME "ubntlite"
-#define UBNT_LR_PRODUCTION_NAME "ubntlr"
+#define UBNT_PRO_PRODUCTION_NAME "AC-PRO"
+#define UBNT_LITE_PRODUCTION_NAME "AC-LITE"
+#define UBNT_LR_PRODUCTION_NAME "AC-LR"
 #define W282_PRODUCTION_NAME "W282"
 
 int cfg_is_ubnt_pro(void)
