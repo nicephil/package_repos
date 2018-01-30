@@ -1,17 +1,21 @@
 #!/bin/sh /etc/rc.common
 
-START=45
+START=25
+STOP=85
 
 
-. /lib/okos/apfw.user
+. /lib/okos/apfw.static
 
 start ()
 {
     [ ! -f "/tmp/.init_iptables" ] && {
-
-        set_global_static_chains_rules
-
+        apfw_static_start
        touch /tmp/.init_iptables
     }
+}
+
+stop ()
+{
+    return
 }
 

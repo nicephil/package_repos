@@ -1,0 +1,43 @@
+#!/bin/sh
+
+. /lib/functions.sh
+
+clean_traf_statistics()
+{
+    iptables -F client_wan_uplink_traf&
+    iptables -F client_wan_downlink_traf&
+}
+
+clean_guestnetwork()
+{
+    iptables -t isolation -F
+}
+
+setup_guestnetwork()
+{
+    ath="$1"
+    local _type
+    config_get _type "$ath" "type"
+    if [ -n "$_type" -a "$_type" = "2" ]
+    then
+        iptables -A isolation -m physdev --physdev-in "$ath" -j guest_network
+    fi
+}
+
+walk_config_and_setup()
+{
+    config_load wireless
+    config_foreach setup_guestnetwork wifi-iface
+}
+
+apfw_dyn_start()
+{
+    walk_config_and_setup
+}
+
+apfw_dyn_stop()
+{
+    clean_traf_statistics
+    clean_guestnetwork
+}
+

@@ -1,0 +1,18 @@
+#!/bin/sh /etc/rc.common
+
+START=45
+
+
+. /lib/okos/apfw.dyn
+
+start ()
+{
+    apfw_dyn_start
+}
+
+
+stop ()
+{
+    apfw_dyn_stop
+}
+
