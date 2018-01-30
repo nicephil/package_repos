@@ -4,13 +4,13 @@
 
 clean_traf_statistics()
 {
-    iptables -F client_wan_uplink_traf&
-    iptables -F client_wan_downlink_traf&
+    iptables -F client_wan_uplink_traf
+    iptables -F client_wan_downlink_traf
 }
 
 clean_guestnetwork()
 {
-    iptables -t isolation -F
+    iptables -F isolation
 }
 
 setup_guestnetwork()
