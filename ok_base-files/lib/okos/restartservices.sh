@@ -6,4 +6,4 @@ sleep 15
 /etc/init.d/wifidog restart&
 /etc/init.d/qos restart&
 /etc/init.d/arpwatch restart&
-/lib/okos/apfw.dyn restart&
+/etc/init.d/apfw.dyn restart&
