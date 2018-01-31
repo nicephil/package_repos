@@ -13,6 +13,7 @@ unifi)
     model=`echo $model |tr '[a-z]' '[A-Z]'`
     echo -e "config productinfo productinfo"
     echo -e  "\toption production AC-${model}"
+    echo -e  "\toption model UBNT_AC-${model}"
     echo -e "\toption serial ${serial}"
     echo -e "\toption mac ${mac}"
     ;;
@@ -20,8 +21,16 @@ unifi)
     strings /dev/mtd5 | awk -F'=' ' 
     BEGIN { print "config productinfo productinfo"; } 
     { 
-    if ($1 == "DEV_NAME") 
-        print "\toption production "$2;  
+    if ($1 == "DEV_NAME") {
+        print "\toption production "$2;
+        if ($2 == "WL8200-I2") {
+            gsub(/"/,"",$2);
+            print "\toption model DCN_"$2;
+        } else {
+            gsub(/"/,"",$2);
+            print "\toption model QTS_"$2;
+        }
+    }
     else if ($1 == "DEV_SERIAL_NUMBER") 
         print "\toption serial "$2;  
     else if ($1 == "MAC_ADDRESS") 

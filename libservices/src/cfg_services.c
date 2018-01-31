@@ -725,6 +725,7 @@ int cfg_get_product_info(struct product_info * info)
             struct uci_option *o_cur = uci_to_option(e2);
             if (!strcmp(o_cur->e.name, PRODUCTINFO_OPTION_PRODUCTION)) {
                 strncpy(info->production, o_cur->v.string, sizeof(info->production)-1);
+            } else if (!strcmp(o_cur->e.name, PRODUCTINFO_OPTION_MODEL)) {
                 strncpy(info->model, o_cur->v.string, sizeof(info->model)-1);
             } else if (!strcmp(o_cur->e.name, PRODUCTINFO_OPTION_SERIAL)) {
                 strncpy(info->serial, o_cur->v.string, sizeof(info->serial)-1);
