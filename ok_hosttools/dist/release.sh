@@ -20,6 +20,10 @@ echo "====> unbind old release"
 echo ./dist_release.py $url -A employe -u --macs $all_macs --md5 $unbind_md5
 ./dist_release.py $url -A employe -u --macs $all_macs --md5 $unbind_md5
 
+echo "====> delete old release"
+echo ./dist_release.py $url -A release -d --md5 $unbind_md5
+./dist_release.py $url -A release -d --md5 $unbind_md5
+
 echo "====> add new release md5"
 echo ./dist_release.py $url -A release -a --type $all_types --url $img_url --md5 $img_md5
 ./dist_release.py $url -A release -a --type $all_types --url $img_url --md5 $img_md5
