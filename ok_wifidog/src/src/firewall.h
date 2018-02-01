@@ -48,8 +48,8 @@ int fw_init(void);
 
 struct _s_ssid_config;
 
-void fw_clear_authservers(const struct _s_ssid_config *);
-void fw_set_authservers(const struct _s_ssid_config *);
+void fw_clear_authservers();
+void fw_set_authservers();
 int fw_allow_host(const char *, const struct _s_ssid_config *);
 time_t fw_sync_with_authserver(void);
 

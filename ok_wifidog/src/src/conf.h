@@ -28,6 +28,8 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
+#include "client_list.h"
+
 /*@{*/
 /** Defines */
 
@@ -271,6 +273,7 @@ typedef struct {
 
     char * device_id;
     char * domain_name;
+    t_auth_serv * auth_servers;
     t_ssid_config * ssid;
 #if 0
     t_bridge_conf * br_conf;
@@ -332,13 +335,8 @@ void config_read(const char *filename);
 void config_validate(void);
 
 /** @brief Get the active auth server */
-#if OK_PATCH
-struct _t_client;
-
-t_auth_serv *get_auth_server(const struct _t_client *);
-#else /* OK_PATCH */
 t_auth_serv *get_auth_server(void);
-#endif /* OK_PATCH */
+t_auth_serv *get_auth_server_by_client(const t_client *);
 
 /** @brief Bump server to bottom of the list */
 void mark_auth_server_bad(t_auth_serv *);
@@ -366,6 +364,7 @@ t_ssid_config * okos_conf_get_ssid_by_name(const char *);
 t_ath_if_list * okos_conf_get_ifx_by_name(const char *);
 
 char * okos_conf_get_all(void);
+int okos_conf_ssid_is_portal(const t_ssid_config *);
 
 #endif /* OK_PATCH */
 

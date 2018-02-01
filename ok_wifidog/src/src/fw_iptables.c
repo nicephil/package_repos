@@ -134,12 +134,15 @@ iptables_do_command(const char *format, ...)
     //rc = execute(cmd, fw_quiet);
     rc = system(cmd);
 
-    if (rc != 0) {
-        // If quiet, do not display the error
-        if (fw_quiet == 0)
-            debug(LOG_ERR, "__!! iptables command failed(%d): %s", rc, cmd);
-        else if (fw_quiet == 1)
-            debug(LOG_DEBUG, "__!! iptables command failed(%d): %s", rc, cmd);
+    if (-1 == rc) {
+        debug(LOG_ERR, "__!! iptables fork faile!: %s", cmd);
+    } else {
+        if (0 != WEXITSTATUS(rc)) {
+            if (fw_quiet == 0)
+                debug(LOG_ERR, "__!! iptables command failed(%d): %s", rc, cmd);
+            else if (fw_quiet == 1)
+                debug(LOG_DEBUG, "__!! iptables command failed(%d): %s", rc, cmd);
+        }
     }
 
     free(cmd);
@@ -281,24 +284,17 @@ iptables_load_ruleset(const char *table, const char *ruleset, const char *chain)
  * This pair of functions of authserver only be called when connect_auth_server().
  * the config has been locked. Feel free to use config->xxx
  */
-#if OK_PATCH
 
 void
-iptables_fw_clear_authservers(const t_ssid_config * ssid)
+iptables_fw_clear_authservers_by_ssid(const t_ssid_config * ssid)
 {
-    //char * chain = okos_get_chain_name(CHAIN_AUTHSERVERS_i, ssid->sn);
-
     iptables_do_command("-t filter -F " CHAIN_AUTHSERVERS_i, ssid->sn);
     iptables_do_command("-t nat -F " CHAIN_AUTHSERVERS_i, ssid->sn);
-
-    //free(chain);
 }
 
 void
-iptables_fw_set_authservers(const t_ssid_config * ssid)
+iptables_fw_set_authservers_by_ssid(const t_ssid_config * ssid)
 {
-    //char * chain = okos_get_chain_name(CHAIN_AUTHSERVERS_i, ssid->sn);
-
     t_auth_serv *auth_server;
     okos_list_for_each(auth_server, ssid->auth_servers){
         if (auth_server->last_ip && strcmp(auth_server->last_ip, "0.0.0.0") != 0) {
@@ -309,10 +305,8 @@ iptables_fw_set_authservers(const t_ssid_config * ssid)
             iptables_do_command("-t nat -A " CHAIN_AUTHSERVERS_i " -d %s -j ACCEPT", ssid->sn, auth_server->last_ip);
         }
     }
-
-    //free(chain);
 }
-#else
+
 void
 iptables_fw_clear_authservers(void)
 {
@@ -325,18 +319,14 @@ iptables_fw_set_authservers(void)
 {
     const s_config *config;
     t_auth_serv *auth_server;
-
     config = config_get_config();
-
     for (auth_server = config->auth_servers; auth_server != NULL; auth_server = auth_server->next) {
         if (auth_server->last_ip && strcmp(auth_server->last_ip, "0.0.0.0") != 0) {
             iptables_do_command("-t filter -A " CHAIN_AUTHSERVERS " -d %s -j ACCEPT", auth_server->last_ip);
             iptables_do_command("-t nat -A " CHAIN_AUTHSERVERS " -d %s -j ACCEPT", auth_server->last_ip);
         }
     }
-
 }
-#endif
 
 /** Initialize the firewall rules
 */
@@ -364,12 +354,14 @@ iptables_fw_init(void)
 #endif
 
     iptables_do_command("-t nat -N " CHAIN_GLOBAL);
+    iptables_do_command("-t nat -N " CHAIN_AUTHSERVERS, sn);
 
     iptables_do_command("-t filter -N " CHAIN_LOCKED);
     iptables_do_command("-t filter -N " CHAIN_GLOBAL);
     iptables_do_command("-t filter -N " CHAIN_VALIDATE);
     iptables_do_command("-t filter -N " CHAIN_KNOWN);
     iptables_do_command("-t filter -N " CHAIN_UNKNOWN);
+    iptables_do_command("-t filter -N " CHAIN_AUTHSERVERS, sn);
 
     if (got_authdown_ruleset) {
         iptables_do_command("-t nat -N " CHAIN_AUTH_IS_DOWN);
@@ -382,6 +374,8 @@ iptables_fw_init(void)
     t_ssid_config * ssid;
     okos_list_for_each(ssid, config->ssid) {
         sn = ssid->sn;
+        if (! okos_conf_ssid_is_portal(ssid))
+            continue;
 
         /* Create new chains */
         /* For mangle table */
@@ -399,11 +393,11 @@ iptables_fw_init(void)
         iptables_do_command("-t nat -N " CHAIN_DN_ALLOWED_i, sn);
         iptables_do_command("-t nat -N " CHAIN_IP_ALLOWED_i, sn);
         iptables_do_command("-t nat -N " CHAIN_UNKNOWN_i, sn);
-        iptables_do_command("-t nat -N " CHAIN_AUTHSERVERS_i, sn);
+        //iptables_do_command("-t nat -N " CHAIN_AUTHSERVERS_i, sn);
 
         /* For filter table */
         iptables_do_command("-t filter -N " CHAIN_TO_INTERNET_i, sn);
-        iptables_do_command("-t filter -N " CHAIN_AUTHSERVERS_i, sn);
+        //iptables_do_command("-t filter -N " CHAIN_AUTHSERVERS_i, sn);
         iptables_do_command("-t filter -N " CHAIN_DN_ALLOWED_i, sn);
         iptables_do_command("-t filter -N " CHAIN_IP_ALLOWED_i, sn);
 
@@ -451,7 +445,7 @@ iptables_fw_init(void)
         iptables_do_command("-t nat -A " CHAIN_TO_INTERNET_i " -m mark --mark %u/0xff -j ACCEPT", sn, FW_MARK_PROBATION);
         iptables_do_command("-t nat -A " CHAIN_TO_INTERNET_i " -j " CHAIN_UNKNOWN_i, sn, sn);
 
-        iptables_do_command("-t nat -A " CHAIN_UNKNOWN_i " -j " CHAIN_AUTHSERVERS_i, sn, sn);
+        iptables_do_command("-t nat -A " CHAIN_UNKNOWN_i " -j " CHAIN_AUTHSERVERS, sn, sn);
         iptables_do_command("-t nat -A " CHAIN_UNKNOWN_i " -j " CHAIN_GLOBAL, sn);
         if (got_authdown_ruleset) {
             iptables_do_command("-t nat -A " CHAIN_UNKNOWN_i " -j " CHAIN_AUTH_IS_DOWN, sn);
@@ -464,7 +458,7 @@ iptables_fw_init(void)
         /* For filter table */
         iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -m state --state INVALID -j DROP", sn);
 
-        iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -j " CHAIN_AUTHSERVERS_i, sn, sn);
+        iptables_do_command("-t filter -A " CHAIN_TO_INTERNET_i " -j " CHAIN_AUTHSERVERS, sn, sn);
         /* FIXME
         iptables_fw_set_authservers();
         */
@@ -712,12 +706,14 @@ iptables_fw_destroy(void)
         iptables_do_command("-t filter -F " CHAIN_AUTH_IS_DOWN);
     }
     iptables_do_command("-t nat -F " CHAIN_GLOBAL);
+    iptables_do_command("-t nat -F " CHAIN_AUTHSERVERS);
     
     iptables_do_command("-t filter -F " CHAIN_LOCKED);
     iptables_do_command("-t filter -F " CHAIN_GLOBAL);
     iptables_do_command("-t filter -F " CHAIN_VALIDATE);
     iptables_do_command("-t filter -F " CHAIN_KNOWN);
     iptables_do_command("-t filter -F " CHAIN_UNKNOWN);
+    iptables_do_command("-t filter -F " CHAIN_AUTHSERVERS);
 
     LOCK_CONFIG();
 
@@ -725,6 +721,9 @@ iptables_fw_destroy(void)
     t_ssid_config * ssid;
     okos_list_for_each(ssid, config->ssid) {
         sn = ssid->sn;
+        if (! okos_conf_ssid_is_portal(ssid)) {
+            continue;
+        }
 
         /*
          *
@@ -751,14 +750,14 @@ iptables_fw_destroy(void)
         debug(LOG_DEBUG, "Destroying chains in the NAT table");
         iptables_do_command("-t nat -F " CHAIN_DN_ALLOWED_i, sn);
         iptables_do_command("-t nat -F " CHAIN_IP_ALLOWED_i, sn);
-        iptables_do_command("-t nat -F " CHAIN_AUTHSERVERS_i, sn);
+        //iptables_do_command("-t nat -F " CHAIN_AUTHSERVERS_i, sn);
         iptables_do_command("-t nat -F " CHAIN_OUTGOING_i, sn);
         iptables_do_command("-t nat -F " CHAIN_TO_ROUTER_i, sn);
         iptables_do_command("-t nat -F " CHAIN_TO_INTERNET_i, sn);
         iptables_do_command("-t nat -F " CHAIN_UNKNOWN_i, sn);
         iptables_do_command("-t nat -X " CHAIN_DN_ALLOWED_i, sn);
         iptables_do_command("-t nat -X " CHAIN_IP_ALLOWED_i, sn);
-        iptables_do_command("-t nat -X " CHAIN_AUTHSERVERS_i, sn);
+        //iptables_do_command("-t nat -X " CHAIN_AUTHSERVERS_i, sn);
         iptables_do_command("-t nat -X " CHAIN_OUTGOING_i, sn);
         iptables_do_command("-t nat -X " CHAIN_TO_ROUTER_i, sn);
         iptables_do_command("-t nat -X " CHAIN_TO_INTERNET_i, sn);
@@ -771,11 +770,11 @@ iptables_fw_destroy(void)
          */
         debug(LOG_DEBUG, "Destroying chains in the FILTER table");
         iptables_do_command("-t filter -F " CHAIN_TO_INTERNET_i, sn);
-        iptables_do_command("-t filter -F " CHAIN_AUTHSERVERS_i, sn);
+        //iptables_do_command("-t filter -F " CHAIN_AUTHSERVERS_i, sn);
         iptables_do_command("-t filter -F " CHAIN_DN_ALLOWED_i, sn);
         iptables_do_command("-t filter -F " CHAIN_IP_ALLOWED_i, sn);
         iptables_do_command("-t filter -X " CHAIN_TO_INTERNET_i, sn);
-        iptables_do_command("-t filter -X " CHAIN_AUTHSERVERS_i, sn);
+        //iptables_do_command("-t filter -X " CHAIN_AUTHSERVERS_i, sn);
         iptables_do_command("-t filter -X " CHAIN_DN_ALLOWED_i, sn);
         iptables_do_command("-t filter -X " CHAIN_IP_ALLOWED_i, sn);
 
@@ -788,12 +787,14 @@ iptables_fw_destroy(void)
         iptables_do_command("-t filter -X " CHAIN_AUTH_IS_DOWN);
     }
     iptables_do_command("-t nat -X " CHAIN_GLOBAL);
+    iptables_do_command("-t nat -X " CHAIN_AUTHSERVERS);
 
     iptables_do_command("-t filter -X " CHAIN_LOCKED);
     iptables_do_command("-t filter -X " CHAIN_GLOBAL);
     iptables_do_command("-t filter -X " CHAIN_VALIDATE);
     iptables_do_command("-t filter -X " CHAIN_KNOWN);
     iptables_do_command("-t filter -X " CHAIN_UNKNOWN);
+    iptables_do_command("-t filter -X " CHAIN_AUTHSERVERS);
 
 #ifdef OKOS_CONTROL_FW_BY_WIFIDOG
     iptables_do_command("-t filter -X Portal");

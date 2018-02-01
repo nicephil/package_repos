@@ -67,7 +67,7 @@ fw_allow(t_client * client, int new_fw_connection_state)
     int result;
     int old_state = client->fw_connection_state;
     t_ssid_config * ssid = client->ssid;
-    if (NULL == ssid) {
+    if (NULL == ssid || !okos_conf_ssid_is_portal(ssid)) {
         debug(LOG_ERR, "  &&!! Can't set iptables allow rule for state %d on ssid unknown for client {ip = %s, mac = %s}", new_fw_connection_state, client->ip, client->mac);
         return -1;
     }
@@ -90,7 +90,7 @@ fw_allow(t_client * client, int new_fw_connection_state)
 int
 fw_allow_host(const char *host, const t_ssid_config * ssid)
 {
-    if (NULL == ssid) {
+    if (NULL == ssid || !okos_conf_ssid_is_portal(ssid)) {
         debug(LOG_DEBUG, "  && Allowing %s on global whitelist", host);
     } else {
         debug(LOG_DEBUG, "  && Allowing %s on whitelist of  ssid[%s]", host, ssid->ssid);
@@ -104,7 +104,7 @@ fw_deny(t_client * client)
 {
     int fw_connection_state = client->fw_connection_state;
     t_ssid_config * ssid = client->ssid;
-    if (NULL == ssid) {
+    if (NULL == ssid || !okos_conf_ssid_is_portal(ssid)) {
         debug(LOG_ERR, "  &&!! Can't set iptables deny rule on ssid unknown for client {ip = %s, mac = %s}", client->ip, client->mac);
         return -1;
     }
@@ -334,21 +334,27 @@ fw_init(void)
     return result;
 }
 
-#if OK_PATCH
 void
-fw_clear_authservers(const t_ssid_config * ssid)
+fw_clear_authservers_by_ssid(const t_ssid_config * ssid)
 {
+    if (NULL == ssid || !okos_conf_ssid_is_portal(ssid)) {
+        debug(LOG_ERR, "!! Clearing authservers list on ssid unsupport portal: %s", ssid->ssid);
+        return;
+    }
     debug(LOG_INFO, "&& Clearing the authservers list on ssid: %s", ssid->ssid);
-    iptables_fw_clear_authservers(ssid);
+    iptables_fw_clear_authservers_by_ssid(ssid);
 }
 
 void
-fw_set_authservers(const t_ssid_config * ssid)
+fw_set_authservers_by_ssid(const t_ssid_config * ssid)
 {
+    if (NULL == ssid || !okos_conf_ssid_is_portal(ssid)) {
+        debug(LOG_ERR, "!! Clearing authservers list on ssid unsupport portal: %s", ssid->ssid);
+        return;
+    }
     debug(LOG_INFO, "&& Setting the authservers list on ssid: %s", ssid->ssid);
-    iptables_fw_set_authservers(ssid);
+    iptables_fw_set_authservers_by_ssid(ssid);
 }
-#else /* OK_PATCH */
 /** Remove all auth server firewall whitelist rules
  */
 void
@@ -366,7 +372,6 @@ fw_set_authservers(void)
     debug(LOG_INFO, "&& Setting the authservers list");
     iptables_fw_set_authservers();
 }
-#endif /* OK_PATCH */
 
 /** Remove the firewall rules
  * This is used when we do a clean shutdown of WiFiDog.

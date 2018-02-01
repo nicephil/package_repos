@@ -92,9 +92,9 @@ int iptables_fw_init(void);
 struct s_ssid_config;
 
 /** @brief Initializes the authservers table */
-void iptables_fw_set_authservers(const struct _s_ssid_config *);
+void iptables_fw_set_authservers(void);
 /** @brief Clears the authservers table */
-void iptables_fw_clear_authservers(const struct _s_ssid_config *);
+void iptables_fw_clear_authservers(void);
 int iptables_fw_access_host(fw_access_t , const char *, const struct _s_ssid_config *);
 int iptables_fw_access(fw_access_t , const char *, const char *, int , const struct _s_ssid_config * );
 

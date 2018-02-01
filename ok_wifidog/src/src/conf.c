@@ -1113,9 +1113,8 @@ config_notnull(const void *parm, const char *parmname)
 /**
  * This function returns the current (first auth_server)
  */
-#if OK_PATCH
 t_auth_serv *
-get_auth_server(const t_client *client)
+get_auth_server_by_client(const t_client *client)
 {
     if (NULL == client)
         return NULL;
@@ -1126,7 +1125,6 @@ get_auth_server(const t_client *client)
     return client->ssid->auth_servers;
 }
 
-#else /* OK_PATCH */
 t_auth_serv *
 get_auth_server(void)
 {
@@ -1135,7 +1133,6 @@ get_auth_server(void)
     return config.auth_servers;
 }
 
-#endif /* OK_PATCH */
 
 /**
  * This function marks the current auth_server, if it matches the argument,
@@ -1477,7 +1474,38 @@ okos_attach_vap_to_ssid(
 
 static int
 okos_load_authsvr_to_ssid(
-        struct portal_scheme_cfg *p_schm_cfg,
+        char *uri_path,
+        t_auth_serv **pp_auth_svrs
+        )
+{
+    t_auth_serv *p_auth_svr;
+    char cfg[OKOS_WFD_MAX_STR_LEN];
+    char host_name[OKOS_WFD_MAX_STR_LEN];
+    char host_path[OKOS_WFD_MAX_STR_LEN];
+    host_path[0] = '/';
+    int host_port = DEFAULT_AUTHSERVPORT;
+    if (1 == sscanf(uri_path, "http://%s", cfg)) {
+        if ((3 == sscanf(cfg, "%[a-zA-Z0-9.]:%d/%s", host_name, &host_port, &host_path[1]))
+                || (2 == sscanf(cfg, "%[a-zA-Z0-9.]/%s", host_name, &host_path[1]))) {
+            p_auth_svr = okos_conf_ins_list_member(*pp_auth_svrs);
+            okos_config_init_default_auth_server(p_auth_svr);
+            okos_conf_set_str(p_auth_svr->authserv_hostname, host_name);
+            okos_conf_set_str(p_auth_svr->authserv_path, host_path);
+            p_auth_svr->authserv_http_port = host_port;
+            debug(LOG_DEBUG, "[CFG]\t\t\t add auth server(%s) with path(%s)",
+                    p_auth_svr->authserv_hostname, p_auth_svr->authserv_path);
+            return 0;
+        }
+    }
+    debug(LOG_WARNING, "[CFG]!! Bad auth server path configuration<%s>", uri_path);
+    return 1;
+}
+
+#if 0
+static int
+okos_load_authsvr_to_ssid(
+//        struct portal_scheme_cfg *p_schm_cfg,
+        char *uri_path,
         t_ssid_config *p_ssid
         )
 {
@@ -1487,7 +1515,7 @@ okos_load_authsvr_to_ssid(
     char host_path[OKOS_WFD_MAX_STR_LEN];
     host_path[0] = '/';
     int host_port = DEFAULT_AUTHSERVPORT;
-    if (1 == sscanf(p_schm_cfg->uri_path, "http://%s", cfg)) {
+    if (1 == sscanf(uri_path, "http://%s", cfg)) {
         if ((3 == sscanf(cfg, "%[a-zA-Z0-9.]:%d/%s", host_name, &host_port, &host_path[1]))
                 || (2 == sscanf(cfg, "%[a-zA-Z0-9.]/%s", host_name, &host_path[1]))) {
             p_auth_svr = okos_conf_ins_list_member(p_ssid->auth_servers);
@@ -1500,9 +1528,10 @@ okos_load_authsvr_to_ssid(
             return 0;
         }
     }
-    debug(LOG_WARNING, "[CFG]!! Bad auth server path configuration<%s>", p_schm_cfg->uri_path);
+    debug(LOG_WARNING, "[CFG]!! Bad auth server path configuration<%s>", uri_path);
     return 1;
 }
+#endif
 
 static int
 okos_load_ip_whitelist_to_ssid(
@@ -1640,6 +1669,12 @@ okos_load_ssid(
         int svc_tmp_id
         )
 {
+    t_ssid_config *p_ssid = okos_conf_ins_list_member(config.ssid);
+    p_ssid->sn = svc_tmp_id;
+    p_ssid->ssid = okos_conf_get_option_value_from_config(
+            "wlan_service_template.ServiceTemplate%d.ssid", svc_tmp_id);
+    p_ssid->ssid = p_ssid->ssid ? p_ssid->ssid : "OkOS";
+
     /*-----------------------------------------------------------------
      * STEP1: After getting the service template SN.,
      *        Checking whether this SSID was configured as Portal Mode
@@ -1647,61 +1682,51 @@ okos_load_ssid(
      *----------------------------------------------------------------*/
     char *scheme_name = okos_conf_get_option_value_from_config(
             "wlan_service_template.ServiceTemplate%d.portal_scheme", svc_tmp_id);
+    p_ssid->scheme = scheme_name ? scheme_name : "";
+    debug(LOG_DEBUG, "[CFG]\t\t Created ssid(%s) scheme(%s) sn(%d).",
+            p_ssid->ssid, p_ssid->scheme, p_ssid->sn);
     if (NULL == scheme_name) {
         debug(LOG_DEBUG, "[CFG]\t\t Template[%d] works out of Portal mode.", svc_tmp_id);
-        return NULL;
-    }
-
-    /*-----------------------------------------------------------------
-     * STEP2: Got a service template enabled portal.
-     *        So, should do
-     *        1) Polling portal schemes by scheme name.
-     *        2) Create ssid element;
-     *        2.1) Copy AuthSvr Cfg.
-     *        2.2) Copy Domain name & IP white list.
-     *        3) Attach this VAP.
-     *----------------------------------------------------------------*/
-    struct portal_schemes *p_schemes = safe_malloc(sizeof(struct portal_schemes));
-    portal_scheme_get_all(p_schemes);
-    struct portal_scheme_cfg *p_schm_cfg = NULL;
-    struct portal_scheme_cfg *p_tmp = p_schemes->config;
-    int i_schm;
-    for (i_schm = 0; i_schm < p_schemes->num; i_schm++, p_tmp++) {
-        if (p_tmp->enable && 0 == strncmp(p_tmp->scheme_name, scheme_name, strlen(scheme_name))) {
-            p_schm_cfg = p_tmp;
-            break;
-        }
-    }
-
-    t_ssid_config *p_ssid = NULL;
-    if (NULL != p_schm_cfg) {
-        p_ssid = okos_conf_ins_list_member(config.ssid);
-        p_ssid->scheme = scheme_name;
-        p_ssid->sn = svc_tmp_id;
-        p_ssid->ssid = okos_conf_get_option_value_from_config(
-                "wlan_service_template.ServiceTemplate%d.ssid", svc_tmp_id);
-        p_ssid->ssid = p_ssid->ssid ? p_ssid->ssid : "OkOS";
-        debug(LOG_DEBUG, "[CFG]\t\t Created ssid(%s) scheme(%s) sn(%d).",
-                p_ssid->ssid, p_ssid->scheme, p_ssid->sn);
-
-        okos_load_authsvr_to_ssid(p_schm_cfg, p_ssid);
-        okos_load_ip_whitelist_to_ssid(p_schm_cfg, p_ssid);
-        okos_load_dn_whitelist_to_ssid(p_schm_cfg, p_ssid);
-
-        char *acl_name = okos_conf_get_option_value_from_config(
-                "wlan_service_template.ServiceTemplate%d.acl", svc_tmp_id);
-        if (NULL != acl_name) {
-            okos_load_mac_white_list_to_ssid(acl_name, p_ssid);
-        }
-        free(acl_name);
     } else {
-        debug(LOG_DEBUG, "[CFG]!! Can't find out Portal Scheme(%s) set in template(%d)",
-                scheme_name, svc_tmp_id);
-        free(scheme_name);
+        /*-----------------------------------------------------------------
+         * STEP2: Got a service template enabled portal.
+         *        So, should do
+         *        1) Polling portal schemes by scheme name.
+         *        2) Create ssid element;
+         *        2.1) Copy AuthSvr Cfg.
+         *        2.2) Copy Domain name & IP white list.
+         *        3) Attach this VAP.
+         *----------------------------------------------------------------*/
+        struct portal_schemes *p_schemes = safe_malloc(sizeof(struct portal_schemes));
+        portal_scheme_get_all(p_schemes);
+        struct portal_scheme_cfg *p_schm_cfg = NULL;
+        struct portal_scheme_cfg *p_tmp = p_schemes->config;
+        int i_schm;
+        for (i_schm = 0; i_schm < p_schemes->num; i_schm++, p_tmp++) {
+            if (p_tmp->enable && 0 == strncmp(p_tmp->scheme_name, scheme_name, strlen(scheme_name))) {
+                p_schm_cfg = p_tmp;
+                break;
+            }
+        }
+        if (NULL != p_schm_cfg) {
+            okos_load_authsvr_to_ssid(p_schm_cfg->uri_path, &(p_ssid->auth_servers));
+            okos_load_ip_whitelist_to_ssid(p_schm_cfg, p_ssid);
+            okos_load_dn_whitelist_to_ssid(p_schm_cfg, p_ssid);
+            char *acl_name = okos_conf_get_option_value_from_config(
+                    "wlan_service_template.ServiceTemplate%d.acl", svc_tmp_id);
+            if (NULL != acl_name) {
+                okos_load_mac_white_list_to_ssid(acl_name, p_ssid);
+            }
+            free(acl_name);
+        } else {
+            debug(LOG_DEBUG, "[CFG]!! Can't find out Portal Scheme(%s) set in template(%d)",
+                    scheme_name, svc_tmp_id);
+            p_ssid->scheme = "";
+            free(scheme_name);
+        }
+        portal_scheme_free_all(p_schemes);
     }
-
-    portal_scheme_free_all(p_schemes);
-
+    //p_ssid->scheme = p_ssid->scheme ? p_ssid_scheme : ""
     return p_ssid;
 }
 
@@ -1732,6 +1757,13 @@ okos_config_read(void)
         debug(LOG_DEBUG, "[CFG]!! Parsing domain_name UNCOMPLETED.");
         config.domain_name = safe_strdup("");
     }
+    char *uri_path = okos_conf_get_option_value_from_config("system.auth_url.auth_url");
+    if (uri_path) {
+        okos_load_authsvr_to_ssid(uri_path, &(config.auth_servers));
+    } else {
+        debug(LOG_ERR, "[CFG]!! Parsing global auth server failed.");
+    }
+    free(uri_path);
 
     /*-------------------------------------------------------------
      * Purpose of this block:
@@ -1794,6 +1826,11 @@ okos_config_read(void)
     debug(LOG_INFO, "[CFG] Reading configuration from uci finished.\n");
 }
 
+int
+okos_conf_ssid_is_portal(const t_ssid_config *p_ssid)
+{
+    return strlen(p_ssid->scheme);
+}
 
 void
 config_simulate(void)
@@ -2128,6 +2165,20 @@ okos_conf_get_all(void)
     pstr_cat(p_str, "\n\n>>>> Configuration section <<<<\n");
     OKOS_CONF_APP_STR("Device ID", config.device_id);
     OKOS_CONF_APP_STR("Domain Name", config.domain_name);
+    pstr_cat(p_str, "Authentication Server:\n");
+    t_auth_serv *p_svr;
+    okos_list_for_each(p_svr, config.auth_servers) {
+        OKOS_CONF_APP_STR("  Host Name", p_svr->authserv_hostname);
+        OKOS_CONF_APP_STR("  Path", p_svr->authserv_path);
+        OKOS_CONF_APP_STR("  Login script path", p_svr->authserv_login_script_path_fragment);
+        OKOS_CONF_APP_STR("  Portal script path", p_svr->authserv_portal_script_path_fragment);
+        OKOS_CONF_APP_STR("  Msg script path", p_svr->authserv_msg_script_path_fragment);
+        OKOS_CONF_APP_STR("  Ping script path", p_svr->authserv_ping_script_path_fragment);
+        OKOS_CONF_APP_STR("  Auth script path", p_svr->authserv_auth_script_path_fragment);
+        OKOS_CONF_APP_INT("  Http port", p_svr->authserv_http_port);
+        OKOS_CONF_APP_INT("  SSL port", p_svr->authserv_ssl_port);
+        pstr_append_sprintf(p_str, "  SSL %s\n", p_svr->authserv_use_ssl ? "Enabled" : "Disabled");
+    }
     pstr_cat(p_str, ">>>> SSID Configuration <<<<\n");
     t_ssid_config *p_ssid;
     okos_list_for_each(p_ssid, config.ssid) {
@@ -2155,10 +2206,15 @@ okos_conf_get_all(void)
             OKOS_CONF_APP_INT("  SSL port", p_svr->authserv_ssl_port);
             pstr_append_sprintf(p_str, "  SSL %s\n", p_svr->authserv_use_ssl ? "Enabled" : "Disabled");
         }
-        OKOS_CONF_APP_STR("@", p_ssid->dn_white_list->name);
-        okos_conf_get_firewall(p_str, p_ssid->dn_white_list->rules);
-        OKOS_CONF_APP_STR("@", p_ssid->ip_white_list->name);
-        okos_conf_get_firewall(p_str, p_ssid->ip_white_list->rules);
+        t_firewall_ruleset *p_fw;
+        okos_list_for_each(p_fw, p_ssid->dn_white_list) {
+            OKOS_CONF_APP_STR("@", p_ssid->dn_white_list->name);
+            okos_conf_get_firewall(p_str, p_ssid->dn_white_list->rules);
+        }
+        okos_list_for_each(p_fw, p_ssid->ip_white_list) {
+            OKOS_CONF_APP_STR("@", p_ssid->ip_white_list->name);
+            okos_conf_get_firewall(p_str, p_ssid->ip_white_list->rules);
+        }
         pstr_cat(p_str, "@: MAC address white list\n");
         t_trusted_mac *p_mac;
         okos_list_for_each(p_mac, p_ssid->mac_white_list) {
