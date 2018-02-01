@@ -496,7 +496,7 @@ okos_http_cb_404(httpd *webserver, request *r, int error_code)
      *         3) Create new url
      *         4) Send 302 redirect client to auth server.
      * ------------------------------------------------------------*/
-    t_auth_serv *auth_server = get_auth_server(p_client);
+    t_auth_serv *auth_server = get_auth_server();
     if (NULL == auth_server) {
         debug(LOG_DEBUG, "<HTTPD_404>!! Without AuthSvr, Drop %s's request.", r->clientAddr);
         okos_send_http_page(r, "Login", "Uh oh! Internet access unavailable! Take it easy.");
@@ -565,7 +565,7 @@ okos_http_cb_qrcode(httpd *webserver, request *r)
     debug(LOG_DEBUG, "<HTTPD_qrcode> Client {%s, %s, %s}",
             p_client->ip, p_client->mac, p_client->if_name);
 
-    t_auth_serv *auth_server = get_auth_server(p_client);
+    t_auth_serv *auth_server = get_auth_server();
     if (NULL == auth_server) {
         debug(LOG_DEBUG, "<HTTP_qrcode>!! AuthSvr is invalid.");
         okos_send_http_page(r, "Auth qrcode", "Uh oh! Internet access unavailable! Take it easy.");
