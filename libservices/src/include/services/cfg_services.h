@@ -132,6 +132,7 @@ extern int cfg_get_version(void);
 
 #define PRODUCTINFO_CFG_PACKAGE  "productinfo"
 #define PRODUCTINFO_OPTION_PRODUCTION "production"
+#define PRODUCTINFO_OPTION_MODEL "model"
 #define PRODUCTINFO_OPTION_SERIAL "serial"
 #define PRODUCTINFO_OPTION_MAC "mac"
 #define PRODUCTINFO_OPTION_SWVERSION "swversion"

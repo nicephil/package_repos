@@ -117,6 +117,7 @@ struct device_update_info* chk_dev_updateinfo(void)
     int ret, sk;
     struct ifreq ifr;
     struct sockaddr_in *paddr;
+    char gateway[64] = {0};
 
     sk = socket(PF_INET, SOCK_DGRAM, 0);
 	if (sk < 0) {
@@ -143,6 +144,10 @@ struct device_update_info* chk_dev_updateinfo(void)
     gethostname(info.hostname, HOST_NAME_MAX);
     info.len = strlen(info.hostname);
 	close(sk);
+    execute_cmd(". /lib/functions/network.sh;network_get_gateway __aa lan1;echo $__aa", gateway, 64);
+    if (strlen(gateway)) {
+        info.gateway = inet_addr(gateway);
+    }
 
     if (g_dev_updateinfo.iptype != info.iptype
             || g_dev_updateinfo.ip != info.ip
@@ -204,6 +209,7 @@ static int get_device_info(device_info_s *devinfo)
     char nms_version[16] = "1.7.0";     
     char *s, *e;
     int i;
+    char gateway[64] = {0};
 
     if (cfg_get_product_info(&info)) {
         return -1;
@@ -245,6 +251,10 @@ static int get_device_info(device_info_s *devinfo)
     paddr = (struct sockaddr_in *) &ifr.ifr_netmask;
     devinfo->netmask = paddr->sin_addr.s_addr;
 	close(sk);
+    execute_cmd(". /lib/functions/network.sh;network_get_gateway __aa lan1;echo $__aa", gateway, 64);
+    if (strlen(gateway)) {
+        devinfo->gateway = inet_addr(gateway);
+    }
 
     /* uptime in second unit */
     sysinfo(&sys);
