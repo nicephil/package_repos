@@ -50,8 +50,15 @@
 struct _s_ssid_config;
 
 int auth_server_request(t_authresponse * , t_client *);
+
+#if OK_PATCH_CONNECT_AUTH_SERVER_BY_SSID
 int connect_auth_server(const struct _s_ssid_config *);
 int _connect_auth_server(int level, const struct _s_ssid_config *);
+#else
+int connect_auth_server(void);
+int _connect_auth_server(int level);
+#endif
+
 int _access_auth_server(t_auth_serv *);
 #else
 /** @brief Initiates a transaction with the auth server */
