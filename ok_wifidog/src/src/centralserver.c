@@ -97,7 +97,7 @@ auth_server_request(t_authresponse *authresponse, t_client *client)
     int updateFailed = -1;
     authresponse->authcode = AUTH_ERROR;
     
-    t_auth_serv *auth_server = get_auth_server(client);
+    t_auth_serv *auth_server = get_auth_server_by_client(client);
     int sockfd = _access_auth_server(auth_server);
     if (-1 == sockfd) {
         debug(LOG_DEBUG, "~~ Auth server is unreachable.");
@@ -271,11 +271,10 @@ auth_server_request(t_authresponse * authresponse, const char *request_type, con
 }
 #endif
 
-
 /* Tries really hard to connect to an auth server. Returns a file descriptor, -1 on error
  */
 int
-#if OK_PATCH
+#if OK_PATCH_CONNECT_AUTH_SERVER_BY_SSID
 connect_auth_server(const t_ssid_config * ssid)
 #else
 connect_auth_server()
@@ -284,7 +283,7 @@ connect_auth_server()
     int sockfd;
 
     LOCK_CONFIG();
-#if OK_PATCH
+#if OK_PATCH_CONNECT_AUTH_SERVER_BY_SSID
     sockfd = _connect_auth_server(0, ssid);
 #else
     sockfd = _connect_auth_server(0);
@@ -306,7 +305,7 @@ connect_auth_server()
  @param level recursion level indicator must be 0 when not called by _connect_auth_server()
  */
 int
-#if OK_PATCH
+#if OK_PATCH_CONNECT_AUTH_SERVER_BY_SSID
 _connect_auth_server(int level, const t_ssid_config * ssid)
 #else
 _connect_auth_server(int level)
@@ -322,7 +321,7 @@ _connect_auth_server(int level)
     //struct sockaddr_in their_addr;
     int sockfd;
 
-#if OK_PATCH
+#if OK_PATCH_CONNECT_AUTH_SERVER_BY_SSID
     if (NULL == ssid) {
         return -1;
     }
@@ -341,15 +340,19 @@ _connect_auth_server(int level)
     /*
      * Let's calculate the number of servers we have
      */
-#if OK_PATCH
+#if OK_PATCH_CONNECT_AUTH_SERVER_BY_SSID
     for (auth_server = ssid->auth_servers; auth_server; auth_server = auth_server->next) {
-#else
-    for (auth_server = config->auth_servers; auth_server; auth_server = auth_server->next) {
-#endif
         num_servers++;
     }
     debug(LOG_DEBUG, "  ## Level %d: Calculated %d auth servers in list on ssid:%s",
             level, num_servers, ssid->ssid);
+#else
+    for (auth_server = config->auth_servers; auth_server; auth_server = auth_server->next) {
+        num_servers++;
+    }
+    debug(LOG_DEBUG, "  ## Level %d: Calculated %d auth servers",
+            level, num_servers);
+#endif
 
     if (level > num_servers) {
         /*
@@ -363,7 +366,7 @@ _connect_auth_server(int level)
     /*
      * Let's resolve the hostname of the top server to an IP address
      */
-#if OK_PATCH
+#if OK_PATCH_CONNECT_AUTH_SERVER_BY_SSID
     auth_server = ssid->auth_servers;
 #else
     auth_server = config->auth_servers;
@@ -407,7 +410,7 @@ _connect_auth_server(int level)
                 auth_server->last_ip = NULL;
             }
             mark_auth_server_bad(auth_server);
-#if OK_PATCH
+#if OK_PATCH_CONNECT_AUTH_SERVER_BY_SSID
             return _connect_auth_server(level, ssid);
 #else
             return _connect_auth_server(level);
@@ -443,7 +446,7 @@ _connect_auth_server(int level)
             auth_server->last_ip = ip;
 
             /* Update firewall rules */
-#if OK_PATCH
+#if OK_PATCH_CONNECT_AUTH_SERVER_BY_SSID
             fw_clear_authservers(ssid);
             fw_set_authservers(ssid);
 #else
@@ -459,7 +462,7 @@ _connect_auth_server(int level)
 
         sockfd = _access_auth_server(auth_server);
         if (-2 == sockfd) {
-#if OK_PATCH
+#if OK_PATCH_CONNECT_AUTH_SERVER_BY_SSID
             return _connect_auth_server(level, ssid); /* Yay recursion! */
 #else
             return _connect_auth_server(level); /* Yay recursion! */
@@ -508,7 +511,7 @@ _connect_auth_server(int level)
                   level, hostname, ntohs(port), strerror(errno));
             close(sockfd);
             mark_auth_server_bad(auth_server);
-#if OK_PATCH
+#if OK_PATCH_CONNECT_AUTH_SERVER_BY_SSID
             return _connect_auth_server(level, ssid); /* Yay recursion! */
 #else
             return _connect_auth_server(level); /* Yay recursion! */
