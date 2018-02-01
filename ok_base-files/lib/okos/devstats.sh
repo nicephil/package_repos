@@ -109,8 +109,8 @@ generate_chscanningjson()
     local _2ch_nums="$(iwlist ath50 scanning 2>&1 | awk '/Channel/{key=substr($4,1,length($4)-1);sum[key]++;}END{for(k in sum)print k"_"sum[k];}')"
     local _5ch_nums="$(iwlist ath60 scanning 2>&1 | awk '/Channel/{key=substr($4,1,length($4)-1);sum[key]++;}END{for(k in sum)print k"_"sum[k];}')" 
 
-    echo "-------------->$ch_usabs" | logger -t 'devstats'
-    echo "==============>$_2ch_nums" | logger -t 'devstats'
+    #echo "-------------->$ch_usabs" | logger -t 'devstats'
+    #echo "==============>$_2ch_nums" | logger -t 'devstats'
     echo "-------------->$_5ch_nums" | logger -t 'devstats'
 
 

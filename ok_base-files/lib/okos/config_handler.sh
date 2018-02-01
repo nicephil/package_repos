@@ -16,7 +16,7 @@ config_log()
     then
         echo "new_config: $@"
     else
-        logger -t 'new_config' $@
+        logger -p 7 -t 'new_config' $@
     fi
 }
 
@@ -60,7 +60,7 @@ handle_devstats()
     if [ -z "$(pgrep 'icm')" ]
     then
         icm -i /tmp/icmseldebug.csv >/dev/null 2>&1 &
-        (sleep 60; has_chscanningjson=1 /lib/okos/devstats.sh) &
+        (sleep 80; has_chscanningjson=1 /lib/okos/devstats.sh) &
     fi
 
     return 0
