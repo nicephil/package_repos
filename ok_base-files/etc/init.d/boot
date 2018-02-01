@@ -47,8 +47,11 @@ boot() {
 	uci_apply_defaults
     # OK_PATCH
     # generate productinfo
-    /lib/okos/fetch_productinfo.sh > /etc/config/productinfo
-    [ "`uci get productinfo.productinfo.production`" = "ubnterx" ] && {
+    if [ ! -f /etc/config/productinfo ]
+    then
+        /lib/okos/fetch_productinfo.sh > /etc/config/productinfo
+    fi
+    [ "`uci get productinfo.productinfo.production`" = "EdgeRouter_ER-X" ] && {
         [ -d /sys/class/gpio ] && {
             echo 0 > /sys/class/gpio/export
             echo out > /sys/class/gpio/gpio0/direction

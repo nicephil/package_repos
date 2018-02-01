@@ -8,9 +8,10 @@ case "$board" in
 ubnt-erx)
     mac=$(hexdump -e '1/1 "%02x:"' -n6 /dev/mtd2)
     mac=${mac%:*}
-    serial=`echo $mac | tr -d :`
+    serial=`echo $mac |tr -d :|tr '[a-z]' '[A-Z]'`
     echo -e "config productinfo productinfo"
-    echo -e  "\toption production ubnterx"
+    echo -e  "\toption production EdgeRouter_ER-X"
+    echo -e  "\toption model UBNT_EdgeRouter_ER-X"
     echo -e "\toption serial ${serial}"
     echo -e "\toption mac ${mac}"
     ;;
@@ -28,7 +29,7 @@ miwifi-3)
     ;;
 esac
 
-echo -e "\toption swversion `cat /etc/issue`"
+echo -e "\toption bootversion `cat /etc/issue`"
 
 
 

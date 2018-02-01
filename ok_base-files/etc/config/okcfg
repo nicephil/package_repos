@@ -1,4 +1,0 @@
-config okcfg config
-    option type 0
-    option version 1
-    option save_config 1

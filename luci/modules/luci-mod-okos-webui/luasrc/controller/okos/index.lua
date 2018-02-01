@@ -642,7 +642,7 @@ function action_regdev()
     ]]--
     response.errcode = 0
 
-    response.errcode = sys.call("/sbin/uci set capwapc.server.mas_server=" .. input.oakmgr .. " && /sbin/uci commit capwapc && /etc/init.d/capwapc restart")
+    response.errcode = sys.call("/sbin/uci set capwapc.server.mas_server=" .. input.oakmgr .. " && /sbin/uci commit capwapc")
 
     if response.errcode == 0 then
         response.errcode = sys.user.setpasswd("root", input.passcode)

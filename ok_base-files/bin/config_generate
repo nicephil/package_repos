@@ -448,7 +448,7 @@ case $board in
             set network.lan_dev.name='eth0.4000'
             rename network.lan='lan4000'
             rename network.lan_dev='lan4000_dev'
-            set network.wan.proto='none'
+            set network.wan.proto='dhcp'
             set network.wan.ifname='eth0.4054'
             delete network.wan6
             set network.wan_dev.name='eth0.4054'
