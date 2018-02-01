@@ -94,8 +94,25 @@ thread_ping(void *arg)
  * This function does the actual request.
  */
 #if OK_PATCH
+static void _ping(void) {
+}
+
 void
 ping(void)
+{
+    debug(LOG_DEBUG, "<PING> ## Checking auth server connection periodly.");
+    int sockfd = -1;
+    sockfd = connect_auth_server();
+    if (sockfd == -1) {
+        debug(LOG_DEBUG, "<PING> ## auth server connect failed.");
+    } else {
+        debug(LOG_DEBUG, "<PING> ## auth server is reachable. Enjoy your time.");
+        close(sockfd);
+    }
+}
+#else /* OK_PATCH */
+void
+ping_ssids(void)
 {
     debug(LOG_DEBUG, "<PING> ## Checking auth server connection periodly.");
     int sockfd = -1;
@@ -114,7 +131,6 @@ ping(void)
         }
     }
 }
-#else /* OK_PATCH */
 static void
 ping(void)
 {
