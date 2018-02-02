@@ -60,7 +60,7 @@ handle_devstats()
     if [ -z "$(pgrep 'icm')" ]
     then
         icm -i /tmp/icmseldebug.csv >/dev/null 2>&1 &
-        (sleep 80; has_chscanningjson=1 /lib/okos/devstats.sh) &
+        (sleep 110; has_chscanningjson=1 /lib/okos/devstats.sh) &
     fi
 
     return 0
