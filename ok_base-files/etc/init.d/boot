@@ -56,6 +56,9 @@ boot() {
             echo 1 > /sys/class/gpio/gpio0/value
         }
     }
+    cp /overlay/upper/etc/config/capwapc /etc/config/capwapc
+    cp /overlay/upper/etc/config/network /etc/config/network
+    cp /overlay/upper/etc/config/dhcp /etc/config/dhcp
     ## end OK_PATCH
 	
 	# temporary hack until configd exists

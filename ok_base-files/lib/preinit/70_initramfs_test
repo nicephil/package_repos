@@ -8,7 +8,7 @@ initramfs_test() {
 	boot_run_hook initramfs
 	preinit_ip_deconfig
     # OK_PATCH
-    mount -t ubifs ubi0:ubi_rootfs_data /overlay 
+    mount -t ubifs ubi0:rootfs_data /overlay 
     mount -t jffs2 /dev/mtdblock10 /overlay
     # end of OK_PATCH
 	break
