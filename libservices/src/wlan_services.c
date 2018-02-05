@@ -1349,8 +1349,8 @@ int wlan_set_bind(int radio_id, int stid)
     //wireless.ath15.disabled='0' <-> wlan_serivce_template.ServiceTemplate1.service_template="enabled"
     sprintf(tuple, "wlan_service_template.ServiceTemplate%d.service_template", stid);
     cfg_get_option_value(tuple, buf, sizeof(buf));
+    sprintf(tuple, "wireless.ath%d%d.disabled", radio_id, stid);
     if (!strcmp(buf, "enabled")) {
-        sprintf(tuple, "wireless.ath%d%d.disabled", radio_id, stid);
         cfg_set_option_value(tuple, "0");
     } else {
         cfg_set_option_value(tuple, "1");
@@ -1377,6 +1377,17 @@ int wlan_set_bind(int radio_id, int stid)
     cfg_get_option_value(tuple, buf, sizeof(buf));
     sprintf(tuple, "wireless.ath%d%d.maxsta", radio_id, stid);
     cfg_set_option_value(tuple, buf);
+
+
+    //wlan_service_template.ServiceTemplate1.beacon_ssid_hide='127'
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.beacon_ssid_hide", stid);
+    cfg_get_option_value(tuple, buf, sizeof(buf));
+    sprintf(tuple, "wireless.ath%d%d.hidden", radio_id, stid);
+    if (!strcmp(buf, "enabled")) {
+        cfg_set_option_value(tuple, "1");
+    } else {
+        cfg_set_option_value(tuple, "0");
+    }
 
 #if OK_PATCH
     // add bandwidth_priority and client_isolation, bandwidth_priority will handled in /lib/wifi/qcawifi.sh

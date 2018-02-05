@@ -23,7 +23,7 @@ unifi)
     { 
     if ($1 == "DEV_NAME") {
         print "\toption production "$2;
-        if ($2 == "WL8200-I2") {
+        if ($2 == "\"WL8200-I2\"") {
             gsub(/"/,"",$2);
             print "\toption model DCN_"$2;
         } else {
