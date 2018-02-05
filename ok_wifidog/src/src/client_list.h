@@ -76,6 +76,7 @@ typedef struct _t_client {
     //char *token;
     /** flag to indicate whether this element should be polled in timeout thread. **/
     int flag;   // 0: No need; 1: Enable polling.
+    //int padding[8192];
 
 } t_client;
 
@@ -129,17 +130,15 @@ void client_list_remove(t_client *);
 void client_free_node(t_client *);
 
 #define LOCK_CLIENT_LIST() do { \
-    pthread_t id = pthread_self(); \
-	debug(LOG_DEBUG, "____Locking client list [%u] ____", id); \
+	debug(LOG_DEBUG, "____Locking client list____"); \
 	pthread_mutex_lock(&client_list_mutex); \
-	debug(LOG_DEBUG, "____Client list locked [%u] ____", id); \
+	debug(LOG_DEBUG, "____Client list locked____"); \
 } while (0)
 
 #define UNLOCK_CLIENT_LIST() do { \
-    pthread_t id = pthread_self(); \
-	debug(LOG_DEBUG, "____Unlocking client list [%u] ____", id); \
+	debug(LOG_DEBUG, "____Unlocking client list____"); \
 	pthread_mutex_unlock(&client_list_mutex); \
-	debug(LOG_DEBUG, "____Client list unlocked [%u] ____", id); \
+	debug(LOG_DEBUG, "____Client list unlocked____"); \
 } while (0)
 
 #if OK_PATCH
