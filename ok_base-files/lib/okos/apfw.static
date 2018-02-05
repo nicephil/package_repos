@@ -47,6 +47,7 @@ set_static_guest_network_rules ()
     $CMD -A guest_network -p udp -m udp --dport 67 -j ACCEPT 
     $CMD -A guest_network -p udp -m udp --dport 68 -j ACCEPT 
     $CMD -A guest_network -p udp -m udp --dport 53 -j ACCEPT 
+    $CMD -A guest_network -d 10.10.111.111 -j ACCEPT
     $CMD -A guest_network -d 192.168.0.0/16 -j DROP 
     $CMD -A guest_network -d 172.16.0.0/12 -j DROP 
     $CMD -A guest_network -d 10.0.0.0/8 -j DROP 
@@ -103,12 +104,12 @@ set_global_static_chains_rules()
 
     # firewall rule
     $CMD -A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT 
+    # network isolation
+    $CMD -A FORWARD -j isolation
     # whitelist rule
     $CMD -A FORWARD -j WhiteList 
     # wifidog rule
     $CMD -A FORWARD -j Portal 
-    # network isolation
-    $CMD -A FORWARD -j isolation
 
     # nat table
     # wifidog
