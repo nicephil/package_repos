@@ -39,12 +39,8 @@ do
         _hostname=${_hostname%%.*}
     }
     [ -z "$client_tmp" ] && {
-        for _ath in `iwconfig 2>/dev/null | awk '/ath/{print $1}'`
-        do
-            tmp_str=`wlanconfig $_ath list sta | awk -n "/$client/p"`
-            [ -n "$tmp_str" ] && break
-        done
-        [ -z "$tmp_str" ] && continue
+        _ath=$(apstats -s -m $client | awk '/'"$client"'/{print substr($7,1, length($7)-1);exit}')
+        [ -z "$_ath" ] && continue
 
         _bssid=`ifconfig $_ath | awk '$1 ~ /ath/{print $5;exit}'`
         
@@ -62,7 +58,7 @@ do
         _pu=""
 
         CMD="INSERT OR REPLACE INTO STAINFO  (MAC,IFNAME,RADIOID) VALUES('$_mac','$_ath','${_radioid}')"
-        #echo sqlite3 /tmp/stationinfo.db "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
+        # echo sqlite3 /tmp/stationinfo.db "BEGIN TRANSACTION;${CMD};COMMIT;" | logger -t getstainfo
         sqlite3 /tmp/stationinfo.db "BEGIN TRANSACTION;${CMD};COMMIT;"
 
     }
