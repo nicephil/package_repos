@@ -33,21 +33,17 @@
 #include <signal.h>
 #include <errno.h>
 #include <time.h>
-
 /* for strerror() */
 #include <string.h>
-
 /* for wait() */
 #include <sys/wait.h>
-
 /* for unix socket communication*/
 #include <sys/socket.h>
 #include <sys/un.h>
-
 #include <fcntl.h>
+//#include <mcheck.h>
 
 #include "sqlite3.h"
-
 #include "common.h"
 #include "httpd.h"
 #include "safe.h"
@@ -71,9 +67,7 @@
  */
 static pthread_t tid_fw_counter = 0;
 static pthread_t tid_ping = 0;
-
 time_t started_time = 0;
-
 /* The internal web server */
 httpd * webserver = NULL;
 
@@ -320,6 +314,7 @@ termination_handler(int s)
     pthread_t self = pthread_self();
 #endif
 
+    //muntrace();
     debug(LOG_INFO, "____Handler for termination caught signal %d", s);
 
     /* Makes sure we only call fw_destroy() once. */
@@ -463,39 +458,10 @@ main_loop(void)
     if ((!config) && (!config->pidfile))
         save_pid_file(config->pidfile);
 
-#if OK_PATCH
-#else /* OK_PATCH */
-    /* If we don't have the Gateway IP address, get it. Can't fail. */
-    if (!config->gw_address) {
-        debug(LOG_DEBUG, "Finding IP address of %s", config->gw_interface);
-        if ((config->gw_address = get_iface_ip(config->gw_interface)) == NULL) {
-            debug(LOG_ERR, "Could not get IP address information of %s, exiting...", config->gw_interface);
-            exit(1);
-        }
-        debug(LOG_DEBUG, "%s = %s", config->gw_interface, config->gw_address);
-    }
-
-    /* If we don't have the Gateway ID, construct it from the internal MAC address.
-     * "Can't fail" so exit() if the impossible happens. */
-    if (!config->gw_id) {
-        debug(LOG_DEBUG, "Finding MAC address of %s", config->gw_interface);
-        if ((config->gw_id = get_iface_mac(config->gw_interface)) == NULL) {
-            debug(LOG_ERR, "Could not get MAC address information of %s, exiting...", config->gw_interface);
-            exit(1);
-        }
-        debug(LOG_DEBUG, "%s = %s", config->gw_interface, config->gw_id);
-    }
-#endif /* OK_PATCH */
-
     /* Initializes the web server */
-#if OK_PATCH
     reserve_fd();
     debug(LOG_NOTICE, "<DAEMON> Creating web server on %s:%d", "0.0.0.0", config->gw_port);
     if (NULL == (webserver = httpdCreate(HTTP_ANY_ADDR, config->gw_port))) {
-#else
-    debug(LOG_NOTICE, "Creating web server on %s:%d", config->gw_address, config->gw_port);
-    if (NULL == (webserver = httpdCreate(config->gw_address, config->gw_port))) {
-#endif
         debug(LOG_ERR, "<DAEMON> Could not create web server: %s", strerror(errno));
         exit(1006);
     }
@@ -505,29 +471,16 @@ main_loop(void)
             webserver->startTime, webserver->lastError);
 
     debug(LOG_DEBUG, "<DAEMON> Assigning callbacks to web server");
-#if OK_PATCH
     /* FIXME
      * Why don't we add some funny things here?
      */
     okos_init_http_callback();
     okos_http_callback_register("about", okos_http_cb_shell, NULL);
-
     httpdAddCContent(webserver, "/", "auth", 0, NULL, okos_http_cb_wifidog);
     httpdAddCContent(webserver, "/auth", "", 0, NULL, okos_http_cb_wifidog);
-    
     httpdAddCContent(webserver, "/auth", "client", 0, NULL, okos_http_cb_auth);
     httpdAddCContent(webserver, "/auth/client", "allow", 0, NULL, okos_http_cb_allow);
     httpdAddCContent(webserver, "/auth/client", "qrcode", 0, NULL, okos_http_cb_qrcode);
-
-#else
-    httpdAddCContent(webserver, "/", "wifidog", 0, NULL, http_callback_wifidog);
-    httpdAddCContent(webserver, "/wifidog", "", 0, NULL, http_callback_wifidog);
-    httpdAddCContent(webserver, "/wifidog", "about", 0, NULL, http_callback_about);
-    httpdAddCContent(webserver, "/wifidog", "status", 0, NULL, http_callback_status);
-    httpdAddCContent(webserver, "/wifidog", "auth", 0, NULL, http_callback_auth);
-    httpdAddCContent(webserver, "/wifidog", "disconnect", 0, NULL, http_callback_disconnect);
-#endif
-
     httpdSetErrorFunction(webserver, 404, okos_http_cb_404);
 
     /* Reset the firewall (if WiFiDog crashed) */
@@ -620,6 +573,7 @@ main_loop(void)
 int
 gw_main(int argc, char **argv)
 {
+    //mtrace();
 
     s_config *config = config_get_config();
     config_init();

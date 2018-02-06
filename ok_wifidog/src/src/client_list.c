@@ -711,15 +711,6 @@ client_list_remove(t_client * client)
 
 
 #if OK_PATCH
-#if 0
-static void okos_get_client_status_format1(const t_client *p_node, pstr_t *p_str)
-{
-    pstr_append_sprintf(p_str, "IP: %s\n", p_node->ip);
-    pstr_append_sprintf(p_str, "MAC: %s\n", p_node->mac);
-    pstr_append_sprintf(p_str, "AUTH_MODE: %s\n", p_node->auth_mode);
-    pstr_append_sprintf(p_str, "USERNAME: %s\n", p_node->user_name);
-}
-#endif
 
 static void okos_get_client_status_format2(const t_client *p_node, pstr_t *p_str)
 {
@@ -789,90 +780,12 @@ okos_delete_clients_by_scheme(const char *mac, const char *scheme, int *num)
             client_list_find_by_scheme, logout_client, num);
 }
 
-#if 0
-char *
-okos_delete_clients_by_scheme_old(const char *mac, const char *scheme)
-{
-    pstr_t *p_str = pstr_new();
-    pstr_append_sprintf(p_str, "Offline client [%s]", mac);
-    if (scheme) {
-        pstr_append_sprintf(p_str, " with scheme[%s]:\n", scheme);
-    } else {
-        pstr_cat(p_str, " all:\n");
-    }
-    pstr_cat(p_str, "IP Address      MAC Address       AUTH MODE   SSID                  User Name\n");
-	LOCK_CLIENT_LIST();
-	t_client *node;
-    t_client *tmp = 0;
-    if (scheme) {
-        node = client_list_find_by_scheme(mac, scheme);
-        if (node) {
-            okos_get_client_status(node, p_str);
-            logout_client(node);
-            //client_list_delete(node);
-        }
-    } else {
-        node = client_get_first_client();
-        while (NULL != node) {
-            node = okos_client_query_mac(node, mac);
-            okos_get_client_status(node, p_str);
-            tmp = node;
-            node = node->next;
-            logout_client(tmp);
-            //client_list_delete(tmp);
-        }
-    }
-	UNLOCK_CLIENT_LIST();
-    pstr_cat(p_str, "\nSee you later.\n\n");
-    return pstr_to_string(p_str);
-}
-#endif
-
 char *
 okos_delete_clients_by_ssid(const char *mac, const char *ssid, int *num)
 {
     return okos_polling_list_by("RESET", mac, ssid, "SSID",
             client_list_find_by_ssid, logout_client, num);
 }
-
-#if 0
-char *
-okos_delete_clients_by_ssid_old(const char *mac, const char *ssid)
-{
-    pstr_t *p_str = pstr_new();
-    pstr_append_sprintf(p_str, "Reset client [%s]", mac);
-    if (ssid) {
-        pstr_append_sprintf(p_str, " on ssid[%s]:\n", ssid);
-    } else {
-        pstr_cat(p_str, " on every ssid:\n");
-    }
-    pstr_cat(p_str, "IP Address      MAC Address       AUTH MODE   SSID                  User Name\n");
-	LOCK_CLIENT_LIST();
-	t_client *node;
-    t_client *tmp = 0;
-    if (ssid) {
-        node = client_list_find_by_ssid(mac, ssid);
-        if (node) {
-            okos_get_client_status(node, p_str);
-            logout_client(node);
-            //client_list_delete(node);
-        }
-    } else {
-        node = client_get_first_client();
-        while (NULL != node) {
-            node = okos_client_query_mac(node, mac);
-            okos_get_client_status(node, p_str);
-            tmp = node;
-            node = node->next;
-            logout_client(tmp);
-            //client_list_delete(tmp);
-        }
-    }
-	UNLOCK_CLIENT_LIST();
-    pstr_cat(p_str, "\nSee you later.\n\n");
-    return pstr_to_string(p_str);
-}
-#endif
 
 char *
 okos_get_client_status_text(const char *mac, const char *ssid, int *num)
@@ -881,37 +794,4 @@ okos_get_client_status_text(const char *mac, const char *ssid, int *num)
             client_list_find_by_ssid, NULL, num);
 }
 
-#if 0
-char *
-okos_get_client_status_text_old(const char *p_mac, const char *p_ssid)
-{
-    pstr_t *p_str = pstr_new();
-    pstr_append_sprintf(p_str, "Status of client [%s]", p_mac);
-    if (p_ssid) {
-        pstr_append_sprintf(p_str, " on ssid[%s]:\n", p_ssid);
-    } else {
-        pstr_cat(p_str, " on every ssid:\n");
-    }
-    pstr_cat(p_str, "IP Address      MAC Address       AUTH MODE   SSID                  User Name\n");
-
-	LOCK_CLIENT_LIST();
-	t_client *p_node;
-    if (p_ssid) {
-        p_node = client_list_find_by_ssid(p_mac, p_ssid);
-        if (p_node) {
-            okos_get_client_status(p_node, p_str);
-        }
-    } else {
-        p_node = client_get_first_client();
-        while (NULL != p_node) {
-            p_node = okos_client_query_mac(p_node, p_mac);
-            okos_get_client_status(p_node, p_str);
-            p_node = p_node->next;
-        }
-    }
-	UNLOCK_CLIENT_LIST();
-    pstr_cat(p_str, "\nHave a good day.\n\n");
-    return pstr_to_string(p_str);
-}
-#endif
 #endif

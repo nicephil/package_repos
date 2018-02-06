@@ -432,12 +432,6 @@ okos_http_cb_404(httpd *webserver, request *r, int error_code)
     memset(a_tmp_url, 0, sizeof(a_tmp_url));
     snprintf(a_tmp_url, (sizeof(a_tmp_url) - 1), "http://%s%s%s%s",
              r->request.host, r->request.path, r->request.query[0] ? "?" : "", r->request.query);
-#if 0
-    if ( NULL != strstr(a_tmp_url, "hotspot-detect") ) {
-        okos_send_simple_reply(r, "Apple", "good boy");
-        goto cb_404_original_url_detect;
-    }
-#endif
 
     /*---------------------------------------------------------------
      * STEP 3: Prepare Datebase.
@@ -466,6 +460,10 @@ okos_http_cb_404(httpd *webserver, request *r, int error_code)
         debug(LOG_ERR, "<HTTPD_404>!! Failed to piese info for client(%s).", r->clientAddr);
         okos_send_http_page(r, "Login", "Do not support anonymous yet");
         goto cb_404_cannt_get_new_client;
+    }
+    if (!okos_conf_ssid_is_portal(p_client->ssid)) {
+        debug(LOG_DEBUG, "<HTTPD_404> Client {%s} request from invalid ssid", r->clientAddr);
+        goto cb_404_ssid_not_support_portal;
     }
     debug(LOG_DEBUG, "<HTTPD_404> Client {%s, %s, %s}",
             p_client->ip, p_client->mac, p_client->if_name);
@@ -505,13 +503,14 @@ okos_http_cb_404(httpd *webserver, request *r, int error_code)
     char *s_url = httpdUrlEncode(a_tmp_url);
     char *s_info = okos_http_assemble_INFO(p_client);
     char *s_urlFragment;
-
+    debug(LOG_DEBUG, "<HTTPD_404> <info>=[%s]", s_info);
+    debug(LOG_DEBUG, "<HTTPD_404> <originalurl>=[%s]", s_url);
     safe_asprintf(&s_urlFragment, "%sinfo=%s&originalurl=%s",
             auth_server->authserv_login_script_path_fragment, s_info, s_url);
 
-    debug(LOG_DEBUG, "<HTTPD_404> <info>=[%s]", s_info);
-    debug(LOG_DEBUG, "<HTTPD_404> <originalurl>=[%s]", s_url);
     http_send_redirect_to_auth(r, s_urlFragment, "Redirect to login page", auth_server, "");
+
+cb_404_final_clean_up:
     free(s_urlFragment);
     free(s_info);
     free(s_url);
@@ -519,8 +518,8 @@ okos_http_cb_404(httpd *webserver, request *r, int error_code)
 cb_404_without_auth_server:
 cb_404_match_ssid_whitelist:
 cb_404_match_global_whitelist:
+cb_404_ssid_not_support_portal:
     client_free_node(p_client);
-
 cb_404_cannt_get_new_client:
     okos_close_stainfo_db(stainfo_db);
 cb_404_open_db_failed:
