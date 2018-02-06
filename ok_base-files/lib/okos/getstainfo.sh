@@ -45,17 +45,18 @@ do
         _bssid=`ifconfig $_ath | awk '$1 ~ /ath/{print $5;exit}'`
         
         . /lib/functions.sh
-        st="ServiceTemplate""${ath:4}"
+        st="ServiceTemplate""${_ath:4}"
         config_load wlan_service_template
         config_get _auth $st authentication
         config_get _ps $st portal_scheme
         config_get _ssid $st ssid
         config_load wireless
-        config_get _vlan $ath network
+        config_get _vlan $_ath network
         _mac=$client
         _radioid=${_ath:3:1}
         _pm=""
         _pu=""
+        _vlan=${_vlan:3}
 
         CMD="INSERT OR REPLACE INTO STAINFO  (MAC,IFNAME,RADIOID,BSSID,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN) VALUES('$_mac','$_ath','${_radioid}','$_bssid','$_auth','$_ps','$_ssid','$_vlan')"
         # echo sqlite3 /tmp/stationinfo.db "BEGIN TRANSACTION;${CMD};COMMIT;" | logger -t getstainfo
