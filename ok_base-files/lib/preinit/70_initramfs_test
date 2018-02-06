@@ -9,7 +9,6 @@ initramfs_test() {
 	preinit_ip_deconfig
     # OK_PATCH
     mount -t ubifs ubi0:rootfs_data /overlay 
-    mount -t jffs2 /dev/mtdblock10 /overlay
     # end of OK_PATCH
 	break
     fi
