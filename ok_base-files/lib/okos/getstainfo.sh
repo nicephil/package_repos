@@ -57,7 +57,7 @@ do
         _pm=""
         _pu=""
 
-        CMD="INSERT OR REPLACE INTO STAINFO  (MAC,IFNAME,RADIOID) VALUES('$_mac','$_ath','${_radioid}')"
+        CMD="INSERT OR REPLACE INTO STAINFO  (MAC,IFNAME,RADIOID,BSSID,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN) VALUES('$_mac','$_ath','${_radioid}','$_bssid','$_auth','$_ps','$_ssid','$_vlan')"
         # echo sqlite3 /tmp/stationinfo.db "BEGIN TRANSACTION;${CMD};COMMIT;" | logger -t getstainfo
         sqlite3 /tmp/stationinfo.db "BEGIN TRANSACTION;${CMD};COMMIT;"
 
