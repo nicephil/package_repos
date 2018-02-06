@@ -15,7 +15,7 @@ do_load_ath10k_board_bin() {
     # load board.bin
     case "$board" in
         ap152 | unifi)
-            if [ "$model" = "WL8200-I2" -o "$model" = "A920" ]
+            if [ "$model" = "WL8200-I2" -o "$model" = "A920" -o "$model" = "A923" ]
             then
                 size=12064
                 mkdir -p ${dir}
