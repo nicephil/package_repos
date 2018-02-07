@@ -54,16 +54,18 @@ handle_devstats()
 {
     local ops="$1"
     local json_data="$2"
-    local ret=""
+    local ret="0"
 
     # 1. check icm process exists or not
-    if [ -z "$(pgrep 'icm')" ]
+    if [ -z "$(pgrep 'icm')" -a -z "$(pgrep 'restartservices.sh')" ]
     then
         icm -i /tmp/icmseldebug.csv >/dev/null 2>&1 &
         (sleep 110; has_chscanningjson=1 /lib/okos/devstats.sh) &
     fi
 
-    return 0
+    [ -n "$(pgrep 'restartservices')" ] && ret="1"
+
+    return $ret
 }
 
  handle_setchan()
