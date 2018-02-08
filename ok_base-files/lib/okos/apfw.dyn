@@ -4,6 +4,10 @@
 
 clean_traf_statistics()
 {
+    iptables -Z total_uplink_traf
+    iptables -Z total_downlink_traf
+    iptables -F client_total_uplink_traf
+    iptables -F client_total_downlink_traf
     iptables -F client_wan_uplink_traf
     iptables -F client_wan_downlink_traf
 }

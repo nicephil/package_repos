@@ -5,13 +5,13 @@ then
     exit 0
 fi
 
-
-trap 'getstainfo_trap; exit' INT TERM ABRT QUIT ALRM
-
 getstainfo_trap () {
     logger -t getstainfo "gets trap"
+    lock -u /tmp/.iptables.lock
     rm -rf /tmp/getstainfo.lock
 }
+
+trap 'getstainfo_trap; exit' INT TERM ABRT QUIT ALRM
 
 
 touch /tmp/getstainfo.lock
@@ -95,10 +95,14 @@ do
     _ts=`date +%s`
     _wan_txB=""
     _wan_rxB=""
-    fetch_client_stats $_mac _wan_txB _wan_rxB
+    _txB=""
+    _rxB=""
+    fetch_client_stats $_mac _wan_txB _wan_rxB _txB _rxB
     # echo "_txB:$_txB,_rxB:$_rxB,_wan_txB:$_wan_txB,_wan_rxB:$_wan_rxB" | logger -t getstainfo
     [ -z "$_wan_txB" ] && _wan_txB="0"
     [ -z "$_wan_rxB" ] && _wan_rxB="0"
+    [ -z "$_txB" ] && _txB="0"
+    [ -z "$_rxB" ] && _rxB="0"
    
     # add new record
     #echo sqlite3 $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,SMODE,SBW,NTXRT,NRXRT,TXB,RXB,ATXRB,ARXRB,TXFS,RXES,TS,HOSTNAME,PSMODE,WANTXB,WANRXB,GWADDR,MINRSSI,MAXRSSI);COMMIT;" | logger
