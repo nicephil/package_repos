@@ -16,7 +16,6 @@ class ToolTest(object):
         params = params and '?'+ params or ''
         body = body and '{body}'.format(body=body).replace("'",'"') or ''
         body = body and "-d '{body}'".format(body=body) or ''
-
         cmd = self.cmd.format(
                 method=method,
                 url=self.url,
@@ -29,10 +28,8 @@ class ToolTest(object):
 
     def get(self, params=None, body=None):
         return self.curl('GET', body=body, params=params)
-
     def post(self, params=None, body=None):
         return self.curl('POST', body=body, params=params)
-
     def delete(self, params=None, body=None):
         return self.curl('DELETE', body=body, params=params)
 
@@ -51,10 +48,8 @@ class ToolRequest(object):
 
     def get(self, params=None, body=None):
         return self.curl(requests.get(self.url, params=params, json=body))
-
     def post(self, params=None, body=None):
         return self.curl(requests.post(self.url, params=params, json=body))
-
     def delete(self, params=None, body=None):
         return self.curl(requests.delete(self.url, params=params, json=body))
 
@@ -134,7 +129,7 @@ class VersionRelease(ApiServer):
         payload = {'action':'delete_image','md5':md5}
         return self.tool.post(params=self.params, body=payload)
 
-    def show(self, md5=None):
+    def show(self, md5=None, devtype=None):
         if md5:
             self.params['md5'] = md5
         return self.tool.get(params=self.params)
@@ -179,6 +174,14 @@ class VersionControl(ApiServer):
             body['comment'] = comment
         return self.tool.post(params=self.params, body=body)
     
+    def add_cookie(self, md5, cookie):
+        body = {'action':'add_cookie', 'md5':md5, 'cookie':cookie}
+        return self.tool.post(params=self.params, body=body)
+
+    def del_cookie(self, md5, cookie):
+        body = {'action':'del_cookie', 'md5':md5, 'cookie':cookie}
+        return self.tool.post(params=self.params, body=body)
+
     def show(self, md5=None, devtype=None):
         if md5:
             self.params['md5'] = md5
@@ -215,12 +218,12 @@ def main(args):
         elif args.delete and args.md5:
             return svr.delete(args.md5, args.comment)
         elif args.show:
-            return svr.show(args.md5)
+            return svr.show(args.md5, args.devtype)
         elif args.remove:
             return svr.remove_all()
         else:
             return
-    elif args.action == 'employe':
+    elif args.action == 'deploy':
         svr = VersionControl(args.target, args.port)
         if args.bind and args.md5 and args.macs:
             return svr.bind(args.md5, args.macs, args.comment)
@@ -232,6 +235,10 @@ def main(args):
             return svr.set_default(args.md5, args.devtype, args.comment)
         elif args.unset_default and args.md5 and args.devtype:
             return svr.unset_default(args.md5, args.devtype, args.comment)
+        elif args.add_cookie and args.md5 and args.cookie:
+            return svr.add_cookie(args.md5, args.cookie)
+        elif args.del_cookie and args.md5 and args.cookie:
+            return svr.del_cookie(args.md5, args.cookie)
         elif args.show:
             return svr.show(md5=args.md5, devtype=args.devtype)
         else:
@@ -245,17 +252,19 @@ if __name__ == '__main__':
     parser.add_argument('target', type=str, help='api server')
     parser.add_argument('-p', '--port', type=str, help='port number on api server',
             default='80')
-    parser.add_argument('-A', '--action', choices=['register', 'device', 'release', 'employe'],
-            help='Catagory of behavior', required=True)
+    parser.add_argument('-A', '--action', choices=['register', 'device', 'release', 'deploy'], required=True,
+            help='Catagory of behavior')
 
-    parser.add_argument('-s', '--show', action='store_true', help='register | release | employe')
+    parser.add_argument('-s', '--show', action='store_true', help='register | release | deploy')
     parser.add_argument('-q', '--query', action='store_true', help='register | device')
     parser.add_argument('-a', '--add', action='store_true', help='register | release')
     parser.add_argument('-d', '--delete', action='store_true', help='register | release')
-    parser.add_argument('-b', '--bind', action='store_true', help='employe')
-    parser.add_argument('-u', '--unbind', action='store_true', help='employe')
-    parser.add_argument('-S', '--set_default', action='store_true', help='employe')
-    parser.add_argument('-U', '--unset_default', action='store_true', help='employe')
+    parser.add_argument('-b', '--bind', action='store_true', help='deploy')
+    parser.add_argument('-u', '--unbind', action='store_true', help='deploy')
+    parser.add_argument('-S', '--set_default', action='store_true', help='deploy')
+    parser.add_argument('-U', '--unset_default', action='store_true', help='deploy')
+    parser.add_argument('-c', '--add_cookie', action='store_true', help='deploy')
+    parser.add_argument('-C', '--del_cookie', action='store_true', help='deploy')
     #parser.add_argument('-X', '--remove', action='store_true', help='DELETE ALL entries on register | release')
 
     parser.add_argument('--oakmgr', type=str, help='IP address of Oak Manager')
@@ -264,6 +273,7 @@ if __name__ == '__main__':
     parser.add_argument('--type', dest='devtype', help='device type used to query its oakmgr', nargs='+')
     parser.add_argument('--md5', help='md5 of release version',)
     parser.add_argument('--url', help='url of release version')
+    parser.add_argument('--cookie', help='cookie to catagory images')
     parser.add_argument('--comment',help='comment')
     
     #parser.add_argument()
