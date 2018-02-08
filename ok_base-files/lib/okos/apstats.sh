@@ -1,114 +1,71 @@
 #!/bin/sh
 
-# 1. generate new apstats log
-rm -rf /tmp/apstats_*[!_prev].log
-apstats -a -R > /tmp/apstats_`date +%s`.log 2>/dev/null
-file_name=`ls /tmp/apstats_*[!_prev].log 2>/dev/null`
-# exit if no log file
-if [ -z "$file_name" ]
-then
-    exit
-fi
-timestamp=`echo $file_name | awk -F'[_\.]' '{print $2}'`
-
-# 2. check the prev apstas log
-file_name_prev=`ls /tmp/apstats_*_prev.log 2>/dev/null`
-if [ -z "$file_name_prev" ]
-then
-    rm -rf /tmp/apstats_*_prev.log
-    mv "$file_name" /tmp/apstats_${timestamp}_prev.log
-    exit
-fi
-timestamp_prev=`echo $file_name_prev | awk -F'[_\.]' '{print $2}'`
+apstats_trap () {
+    logger -t apstats "gets trap"
+    lock -u /tmp/.iptables.lock
+}
+trap 'apstats_trap; exit' INT TERM ABRT QUIT ALRM
 
 
-# 3. read config
+# 1. read config
 . /lib/functions.sh
 config_load productinfo
 config_get mac productinfo mac
 if [ -z "$mac" ]
 then
-    exit
+    echo "mac is wrong"
+    return 1
 fi
 mac=`echo $mac|tr -d ':'`
 config_load capwapc
 config_get mas_server server mas_server
 if [ -z "$mas_server" ]
 then
-    exit
+    echo "mas_server is empty"
+    return 1
 fi
 config_load wireless
 
+timestamp=`date +%s`
 
-format_output ()
+
+# $1 - all total uplink
+# $2 - all total downlink
+fetch_client_stats ()
 {
-    local file_name="$1"
-    local output_type="$2"
-    case "$output_type" in
-    "VAP" )
-        awk -F'[ =]+' 'BEGIN {OFS="|"} /VAP Level Stats/{
-            vap=$4;
-            radio=substr($7,1,length($7)-1);
+    local all_total_uplink_var="$1"
+    local all_total_downlink_var="$2"
 
-            while (getline > 0 && length($0) > 0) {
-                if (match($1$2$3,"TxDataBytes")) {
-                    txB=$4;
-                } else if (match($1$2$3,"RxDataBytes")) {
-                    rxB=$4
-                }
-            }
+    unset "${all_total_uplink_var}"
+    unset "${all_total_downlink_var}"
+    lock /tmp/.iptables.lock
 
-            print vap,radio,txB,rxB
+    local _all_total_uplink=$(iptables -L total_uplink_traf -n -v --line-number -x | awk '/RETURN/{print $3}')
+    local _all_total_downlink=$(iptables -L total_downlink_traf -n -v --line-number -x | awk '/RETURN/{print $3}')
 
-        }' ${file_name}
-    ;;
-    "WLAN" )
-        awk -F'[ =]+' 'BEGIN {OFS="|"} /WLAN Stats/{
+    export "${all_total_uplink_var}=$_all_total_uplink"
+    export "${all_total_downlink_var}=$_all_total_downlink"
 
-            while (getline > 0 && length($0) > 0) {
-                if (match($1$2$3,"TxDataBytes")) {
-                    txB=$4;
-                } else if (match($1$2$3,"RxDataBytes")) {
-                    rxB=$4
-                }
-            }
+    iptables -Z total_uplink_traf
+    iptables -Z total_downlink_traf
 
-            print "WLAN",txB,rxB
+    lock -u /tmp/.iptables.lock
 
-        }' ${file_name}
-    ;;
-    * )
-    ;;
-    esac
+    return 0
 }
-
 
 # 4. generate json file
 . /usr/share/libubox/jshn.sh
 json_init
 json_add_string "mac" "`echo ${mac} | sed 's/://g'`"
-json_add_int "timestamp" "$timestamp_prev"
+json_add_int "timestamp" "$timestamp"
 
 # 4.1 Add WLAN
 # fetch WLAN Stats
-wlan_data_cur=`format_output $file_name "WLAN"`
-wlan_data_prev=`format_output $file_name_prev "WLAN"`
-OIFS=$IFS; IFS="|"; set -- $wlan_data_cur; txB=$2;rxB=$3; IFS=$OIFS
-# echo "--------->"$txB $rxB
-OIFS=$IFS; IFS="|"; set -- $wlan_data_prev; txB_prev=$2;rxB_prev=$3; IFS=$OIFS
-# echo "--------->"$txB_prev $rxB_prev
-if [ "$txB" -ge "$txB_prev" ]
-then
-    Delta_txB=$((txB - txB_prev))
-else
-    Delta_txB="0"
-fi
-if [ "$rxB" -ge "$rxB_prev" ]
-then
-    Delta_rxB=$((rxB - rxB_prev))
-else
-    Delta_rxB="0"
-fi
+local Delta_txB=""
+local Delta_rxB=""
+
+fetch_client_stats Delta_txB Delta_rxB
 # echo "+++++>"WLAN", $Delta_txB, $Delta_rxB"
 
 json_add_object "WLAN"
@@ -119,68 +76,18 @@ json_close_object
 
 # 4.2 Add VAP
 json_add_array "VAP_Stats"
-
-# 5. fetch VAP Level Stats from cur log
-datas_cur=`format_output $file_name "VAP"`
-
-# 6. fetch VAP Level Stats from prev log
-datas_prev=`format_output $file_name_prev "VAP"`
-
-# 7. calculate delta
-for data_cur in `echo $datas_cur`
-do
-    OIFS=$IFS; IFS="|"; set -- $data_cur; ath=$1;radio=$2;txB=$3;rxB=$4; IFS=$OIFS
-    # echo "--------->"$ath $radio $txB $rxB
-    if [ "$ath" = "ath50"  -o "$ath" = "ath60" ]
-    then
-        continue
-    fi
-    for data_prev in `echo $datas_prev`
-    do
-        OIFS=$IFS; IFS="|"; set -- $data_prev; ath_prev=$1;radio_prev=$2;txB_prev=$3;rxB_prev=$4; IFS=$OIFS
-        if [ "$ath" = "$ath_prev" ]
-        then
-            # echo "==========>"$ath_prev $radio_prev $txB_prev $rxB_prev
-            if [ "$txB" -ge "$txB_prev" ]
-            then
-                Delta_txB=$((txB - txB_prev))
-            else
-                Delta_txB="0"
-            fi
-            if [ "$rxB" -ge "$rxB_prev" ]
-            then
-                Delta_rxB=$((rxB - rxB_prev))
-            else
-                Delta_rxB="0"
-            fi
-            # echo "+++++>$ath, $Delta_txB, $Delta_rxB"
-            json_add_object "VAP" "$ath"
-            json_add_string "VAP" "$ath"
-            json_add_string "radio" "$radio"
-            config_get ssid "$ath" "ssid"
-            json_add_string "ssid" "$ssid"
-            json_add_int "Tx_Data_Bytes" "$Delta_rxB"
-            json_add_int "Rx_Data_Bytes" "$Delta_txB"
-            json_close_object
-            break
-        fi
-    done
-done
-
 json_close_array
-
-rm -rf /tmp/apstats_*_prev.log
-mv ${file_name} /tmp/apstats_${timestamp}_prev.log
 
 # 8. generate .json
 rm -rf /tmp/apstats_*.json
-json_file=apstats_${mac}_${timestamp_prev}.json
+json_file=apstats_${mac}_${timestamp}.json
 json_dump 2>/dev/null | tee /tmp/${json_file}
 
 
 if [ ! -e "/tmp/$json_file" ]
 then
-    exit
+    echo "json file wrong"
+    return 1
 fi
 
 # 10. upload json file to nms

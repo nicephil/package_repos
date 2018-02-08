@@ -26,7 +26,7 @@ static inline rssi_level_e dc_rssi2level(int rssi)
     }
 }
 
-//CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,SMODE,SBW,NTXRT,NRXRT,TXB,RXB,ATXRB,ARXRB,TXFS,RXES,TS,HOSTNAME,WANTXB,WANRXB,GWADDR)
+//CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,SMODE,SBW,NTXRT,NRXRT,TXB,RXB,ATXRB,ARXRB,TXFS,RXES,TS,HOSTNAME,WANTXB,WANRXB,GWADDR,MINRSSI,MAXRSSI)
 static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
 {
     static int row = 0;
@@ -241,6 +241,15 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
         stas[row].gwaddr = inet_addr(argv[29]);
     }
 
+    /*MINRSSI*/
+    if (argv[30]) {
+        stas[row].min_rssi = atoi(argv[30]) - 95;
+    }
+
+    /*MAXRSSI*/
+    if (argv[31]) {
+        stas[row].max_rssi = atoi(argv[31]) - 95;
+    }
 
     /*location*/
     cfg_get_option_value(CAPWAPC_CFG_OPTION_LOCATION_TUPLE, stas[row].location, MAX_LOCATION_LEN);

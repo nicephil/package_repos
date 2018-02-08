@@ -5,13 +5,13 @@ then
     exit 0
 fi
 
-
-trap 'getstainfo_trap; exit' INT TERM ABRT QUIT ALRM
-
 getstainfo_trap () {
     logger -t getstainfo "gets trap"
+    lock -u /tmp/.iptables.lock
     rm -rf /tmp/getstainfo.lock
 }
+
+trap 'getstainfo_trap; exit' INT TERM ABRT QUIT ALRM
 
 
 touch /tmp/getstainfo.lock
@@ -23,8 +23,8 @@ tablename="STATSINFO"
 . /lib/functions/network.sh
 
 
-#echo sqlite3 $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,SMODE,SBW,NTXRT,NRXRT,TXB,RXB,ATXRB,ARXRB,TXFS,RXES,TS,HOSTNAME,PSMODE,WANTXB,WANRXB,GWADDR);COMMIT;" | logger
-sqlite3 $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(MAC TEXT PRIMARY KEY NOT NULL,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,SMODE,SBW,NTXRT,NRXRT,TXB,RXB,ATXRB,ARXRB,TXFS,RXES,TS,HOSTNAME,PSMODE,WANTXB,WANRXB,GWADDR);COMMIT;"
+#echo sqlite3 $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,SMODE,SBW,NTXRT,NRXRT,TXB,RXB,ATXRB,ARXRB,TXFS,RXES,TS,HOSTNAME,PSMODE,WANTXB,WANRXB,GWADDR,MINRSSI,MAXRSSI);COMMIT;" | logger
+sqlite3 $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(MAC TEXT PRIMARY KEY NOT NULL,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,SMODE,SBW,NTXRT,NRXRT,TXB,RXB,ATXRB,ARXRB,TXFS,RXES,TS,HOSTNAME,PSMODE,WANTXB,WANRXB,GWADDR,MINRSSI,MAXRSSI);COMMIT;"
 #clear
 CMD="DELETE FROM '$tablename'"
 #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
@@ -39,27 +39,29 @@ do
         _hostname=${_hostname%%.*}
     }
     [ -z "$client_tmp" ] && {
-        for _ath in `iwconfig 2>/dev/null | awk '/ath/{print $1}'`
-        do
-            tmp_str=`wlanconfig $_ath list sta | awk -n "/$client/p"`
-            [ -n "$tmp_str" ] && break
-        done
-        [ -z "$tmp_str" ] && continue
+        _ath=$(apstats -s -m $client | awk '/'"$client"'/{print substr($7,1, length($7)-1);exit}')
+        [ -z "$_ath" ] && continue
 
         _bssid=`ifconfig $_ath | awk '$1 ~ /ath/{print $5;exit}'`
         
         . /lib/functions.sh
-        st="ServiceTemplate""${ath:4}"
+        st="ServiceTemplate""${_ath:4}"
         config_load wlan_service_template
         config_get _auth $st authentication
         config_get _ps $st portal_scheme
         config_get _ssid $st ssid
         config_load wireless
-        config_get _vlan $ath network
+        config_get _vlan $_ath network
         _mac=$client
         _radioid=${_ath:3:1}
         _pm=""
         _pu=""
+        _vlan=${_vlan:3}
+
+        CMD="INSERT OR REPLACE INTO STAINFO  (MAC,IFNAME,RADIOID,BSSID,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN) VALUES('$_mac','$_ath','${_radioid}','$_bssid','$_auth','$_ps','$_ssid','$_vlan')"
+        # echo sqlite3 /tmp/stationinfo.db "BEGIN TRANSACTION;${CMD};COMMIT;" | logger -t getstainfo
+        sqlite3 /tmp/stationinfo.db "BEGIN TRANSACTION;${CMD};COMMIT;"
+
     }
     _gwaddr=""
     network_get_gateway_any _gwaddr "lan${_vlan}"
@@ -71,9 +73,9 @@ do
         _ip=`awk '{if ($4 == "'$_mac'" && $6 == "'$vlan_if'") {print $1; exit}}' /proc/net/arp` 
     }
     
-    _chan_rssi_assoctime=`wlanconfig $_ath list sta | awk '$1 ~ /'${_mac}'/{print $3,$4,$5,$6,$17,$19,$20,$21;exit}'`
+    _chan_rssi_assoctime=`wlanconfig $_ath list sta | awk '$1 ~ /'${_mac}'/{print $3,$4,$5,$6,$7,$8,$17,$19,$20,$21;exit}'`
     [ -z $_chan_rssi_assoctime ] && continue
-    set -- $_chan_rssi_assoctime;_chan=$1;_ntxrt=$2;_nrxrt=$3;_rssi=$4;_assoctime=$5;_smode_sbw=$6;_smode_sbw1=$7;_psmode=$8
+    set -- $_chan_rssi_assoctime;_chan=$1;_ntxrt=$2;_nrxrt=$3;_rssi=$4;_min_rssi=$5;_max_rssi=$6;_assoctime=$7;_smode_sbw=$8;_smode_sbw1=$9;_psmode=$10
     _ntxrt=${_ntxrt%[a-zA-Z]*}
     _nrxrt=${_nrxrt%[a-zA-Z]*}
 
@@ -93,14 +95,18 @@ do
     _ts=`date +%s`
     _wan_txB=""
     _wan_rxB=""
-    fetch_client_stats $_mac _wan_txB _wan_rxB
+    _txB=""
+    _rxB=""
+    fetch_client_stats $_mac _wan_txB _wan_rxB _txB _rxB
     # echo "_txB:$_txB,_rxB:$_rxB,_wan_txB:$_wan_txB,_wan_rxB:$_wan_rxB" | logger -t getstainfo
     [ -z "$_wan_txB" ] && _wan_txB="0"
     [ -z "$_wan_rxB" ] && _wan_rxB="0"
+    [ -z "$_txB" ] && _txB="0"
+    [ -z "$_rxB" ] && _rxB="0"
    
     # add new record
-    #echo sqlite3 $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,SMODE,SBW,NTXRT,NRXRT,TXB,RXB,ATXRB,ARXRB,TXFS,RXES,TS,HOSTNAME,PSMODE,WANTXB,WANRXB,GWADDR);COMMIT;" | logger
-    CMD="INSERT INTO ${tablename} VALUES('$_mac','$_ath','$_chan','$_rssi','$_assoctime','${_ath:3:1}','$_bssid','$_ip','$_auth','$_ps','$_ssid','$_vlan','$_pm','$_pu','$_smode','$_sbw','$_ntxrt','$_nrxrt','$_txB','$_rxB','$_atxrb','$_arxrb','$_txfs','$_rxes','$_ts','$_hostname','$_psmode','$_wan_txB','$_wan_rxB','$_gwaddr')"
+    #echo sqlite3 $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,SMODE,SBW,NTXRT,NRXRT,TXB,RXB,ATXRB,ARXRB,TXFS,RXES,TS,HOSTNAME,PSMODE,WANTXB,WANRXB,GWADDR,MINRSSI,MAXRSSI);COMMIT;" | logger
+    CMD="INSERT INTO ${tablename} VALUES('$_mac','$_ath','$_chan','$_rssi','$_assoctime','${_ath:3:1}','$_bssid','$_ip','$_auth','$_ps','$_ssid','$_vlan','$_pm','$_pu','$_smode','$_sbw','$_ntxrt','$_nrxrt','$_txB','$_rxB','$_atxrb','$_arxrb','$_txfs','$_rxes','$_ts','$_hostname','$_psmode','$_wan_txB','$_wan_rxB','$_gwaddr','$_min_rssi', '$_max_rssi')"
     #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
     sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
 done

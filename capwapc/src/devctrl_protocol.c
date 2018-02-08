@@ -600,10 +600,10 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
             CWProtocolStoreRawBytes(&msg, sta->user, sta->name_len);
             CWProtocolStore32(&msg, sta->rssi);
             CWProtocolStore64(&msg, sta->ts);
-            CWProtocolStore64(&msg, sta->delta_rxB);
             CWProtocolStore64(&msg, sta->delta_txB);
-            CWProtocolStore32(&msg, sta->arxrb);
+            CWProtocolStore64(&msg, sta->delta_rxB);
             CWProtocolStore32(&msg, sta->atxrb);
+            CWProtocolStore32(&msg, sta->arxrb);
             CWProtocolStore8(&msg, sta->error_rate);
             CWProtocolStore8(&msg, sta->retry_rate);
             CWProtocolStore32(&msg, sta->nrxrt);
@@ -611,11 +611,13 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
             CWProtocolStore8(&msg, sta->client_hostname_len);
             CWProtocolStoreRawBytes(&msg, sta->client_hostname, sta->client_hostname_len);
             CWProtocolStore8(&msg, sta->psmode);
-            CWProtocolStore64(&msg, sta->delta_wan_rxB);
             CWProtocolStore64(&msg, sta->delta_wan_txB);
-            CWProtocolStore32(&msg, sta->wan_arxrb);
+            CWProtocolStore64(&msg, sta->delta_wan_rxB);
             CWProtocolStore32(&msg, sta->wan_atxrb);
+            CWProtocolStore32(&msg, sta->wan_arxrb);
             CWProtocolStore32(&msg, sta->gwaddr);
+            CWProtocolStore32(&msg, sta->min_rssi);
+            CWProtocolStore32(&msg, sta->max_rssi);
         }
     }
     else {
@@ -662,6 +664,8 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
             CWProtocolStoreRawBytes(&msg, sta->client_hostname, sta->client_hostname_len);
             CWProtocolStore8(&msg, sta->location_len);
             CWProtocolStoreRawBytes(&msg, sta->location, sta->location_len);
+            CWProtocolStore32(&msg, sta->nrxrt);
+            CWProtocolStore32(&msg, sta->ntxrt);
         }
     }
     if (msg.offset != size) {

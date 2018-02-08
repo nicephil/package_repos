@@ -26,6 +26,8 @@ unifi)
         if ($2 == "\"WL8200-I2\"") {
             gsub(/"/,"",$2);
             print "\toption model DCN_"$2;
+        } else if ($2 == "\"A923\"") {
+            print "\toption model DCN_SEAP-380";
         } else {
             gsub(/"/,"",$2);
             print "\toption model QTS_"$2;

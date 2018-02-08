@@ -1888,7 +1888,11 @@ static int dc_router_config_handler(struct tlv *payload, void **reserved)
     int ret = 0;
 
     ret = system(prog);
-    result->code = WEXITSTATUS(ret);
+    if (ret == -1) {
+        result->code = -1;
+    } else {
+        result->code = WEXITSTATUS(ret);
+    }
 
     char *tmp = getenv("result");
     if (tmp) {
