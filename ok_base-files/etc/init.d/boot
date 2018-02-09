@@ -47,10 +47,12 @@ boot() {
 	uci_apply_defaults
     # OK_PATCH
     # generate productinfo
-    if [ ! -f /etc/config/productinfo ]
-    then
-        /lib/okos/fetch_productinfo.sh > /etc/config/productinfo
-    fi
+    /lib/okos/fetch_productinfo.sh > /etc/config/productinfo
+    touch /etc/issue
+    touch /etc/shadow
+    touch /etc/config/dhcp
+    touch /etc/config/network
+    touch /etc/config/capwapc
     [ "`uci get productinfo.productinfo.production`" = "EdgeRouter_ER-X" ] && {
         [ -d /sys/class/gpio ] && {
             echo 0 > /sys/class/gpio/export

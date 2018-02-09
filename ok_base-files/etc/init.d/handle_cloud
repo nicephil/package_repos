@@ -14,7 +14,8 @@ start () {
 stop () {
     service_stop /lib/okos/handle_cloud.sh
     killall -9 handle_cloud.sh
-    killall -9 wget
+    killall -9 aria2c
+    killall -9 kexec
 }
 
 
