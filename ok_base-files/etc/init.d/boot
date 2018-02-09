@@ -56,11 +56,11 @@ boot() {
             echo 1 > /sys/class/gpio/gpio0/value
         }
     }
-    cp -f /overlay/upper/etc/config/capwapc /etc/config/capwapc
-    cp -f /overlay/upper/etc/config/network /etc/config/network
-    cp -f /overlay/upper/etc/config/dhcp /etc/config/dhcp
-    cp -f /overlay/upper/etc/shadow /etc/shadow
-    ## end OK_PATCH
+    [ -f /overlay/upper/etc/config/capwapc ] && ln -svf /overlay/upper/etc/config/capwapc /etc/config/capwapc
+    [ -f /overlay/upper/etc/config/network ] && ln -svf /overlay/upper/etc/config/network /etc/config/network
+    [ -f /overlay/upper/etc/config/dhcp ] && ln -svf /overlay/upper/etc/config/dhcp /etc/config/dhcp
+    [ -f /overlay/upper/etc/shadow ] && ln -svf /overlay/upper/etc/shadow /etc/shadow
+    # end OK_PATCH
 	
 	# temporary hack until configd exists
 	/sbin/reload_config

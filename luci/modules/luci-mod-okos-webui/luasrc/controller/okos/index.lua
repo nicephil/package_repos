@@ -602,10 +602,16 @@ function action_devumac()
     response = {
         errocode = 0,
         mac = "00:11:22:33:44:55"
+        is_sysloader = 0
     }
     ]]--
     response.errcode = 0
+    response.is_sysloader = 0
     response.mac = uci:get("productinfo", "productinfo", "mac") 
+    local var = uci:get("productinfo", "productinfo", "swversion") or ""
+    if (var == "") then
+        response.is_sysloader = 1
+    end
 
     -- response --
     response_json(response)

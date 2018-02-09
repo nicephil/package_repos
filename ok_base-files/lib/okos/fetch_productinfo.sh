@@ -29,6 +29,7 @@ miwifi-3)
 esac
 
 echo -e "\toption swversion `cat /etc/issue`"
+echo -e "\toption bootversion `cat /overlay/upper/etc/issue`"
 
 
 
