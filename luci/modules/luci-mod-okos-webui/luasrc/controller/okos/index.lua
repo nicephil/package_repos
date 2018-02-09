@@ -652,6 +652,12 @@ function action_regdev()
 
     if response.errcode == 0 then
         response.errcode = sys.user.setpasswd("root", input.passcode)
+    else
+        response.errcode = 2
+    end
+
+    if response.errcode == 0 then
+        sys.call("cp /etc/shadow /overlay/upper/etc/shadow;cp /etc/config/capwapc /overlay/upper/etc/config/capwapc;")
     end
     
     -- response --
