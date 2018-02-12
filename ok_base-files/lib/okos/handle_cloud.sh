@@ -144,6 +144,7 @@ do
     fi
     sync
     sleep 1
+    /etc/init.d/network stop
 
 
     # 7. jump to okos entry
@@ -155,6 +156,7 @@ do
     if [ "$?" != 0 ]
     then
         echo "kexec execute error, try again" | logger -t 'handle_cloud'
+        /etc/init.d/network restart
         sleep 5
         report_status "100" "kexec execute error"
         continue
