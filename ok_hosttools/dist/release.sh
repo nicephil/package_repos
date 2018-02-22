@@ -10,15 +10,15 @@ echo "new release:$img_md5"
 
 
 echo "====> query old release md5"
-echo ./dist_release.py $url -A employe -s --type $all_types
-./dist_release.py $url -A employe -s
+echo ./dist_release.py $url -A deploy -s --type $all_types
+./dist_release.py $url -A deploy -s
 
 echo "unbind release:"
 read unbind_md5
 
 echo "====> unbind old release"
-echo ./dist_release.py $url -A employe -U --md5 $unbind_md5 --type $all_types
-./dist_release.py $url -A employe -U --md5 $unbind_md5 --type $all_types
+echo ./dist_release.py $url -A deploy -U --md5 $unbind_md5 --type $all_types
+./dist_release.py $url -A deploy -U --md5 $unbind_md5 --type $all_types
 
 echo "====> delete old release"
 echo ./dist_release.py $url -A release -d --md5 $unbind_md5
@@ -30,10 +30,10 @@ echo ./dist_release.py $url -A release -a --type $all_types --url $img_url --md5
 
 
 echo "====> bind new release"
-echo ./dist_release.py $url -A employe -S --md5 $img_md5 --type $all_types --url $img_url 
-./dist_release.py $url -A employe -S --url $img_url --md5 $img_md5 --type $all_types
+echo ./dist_release.py $url -A deploy -S --md5 $img_md5 --type $all_types --url $img_url 
+./dist_release.py $url -A deploy -S --url $img_url --md5 $img_md5 --type $all_types
 
 echo "====> query new release"
-echo ./dist_release.py $url -A employe -s --type $all_types
-./dist_release.py $url -A employe -s
+echo ./dist_release.py $url -A deploy -s --type $all_types
+./dist_release.py $url -A deploy -s
 rm -rf /tmp/tmp.md5sum

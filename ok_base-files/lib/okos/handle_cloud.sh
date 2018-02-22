@@ -35,14 +35,6 @@ setup_capwapc ()
     echo "====> set new oakmgr: $OAKMGR_PUB" | logger -t 'handle_cloud'
     uci set capwapc.server.mas_server="$OAKMGR_PUB"; uci commit capwapc;
     /etc/init.d/capwapc restart
-
-    while [ -z $(grep "$OAKMGR_PUB" /etc/capwapc/config.wtp 2>/dev/null) ]
-    do
-        sleep 3
-        echo "+++> set new oakmgr: $OAKMGR_PUB" | logger -t 'handle_cloud'
-        uci set capwapc.server.mas_server="$OAKMGR_PUB"; uci commit capwapc;
-        /etc/init.d/capwapc restart
-    done
 }
 
 while :
@@ -72,6 +64,7 @@ do
         continue
     elif [ "$_oakmgr_pub_name" = "$(uci get capwapc.server.mas_server 2>/dev/null)" ]
     then
+        FIRSTBOOT="0"
         echo "existing oakmgr_pub_name:$_oakmgr_pub_name is the same as quried, so no action" | logger -t 'handle_cloud'
         sleep 120
         continue
