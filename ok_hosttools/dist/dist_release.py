@@ -89,7 +89,7 @@ class OakmgrRegister(ApiServer):
         if oakmgr is not None:
             self.params['oakmgr'] = oakmgr
             return self.tool.get(params=self.params)
-        if macs is not None:
+        if macs:
             self.params['devices'] = macs
             return self.tool.get(params=self.params)
         else:
@@ -99,9 +99,13 @@ class OakmgrRegister(ApiServer):
         payload = {'action':'query', 'oakmgr':'', 'devices':macs}
         return self.tool.post(body=payload)
 
-    def add(self, macs, oakmgr, port):
+    def add(self, macs, oakmgr, port, cookie, override):
         payload = {'action':'add', 'oakmgr':oakmgr, 'devices':macs}
-        if port is not None:
+        if cookie is not None:
+            payload['cookie'] = cookie
+        if override:
+            payload['override'] = 1
+        if port:
             payload['port'] = port
         return self.tool.post(body=payload)
 
@@ -198,7 +202,7 @@ def main(args):
         elif args.query and args.macs:
             return svr.query(args.macs)
         elif args.add and args.oakmgr and args.macs:
-            return svr.add(args.macs, args.oakmgr, args.svrport)
+            return svr.add(args.macs, args.oakmgr, args.svrport, args.cookie, args.override)
         elif args.delete and args.oakmgr and args.macs:
             return svr.remove(args.macs, args.oakmgr)
         elif args.remove:
@@ -255,16 +259,16 @@ if __name__ == '__main__':
     parser.add_argument('-A', '--action', choices=['register', 'device', 'release', 'deploy'], required=True,
             help='Catagory of behavior')
 
-    parser.add_argument('-s', '--show', action='store_true', help='register | release | deploy')
-    parser.add_argument('-q', '--query', action='store_true', help='register | device')
-    parser.add_argument('-a', '--add', action='store_true', help='register | release')
-    parser.add_argument('-d', '--delete', action='store_true', help='register | release')
-    parser.add_argument('-b', '--bind', action='store_true', help='deploy')
-    parser.add_argument('-u', '--unbind', action='store_true', help='deploy')
-    parser.add_argument('-S', '--set_default', action='store_true', help='deploy')
-    parser.add_argument('-U', '--unset_default', action='store_true', help='deploy')
-    parser.add_argument('-c', '--add_cookie', action='store_true', help='deploy')
-    parser.add_argument('-C', '--del_cookie', action='store_true', help='deploy')
+    parser.add_argument('-s', '--show', action='store_true', help='<register> [oakmgr][macs] | <release> [md5][devtype] | <deploy> [md5][devtype]')
+    parser.add_argument('-q', '--query', action='store_true', help='<register> macs | <device> macs devtype')
+    parser.add_argument('-a', '--add', action='store_true', help='<register> macs oakmgr [svrport][cookie][override] | <release> md5 url types [comment]')
+    parser.add_argument('-d', '--delete', action='store_true', help='<register> oakmgr macs | <release> md5')
+    parser.add_argument('-b', '--bind', action='store_true', help='<deploy> md5 macs [comment]')
+    parser.add_argument('-u', '--unbind', action='store_true', help='<deploy> md5 [macs][comment]')
+    parser.add_argument('-S', '--set_default', action='store_true', help='<deploy> md5 type [comment]')
+    parser.add_argument('-U', '--unset_default', action='store_true', help='<deploy> md5 type [comment]')
+    parser.add_argument('-c', '--add_cookie', action='store_true', help='<deploy> md5 cookie')
+    parser.add_argument('-C', '--del_cookie', action='store_true', help='<deploy> md5 cookie')
     #parser.add_argument('-X', '--remove', action='store_true', help='DELETE ALL entries on register | release')
 
     parser.add_argument('--oakmgr', type=str, help='IP address of Oak Manager')
@@ -274,6 +278,7 @@ if __name__ == '__main__':
     parser.add_argument('--md5', help='md5 of release version',)
     parser.add_argument('--url', help='url of release version')
     parser.add_argument('--cookie', help='cookie to catagory images')
+    parser.add_argument('--override', action='store_true', help='override register request')
     parser.add_argument('--comment',help='comment')
     
     #parser.add_argument()
