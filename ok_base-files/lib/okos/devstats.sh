@@ -48,6 +48,37 @@ then
     exit
 fi
 
+# $1 - cpuload name
+# $2 - memoryinfo name
+get_cpumem_info()
+{
+    local vname_cpu_load="$1"
+    local vname_mem_info="$2"
+    local topinfo="`top -n1 -b`"
+    local cpu_load=$(echo "$topinfo"| awk '{
+        if (match($1, "CPU:")) {
+            a=substr($8,1,length($8)-1);
+            printf "%d",100-a
+        }
+    }')
+
+    local mem_info=$(echo "$topinfo"|awk '{
+        if (match($1, "Mem:")) {
+            a=substr($2,1,length($2)-1)
+            b=substr($4,1,length($4)-1)
+            t=(a+b)
+            v=(a/t)*100
+            printf "%d_%d",t,v
+        }
+    }')
+
+
+    unset "$vname_cpu_load"
+    export "$vname_cpu_load=$cpu_load"
+    unset "$vname_mem_info"
+    export "$vname_mem_info=$mem_info"
+}
+
 generate_cpumemjson()
 {
     local vname="$1"
@@ -62,25 +93,29 @@ generate_cpumemjson()
     }
     ')
     local cpu_frequency=$(echo "$cpuinfo"|awk '/BogoMIPS/{print $3;exit}')
-    local topinfo="`top -n1 -b`"
-    local cpu_load=$(echo "$topinfo"| awk '{
-        if (match($1, "CPU:")) {
-            a=substr($8,1,length($8)-1);
-            print 100-a;
-        }
-    }')
 
-    local mem_info=$(echo "$topinfo"|awk '{
-        if (match($1, "Mem:")) {
-            a=substr($2,1,length($2)-1)
-            b=substr($4,1,length($4)-1)
-            t=(a+b)
-            v=(a/t)*100
-            print t"_"v;
-        }
-    }')
+    local cpu_load1=""
+    local mem_info1=""
+    local mem_load1=""
+    get_cpumem_info cpu_load1 mem_info1
+    OIFS=$IFS;IFS='_';set -- $mem_info1;mem_total=$1;mem_load1=$2;IFS=$OIFS
+    sleep 1
 
-    OIFS=$IFS;IFS='_';set -- $mem_info;mem_total=$1;mem_load=$2;IFS=$OIFS
+    local cpu_load2=""
+    local mem_info2=""
+    local mem_load2=""
+    get_cpumem_info cpu_load2 mem_info2
+    OIFS=$IFS;IFS='_';set -- $mem_info2;mem_load2=$2;IFS=$OIFS
+    sleep 1
+
+    local cpu_load3=""
+    local mem_info3=""
+    local mem_load3=""
+    get_cpumem_info cpu_load3 mem_info3
+    OIFS=$IFS;IFS='_';set -- $mem_info3;mem_load3=$2;IFS=$OIFS
+    local cpu_load=$((($cpu_load1+$cpu_load2+$cpu_load3)/3))
+    local mem_load=$((($mem_load1+$mem_load2+$mem_load3)/3))
+
     local mem_type="DDR2"
     local mem_frequency="440"
 

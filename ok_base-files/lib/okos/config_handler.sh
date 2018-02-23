@@ -3,9 +3,9 @@
 DEBUG="$1"
 [ -n "$DEBUG" ] && {
     # cpumem info
-    # export 'json_data={"data":"{\"cpu_memory\":1}","operate_type":10001}'
+    export 'json_data={"data":"{\"cpu_memory\":1}","operate_type":10001}'
     # channel scanning
-    export 'json_data={"data":"","operate_type":15}'
+    #export 'json_data={"data":"","operate_type":15}'
     # config channel
     # export 'json_data={"data":"{\"r24_channel\":1,\"r5_channel\":149}","operate_type":17}'
 }
