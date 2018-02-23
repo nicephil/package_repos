@@ -41,26 +41,38 @@ do
     mode=""
     bandwidth=""
     config_get _disabled $ifname disabled
-    [ "$_disabled" = "1" ] && state="0"
     config_get mac $ifname macaddr
-    config_get chan $ifname channel
-    [ "$chan" = "auto" -o "$chan" = "0" ] && {
-        [ "$i" = "0" ] && chan=$(iwinfo ath50 info | awk -F '[: ]+' '/Channel/{print $5}')
-        [ "$i" = "1" ] && chan=$(iwinfo ath60 info | awk -F '[: ]+' '/Channel/{print $5}')
+    [ "$_disabled" = "1" ] && { 
+        state="0"
+        #echo sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\");COMMIT"
+        sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\");COMMIT"
+        continue
     }
-    [ "$i" = "0" ] && export "chan_2=$chan"
-    [ "$i" = "1" ] && export "chan_5=$chan"
 
-    config_get txpower $ifname txpower
-    config_get mode $ifname hwmode
+    vifname=""
+    if [ "$i" = "0" ]
+    then
+        vifname="ath50"
+    elif [ "$i" = "1" ]
+    then
+        vifname="ath60"
+    fi
 
-    config_get bandwidth $ifname htmode
-    [ "$bandwidth" = "auto" -o "$bandwidth" = "0" ] && {
-        [ "$i" = "0" ] && bandwidth=HT$(iwpriv ath50 get_mode | awk '{print substr($2,length($2)-1,3)}')
-        [ "$i" = "1" ] && bandwidth=HT$(iwpriv ath60 get_mode | awk '{print substr($2,length($2)-1,3)}')
-    }
+    chan=$(iwinfo $vifname info | awk -F '[: ]+' '/Channel/{print $5;exit}'); 
+    if [ "$i" = "0" ]
+    then
+        export "chan_2=$chan"
+    elif [ "$i" = "1" ]
+    then
+        export "chan_5=$chan"
+    fi
+
+    txpower=$(iwconfig $vifname | awk  '/Tx-Power/{txpower=substr($4,10);print txpower;exit}')
+    mode=$(iwpriv $vifname get_mode | awk -F':' '{print substr($2,1,4);exit}')
+    bandwidth=HT$(iwpriv $vifname get_mode | awk '{print substr($2,length($2)-1,3);exit}')
         
     #echo sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\");COMMIT"
+    # echo "--->$vifname, $txpower, $mode, $bandwidth"
     sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\");COMMIT"
 
 done
