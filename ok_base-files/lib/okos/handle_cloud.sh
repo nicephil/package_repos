@@ -131,6 +131,7 @@ do
     fi
 
     # 6. loading okos to memory
+    /etc/init.d/network stop
     echo "--->loading ${OKOS_FILE} to memory by kexec -l" | logger -t 'handle_cloud'
     report_status "102" "normal"
     kexec -d --command-line="$(cat /proc/cmdline | sed 's/crashkernel=10M@20M//g')" -l ${OKOS_FILE}
@@ -140,11 +141,11 @@ do
         echo "kexec load error, try again" | logger -t 'handle_cloud'
         sleep 5
         report_status "100" "kexec load error"
+        /etc/init.d/network restart
         continue
     fi
     sync
     sleep 1
-    /etc/init.d/network stop
 
 
     # 7. jump to okos entry
