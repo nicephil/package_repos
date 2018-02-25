@@ -78,7 +78,8 @@ do
         FIRSTBOOT="0"
     else
         echo "_oakmgr_pub_name:$_oakmgr_pub_name, capwapc.mas_server=$(uci get capwapc.server.mas_server 2>/dev/null)" | logger -t 'handle_cloud'
-        sleep 5
+        echo "reboot by handle_cloud!!" | logger -t 'handle_cloud'
+        sleep 60
         reboot -f
     fi
 

@@ -54,11 +54,12 @@ get_cpumem_info()
 {
     local vname_cpu_load="$1"
     local vname_mem_info="$2"
-    local topinfo="`top -n1 -b`"
+    local topinfo="`top -n1 -d1`"
     local cpu_load=$(echo "$topinfo"| awk '{
         if (match($1, "CPU:")) {
             a=substr($8,1,length($8)-1);
             printf "%d",100-a
+            exit
         }
     }')
 
@@ -69,6 +70,7 @@ get_cpumem_info()
             t=(a+b)
             v=(a/t)*100
             printf "%d_%d",t,v
+            exit
         }
     }')
 
@@ -106,7 +108,7 @@ generate_cpumemjson()
     local mem_load2=""
     get_cpumem_info cpu_load2 mem_info2
     OIFS=$IFS;IFS='_';set -- $mem_info2;mem_load2=$2;IFS=$OIFS
-    sleep 1
+    sleep 2
 
     local cpu_load3=""
     local mem_info3=""
