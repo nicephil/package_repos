@@ -22,9 +22,8 @@ do
         /etc/init.d/capwapc restart
     }
 
-    ps w | logger -t supervisor -p 7
-    top -n 1 | logger -t supervisor -p 7
+    top -n1 -d1 -b | logger -t supervisor -p 7
     ls -la /tmp | logger -t supervisor -p 7
-    df | logger -t supervisor -p 7
+    df -h | logger -t supervisor -p 7
 done
 
