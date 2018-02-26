@@ -56,10 +56,12 @@ void CWResetPendingMsgBox(CWPendingRequestMessage *pendingRequestMsgs) {
 	pendingRequestMsgs->timer_sec = 0;
 	pendingRequestMsgs->timer_hdl = NULL;
 
+    /* cancel timer before free timer_arg used by timer handler */
+	timer_rem(pendingRequestMsgs->timer, NULL);
+
 	CW_FREE_OBJECT(pendingRequestMsgs->timer_arg);
 	pendingRequestMsgs->timer_arg = NULL;
 
-	timer_rem(pendingRequestMsgs->timer, NULL);
 	
 	int i;
 	for(i=0; i<(pendingRequestMsgs->fragmentsNum); i++){
