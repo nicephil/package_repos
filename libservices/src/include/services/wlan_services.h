@@ -28,6 +28,7 @@ enum RADIO_DEVICE_MODE
 #define PORTAL_SCHEME_NAME_MAX_LENGTH     64
 #define TIMER_NAME_MAX_LENGTH     32
 #define RADIUS_SCHEME_NAME_MAX_LENGTH   17
+#define PPSK_KEYS_URL_MAX_LENGTH 256
 
 enum WLAN_STA_CIPHER {
     WLAN_STA_CIPHER_WEP = 0, 
@@ -176,6 +177,7 @@ struct wlan_service_template {
     int bandwidth_priority;
     int client_isolation;
     int type;
+    char ppsk_keys_url[PPSK_KEYS_URL_MAX_LENGTH];
 #endif
 };
 
@@ -227,6 +229,7 @@ enum WLAN_AUTH {
     WLAN_AUTH_WPA2_PSK, 
     WLAN_AUTH_WPA2_RADIUS,
     WLAN_AUTH_WPA_MIXED_PSK,
+    WLAN_AUTH_PPSK,
 
     WLAN_AUTH_MAX
 };
@@ -381,6 +384,7 @@ extern int wlan_set_gtk_lifetime_enable(int stid, int value);
 extern int wlan_set_bandwidth_priority(int stid, int value);
 extern int wlan_set_client_isolation(int stid, int value);
 extern int wlan_set_nettype(int stid, int value);
+extern int wlan_set_ppsk_keys_url(int stid, char *value);
 #endif
 extern int wlan_set_static_client_uplink_rate_limit_value(int stid, unsigned int value);
 extern int wlan_set_dynamic_client_uplink_rate_limit_value(int stid, unsigned int value);

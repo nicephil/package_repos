@@ -313,7 +313,7 @@ static int dc_image_upgrade_handler(struct tlv *payload, void **reserved)
     }; 
     struct json_object *root;
     int ret;
-    char terminated, cmd[256];
+    char terminated, cmd[512];
 
     terminated = payload->v[payload->l];
     payload->v[payload->l] = 0;

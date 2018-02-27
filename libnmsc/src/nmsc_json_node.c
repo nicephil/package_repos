@@ -88,6 +88,7 @@ struct service_template_json {
     int  bandwidth_priority;
     int client_isolation;
     int type;
+    char ppsk_keys_url[PPSK_KEYS_URL_MAX_LENGTH];
 #endif
 };
             
@@ -2004,6 +2005,7 @@ static int dc_parse_node_service_template(struct json_object *obj,
         {"bandwidth_priority",    json_type_int,    NULL, sizeof(service_template.bandwidth_priority)}, 
         {"client_isolation",      json_type_int,    NULL, sizeof(service_template.client_isolation)}, 
         {"type",                  json_type_int,    NULL, sizeof(service_template.type)}, 
+        {"ppsk_keys_url",         json_type_string, NULL, sizeof(service_template.ppsk_keys_url)}, 
 #endif
     };   
     struct json_object *array;
@@ -2059,6 +2061,7 @@ static int dc_parse_node_service_template(struct json_object *obj,
         paires[j++].value = &(service_templates->config[service_templates->num].bandwidth_priority);
         paires[j++].value = &(service_templates->config[service_templates->num].client_isolation);
         paires[j++].value = &(service_templates->config[service_templates->num].type);
+        paires[j++].value = &(service_templates->config[service_templates->num].ppsk_keys_url);
 #endif
         
         service_templates->config[service_templates->num].uplink_limit_enable = -1;
@@ -4500,6 +4503,13 @@ int dc_hdl_node_wlan(struct json_object *obj)
         }
 
         ret = wlan_set_nettype(stid, st_json->type);
+        if (ret) {
+            nmsc_log("Set service template %d guest network type %d failed for %d.", stid, 
+                st_json->type, ret);
+            ret = dc_error_code(dc_error_commit_failed, node, ret); 
+            goto ERROR_OUT;
+        }
+        ret = wlan_set_ppsk_keys_url(stid, st_json->ppsk_keys_url);
         if (ret) {
             nmsc_log("Set service template %d guest network type %d failed for %d.", stid, 
                 st_json->type, ret);

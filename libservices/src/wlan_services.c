@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <syslog.h>
 #include <arpa/inet.h>
+#include <sys/wait.h>
 
 #include "services/cfg_services.h"
 #include "services/wlan_services.h"
@@ -268,6 +269,8 @@ static int wlan_service_template_list(struct uci_package *p, void *arg)
                         stinfo->wlan_st_info[num].auth = WLAN_AUTH_WPA2_PSK;
                     else if(!strcmp(o->v.string, "wpa2-radius"))
                         stinfo->wlan_st_info[num].auth = WLAN_AUTH_WPA2_RADIUS;
+                    else if(!strcmp(o->v.string, "ppsk"))
+                        stinfo->wlan_st_info[num].auth = WLAN_AUTH_PPSK;
                 }else if(!strcmp(o->e.name, "ptk_lifetime"))
                 {
                     stinfo->wlan_st_info[num].ptk_lifetime = atoi(o->v.string);
@@ -376,6 +379,10 @@ static int wlan_service_template_list(struct uci_package *p, void *arg)
                 else if (strcmp(o->e.name, "type") == 0) {
                     stinfo->wlan_st_info[num].type = atoi(o->v.string);
                 }
+                else if (strcmp(o->e.name, "ppsk_keys_url") == 0) {
+                    strncpy(stinfo->wlan_st_info[num].ppsk_keys_url, 
+                            o->v.string, sizeof(stinfo->wlan_st_info[num].ppsk_keys_url) - 1);
+                }
                 
             }
         }
@@ -402,7 +409,7 @@ int wlan_set_service_template_enable(int stid, int enable)
 
 const static char *auth_str[] = {
     "open", "shared", "wpa-psk", "wpa2-psk", "wpa2-radius", 
-    "wpa-auto-psk"
+    "wpa-auto-psk", "ppsk"
 };
 
 const static char *wlan_convert_auth(int auth)
@@ -819,6 +826,15 @@ int wlan_set_nettype(int stid, int value)
     char tuple[128];
     sprintf(tuple, "wlan_service_template.ServiceTemplate%d.type", stid);
     cfg_set_option_value_int(tuple, value);
+}
+
+// add ppsk_keys_url
+int wlan_set_ppsk_keys_url(int stid, char *value)
+{
+    //wlan_service_template.ServiceTemplate1.ppsk_keys_url='http://ww.g.cn/1.'
+    char tuple[512];
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.ppsk_keys_url", stid);
+    cfg_set_option_value(tuple, value);
 }
 #endif
 
@@ -1312,8 +1328,9 @@ int wlan_set_atf(int radio_id, int enable)
 
 int wlan_set_bind(int radio_id, int stid)
 {
-    char tuple[128];
-    char buf[33];
+    char tuple[1024];
+    char buf[256];
+    int ret = 0;
     //wireless.ath15=wifi-iface
     sprintf(buf, "ath%d%d", radio_id, stid);
     cfg_add_section_with_name_type("wireless", buf, "wifi-iface");
@@ -1361,14 +1378,42 @@ int wlan_set_bind(int radio_id, int stid)
     cfg_get_option_value(tuple, buf, sizeof(buf));
     /* not open */
     if (strcmp(buf, "open")) {
-        sprintf(tuple, "wireless.ath%d%d.encryption", radio_id, stid);
-        cfg_set_option_value(tuple, "psk-mixed+tkip+ccmp");
+        if (!strcmp(buf, "ppsk")) {
+            //wlan_serivce_template.ServiceTemplate1.ppsk_keys_url="http://www.g.cn/1."
+            sprintf(tuple, "wlan_service_template.ServiceTemplate%d.ppsk_keys_url", stid);
+            cfg_get_option_value(tuple, buf, sizeof(buf));
+            if (!strlen(buf)) {
+                syslog(LOG_ERR, "no valid ppsk_keys_url\n");
+                return -1;
+            }
+            sprintf(tuple, "wget -q -T %d -O /var/run/wpa_psk_file-stid%d %s", 60, stid, buf);
+            ret = system(tuple);
+            if (ret == -1) {
+                syslog(LOG_ERR, "ppsk_keys_url:%s download failed\n", buf);
+                return ret;
+            } else {
+                if(WEXITSTATUS(ret)) {
+                    syslog(LOG_ERR, "ppsk_keys_url:%s download failed\n", buf);
+                    return WEXITSTATUS(ret);
+                }
+            }
 
-        //wireless.ath15.key='123456789' <-> wlan_service_template.ServiceTemplate1.psk_key='123456789'
-        sprintf(tuple, "wlan_service_template.ServiceTemplate%d.psk_key", stid);
-        cfg_get_option_value(tuple, buf, sizeof(buf));
-        sprintf(tuple, "wireless.ath%d%d.key", radio_id, stid);
-        cfg_set_option_value(tuple, buf);
+            sprintf(tuple, "wireless.ath%d%d.encryption", radio_id, stid);
+            cfg_set_option_value(tuple, "psk-mixed");
+
+            sprintf(tuple, "wireless.ath%d%d.wpa_psk_file", radio_id, stid);
+            sprintf(buf, "/var/run/wpa_psk_file-stid%d", stid);
+            cfg_set_option_value(tuple, buf);
+        } else {
+            sprintf(tuple, "wireless.ath%d%d.encryption", radio_id, stid);
+            cfg_set_option_value(tuple, "psk-mixed+tkip+ccmp");
+
+            //wireless.ath15.key='123456789' <-> wlan_service_template.ServiceTemplate1.psk_key='123456789'
+            sprintf(tuple, "wlan_service_template.ServiceTemplate%d.psk_key", stid);
+            cfg_get_option_value(tuple, buf, sizeof(buf));
+            sprintf(tuple, "wireless.ath%d%d.key", radio_id, stid);
+            cfg_set_option_value(tuple, buf);
+        }
     }
 
 
