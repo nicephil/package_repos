@@ -25,6 +25,5 @@ iptables -I forwarding_rule -m comment --comment "forward interface uplink stati
 iptables -I forwarding_rule -m comment --comment "forward interface downlink statistics" -j iface_downlink_stats_rule
 
 
-ipset -N gfwlist iphash -!
 iptables -t nat -A PREROUTING -p tcp -m set --match-set gfwlist dst -j REDIRECT --to-port 1080
 

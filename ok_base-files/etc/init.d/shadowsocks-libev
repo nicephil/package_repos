@@ -1,0 +1,13 @@
+#!/bin/sh /etc/rc.common
+
+START=90
+STOP=15
+
+start() {
+    (sleep 10;ss-redir -c /etc/config.json)&
+}
+
+stop() {
+	killall -q -9 ss-redir
+	killall -q -9 ss-tunnel
+}
