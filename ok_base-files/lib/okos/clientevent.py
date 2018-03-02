@@ -35,9 +35,9 @@ class Client(Thread):
     __slots__ = ('mac', 'queue', 'term', 'clientevent', 'last_acl_type',
                  'last_tx_rate_limit', 'last_rx_rate_limit',
                  'last_tx_rate_limit_local', 'last_rx_rate_limit_local',
-                 'last_ath', 'last_remain_time')
+                 'last_ath', 'last_remain_time', 'ppsk_key')
 
-    def __init__(self, mac):
+    def __init__(self, mac, ppsk_key):
         Thread.__init__(self)
         self.mac = mac
         self.queue = Queue(1)
@@ -51,6 +51,7 @@ class Client(Thread):
         self.last_ath = ''
         self.last_remain_time = 0
         self.name = mac
+        self.ppsk_key = ppsk_key
 
     # add a new event in queue
     def put_event(self, ath, event):
@@ -187,7 +188,13 @@ class Client(Thread):
     def query_auth(self):
         try:
             global auth_url
-            url = '%s/authority?info=%s' % (auth_url, self.pack_info())
+            if len(self.ppsk_key):
+                url = '%s/authority?info=%s&ppsk_key=%s' % (auth_url,
+                                                            self.pack_info(),
+                                                            self.ppsk_key)
+            else:
+                url = '%s/authority?info=%s' % (auth_url, self.pack_info())
+
             syslog(LOG_DEBUG, 'query url:%s' % url)
             response = urllib2.urlopen(url, timeout=3)
         except urllib2.HTTPError, e:
@@ -420,11 +427,11 @@ class Manager(object):
                 syslog(LOG_DEBUG, "%s" % str(garbage))
 
     # dispatch each client event
-    def dispatch_client_event(self, ath, mac, event):
+    def dispatch_client_event(self, ath, mac, event, ppsk_key):
         # 1. find or create Client object by client mac
         if mac not in self.client_dict.keys():
             # 1.1 new one
-            client = Client(mac)
+            client = Client(mac, ppsk_key)
             self.client_dict[mac] = client
             # 1.2 run it
             client.daemon = True
@@ -435,7 +442,7 @@ class Manager(object):
                 client.term = True
                 client.put_event('ath00', 'TERM')
                 del(client)
-                client = Client(mac)
+                client = Client(mac, ppsk_key)
                 self.client_dict[mac] = client
                 client.daemon = True
                 client.start()
@@ -470,7 +477,7 @@ class Manager(object):
         # loop processing pipe event
         while True:
             # 1. read pipe
-            s = os.read(self.pipe_f, 128)
+            s = os.read(self.pipe_f, 168)
             s = s.strip('\n')
 
             # 2. no char, sender is closed, so sleep
@@ -480,18 +487,20 @@ class Manager(object):
 
             # 3. parse content
             try:
-                ath, mac, event = s.split(' ')
+                ath, mac, event, ppsk_key = s.split(' ')
             except ValueError:
                 ath = s
                 mac = ''
                 event = ''
+                ppsk_key = ''
             except KeyboardInterrupt:
                 sys.exit(0)
 
-            syslog(LOG_INFO, "=++=>ath:%s, mac:%s, event:%s" %
+            syslog(LOG_INFO, "=++=>ath:%s, mac:%s, event:%s xx:%s" %
                    (ath,
                     mac,
-                    event))
+                    event,
+                    ppsk_key))
 
             # 4. handle wifi driver down event
             if ath == '/lib/wifi':
@@ -503,18 +512,20 @@ class Manager(object):
 
             # 6. handle client event
             elif len(ath) > 0 and len(mac) > 0 and len(event) > 0:
-                self.dispatch_client_event(ath, mac, event)
+                self.dispatch_client_event(ath, mac, event, ppsk_key)
 
             # 7. Unknown
             else:
-                syslog(LOG_INFO, "Unknown Event:%s,%s,%s" % (ath,
-                                                             mac,
-                                                             event))
+                syslog(LOG_INFO, "Unknown Event:%s,%s,%s,%s" % (ath,
+                                                                mac,
+                                                                event,
+                                                                ppsk_key))
             # 8. add log
-            syslog(LOG_INFO, "=--=>ath:%s, mac:%s, event:%s" %
+            syslog(LOG_INFO, "=--=>ath:%s, mac:%s, event:%s, xx:%s" %
                    (ath,
                     mac,
-                    event))
+                    event,
+                    ppsk_key))
 
 
 def main():
