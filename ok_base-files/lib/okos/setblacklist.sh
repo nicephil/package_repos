@@ -68,7 +68,7 @@ fi
 if [ "$action" = "0" ]
 then
     # 1. del it from blacklist
-    iwpriv "ath" delmac "$mac"
+    iwconfig 2>/dev/null | awk '/ath/{system("iwpriv "$1" delmac '"$mac"'");}'
     # 2. del it from blacklist timer
     for file in $(ls $atjobs_dir)
     do
