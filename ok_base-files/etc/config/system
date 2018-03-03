@@ -10,7 +10,6 @@ config system
     option log_size 128
     option log_remote 1
     option log_ip log.oakridge.vip
-    option log_prefix oakridge
     option ttylogin 0
 
 config timeserver ntp

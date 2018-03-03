@@ -568,7 +568,7 @@ function action_querydiag()
             response.step = 5
         end
     elseif input.step == 5 then
-        if sys.net.pingtest("cloud.oakridge.io") ~=0 then
+        if sys.net.pingtest("cloud2.oakridge.io") ~=0 and sys.net.pingtest("cloud.oakridge.io") ~=0 then
             response.errcode = 1
             response.step = 5
         else

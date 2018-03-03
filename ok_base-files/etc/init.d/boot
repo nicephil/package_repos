@@ -48,6 +48,10 @@ boot() {
     # OK_PATCH
     # generate productinfo
     /lib/okos/fetch_productinfo.sh > /etc/config/productinfo
+    mac=`uci get productinfo.productinfo.mac|tr -d :|tr '[a-z]' '[A-Z]'`
+    uci set system.@system[0].hostname="$mac";uci commit system
+    echo "$mac" > /proc/sys/kernel/hostname
+
     touch /etc/issue
     touch /etc/shadow
     touch /etc/config/dhcp
