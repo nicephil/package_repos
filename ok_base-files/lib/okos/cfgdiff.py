@@ -3,10 +3,11 @@
 import argparse, os, subprocess, re, json, pprint
 
 class CfgObj(object):
-    def __init__(self, name):
+    def __init__(self, differ=None):
         super(CfgObj, self).__init__()
         self.action = None
-        self.name = name
+        self.name = self.__class__.__name__
+        self.differ = differ
         self.data = {}
         self.run = None
         self.change_op()
@@ -28,53 +29,91 @@ class CfgObj(object):
         self.run = self.change
         return self
     def parse(self, j):
-        print 'CfgObj Parser interface called.'
-    def diff(self, new, old):
-        print 'CfgObj diff interface called.'
-        return new 
+        print self.name + ' Parser interface called.'
     def add(self):
-        print 'CfgObj add interface called.'
+        print self.name + ' add interface called.'
+        pprint.pprint(self.data)
     def remove(self):
-        print 'CfgObj remove interface called.'
+        print self.name + ' remove interface called.'
+        pprint.pprint(self.data)
     def change(self):
-        print 'CfgObj change interface called.'
+        print self.name + ' change interface called.'
+        pprint.pprint(self.data)
     def pre_run(self):
-        print 'CfgObj pre-run interface called.'
+        print self.name + ' pre-run interface called.'
     def post_run(self):
-        print 'CfgObj post-run interface called.'
-    def _diff_by_item_(self, new, old, name):
-        print 'CfgObj standard diff interface called.'
-        news = {n.data[name] for n in new}
-        olds = {o.data[name] for o in old}
+        print self.name + ' post-run interface called.'
+    def diff(self, new, old):
+        differ = self.differ
+        if not differ:
+            return new
+        news = {n.data[differ] for n in new}
+        olds = {o.data[differ] for o in old}
         if news == olds:
             return new
         else:
-            change = [n.change_op() for c in news & olds for n in new if c == n.data[name]]
-            add = [n.add_op() for c in news - olds for n in new if c == n.data[name]]
-            remove = [n.remove_op() for c in olds - news for n in old if c == n.data[name]]
+            change = [n.change_op() for c in news & olds for n in new if c == n.data[differ]]
+            add = [n.add_op() for c in news - olds for n in new if c == n.data[differ]]
+            remove = [n.remove_op() for c in olds - news for n in old if c == n.data[differ]]
             return remove + add + change
 
+###############################################################################
 class CfgLogServer(CfgObj):
     def __init__(self):
-        super(CfgLogServer, self).__init__('CfgLogServer')
+        super(CfgLogServer, self).__init__()
     def parse(self, j):
-        '''It should be a CLASS method'''
-        print 'CfgLogServer Parser called.'
-        res = CfgLogServer()
-        d = res.data
+        res = [CfgLogServer(),]
+        d = res[0].data
         log = j['server']['log']
         d['enabled'] = bool(log['enabled'])
         d['server'] = log['server']
         d['level'] = log['log_server_level']
+        return res
+
+class CfgSystem(CfgObj):
+    def __init__(self):
+        super(CfgSystem, self).__init__()
+    def parse(self, j):
+        res = CfgSystem()
+        d = res.data
+        system = j['mgmt']['system']
+        d['hostname'] = system['hostname']
+        d['zone'] = system['zone']
+        d['location'] = system['location']
+        d['country_code'] = system['country_code']
+        d['domain_name'] = system['domain_name']
+        d['auth_url'] = system['auth_url']
         return [res,]
-    def change(self):
-        print 'Set Log Server'
-        pprint.pprint(self.data)
-        print '/etc/init.d/boot restart'
+
+class CfgNtp(CfgObj):
+    def __init__(self):
+        super(CfgNtp, self).__init__()
+    def parse(self, j):
+        res = CfgNtp()
+        d = res.data
+        ntp = j['server']['ntp']
+        d['enabled'] = bool(ntp['enabled'])
+        d['period'] = ntp['period']
+        d['servers'] = ntp['servers']
+        return [res,]
+
+class CfgCapwap(CfgObj):
+    def __init__(self):
+        super(CfgCapwap, self).__init__()
+    def parse(self, j):
+        res = CfgCapwap()
+        d = res.data
+        capwap = j['server']['capwap']
+        d['enabled'] = bool(capwap['enabled'])
+        d['master'] = capwap['master_server']
+        d['mtu'] = capwap['mtu']
+        d['control_port'] = capwap['control_port']
+        d['echo_interval'] = capwap['echo_interval']
+        return [res,]
 
 class CfgNetwork(CfgObj):
     def __init__(self):
-        super(CfgNetwork, self).__init__('CfgNetwork')
+        super(CfgNetwork, self).__init__('vlanid')
     def parse(self, j):
         ports = j['ports']
         ssids = j['wlan']['ssids']
@@ -87,24 +126,11 @@ class CfgNetwork(CfgObj):
                 for p in ports if p['radio'] >= 0 if p['pvlan'] == vlans[i]
                 for s in ssids if s['ssid'] == p['name']]
         return res
-    def diff(self, new, old):
-        print 'CfgNetwork diff called.'
-        return self._diff_by_item_(new, old, 'vlanid')
-    def change(self):
-        print 'Change CfgNetwork'
-        pprint.pprint(self.data)
-    def add(self):
-        print 'Add CfgNetwork'
-        pprint.pprint(self.data)
-    def remove(self):
-        print 'remove CfgNetwork'
-        pprint.pprint(self.data)
 
 class CfgSsid(CfgObj):
     def __init__(self):
-        super(CfgSsid, self).__init__('CfgSsid')
+        super(CfgSsid, self).__init__('ssid')
     def parse(self, j):
-        print 'CfgSsid Parser called.'
         ssids = j['wlan']['ssids']
         res = [CfgSsid() for s in ssids]
         for i,r in enumerate(res):
@@ -125,24 +151,11 @@ class CfgSsid(CfgObj):
             d['radios'] = [p['radio'] for p in j['ports'] if p['name'] == d['ssid']]
             d['vlan'] = {p['pvlan'] for p in j['ports'] if p['name'] == d['ssid']}
         return res
-    def diff(self, new, old):
-        print 'CfgSsid diff called.'
-        return self._diff_by_item_(new, old, 'ssid')
-    def change(self):
-        print 'Set CfgSsid'
-        pprint.pprint(self.data)
-    def add(self):
-        print 'Add CfgSsid'
-        pprint.pprint(self.data)
-    def remove(self):
-        print 'Remove CfgSsid'
-        pprint.pprint(self.data)
 
 class CfgRadio(CfgObj):
     def __init__(self):
-        super(CfgRadio, self).__init__('CfgRadio')
+        super(CfgRadio, self).__init__('id')
     def parse(self, j):
-        print 'CfgRadio Parser called.'
         ifs = { c['name']: bool(c['enabled']) for c in j['interfaces'] if c['name'].find('wifi') >= 0}
         radios = j['wlan']['radios']
         res = [CfgRadio() for r in radios]
@@ -157,24 +170,52 @@ class CfgRadio(CfgObj):
             d['txpower'] = radio['max_power']
             d['client_max'] = radio['client_max']
         return res
-    def diff(self, new, old):
-        print 'CfgRadio diff called.'
-        return self._diff_by_item_(new, old, 'id')
 
-    def change(self):
-        print 'Set Radios'
-        pprint.pprint(self.data)
+class CfgPortal(CfgObj):
+    def __init__(self):
+        super(CfgPortal, self).__init__('scheme')
+    def parse(self, j):
+        portals = j['wlan']['portal_schemes']
+        res = [CfgPortal() for i in range(0, len(portals))]
+        for i,r in enumerate(res):
+            d = r.data
+            p = portals[i]
+            d['scheme'] = p['scheme']
+            d['enabled'] = bool(p['enable'])
+            d['url'] = p['url']
+            d['auth_server'] = p['auth_ip']
+            d['whitelist_ip'] = p['whitelist_ip']
+            d['domain_set_name'] = p['domain_set_name']
+        return res
 
+class CfgDomainNameSet(CfgObj):
+    def __init__(self):
+        super(CfgDomainNameSet, self).__init__('name')
+    def parse(self, j):
+        dns = j['wlan']['domain_sets']
+        res = [CfgDomainNameSet() for i in range(0, len(dns))]
+        for i,r in enumerate(res):
+            d = r.data
+            dn = dns[i]
+            d['name'] = dn['name']
+            d['keys'] = dn['keys']
+        return res
 ###############################################################################
 class OakmgrCfg(object):
     Templates = [
+            CfgCapwap(),
             CfgLogServer(),
+            CfgSystem(),
+            CfgNtp(),
             CfgRadio(),
             CfgSsid(),
             CfgNetwork(),
+            CfgPortal(),
+            CfgDomainNameSet(),
             ]
-    def __init__(self, f=None):
+    def __init__(self, f=''):
         super(OakmgrCfg, self).__init__()
+        self.source = f
         if f:
             with open(f, 'r') as cfg:
                 self._json = json.loads(cfg.read(), encoding='utf-8')
@@ -183,16 +224,12 @@ class OakmgrCfg(object):
         self._parse_()
 
     def _parse_(self):
-        if self._json:
-            self.objects = [{'name':t.name, 'objs':t.parse(self._json)} for t in self.Templates]
-        else:
-            self.objects = [{'name':t.name, 'objs':[]} for t in self.Templates]
+        self.objects = [self._json and t.parse(self._json) or [] for t in self.Templates]
 
     def __sub__(self, old):
-        print 'Calculate diff from {old} to {new}'.format(old=old, new=self)
+        print 'Calculate diff from <{old}> to <{new}>'.format(old=old.source, new=self.source)
         diff = OakmgrCfg()
-        for i,t in enumerate(diff.Templates):
-            diff.objects[i]['objs'] = t.diff(self.objects[i]['objs'], old.objects[i]['objs'])
+        diff.objects = [t.diff(self.objects[i], old.objects[i]) for i,t in enumerate(diff.Templates)]
         return diff
 
     def dump(self):
@@ -201,9 +238,9 @@ class OakmgrCfg(object):
     def run(self):
         print 'Start to execute commands...'
         for i,objs in enumerate(self.objects):
-            print '>>>' + objs['name']
+            print '\n>>> ' + self.Templates[i].__class__.__name__
             self.Templates[i].pre_run()
-            for o in objs['objs']:
+            for o in objs:
                 o.run()
             self.Templates[i].post_run()
 
