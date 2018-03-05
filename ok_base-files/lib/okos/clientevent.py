@@ -487,7 +487,33 @@ class Manager(object):
 
             # 3. parse content
             try:
-                ath, mac, event, ppsk_key = s.split(' ')
+                vs = s.split(' ')
+                if len(vs) == 1:
+                    ath = vs[0]
+                    mac = ''
+                    event = ''
+                    ppsk_key = ''
+                elif len(vs) == 2:
+                    ath = vs[0]
+                    mac = vs[1]
+                    event = ''
+                    ppsk_key = ''
+                elif len(vs) == 3:
+                    ath = vs[0]
+                    mac = vs[1]
+                    event = vs[2]
+                    ppsk_key = ''
+                elif len(vs) == 4:
+                    ath = vs[0]
+                    mac = vs[1]
+                    event = vs[2]
+                    ppsk_key = vs[3]
+                else:
+                    ath = s
+                    mac = ''
+                    event = ''
+                    ppsk_key = ''
+
             except ValueError:
                 ath = s
                 mac = ''
