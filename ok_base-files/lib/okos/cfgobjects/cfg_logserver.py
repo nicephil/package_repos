@@ -14,6 +14,4 @@ class CfgLogServer(CfgObj):
         d['server'] = log['server']
         d['level'] = log['log_server_level']
         return res
-    def change(self):
-        pass
 

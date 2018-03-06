@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import argparse, os, subprocess, re, json, pprint
+import argparse, os, subprocess, re, json, pprint, sys
 from cfgobjects import CfgCapwap, CfgLogServer, CfgNtp, CfgSystem, CfgNetwork, CfgRadio, CfgSsid, CfgPortal, CfgDomainNameSet
 
 class OakmgrCfg(object):
@@ -42,10 +42,13 @@ class OakmgrCfg(object):
         print 'Start to execute commands...'
         for i,objs in enumerate(self.objects):
             print '\n>>> ' + self.Templates[i].__class__.__name__
-            self.Templates[i].pre_run()
+            if not self.Templates[i].pre_run():
+                return False
             for o in objs:
-                o.run()
-            self.Templates[i].post_run()
+                if not o.run():
+                    return False
+            if not self.Templates[i].post_run():
+                return False
         return True
 
 def main(args):
@@ -53,15 +56,17 @@ def main(args):
     cur = OakmgrCfg(args.target)
     if not cur.parse():
         print 'current configuration parse failed.'
-        return False
+        return 1
     ori = OakmgrCfg(args.original)
     if not ori.parse():
         print 'original configuration parse failed.'
-        return False
+        return 2
     diff = cur - ori
     diff.dump()
     if not diff.run():
-        return False
+        return 3
+    else:
+        return 0
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create diff from current config to original one.')
@@ -71,6 +76,6 @@ if __name__ == '__main__':
     #parser.add_argument()
     args = parser.parse_args()
 
-    main(args)
+    sys.exit(main(args))
 
-    print ''
+

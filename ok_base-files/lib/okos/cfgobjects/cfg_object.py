@@ -28,32 +28,44 @@ class CfgObj(object):
         self.action = 'CHANGE'
         self.run = self.change
         return self
+    def no_op(self):
+        self.action = 'NULL'
+        self.run = self.noop
+        return self
     def parse(self, j):
         print self.name + ' Parser interface called.'
     def add(self):
         print self.name + ' add interface called.'
         pprint.pprint(self.data)
+        #return True
     def remove(self):
         print self.name + ' remove interface called.'
         pprint.pprint(self.data)
+        #return True
     def change(self):
         print self.name + ' change interface called.'
         pprint.pprint(self.data)
+        #return True
+    def noop(self):
+        print self.name + ' noop interface called.'
+        return True
     def pre_run(self):
         print self.name + ' pre-run interface called.'
+        return True
     def post_run(self):
         print self.name + ' post-run interface called.'
+        return True
     def diff(self, new, old):
         differ = self.differ
         if not differ:
-            return new
-        news = {n.data[differ] for n in new}
-        olds = {o.data[differ] for o in old}
-        if news == olds:
-            return new
+            return [n.data == old[i].data and n.no_op() or n for i,n in enumerate(new)]
         else:
-            change = [n.change_op() for c in news & olds for n in new if c == n.data[differ]]
+            news = {n.data[differ] for n in new}
+            olds = {o.data[differ] for o in old}
+            #change = [n.change_op() for c in news & olds for n in new if c == n.data[differ]]
             add = [n.add_op() for c in news - olds for n in new if c == n.data[differ]]
             remove = [n.remove_op() for c in olds - news for n in old if c == n.data[differ]]
+            change = [n.data == o.data and n.no_op() or n.change_op()
+                    for n in new for o in old if n.data[differ] == o.data[differ]]
             return remove + add + change
 
