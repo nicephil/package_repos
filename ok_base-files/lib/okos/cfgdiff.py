@@ -27,11 +27,7 @@ class OakmgrCfg(object):
 
     def parse(self):
         self.objects = [self._json and t.parse(self._json) or [] for t in self.Templates]
-        num = sum([1 for o in self.objects if o])
-        if len(self.Templates) != num:
-            return False
-        else:
-            return True
+        return bool(len(self.Templates) == len(self.objects))
 
     def __sub__(self, old):
         print 'Calculate diff from <{old}> to <{new}>'.format(old=old.source, new=self.source)
@@ -56,9 +52,11 @@ def main(args):
     print args
     cur = OakmgrCfg(args.target)
     if not cur.parse():
+        print 'current configuration parse failed.'
         return False
     ori = OakmgrCfg(args.original)
     if not ori.parse():
+        print 'original configuration parse failed.'
         return False
     diff = cur - ori
     diff.dump()
