@@ -21,6 +21,4 @@ class CfgRadio(CfgObj):
             d['txpower'] = radio['max_power']
             d['client_max'] = radio['client_max']
         return res
-    def post_run(self):
-        pass
 
