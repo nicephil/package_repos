@@ -18,3 +18,4 @@ export PS1='\[\033[35;1m\]\u\[\033[0m\]@\[\033[31;1m\]\h \[\033[32;1m\]$PWD\[\03
 alias iwsta='iwconfig 2>/dev/null | awk '"'"'/ath/{print $1;system("wlanconfig "$1" list");}'"'"
 alias iwap='iwconfig 2>/dev/null | awk '"'"'/ath/{print $1;system("wlanconfig "$1" list ap");}'"'"
 alias showlog="uci set system.@system[0].conloglevel='8';uci set system.@system[0].klogconloglevel='8';uci set system.@system[0].cronloglevel='8';uci commit system;/etc/init.d/boot restart;logread -f | sed -e '/capwap/d' -e '/wifidog/d' -e '/supervisor/d'"
+alias showlogcapwapc="uci set system.@system[0].conloglevel='8';uci set system.@system[0].klogconloglevel='8';uci set system.@system[0].cronloglevel='8';uci commit system;/etc/init.d/boot restart;logread -f | sed -n '/capwap/p'"

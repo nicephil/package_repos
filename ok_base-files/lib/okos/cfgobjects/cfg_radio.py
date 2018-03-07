@@ -9,6 +9,7 @@ class CfgRadio(CfgObj):
     def parse(self, j):
         ifs = { c['name']: bool(c['enabled']) for c in j['interfaces'] if c['name'].find('wifi') >= 0}
         radios = j['wlan']['radios']
+        system = j['mgmt']['system']
         res = [CfgRadio() for r in radios]
         for i,r in enumerate(res):
             d = r.data
@@ -20,5 +21,6 @@ class CfgRadio(CfgObj):
             d['bandwidth'] = radio['bandwidth']
             d['txpower'] = radio['max_power']
             d['client_max'] = radio['client_max']
+            d['country_code'] = system['country_code']
         return res
 

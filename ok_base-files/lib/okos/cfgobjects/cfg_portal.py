@@ -8,6 +8,7 @@ class CfgPortal(CfgObj):
         super(CfgPortal, self).__init__('scheme')
     def parse(self, j):
         portals = j['wlan']['portal_schemes']
+        system = j['mgmt']['system']
         res = [CfgPortal() for i in range(0, len(portals))]
         for i,r in enumerate(res):
             d = r.data
@@ -18,5 +19,7 @@ class CfgPortal(CfgObj):
             d['auth_server'] = p['auth_ip']
             d['whitelist_ip'] = p['whitelist_ip']
             d['domain_set_name'] = p['domain_set_name']
+            d['system_domain_name'] = system['domain_name']
+            d['system_auth_url'] = system['auth_url']
         return res
 
