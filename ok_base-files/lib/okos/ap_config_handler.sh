@@ -36,14 +36,29 @@ config_log_err()
     fi
 }
 
-. /usr/share/libubox/jshn.sh
-. /lib/functions.sh
-
 config_log_err "---xxxx:start"
 
 # json_data env
 
-echo $json_data > /tmp/new_config.json
+# 0. global variable
+old_file="/tmp/old_config.json"
+new_file="/tmp/new_config.json"
+cfgdiff="/lib/okos/cfgdiff.py"
+ret=0
 
-config_log_err "---xxxx:end"
-return 0
+# 1. save new config
+echo $json_data > $new_file
+
+# 2. any old config here?
+if [ -f "$old_file" ] 
+then
+    $cfgdiff $new_file -o $old_file
+    ret=$?
+else
+    ret=1
+fi
+
+mv $new_file $old_file
+
+config_log_err "---xxxx:end-$ret"
+return $ret 

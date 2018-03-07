@@ -74,7 +74,7 @@ static int dc_default_finished(void *reserved)
 /*
  * handle ap config request
  */
-static int dc_json_config_handler(struct tlv *payload, void **reserved)
+static int dc_json_ap_config_handler(struct tlv *payload, void **reserved)
 {
     struct dc_handle_result {
         int  code;
@@ -93,6 +93,7 @@ static int dc_json_config_handler(struct tlv *payload, void **reserved)
     payload->v[payload->l] = 0;
     char *env = (char *)malloc(payload->l + 4);
     if (env == NULL) {
+        ret = -1;
         result->code = -1;
         CWLog("no memory for env");
         goto _cleanup;
@@ -101,6 +102,7 @@ static int dc_json_config_handler(struct tlv *payload, void **reserved)
     CWLog("-------->System env:json_data=%s", env);
     ret = setenv("json_data", env, 1);
     if (ret == -1) {
+        ret = -1;
         result->code = -1;
         CWLog("setenv for json_data failed");
         goto _cleanup;
@@ -111,14 +113,10 @@ static int dc_json_config_handler(struct tlv *payload, void **reserved)
         result->code = -1;
     } else {
         result->code = WEXITSTATUS(ret);
+        ret = result->code;
     }
     if (result->code != 0) {
         CWLog("system run %s failed, %d", prog, result->code);
-    }
-
-    char *tmp = getenv("result");
-    if (tmp) {
-        CWLog("Result env:%s", tmp);
     }
 
 _cleanup:
@@ -128,7 +126,30 @@ _cleanup:
     payload->v[payload->l] = terminated;
     *reserved = result;
     CWLog("-------->Result:%d", result->code);
-    return 0;
+    extern struct dc_handle_result g_handle_result;
+    g_handle_result.code = result->code;
+    strncpy(g_handle_result.key, result->key, sizeof(g_handle_result.key) - 1);
+    return ret;
+}
+
+static int dc_json_config_handler(struct tlv *payload, void **reserved)
+{
+    int ret;
+    char terminated;
+
+    ret = dc_json_ap_config_handler(payload, reserved);
+    if (ret) {
+        terminated = payload->v[payload->l];
+        payload->v[payload->l] = 0;
+        ret = dc_json_machine(payload->v);
+        payload->v[payload->l] = terminated;
+        if (*reserved) {
+            free(*reserved);
+            *reserved = NULL;
+        }
+    }
+
+    return ret;
 }
 
 static int dc_json_config_response(devctrl_block_s *dc_block, void *reserved)
@@ -162,8 +183,15 @@ static int dc_json_config_response(devctrl_block_s *dc_block, void *reserved)
 
 static int dc_json_config_finished(void *reserved)
 {
-    if (reserved) {
+    if (!reserved) {
+        CWLog("-------->Finish Old Restart");
+        system("/lib/okos/restartservices.sh");
+        dc_stop_cawapc();
+        dc_restart_cawapc();
+    } else {
+        CWLog("----->Finish New No Restart");
         free(reserved);
+        reserved = NULL;
     }
     return 0;
 }

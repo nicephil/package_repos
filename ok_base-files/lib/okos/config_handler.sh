@@ -31,7 +31,7 @@ operate_type=""
 data=""
 json_get_vars operate_type data
 
-config_log "$operate_type" "$data"
+#config_log "$operate_type" "$data"
 
 handle_devstats()
 {
@@ -95,7 +95,7 @@ case "$operate_type" in
             config_log "$operate_type $data failed"
             return 1
         fi
-        config_log "$operate_type $data success"
+        #config_log "$operate_type $data success"
         return 0
         ;;
 

@@ -17,4 +17,14 @@ class CfgSystem(CfgObj):
         d['domain_name'] = system['domain_name']
         d['auth_url'] = system['auth_url']
         return [res,]
+    def change(self):
+        cmd = 'uci set system.@system[0].hostname="' + str(self.data['hostname']) + '";' + \
+            'uci set system.@system[0].location="' + str(self.data['location']) + '";' + \
+            'uci commit system;' + \
+            'echo "' + str(self.data['hostname']) + '" > /proc/sys/kernel/hostname;'
+        ret = subprocess.call(cmd, shell=True)
+        if ret == 0:
+            return True
+        else:
+            return False
 

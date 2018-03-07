@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse, os, subprocess, re, json, pprint, sys
-from cfgobjects import CfgCapwap, CfgLogServer, CfgNtp, CfgSystem, CfgNetwork, CfgRadio, CfgSsid, CfgPortal, CfgDomainNameSet
+from cfgobjects import CfgCapwap, CfgLogServer, CfgNtp, CfgSystem, CfgNetwork, CfgRadio, CfgSsid, CfgPortal, CfgDomainNameSet, CfgVersion
 
 class OakmgrCfg(object):
     Templates = [
@@ -14,6 +14,7 @@ class OakmgrCfg(object):
             CfgNetwork(),
             CfgPortal(),
             CfgDomainNameSet(),
+            CfgVersion(),
             ]
     def __init__(self, f=''):
         super(OakmgrCfg, self).__init__()
