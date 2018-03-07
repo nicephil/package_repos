@@ -12,7 +12,7 @@ config_log_debug()
     then
         echo "ap_config: $@"
     else
-        logger -p 7 -t 'ap_config' $@
+        echo $@ | logger -p 7 -t 'ap_config'
     fi
 }
 
@@ -22,7 +22,7 @@ config_log_info()
     then
         echo "ap_config: $@"
     else
-        logger -p 5 -t 'ap_config' $@
+        echo $@ | logger -s -p 5 -t 'ap_config'
     fi
 }
 
@@ -32,13 +32,9 @@ config_log_err()
     then
         echo "ap_config: $@"
     else
-        logger -p 3 -t 'ap_config' $@
+        echo $@ | logger -s -p 3 -t 'ap_config'
     fi
 }
-
-config_log_err "---xxxx:start"
-
-# json_data env
 
 # 0. global variable
 old_file="/tmp/old_config.json"
@@ -54,11 +50,11 @@ if [ -f "$old_file" ]
 then
     $cfgdiff $new_file -o $old_file
     ret=$?
+    config_log_err "---cfgdiff:$ret"
 else
     ret=1
 fi
 
 mv $new_file $old_file
 
-config_log_err "---xxxx:end-$ret"
 return $ret 
