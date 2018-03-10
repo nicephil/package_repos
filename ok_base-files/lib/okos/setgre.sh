@@ -1,5 +1,14 @@
 #!/bin/sh
 
+# return directly if service is restarting
+lockfile="/tmp/restartservices.lock"
+
+if [ -f "$lockfile" ]
+then
+        return 1
+fi
+
+
 . /lib/functions.sh
 . /lib/functions/network.sh
 . /usr/share/libubox/jshn.sh
@@ -51,6 +60,10 @@ check_guestnetwork()
     local var="$2"
 
     config_get _type "$section" "type"
+    if [ -z "$_type" ]
+    then
+        return 0
+    fi
 
     # ignore no-existing ath interface
     ifconfig "$section" > /dev/null 2>&1

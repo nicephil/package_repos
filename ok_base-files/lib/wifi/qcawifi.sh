@@ -438,7 +438,7 @@ disable_qcawifi() {
 	local parent
 	local retval=0
 
-	echo "$DRIVERS disable radio $1" >/dev/console
+    echo "--->$(date):$DRIVERS disable radio $1" >/dev/console
 
 	find_qcawifi_phy "$device" >/dev/null || return 1
 
@@ -485,7 +485,7 @@ disable_qcawifi() {
 enable_qcawifi() {
 	local device="$1"
 	local count=0
-	echo "$DRIVERS: enable radio $1" >/dev/console
+    echo "====>$(date):$DRIVERS: enable radio $1" >/dev/console
 
 	load_qcawifi
 
@@ -2006,6 +2006,7 @@ EOF
 config wifi-iface ath60
     option device wifi1
     option ifname ath60
+    option network dwan
     option mode ap
     option ssid ok_${ssid_tmp}_5G
     option encryption psk-mixed

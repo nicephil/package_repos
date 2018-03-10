@@ -391,7 +391,7 @@ static int dc_get_wlan_radio_stats(struct wlan_radio_stat **stats)
     strcpy(cur_stats[0].ifname, "wifi1");
     cur_stats[0].ifname_len = strlen(cur_stats[0].ifname);
 
-    stream = popen("apstats -r -i wifi1 | awk -F'[= ]+' '{if(match($1$2,\"ChannelUtilization\"))chutil=$4;if(match($1$2,\"TotalPER\"))per=$4;}END{print chutil\"_\"per}'", "r");
+    stream = popen("[ ! -f /tmp/restartservices.lock ] && apstats -r -i wifi1 | awk -F'[= ]+' '{if(match($1$2,\"ChannelUtilization\"))chutil=$4;if(match($1$2,\"TotalPER\"))per=$4;}END{print chutil\"_\"per}'", "r");
     ret = fscanf(stream, "%d_%d", &chutil, &per);
     cur_stats[0].chan_util=(unsigned char)(chutil*100/255);
     cur_stats[0].error_rate=(unsigned char)per;
@@ -403,7 +403,7 @@ static int dc_get_wlan_radio_stats(struct wlan_radio_stat **stats)
     }
     pclose(stream);
 
-    stream = popen("iwconfig ath60 | awk -F'[: =]+' '{if(match($2$3,\"BitRate\"))bitrate=$4;if(match($2$3,\"LinkQuality\"))noise=$11;}END{print bitrate\"_\"noise}'", "r");
+    stream = popen("[ ! -f /tmp/restartservices.lock ] && iwconfig ath60 | awk -F'[: =]+' '{if(match($2$3,\"BitRate\"))bitrate=$4;if(match($2$3,\"LinkQuality\"))noise=$11;}END{print bitrate\"_\"noise}' ", "r");
     ret = fscanf(stream, "%f_%d", &tx_rate, &noise_level);
     cur_stats[0].tx_rate=(unsigned int)tx_rate;
     cur_stats[0].noise_level=noise_level;
@@ -420,7 +420,7 @@ static int dc_get_wlan_radio_stats(struct wlan_radio_stat **stats)
     strcpy(cur_stats[1].ifname, "wifi0");
     cur_stats[1].ifname_len = strlen(cur_stats[1].ifname);
 
-    stream = popen("apstats -r -i wifi0 | awk -F'[= ]+' '{if(match($1$2,\"ChannelUtilization\"))chutil=$4;if(match($1$2,\"TotalPER\"))per=$4;}END{print chutil\"_\"per}'", "r");
+    stream = popen("[ ! -f /tmp/restartservices.lock ] && apstats -r -i wifi0 | awk -F'[= ]+' '{if(match($1$2,\"ChannelUtilization\"))chutil=$4;if(match($1$2,\"TotalPER\"))per=$4;}END{print chutil\"_\"per}' ", "r");
     ret = fscanf(stream, "%d_%d", &chutil, &per);
     cur_stats[1].chan_util=(unsigned char)(chutil*100/255);
     cur_stats[1].error_rate=(unsigned char)per;
@@ -432,7 +432,7 @@ static int dc_get_wlan_radio_stats(struct wlan_radio_stat **stats)
     }
     pclose(stream);
 
-    stream = popen("iwconfig ath50 | awk -F'[: =]+' '{if(match($2$3,\"BitRate\"))bitrate=$4;if(match($2$3,\"LinkQuality\"))noise=$11;}END{print bitrate\"_\"noise}'", "r");
+    stream = popen("[ ! -f /tmp/restartservices.lock ] && iwconfig ath50 | awk -F'[: =]+' '{if(match($2$3,\"BitRate\"))bitrate=$4;if(match($2$3,\"LinkQuality\"))noise=$11;}END{print bitrate\"_\"noise}' ", "r");
     ret = fscanf(stream, "%f_%d", &tx_rate, &noise_level);
     cur_stats[1].tx_rate=(unsigned int)tx_rate;
     cur_stats[1].noise_level=noise_level;

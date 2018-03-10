@@ -1,5 +1,13 @@
 #!/bin/sh
 
+# check if services is restarting
+
+lockfile="/tmp/restartservices.lock"
+if [ -f "$lockfile" ]
+then
+        return 1
+fi
+
 apstats_trap () {
     logger -t apstats "gets trap"
     lock -u /tmp/.iptables.lock

@@ -1,5 +1,14 @@
 #!/bin/sh
 
+# check if service is restarting
+lockfile="/tmp/restartservices.lock"
+
+if [ -f "$lockfile" ]
+then
+        return 1
+fi
+
+
 if [ -f /tmp/ifaceinfo.lock ]
 then
     exit 0

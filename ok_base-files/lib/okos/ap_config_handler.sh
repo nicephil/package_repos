@@ -45,8 +45,6 @@ ret=0
 # 1. save new config
 echo $json_data > $new_file
 
-return 1
-
 # 2. any old config here?
 if [ -f "$old_file" ] 
 then

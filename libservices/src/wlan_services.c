@@ -1380,17 +1380,11 @@ int wlan_set_bind(int radio_id, int stid)
             cfg_get_option_value(tuple, buf, sizeof(buf));
             if (!strlen(buf)) {
                 syslog(LOG_ERR, "no valid ppsk_keys_url\n");
-                return -1;
-            }
-            sprintf(tuple, "wget -q -T %d -O /var/run/wpa_psk_file-stid%d %s", 60, stid, buf);
-            ret = system(tuple);
-            if (ret == -1) {
-                syslog(LOG_ERR, "ppsk_keys_url:%s download failed\n", buf);
-                return ret;
             } else {
-                if(WEXITSTATUS(ret)) {
+                sprintf(tuple, "wget -q -T %d -O /var/run/wpa_psk_file-stid%d %s &", 120, stid, buf);
+                ret = system(tuple);
+                if (ret == -1 || WEXITSTATUS(ret)) {
                     syslog(LOG_ERR, "ppsk_keys_url:%s download failed\n", buf);
-                    return WEXITSTATUS(ret);
                 }
             }
 

@@ -21,8 +21,7 @@ start() {
 
 	sleep 5
 
-	/sbin/wifi down
-	/sbin/wifi up
+	/sbin/wifi
 
 #OK_PATCH
     /lib/okos/getifaceinfo.sh &
@@ -48,8 +47,7 @@ stop() {
 reload() {
 	ubus call network reload
     sleep 5
-	/sbin/wifi down
-	/sbin/wifi up
+	/sbin/wifi
 #OK_PATCH
     /lib/okos/getifaceinfo.sh &
 #end

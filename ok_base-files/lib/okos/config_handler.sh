@@ -63,7 +63,7 @@ handle_devstats()
         (sleep 110; has_chscanningjson=1 /lib/okos/devstats.sh) &
     fi
 
-    [ -n "$(pgrep 'restartservices')" ] && ret="1"
+    [ -f "/tmp/restartservices.lock" ] && ret="1"
 
     return $ret
 }
