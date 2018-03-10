@@ -569,10 +569,10 @@ def main():
             syslog(LOG_WARNING, "fork #1 failed: %d (%s)" %
                    (e.errno, e.strerror))
             sys.exit(1)
-            # decouple from parent environment
-            os.chdir("/")
-            os.setsid()
-            os.umask(0)
+        # decouple from parent environment
+        os.chdir("/")
+        os.setsid()
+        os.umask(0)
         # do second fork
         try:
             pid = os.fork()

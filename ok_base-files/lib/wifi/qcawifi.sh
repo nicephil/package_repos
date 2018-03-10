@@ -2003,22 +2003,22 @@ EOF
     ssid_tmp=`echo ${base_mac}|sed 's/://g'`
     ssid_tmp=${ssid_tmp:8:12}
     cat <<EOF
+config wifi-iface ath60
+    option device wifi1
+    option ifname ath60
+    option mode ap
+    option ssid ok_${ssid_tmp}_5G
+    option encryption psk-mixed
+    option key oakridge
+    option hidden 1
+
+
 config wifi-iface ath50
     option device wifi0
     option ifname ath50
     option network dwan
     option mode ap
     option ssid ok_${ssid_tmp}
-    option encryption psk-mixed
-    option key oakridge
-    option hidden 1
-
-config wifi-iface ath60
-    option device wifi1
-    option ifname ath60
-    option network dwan
-    option mode ap
-    option ssid ok_${ssid_tmp}_5G
     option encryption psk-mixed
     option key oakridge
     option hidden 1

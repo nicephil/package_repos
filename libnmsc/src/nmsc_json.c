@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
 #include "nmsc/nmsc.h"
 #include "nmsc_util.h"
 #include "json/json.h"
@@ -186,6 +187,15 @@ int dc_json_machine(const char *data)
             //dc_set_handle_result(dc_error_code(dc_error_unknow_obj, dc_node_common, 0), key);
             //return dc_error_unknow_obj;
         }
+    }
+
+    ret = system("/lib/okos/restartservices.sh");
+    if (ret != -1) {
+        ret = WEXITSTATUS(ret);
+    }
+    if (ret != 0) {
+        nmsc_log("system run restartservices failed, %d", ret);
+        dc_set_handle_result(dc_error_code(dc_error_commit_failed, dc_node_common, 0), "restart services failed");
     }
 
 ERROR_OUT:  

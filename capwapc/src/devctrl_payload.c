@@ -185,7 +185,6 @@ static int dc_json_config_finished(void *reserved)
 {
     if (!reserved) {
         CWLog("-------->Finish Old Restart");
-        system("/lib/okos/restartservices.sh");
         dc_stop_cawapc();
         dc_restart_cawapc();
     } else {
@@ -401,7 +400,7 @@ static int dc_image_upgrade_handler(struct tlv *payload, void **reserved)
         goto ERROR_OUT;
     }
 
-    system("/lib/okos/stopserivces.sh");
+    system("/lib/okos/stopservices.sh");
 
     sprintf(cmd, "wget -q -T %d -O - \'%s\' | tail -c +65 | tar xzf - -O > %s", json_cfg.timeout, json_cfg.src, CST_IMG_TMP_FILE);
     ret = system(cmd);
@@ -1949,7 +1948,6 @@ static int dc_router_config_handler(struct tlv *payload, void **reserved)
     payload->v[payload->l] = 0;
     char *env = (char *)malloc(payload->l + 4);
     strcpy(env, payload->v);
-    CWLog("System env:json_data=%s", env);
     setenv("json_data", env, 1);
 
     struct dc_handle_result *result = (struct dc_handle_result *)malloc(sizeof(struct dc_handle_result));
