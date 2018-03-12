@@ -13,7 +13,7 @@ start () {
 
 stop () {
     service_stop /lib/okos/supervisor.sh
-    killall -6 supervisor.sh
+    killall -9 supervisor.sh
 }
 
 

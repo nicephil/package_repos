@@ -5,15 +5,13 @@ lockfile="/tmp/restartservices.lock"
 
 if [ -f "$lockfile" ]
 then
-        return 1
+    sleep 20
 fi
-
 
 if [ -f /tmp/ifaceinfo.lock ]
 then
     exit 0
 fi
-
 
 getifaceinfo_trap () {
     logger -t getifaceinfo "gets trap"
@@ -86,6 +84,8 @@ do
 
 done
  
+rm -rf /tmp/ifaceinfo.lock
+return 0
 
 iwconfig 2> /dev/null | awk '{
                               

@@ -1142,6 +1142,8 @@ static int dc_interface_info_response(devctrl_block_s *dc_block, void *reserved)
     char *payload, *data = NULL;
     int paylength = 0, ret = 0, count = 0; 
 
+    system("/lib/okos/getifaceinfo.sh");
+
     count = dc_get_interface_info(&inter_info);
     if (inter_info == NULL || count <= 0) { 
         goto err;

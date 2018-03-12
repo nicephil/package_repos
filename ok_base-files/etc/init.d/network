@@ -21,16 +21,14 @@ start() {
 
 	sleep 5
 
-	/sbin/wifi
+	/sbin/wifi down
+    sleep 1
+    /sbin/wifi up
 
-#OK_PATCH
-    /lib/okos/getifaceinfo.sh &
-#end
 }
 
 restart() {
 	ifdown -a
-	sleep 1
 	start
 }
 
@@ -41,14 +39,14 @@ shutdown() {
 
 stop() {
 	/sbin/wifi down
+    sleep 1
 	service_stop /sbin/netifd
 }
 
 reload() {
 	ubus call network reload
     sleep 5
-	/sbin/wifi
-#OK_PATCH
-    /lib/okos/getifaceinfo.sh &
-#end
+	/sbin/wifi down
+    sleep 1
+	/sbin/wifi up
 }
