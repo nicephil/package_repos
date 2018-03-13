@@ -1,6 +1,0 @@
-[ "$INTERFACE" = "lan1" ] && {
-    [ "$ACTION" = "ifupdate" ] && {
-        /etc/init.d/capwapc restart
-    }
-}
-

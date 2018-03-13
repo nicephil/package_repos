@@ -471,6 +471,7 @@ disable_qcawifi() {
 				}
 				ifconfig "$dev" down
 				unbridge "$dev"
+                sleep 1
 				wlanconfig "$dev" destroy
 			}
 			[ -f /var/run/hostapd_cred_${device}.bin ] && { \

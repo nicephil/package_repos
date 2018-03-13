@@ -408,6 +408,7 @@ class Manager(object):
         syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
                (device_mac, auth_url, domain))
 
+        return 0
         # get garbages info
         for c in threading.enumerate():
             syslog(LOG_DEBUG, 'FFF> %s' % str(c))

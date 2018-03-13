@@ -22,7 +22,6 @@ start() {
 	sleep 5
 
 	/sbin/wifi down
-    sleep 1
     /sbin/wifi up
 
 }
@@ -39,7 +38,6 @@ shutdown() {
 
 stop() {
 	/sbin/wifi down
-    sleep 1
 	service_stop /sbin/netifd
 }
 
@@ -47,6 +45,5 @@ reload() {
 	ubus call network reload
     sleep 5
 	/sbin/wifi down
-    sleep 1
 	/sbin/wifi up
 }
