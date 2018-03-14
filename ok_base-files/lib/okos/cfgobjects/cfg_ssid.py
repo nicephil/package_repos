@@ -23,6 +23,7 @@ class CfgSsid(CfgObj):
             d['bandwidth_priority'] = ssids[i]['bandwidth_priority']
             d['client_isolation'] = ssids[i]['client_isolation']
             d['psk_key'] = ssids[i].setdefault('key', '')
+            d['ppsk_keys_url'] = ssids[i]['ppsk_keys_url']
             d['portal_scheme'] = ssids[i]['portal_scheme']
             d['radios'] = [p['radio'] for p in j['ports'] if p['name'] == d['ssid']]
             d['vlan'] = {p['pvlan'] for p in j['ports'] if p['name'] == d['ssid']}
