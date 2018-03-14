@@ -10,7 +10,8 @@ do
 
 OIFS=$IFS;IFS="|"; set -- ${origin_file__bin_file};origin_file=$1;bin_file=$2;rdir=$3;IFS=$OIFS
 echo "${origin_file} --- ${bin_file}"
-tar czf ${origin_file}.tar.gz ${origin_file}
+echo "$swversion" > swversion.txt
+tar czf ${origin_file}.tar.gz ${origin_file} swversion.txt
 
 # 64bytes header
 header="\x27\x05\x19\x56\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\
