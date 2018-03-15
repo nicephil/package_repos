@@ -19,7 +19,7 @@ start() {
 	include /lib/network
 	setup_switch
 
-	sleep 5
+	sleep 1
 
 	/sbin/wifi down
     /sbin/wifi up
@@ -43,7 +43,7 @@ stop() {
 
 reload() {
 	ubus call network reload
-    sleep 5
+    sleep 1
 	/sbin/wifi down
 	/sbin/wifi up
 }

@@ -64,7 +64,7 @@ class Client(Thread):
             queue.put_nowait(clientevent)
         except qq.Full:
             tmp_event = self.queue.get_nowait()
-            syslog(LOG_WARNING, "%s:Queue Full, ignore %s-%s" %
+            syslog(LOG_INFO, "%s:Queue Full, ignore %s-%s" %
                    (self.mac, tmp_event.ath, tmp_event.event))
             queue.put_nowait(clientevent)
 

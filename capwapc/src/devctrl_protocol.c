@@ -1334,6 +1334,7 @@ TRY_AGAINTIME:
             }
             CW_FREE_OBJECT(messages);
             CW_FREE_OBJECT(fragmsg);
+            CW_FREE_OBJECT(pendingReqIndex);
             CWDeleteList(&msgElemList, CWProtocolDestroyMsgElemData);
             return CW_FALSE;
     	} 

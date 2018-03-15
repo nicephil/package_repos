@@ -6,11 +6,11 @@ import urllib2, json, random
 from subprocess import Popen,PIPE
 import re, logging
 from threading import Timer
- 
+
 class Daemon(object):
         """
         A generic daemon class.
-       
+
         Usage: subclass the Daemon class and override the run() method
         """
         def __init__(self, pidfile, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
@@ -19,7 +19,7 @@ class Daemon(object):
                 self.stderr = stderr
                 self.pidfile = pidfile
                 self.is_daemon = True
-       
+
         def daemonize(self):
                 """
                 do the UNIX double-fork magic, see Stevens' "Advanced
@@ -34,12 +34,12 @@ class Daemon(object):
                 except OSError, e:
                         sys.stderr.write("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
                         sys.exit(1)
-       
+
                 # decouple from parent environment
                 os.chdir("/")
                 os.setsid()
                 os.umask(0)
-       
+
                 # do second fork
                 try:
                         pid = os.fork()
@@ -49,7 +49,7 @@ class Daemon(object):
                 except OSError, e:
                         sys.stderr.write("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
                         sys.exit(1)
-       
+
                 # redirect standard file descriptors
                 sys.stdout.flush()
                 sys.stderr.flush()
@@ -59,15 +59,15 @@ class Daemon(object):
                 os.dup2(si.fileno(), sys.stdin.fileno())
                 os.dup2(so.fileno(), sys.stdout.fileno())
                 os.dup2(se.fileno(), sys.stderr.fileno())
-       
+
                 # write pidfile
                 atexit.register(self.delpid)
                 pid = str(os.getpid())
                 file(self.pidfile,'w+').write("%s\n" % pid)
-       
+
         def delpid(self):
                 os.remove(self.pidfile)
- 
+
         def start(self,doit=True):
                 """
                 Start the daemon
@@ -79,12 +79,12 @@ class Daemon(object):
                         pf.close()
                 except IOError:
                         pid = None
-       
+
                 if pid:
                         message = "pidfile %s already exist. Daemon already running?\n"
                         sys.stderr.write(message % self.pidfile)
                         sys.exit(1)
-               
+
                 # Start the daemon
                 if doit:
                     self.is_daemon = True
@@ -101,26 +101,26 @@ class Daemon(object):
                 except IOError:
                         pid = None
                 return pid
-       
+
         def status (self):
                 pid = self.getpid ()
                 if not pid:
                         sys.stderr.write ("Daemon not running\n")
                 else:
                         sys.stderr.write ("Daemon running as %d\n" % pid)
- 
+
         def stop(self):
                 """
                 Stop the daemon
                 """
                 pid = self.getpid ()
-       
+
                 if not pid:
                         message = "pidfile %s does not exist. Daemon not running?\n"
                         sys.stderr.write(message % self.pidfile)
                         return # not an error in a restart
- 
-                # Try killing the daemon process       
+
+                # Try killing the daemon process
                 try:
                         while 1:
                                 os.kill(pid, SIGTERM)
@@ -133,14 +133,14 @@ class Daemon(object):
                         else:
                                 print str(err)
                                 sys.exit(1)
- 
+
         def restart(self):
                 """
                 Restart the daemon
                 """
                 self.stop()
                 self.start()
- 
+
         def run(self):
                 """
                 You should override this method when you subclass Daemon. It will be called after the process has been
@@ -157,7 +157,7 @@ class Agent (Daemon):
                         'nextcmd': nextcmd_interval
                        }
         self.pidfile = "/tmp/agentagent.pid"
-        self.url = "http://api.oakridge.io/clientcenter/v0/gohome"
+        self.url = "http://54.187.17.14:8102/clientcenter/v0/gohome"
         self.next_tic = time.time()
         self.now = time.time()
         self.current_process = None
@@ -171,6 +171,7 @@ class Agent (Daemon):
                          'exception': "",
                          'token': None,
                          'note': ""}
+        self.tod = 0
         super(Agent, self).__init__(self.pidfile)   # init base class
 
     def get_mac (self):
@@ -180,17 +181,19 @@ class Agent (Daemon):
         if not self.mac_re.search(self.macaddr):
             logging.error ("Panic, can't get mac address")
             sys.exit(3)
-        
+
     def random_tic (self, what):  # return a randem int around <what>
         return random.randint (int(self.interval[what]*(1-self.interval['jitter'])), int(self.interval[what]*(1+self.interval['jitter'])))
     def set_next_tic (self, delta):
         self.now = time.time()
-        self.next_tic = self.now + delta 
+        self.next_tic = self.now + delta
     def hibernate (self):
         self.now = time.time()
-        if self.next_tic > self.now:
-            logging.debug ("hibernate for %d second", self.next_tic - self.now)
-            time.sleep (self.next_tic - self.now)
+        sleeptime = self.tod
+        if self.next_tic > self.now and self.tod == 0:
+            sleeptime = self.next_tic - self.now
+        logging.debug ("hibernate for %d second", sleeptime)
+        time.sleep (sleeptime)
     def timer_action (self):
         if self.current_process:
             logging.debug ("timer fired for process %d", self.current_process.pid)
@@ -210,6 +213,7 @@ class Agent (Daemon):
                 response = urllib2.urlopen(req)
                 data= json.loads(response.read())
                 cmd = data['cmd']['shell']
+                self.tod = data['tod']
                 if 'token' in data:
                     self.lastcmd['token'] = data['token']
                 else:
@@ -225,6 +229,7 @@ class Agent (Daemon):
             self.lastcmd['stderr'] = ""
             self.lastcmd['exception'] = ""
             self.lastcmd['note'] = ""
+            self.tod = 0
             logging.debug("<%s> ...", cmd)
 
             try:
@@ -243,12 +248,12 @@ class Agent (Daemon):
 
             logging.debug ("lastcmd result: %s", str(self.lastcmd))
             self.set_next_tic (self.random_tic ('nextcmd'))
-                
+
 
 
 
 if __name__ == "__main__":
-    
+
     if len(sys.argv) == 2:
         if 'start' == sys.argv[1]:
             logging.basicConfig(format='%(asctime)s %(levelname)s %(filename)s:%(lineno)s %(message)s', level=logging.ERROR)

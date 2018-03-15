@@ -1,12 +1,12 @@
 #!/bin/sh
 
 # check if the service is restarting
-lockfile="/tmp/restartservices.lock"
+#lockfile="/tmp/restartservices.lock"
 
-if [ -f "$lockfile" ]
-then
-        return 1
-fi
+#if [ -f "$lockfile" ]
+#then
+#        return 1
+#fi
 
 
 if [ -f "/tmp/getstainfo.lock" ]
