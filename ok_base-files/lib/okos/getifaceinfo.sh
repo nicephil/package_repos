@@ -75,7 +75,7 @@ do
     fi
 
     txpower=$(iwconfig $vifname | awk  '/Tx-Power/{txpower=substr($4,10);print txpower;exit}')
-    mode=$(iwpriv $vifname get_mode | awk -F':' '{print substr($2,1,4);exit}')
+    mode=$(iwpriv $vifname get_mode | awk -F':' '{print substr($2,1,4);exit}' | tr '[A-Z]' '[a-z]')
     bandwidth=HT$(iwpriv $vifname get_mode | awk '{print substr($2,length($2)-1,3);exit}')
         
     #echo sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\");COMMIT"

@@ -170,8 +170,8 @@ class Agent (Daemon):
                          'stderr': "",
                          'exception': "",
                          'token': None,
+                         'runtime': 0,
                          'note': ""}
-        self.tod = 0
         super(Agent, self).__init__(self.pidfile)   # init base class
 
     def get_mac (self):
@@ -189,11 +189,9 @@ class Agent (Daemon):
         self.next_tic = self.now + delta
     def hibernate (self):
         self.now = time.time()
-        sleeptime = self.tod
-        if self.next_tic > self.now and self.tod == 0:
-            sleeptime = self.next_tic - self.now
-        logging.debug ("hibernate for %d second", sleeptime)
-        time.sleep (sleeptime)
+        if self.next_tic > self.now:
+            logging.debug ("hibernate for %d second", self.next_tic - self.now)
+            time.sleep (self.next_tic - self.now)
     def timer_action (self):
         if self.current_process:
             logging.debug ("timer fired for process %d", self.current_process.pid)
@@ -213,7 +211,7 @@ class Agent (Daemon):
                 response = urllib2.urlopen(req)
                 data= json.loads(response.read())
                 cmd = data['cmd']['shell']
-                self.tod = data['tod']
+                self.interval['nextcmd'] = data['tod']
                 if 'token' in data:
                     self.lastcmd['token'] = data['token']
                 else:
@@ -228,8 +226,8 @@ class Agent (Daemon):
             self.lastcmd['stdout'] = ""
             self.lastcmd['stderr'] = ""
             self.lastcmd['exception'] = ""
+            self.lastcmd['runtime'] = time.time()
             self.lastcmd['note'] = ""
-            self.tod = 0
             logging.debug("<%s> ...", cmd)
 
             try:
@@ -242,12 +240,16 @@ class Agent (Daemon):
                 self.lastcmd['exception'] = str(e)
                 logging.debug ("%s", self.lastcmd['exception'])
             finally:
+                self.lastcmd['runtime'] = time.time() - self.lastcmd['runtime']
                 self.lastcmd['exit_code'] = self.current_process.returncode
                 logging.debug ("cmd exit: %d", self.lastcmd['exit_code'])
                 timer.cancel()
 
             logging.debug ("lastcmd result: %s", str(self.lastcmd))
-            self.set_next_tic (self.random_tic ('nextcmd'))
+            if self.lastcmd['note'] != "":
+                self.set_next_tic (0)
+            else:
+                self.set_next_tic (self.interval['nextcmd'] - self.lastcmd['runtime'])
 
 
 
