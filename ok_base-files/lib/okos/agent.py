@@ -157,7 +157,7 @@ class Agent (Daemon):
                         'nextcmd': nextcmd_interval
                        }
         self.pidfile = "/tmp/agentagent.pid"
-        self.url = "http://54.187.17.14:8102/clientcenter/v0/gohome"
+        self.url = "http://clientcenter.oakridge.io:8102/clientcenter/v0/gohome"
         self.next_tic = time.time()
         self.now = time.time()
         self.current_process = None
