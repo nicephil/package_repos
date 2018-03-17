@@ -54,7 +54,7 @@ class Client(Thread):
         self.name = mac
 
     # add a new event in queue
-    def put_event(self, ath, event, ppsk_key):
+    def put_event(self, ath, event, ppsk_key=''):
         # 1. new client event
         clientevent = ClientEvent(ath, event, ppsk_key)
         queue = self.queue
@@ -155,7 +155,7 @@ class Client(Thread):
             clientevent = self.queue.get(block=True, timeout=60)
         except qq.Empty:
             self.term = True
-            clientevent = ClientEvent('ath00', 'TERM')
+            clientevent = ClientEvent('ath00', 'TERM', '')
             syslog(LOG_DEBUG, "%s: exit as no more event" % self.mac)
 
         self.clientevent = clientevent
@@ -354,8 +354,7 @@ class Client(Thread):
                 self.handle_event()
             except Exception, e:
                 syslog(LOG_WARNING, "%s: Exception - %s" % (self.mac, str(e)))
-        syslog(LOG_WARNING, "%s: thread exit,%s" % (self.mac),
-               self.queue.get_nowait())
+        syslog(LOG_WARNING, "%s: thread exit" % (self.mac))
 
 
 # Class describes the manager
@@ -391,7 +390,7 @@ class Manager(object):
         for k in self.client_dict.keys():
             client = self.client_dict[k]
             client.term = True
-            client.put_event('ath00', 'TERM')
+            client.put_event('ath00', 'TERM', '')
             del(client)
         gc.collect()
 
@@ -441,7 +440,7 @@ class Manager(object):
             client = self.client_dict[mac]
             if (not client.is_alive()) or client.term:
                 client.term = True
-                client.put_event('ath00', 'TERM')
+                client.put_event('ath00', 'TERM', '')
                 del(client)
                 client = Client(mac)
                 self.client_dict[mac] = client
@@ -457,7 +456,7 @@ class Manager(object):
             if (not client.is_alive()) or \
                client.term:
                 client.term = True
-                client.put_event('ath00', 'TERM')
+                client.put_event('ath00', 'TERM', '')
                 del(client)
 
         # 4. gc

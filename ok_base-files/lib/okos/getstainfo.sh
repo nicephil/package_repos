@@ -39,6 +39,22 @@ CMD="DELETE FROM '$tablename'"
 #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
 sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
 
+for client in $(sqlite3 /tmp/stationinfo.db 'select * from stainfo'| awk -F'|' '{print $1}')
+do
+    client_tmp=$(sqlite3 /tmp/stationinfo.db "SELECT * FROM STAINFO WHERE MAC = \"$client\"")
+    [ -n "$client_tmp" ] && {
+        OIFS=$IFS;IFS='|';set -- $client_tmp;_mac=$1;_ath=$2;_radioid=$6;_bssid=$7;_ip=$8;_auth=$9;_ps=$10;_ssid=$11;_vlan=$12;_pm=$13;_pu=$14;_hostname=$15;IFS=$OIFS        
+        _hostname=${_hostname%%.*}
+    }
+    __ath=$(apstats -s -m $client | awk '/'"$client"'/{print substr($7,1, length($7)-1);exit}')
+    # no find mac really
+    if [ -z "$__ath" ]
+    then
+        echo "missed xxclient:$client xx_ath:$_ath disconnected event" | logger -t clientevent -p 7
+        /lib/okos/wifievent.sh $_ath AP-STA-DISCONNECTED $client "" &
+    fi
+done
+
 #echo sqlite3 /tmp/stationinfo.db "BEGIN TRANSACTION;CREATE TABLE STAINFO(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_HMODE,PORTAL_USER,HOSTNAME);COMMIT;" | logger
 for client in $(for ath in `iwconfig 2>/dev/null | awk '/ath/{print $1}'`;do wlanconfig $ath list sta; done | awk '$1 !~ /ADDR/{if (!(a[$1]++)) print $1}')
 do
@@ -47,31 +63,39 @@ do
         OIFS=$IFS;IFS='|';set -- $client_tmp;_mac=$1;_ath=$2;_radioid=$6;_bssid=$7;_ip=$8;_auth=$9;_ps=$10;_ssid=$11;_vlan=$12;_pm=$13;_pu=$14;_hostname=$15;IFS=$OIFS        
         _hostname=${_hostname%%.*}
     }
-    [ -z "$client_tmp" ] && {
-        _ath=$(apstats -s -m $client | awk '/'"$client"'/{print substr($7,1, length($7)-1);exit}')
-        [ -z "$_ath" ] && continue
 
-        _bssid=`ifconfig $_ath | awk '$1 ~ /ath/{print $5;exit}'`
-        
-        . /lib/functions.sh
-        st="ServiceTemplate""${_ath:4}"
-        config_load wlan_service_template
-        config_get _auth $st authentication
-        config_get _ps $st portal_scheme
-        config_get _ssid $st ssid
-        config_load wireless
-        config_get _vlan $_ath network
-        _mac=$client
-        _radioid=${_ath:3:1}
-        _pm=""
-        _pu=""
-        _vlan=${_vlan:3}
-
-        CMD="INSERT OR REPLACE INTO STAINFO  (MAC,IFNAME,RADIOID,BSSID,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN) VALUES('$_mac','$_ath','${_radioid}','$_bssid','$_auth','$_ps','$_ssid','$_vlan')"
-        # echo sqlite3 /tmp/stationinfo.db "BEGIN TRANSACTION;${CMD};COMMIT;" | logger -t getstainfo
-        sqlite3 /tmp/stationinfo.db "BEGIN TRANSACTION;${CMD};COMMIT;"
-
-    }
+    __ath=$(apstats -s -m $client | awk '/'"$client"'/{print substr($7,1, length($7)-1);exit}')
+    # no find mac really
+    if [ -z "$__ath" ]
+    then
+        # no in db, disconnected quickly
+        if [ -z "$_ath" ]
+        then
+            echo "client:$client disconnected quickly" | logger -t clientevent -p 7
+            continue
+        # in db, but disconnected, send disconn event to clear
+        else
+            echo "missed client:$client _ath:$_ath disconnected event" | logger -t clientevent -p 7
+            /lib/okos/wifievent.sh $_ath AP-STA-DISCONNECTED $client "" &
+            continue
+        fi
+    # real mac here
+    else
+        # no in db, kickmac again
+        if [ -z "$_ath" ]
+        then
+            echo "missed __ath:$__ath client:$client connected event" | logger -t clientevent -p 7
+            iwpriv $__ath kickmac $client
+            continue
+        # in db, but different ath
+        elif [ "$__ath" != "$_ath" ]
+        then
+            echo "missed __ath:$__ath client:$client connected event" | logger -t clientevent -p 7
+            iwpriv $__ath kickmac $client
+            continue
+        fi
+    fi
+    
     _gwaddr=""
     network_get_gateway_any _gwaddr "lan${_vlan}"
     [ -z "$_gwaddr" ] && _gwaddr="255.255.255.255"
@@ -83,7 +107,11 @@ do
     }
     
     _chan_rssi_assoctime=`wlanconfig $_ath list sta | awk '$1 ~ /'${_mac}'/{print $3,$4,$5,$6,$7,$8,$17,$19,$20,$21;exit}'`
-    [ -z $_chan_rssi_assoctime ] && continue
+    [ -z $_chan_rssi_assoctime ] && {
+        echo "missed _mac:$_mac _ath:$_ath disconnected event" | logger -t clientevent -p 7
+        /lib/okos/wifievent.sh $_ath AP-STA-DISCONNECTED $mac ""  &
+        continue
+    }
     set -- $_chan_rssi_assoctime;_chan=$1;_ntxrt=$2;_nrxrt=$3;_rssi=$4;_min_rssi=$5;_max_rssi=$6;_assoctime=$7;_smode_sbw=$8;_smode_sbw1=$9;_psmode=$10
     _ntxrt=${_ntxrt%[a-zA-Z]*}
     _nrxrt=${_nrxrt%[a-zA-Z]*}
@@ -99,7 +127,11 @@ do
     
     # all traffic
     _stats=`apstats -s -i $_ath -m $_mac | awk -F'=' '/Tx Data Bytes|Rx Data Bytes|Average Tx Rate|Average Rx Rate|Tx failures|Rx errors/{print $2}'`
-    [ -z "$_stats" ] && continue
+    [ -z "$_stats" ] && {
+        echo "missed _mac:$_mac _ath:$_ath disconnected event" | logger -t clientevent -p 7
+        /lib/okos/wifievent.sh $_ath AP-STA-DISCONNECTED $mac "" &
+        continue
+    }
     set -- $_stats;_txB=$1;_rxB=$2;_atxrb=$3;_arxrb=$4;_txfs=$5;_rxes=$6
     _ts=`date +%s`
     _wan_txB=""
