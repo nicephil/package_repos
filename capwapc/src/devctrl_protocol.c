@@ -1286,7 +1286,7 @@ CWBool WTPEventRequest_devctrlresp(int type, int value)
     int *pendingReqIndex;
     int i, k, timeout, trytime = 0;
 
-    CWDebugLog("WTP Event Request Message with dev_ctrl_result element(Run).");
+    CWDebugLog("WTP Event Request Message %d with dev_ctrl_result element(Run).", type);
 
     CW_CREATE_OBJECT_ERR(msgElemList, CWListElement, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
     CW_CREATE_OBJECT_ERR(msgElemList->data, CWMsgElemData, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););	

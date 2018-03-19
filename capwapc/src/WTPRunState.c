@@ -447,7 +447,7 @@ CWBool CWWTPManageGenericRunMessage(CWProtocolMessage *msgPtr) {
 				CW_FREE_OBJECT(messages);
 				CWLog("Reset Request received, reboot now!");
                 /* system("[ -z $(pgrep handle_cloud) ] && /etc/init.d/handle_cloud restart"); */
-                system("sleep 5;reboot -f");
+                system("sleep 10;reboot -f");
                 return CW_FALSE;
                 break;
             }
@@ -617,7 +617,9 @@ void CWWTPHeartBeatTimerExpiredHandler(void *arg) {
 	int fragmentsNum = 0;
 	int seqNum;
 
+    CWDebugLog_F("-->WTP HeartBeat In1:%d", clock());
     dc_dev_update_notice();
+    CWDebugLog_F("-->WTP HeartBeat In2:%d", clock());
 
 	if(!gNeighborDeadTimerSet) {
 
@@ -643,6 +645,7 @@ void CWWTPHeartBeatTimerExpiredHandler(void *arg) {
 	
 	/* Send WTP Event Request */
 	seqNum = CWGetSeqNum();
+    CWDebugLog_F("-->WTP HeartBeat In3:%d", clock());
 
 	if(!CWAssembleEchoRequest(&messages,
 				  &fragmentsNum,
@@ -660,6 +663,7 @@ void CWWTPHeartBeatTimerExpiredHandler(void *arg) {
 		return;
 	}
 	
+    CWDebugLog_F("-->WTP HeartBeat In4:%d", clock());
 	int i;
 	for(i = 0; i < fragmentsNum; i++) {
 #ifdef CW_NO_DTLS
@@ -676,6 +680,7 @@ void CWWTPHeartBeatTimerExpiredHandler(void *arg) {
 			break;
 		}
 	}
+    CWDebugLog_F("-->WTP HeartBeat In5:%d", clock());
 
 	int k;
 	for(k = 0; messages && k < fragmentsNum; k++) {
@@ -709,7 +714,7 @@ CWBool CWStartHeartbeatTimer() {
 	
 	if (gCWHeartBeatTimerID == -1)	return CW_FALSE;
 
-//	CWDebugLog("Heartbeat Timer Started");
+	CWDebugLog("Heartbeat Timer Started");
 	return CW_TRUE;
 }
 

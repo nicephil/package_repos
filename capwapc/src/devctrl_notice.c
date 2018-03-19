@@ -9,7 +9,7 @@
 #include "services/wlan_services.h"
 #include "sqlite3.h"
 
-#define WLAN_STA_STAUS_TIMER    5
+#define WLAN_STA_STAUS_TIMER    10
 
 static CWTimerID g_sta_notice_timerid = -1;
 
@@ -608,6 +608,7 @@ static void dc_sta_notice_timer_handler(void *arg)
     char *payload = NULL, *data = NULL;
     int count = 0, paylength = 0, totalsize = 0; 
 
+    CWLog("-->sta notice handler In1:%d");
     count = dc_get_wlan_sta_stats(&stas,1);
     if (stas != NULL && count > 0) { 
 
@@ -664,6 +665,7 @@ static void dc_sta_notice_timer_handler(void *arg)
         }
     }
 
+    CWLog("-->sta notice handler In2:%d", clock());
     /* radio status */
     count = dc_get_wlan_radio_stats(&radio_stats);
     if (radio_stats != NULL && count > 0) { 
@@ -698,6 +700,7 @@ static void dc_sta_notice_timer_handler(void *arg)
             totalsize += (paylength + 6);
         }
     }
+    CWLog("-->sta notice handler In3:%d", clock());
 
 
     if (payload != NULL && totalsize > 0) {
@@ -715,6 +718,7 @@ static void dc_sta_notice_timer_handler(void *arg)
        
         CW_FREE_OBJECT(payload);
     }
+    CWLog("-->sta notice handler In4:%d", clock());
 
 RESTART_TIMER:
     if (stas) {
