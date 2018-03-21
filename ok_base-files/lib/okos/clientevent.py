@@ -2,6 +2,7 @@
 
 # import necessary modules
 import os
+import re
 import gc
 import sys
 import time
@@ -471,6 +472,11 @@ class Manager(object):
         #     print str(garbage)
         # pdb.set_trace()
 
+    def isValidMac(self, mac):
+        if re.match(r"^\s*([0-9a-fA-F]{2,2}:){5,5}[0-9a-fA-F]{2,2}\s*$", mac):
+            return True
+        return False
+
     # @profile
     # pipe line loop
     def handle_pipe_loop(self):
@@ -537,7 +543,7 @@ class Manager(object):
                 self.handle_ap_disabled_event(ath, mac, event)
 
             # 6. handle client event
-            elif len(ath) > 0 and len(mac) > 0 and len(event) > 0:
+            elif len(ath) > 0 and self.isValidMac(mac) and len(event) > 0:
                 self.dispatch_client_event(ath, mac, event, ppsk_key)
 
             # 7. Unknown

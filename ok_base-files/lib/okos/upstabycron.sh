@@ -19,6 +19,8 @@ touch /tmp/upstabycron.lock
 for client_tmp in $(sqlite3 /tmp/stationinfo.db 'select * from stainfo')
 do
     echo "$client_tmp"
+    unset _mac
+    unset _ath
     OIFS=$IFS;IFS='|';set -- $client_tmp;_mac=$1;_ath=$2;IFS=$OIFS        
     client=$_mac
     __ath=$(apstats -s -m $client | awk '/'"$client"'/{print substr($7,1, length($7)-1);exit}')
@@ -33,6 +35,8 @@ done
 # active missed client
 for client in $(for ath in `iwconfig 2>/dev/null | awk '/ath/{print $1}'`;do wlanconfig $ath list sta; done | awk '$1 !~ /ADDR/{if (!(a[$1]++)) print $1}')
 do
+    unset _mac
+    unset _ath
     client_tmp=$(sqlite3 /tmp/stationinfo.db "SELECT * FROM STAINFO WHERE MAC = \"$client\"")
     [ -n "$client_tmp" ] && {
         OIFS=$IFS;IFS='|';set -- $client_tmp;_mac=$1;_ath=$2;IFS=$OIFS        
