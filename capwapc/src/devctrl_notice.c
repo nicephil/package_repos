@@ -4,6 +4,7 @@
 #include "devctrl_protocol.h"
 #include "devctrl_payload.h"
 #include "devctrl_notice.h"
+#include <sys/wait.h>
 
 #include "services/cfg_services.h"
 #include "services/wlan_services.h"
@@ -328,7 +329,15 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
     all.stas = stas;
     int ret = 0;
 
-    system("/lib/okos/getstainfo.sh");
+    ret = system("/lib/okos/getstainfo.sh");
+    if (ret == -1) {
+        return -1;
+    } else {
+        ret = WEXITSTATUS(ret);
+        if (ret) {
+            return -1;
+        }
+    }
 
     ret = wlan_get_sta_info_db((void*)&all);
     if (ret) {

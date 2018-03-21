@@ -2,7 +2,7 @@
 
 if [ -f "/tmp/getstainfo.lock" ]
 then
-    exit 0
+    exit 1
 fi
 
 . /lib/okos/trafstats.sh
@@ -13,7 +13,7 @@ getstainfo_trap () {
     rm -rf /tmp/getstainfo.lock
 }
 
-trap 'getstainfo_trap; exit' INT TERM ABRT QUIT ALRM
+trap 'getstainfo_trap; exit 1' INT TERM ABRT QUIT ALRM
 
 
 touch /tmp/getstainfo.lock
