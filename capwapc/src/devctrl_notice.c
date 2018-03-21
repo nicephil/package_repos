@@ -9,7 +9,7 @@
 #include "services/wlan_services.h"
 #include "sqlite3.h"
 
-#define WLAN_STA_STAUS_TIMER    10
+#define WLAN_STA_STAUS_TIMER    5
 
 static CWTimerID g_sta_notice_timerid = -1;
 

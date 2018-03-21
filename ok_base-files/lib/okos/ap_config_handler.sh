@@ -48,7 +48,7 @@ echo $json_data > $new_file
 # 2. any old config here?
 if [ -f "$old_file" ] 
 then
-    $cfgdiff $new_file -o $old_file
+    $cfgdiff $new_file -o $old_file 2&>1 | logger -t cfgdiff -p 7
     ret=$?
     config_log_err "---cfgdiff:$ret"
 else

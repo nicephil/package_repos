@@ -2,6 +2,15 @@
 
 DEBUG=
 
+trafstats_trap () {
+    logger -t trafstats "gets trap on trafstats" -p 3
+    lock -u /tmp/.iptables.lock
+}
+
+trap 'trafstats_trap; exit' INT TERM ABRT QUIT ALRM
+
+
+
 # DEBUG
 # $1 - string
 trafstats_log ()
