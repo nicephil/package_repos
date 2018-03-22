@@ -55,6 +55,13 @@ case "$event" in
         CMD="DELETE FROM ${tablename} WHERE MAC = '$mac'"
         #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
         sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
+
+        # statsinfo
+        statsinfo_dbfile="/tmp/statsinfo.db"
+        statsinfo_tablename="STATSINFO"
+        CMD="DELETE FROM ${statsinfo_tablename} WHERE MAC = '$mac'"
+        #echo sqlite3 $statsinfo_dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
+        sqlite3 $statsinfo_dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
     ;;
 
     *)
