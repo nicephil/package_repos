@@ -51,7 +51,7 @@ then
     $cfgdiff $new_file -o $old_file 2&>1 > /tmp/cfgdiff.log
     ret=$?
     config_log_err "---cfgdiff:$ret"
-    cat /tmp/cfgdiff.log | logger -t 'cfgdiff' -p 7
+    cat /tmp/cfgdiff.log | logger -t 'cfgdiff' -p 7 &
 else
     ret=1
 fi
