@@ -71,7 +71,8 @@ handle_devstats()
     # 1. check icm process exists or not
     if [ -z "$(pgrep 'icm')" -a -z "$(pgrep 'restartservices.sh')" ]
     then
-        icm -r $radio -i /tmp/icmseldebug.csv > /dev/null 2>&1
+        icm -r $radio -i /tmp/icmseldebug.csv 2>&1 | logger -t 'devstats'
+        (sleep 150;killall icm)&
         has_chscanningjson=1 /lib/okos/devstats.sh "$radio"
     fi
 
