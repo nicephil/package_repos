@@ -514,7 +514,7 @@ okos_wdctl_insert(int fd, const char *mac, const char *remain)
     }
 
     int rc = 0;
-    rc = okos_wdctl_insert_client(mac, 5);
+    rc = okos_wdctl_insert_client(mac, remain_time);
     if (0 != rc) {
 		debug(LOG_DEBUG, "<WDCTL> insert client failed.");
 		write_to_socket(fd, "Sorry", 5);
