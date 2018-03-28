@@ -252,6 +252,11 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
         stas[row].max_rssi = atoi(argv[31]) - 95;
     }
 
+    /*PORTAL_STATUS*/
+    if (argv[32]) {
+        stas[row].portal_status = atoi(argv[32]);
+    }
+
     /*location*/
     cfg_get_option_value(CAPWAPC_CFG_OPTION_LOCATION_TUPLE, stas[row].location, MAX_LOCATION_LEN);
     stas[row].location_len = strlen(stas[row].location);

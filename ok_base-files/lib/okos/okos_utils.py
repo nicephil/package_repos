@@ -22,7 +22,6 @@ def get_mac(iface):
 
     return mac[0:17]
 
-
 def get_ssid(ath):
     """" fetch the ssid of specified ath iface """
     try:
@@ -38,6 +37,20 @@ def get_ssid(ath):
         ssid = "TIparkGuest-llwang"
     return ssid
 
+def get_authen(ath):
+    """" fetch the autentication of specified ath iface """
+    try:
+        stid = ath[4]
+        pid = Popen(["uci", "-q", "get",
+                     "wlan_service_template.ServiceTemplate" + stid +
+                     ".authentication"], stdout=PIPE)
+        s = pid.communicate()[0]
+        authen = s.strip('\n')
+    except:
+        authen = ""
+    if len(authen) == 0:
+        authen = "ppsk"
+    return authen
 
 def get_portalscheme(ath):
     """" fetch the portalscheme of specified ath iface """

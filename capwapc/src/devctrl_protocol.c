@@ -666,6 +666,7 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
             CWProtocolStoreRawBytes(&msg, sta->location, sta->location_len);
             CWProtocolStore32(&msg, sta->nrxrt);
             CWProtocolStore32(&msg, sta->ntxrt);
+            CWProtocolStore8(&msg, sta->portal_status);
         }
     }
     if (msg.offset != size) {

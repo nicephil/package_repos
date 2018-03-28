@@ -37,7 +37,7 @@ class Client(Thread):
     __slots__ = ('mac', 'queue', 'term', 'clientevent', 'last_acl_type',
                  'last_tx_rate_limit', 'last_rx_rate_limit',
                  'last_tx_rate_limit_local', 'last_rx_rate_limit_local',
-                 'last_ath', 'last_remain_time')
+                 'last_ath', 'last_remain_time', 'last_username')
 
     def __init__(self, mac):
         Thread.__init__(self)
@@ -52,6 +52,7 @@ class Client(Thread):
         self.last_rx_rate_limit_local = 0
         self.last_ath = ''
         self.last_remain_time = 0
+        self.last_username = ''
         self.name = mac
 
     # add a new event in queue
@@ -72,13 +73,14 @@ class Client(Thread):
     # query and save params
     def query_and_init(self, clientevent):
         if not self.last_ath or self.last_ath != clientevent.ath:
-            acl_type, time, tx_rate_limit, rx_rate_limit, \
+            err, acl_type, time, tx_rate_limit, rx_rate_limit, \
              tx_rate_limit_local, rx_rate_limit_local, remain_time, \
              username = self.query_auth(clientevent)
-            syslog(LOG_DEBUG, "mac:%s acl_type:%s time:%s tx_rate_limit:%s \
+            syslog(LOG_DEBUG, "mac:%s err:%s acl_type:%s time:%s tx_rate_limit:%s \
                    rx_rate_limit:%s rx_rate_limit_local:%s \
                    tx_rate_limit_local:%s remain_time:%s username:%s" %
                    (repr(self.mac),
+                    repr(err),
                     repr(acl_type),
                     repr(time),
                     repr(tx_rate_limit),
@@ -93,7 +95,12 @@ class Client(Thread):
             self.last_tx_rate_limit_local = tx_rate_limit_local
             self.last_rx_rate_limit_local = rx_rate_limit_local
             self.last_remain_time = remain_time
+            self.last_username = username
             self.last_ath = clientevent.ath
+            if err == True:
+                self.last_remain_time = 43200
+                self.last_username = 'timeout'
+            self.update_db(self.mac, self.last_ath, self.last_remain_time, self.last_username)
 
     # handler for AP-STA-CONNECTED event
     def handle_connected_event(self, clientevent):
@@ -112,6 +119,8 @@ class Client(Thread):
                 self.set_whitelist(0, 0)
             else:
                 self.set_whitelist(0, 1)
+                self.notify_wifidog(self.mac, self.last_remain_time)
+
         # 1.5 set_ratelimit
         self.set_ratelimit(self.last_tx_rate_limit, self.last_rx_rate_limit,
                            self.last_tx_rate_limit_local,
@@ -200,10 +209,10 @@ class Client(Thread):
             response = urllib2.urlopen(url, timeout=3)
         except urllib2.HTTPError, e:
             syslog(LOG_ERR, "HTTPError:%d %s" % (e.errno, e.strerror))
-            return 0, 0, 0, 0, 0, 0, 0, ''
+            return True, 0, 0, 0, 0, 0, 0, 0, ''
         except Exception, e:
             syslog(LOG_WARNING, "HTTPError: %s" % str(e))
-            return 0, 0, 0, 0, 0, 0, 0, ''
+            return True, 0, 0, 0, 0, 0, 0, 0, ''
         response_str = response.read()
         # hacky avoidance (https://bugs.python.org/issue1208304)
         response.fp._sock.recv = None
@@ -274,6 +283,7 @@ class Client(Thread):
             int rx_rate_limit_local;
         }
         """
+        err = False
         _, response_str = response_str.strip('\n').split('=')
         byte_str = binascii.a2b_hex(response_str)
         ss_str = ''
@@ -308,10 +318,24 @@ class Client(Thread):
             acl_type = ord(acl_type)
         else:
             syslog(LOG_ERR, "str_len:%d" % len(ss_str))
+            err = True
 
-        return acl_type, time, tx_rate_limit, rx_rate_limit, \
+        return err, acl_type, time, tx_rate_limit, rx_rate_limit, \
             tx_rate_limit_local, rx_rate_limit_local, remain_time, \
             username
+
+    def update_db(self, mac, ath, remain_time, username):
+        #sql_cmd="REPLACE INTO STAINFO (MAC,IFNAME,REMAIN_TIME,PORTAL_USER,PORTAL_STATUS) VALUES('%s','%s','%d','%s','%d')" % (mac, ath, remain_time, username, 1 if remain_time > 0 else 0)
+        sql_cmd="UPDATE STAINFO SET IFNAME = '%s', REMAIN_TIME = '%d', PORTAL_USER = '%s', PORTAL_STATUS = '%d' WHERE MAC = '%s'" % (ath, remain_time, username, 1 if remain_time > 0 else 0, mac)
+
+        cmd="sqlite3 /tmp/stationinfo.db \"BEGIN TRANSACTION;%s;COMMIT;\"" % sql_cmd
+        syslog(LOG_ERR, "%s" % cmd)
+        os.system(cmd)
+        pass
+
+    def notify_wifidog(self, mac, remain_time):
+        os.system("wdctl insert %s %d" % (mac, remain_time));
+        pass
 
     def set_whitelist(self, time, action):
         os.system("/lib/okos/setwhitelist.sh %s %d %d >/dev/null 2>&1" %
