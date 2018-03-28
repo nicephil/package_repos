@@ -486,6 +486,43 @@ okos_client_update_allow_time(t_client **p_client, const char *time_value)
     return;
 }
 
+static int okos_update_portal_status_callback(void *data, int col_n, char **_v, char **_k)
+{
+    int i;
+    for (i = 0; i < col_n; i++) {
+        debug(LOG_DEBUG, "<sqlite>\t %s", data ? data : "");
+        debug(LOG_DEBUG, "<sqlite>\t\t key:%s; value:%s", _k[i], _v[i] ? _v[i]: "Nil");
+    }
+    return 0;
+}
+
+void okos_update_portal_status_info(sqlite3 *sta_info_db, t_client *client)
+{
+    /* Create merged SQL statement */
+    char *sql = NULL;
+    safe_asprintf(&sql, "UPDATE STAINFO set " \
+            "REMAIN_TIME='%d'," \
+            "PORTAL_STATUS='%d' "\
+            "WHERE MAC='%s';" \
+            ,
+            client->remain_time, 1,
+            client->mac
+            );
+    debug(LOG_DEBUG, "<sqlite>\t '%s':", sql);
+
+    /* Execute SQL statement */
+    char *err_msg = NULL;
+    int rc = sqlite3_exec(sta_info_db, sql, okos_update_portal_status_callback, (void*)NULL, &err_msg);
+    if (SQLITE_OK != rc) {
+        debug(LOG_DEBUG, "<sqlite>!! Update '%s' failed because %s", sql, err_msg?err_msg:"None");
+    }else{
+        debug(LOG_DEBUG, "<sqlite>\t Update '%s' successfully.", sql);
+    }
+
+    free(sql);
+    if (NULL != err_msg)
+        sqlite3_free(err_msg);
+}
 
 static int okos_update_stainfo_callback(void *data, int col_n, char **_v, char **_k)
 {
@@ -495,6 +532,37 @@ static int okos_update_stainfo_callback(void *data, int col_n, char **_v, char *
         debug(LOG_DEBUG, "<sqlite>\t\t key:%s; value:%s", _k[i], _v[i] ? _v[i]: "Nil");
     }
     return 0;
+}
+
+void okos_update_station_info_v1(sqlite3 *sta_info_db, t_client *client)
+{
+    /* Create merged SQL statement */
+    char *sql = NULL;
+    safe_asprintf(&sql, "UPDATE STAINFO set " \
+            "REMAIN_TIME='%d', PORTAL_STATUS='%d'," \
+            "PORTAL_SCHEME='%s', PORTAL_MODE='%d'," \
+            "PORTAL_USER='%s', IPADDR='%s' " \
+            "WHERE MAC='%s';" \
+            ,
+            client->remain_time, 1,
+            client->ssid->scheme, client->auth_mode,
+            client->user_name, client->ip,
+            client->mac
+            );
+    debug(LOG_DEBUG, "<sqlite>\t '%s':", sql);
+
+    /* Execute SQL statement */
+    char *err_msg = NULL;
+    int rc = sqlite3_exec(sta_info_db, sql, okos_update_stainfo_callback, (void*)NULL, &err_msg);
+    if (SQLITE_OK != rc) {
+        debug(LOG_DEBUG, "<sqlite>!! Update '%s' failed because %s", sql, err_msg?err_msg:"None");
+    }else{
+        debug(LOG_DEBUG, "<sqlite>\t Update '%s' successfully.", sql);
+    }
+
+    free(sql);
+    if (NULL != err_msg)
+        sqlite3_free(err_msg);
 }
 
 void okos_update_station_info(sqlite3 *sta_info_db, t_client *client)

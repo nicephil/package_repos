@@ -119,12 +119,13 @@ iptables_do_command(const char *format, ...)
     char *fmt_cmd;
     char *cmd;
     int rc;
+    int log_level = LOG_DEBUG;
 
     va_start(vlist, format);
     safe_vasprintf(&fmt_cmd, format, vlist);
     va_end(vlist);
 
-    safe_asprintf(&cmd, "iptables %s", fmt_cmd);
+    safe_asprintf(&cmd, "/usr/sbin/iptables %s", fmt_cmd);
     free(fmt_cmd);
 
     //iptables_insert_gateway_id(&cmd);
@@ -135,13 +136,16 @@ iptables_do_command(const char *format, ...)
     rc = system(cmd);
 
     if (-1 == rc) {
-        debug(LOG_ERR, "__!! iptables fork faile!: %s", cmd);
+        debug(LOG_ERR, "__!! shell `%s` fork failed!", cmd);
     } else {
-        if (0 != WEXITSTATUS(rc)) {
-            if (fw_quiet == 0)
-                debug(LOG_ERR, "__!! iptables command failed(%d): %s", rc, cmd);
-            else if (fw_quiet == 1)
-                debug(LOG_DEBUG, "__!! iptables command failed(%d): %s", rc, cmd);
+        if (!WIFEXITED(rc)) {
+            debug(log_level, "__!! shell `%s` failed(%d)", cmd, WEXITSTATUS(rc));
+        } else {
+            if (0 != WEXITSTATUS(rc)) {
+                debug(LOG_DEBUG, "__!! shell `%s` finished with error(%d).", cmd, WEXITSTATUS(rc));
+            } else {
+                debug(LOG_DEBUG, "__shell `%s` successfully.", cmd);
+            }
         }
     }
 

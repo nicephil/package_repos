@@ -162,14 +162,20 @@ static int okos_client_list_client_complete(t_client *client)
 {
 #define OK_STR(str) (str) ? (str) : "Nil"
 
-    if (NULL == client->ip || NULL == client->mac \
-            || NULL == client->ifx || NULL == client->ssid \
-            || NULL == client->if_name) {
+    if (NULL == client->mac || \
+        NULL == client->ifx || \
+        NULL == client->ssid || \
+        NULL == client->if_name \
+        )
+    {
         debug(LOG_ERR, "!!!! Corrupt Fruit {ip:%s, mac:%s, if_name:%s, ifx:0x%x, ssid:0x%x}",
                 OK_STR(client->ip), OK_STR(client->mac), OK_STR(client->if_name),
                 client->ifx, client->ssid);
         client_free_node(client);
         return -1;
+    }
+    if (NULL == client->ip) {
+        client->ip = safe_strdup("");
     }
     if (NULL == client->user_name) {
         client->user_name = safe_strdup("");

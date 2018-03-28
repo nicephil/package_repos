@@ -325,9 +325,12 @@ fw_sync_with_authserver(void)
     t_client *p1, *p2, *original;
     for (p1 = p2 = worklist; NULL != p1; p1 = p2) {
         p2 = p1->next;
+//#define OKOS_TIMEOUT_SELECTED_CLIENT
+#ifdef OKOS_TIMEOUT_SELECTED_CLIENT
         if (! client_list_polling_flag(p1)) {
             continue;
         }
+#endif
 
         debug(LOG_DEBUG, "<ClientTimeout>: "
                 "Start to check client {%s, %s}.", p1->mac, p1->ip);

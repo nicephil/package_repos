@@ -38,7 +38,7 @@
 #include <syslog.h>
 #include <signal.h>
 #include <errno.h>
-
+#include <inttypes.h>
 #include "common.h"
 #include "httpd.h"
 #include "util.h"
@@ -54,6 +54,7 @@
 #include "commandline.h"
 #include "gateway.h"
 #include "safe.h"
+#include "okos_auth_param.h"
 
 
 static int create_unix_socket(const char *);
@@ -67,6 +68,7 @@ static void okos_wdctl_reset(int, const char *, const char *);
 static void okos_wdctl_offline(int, const char *, const char *);
 static void okos_wdctl_query_mac(int, const char *, const char *);
 static void okos_wdctl_config(int, const char *, const char *);
+static void okos_wdctl_insert(int, const char *, const char *);
 
 static int wdctl_socket_server;
 
@@ -84,6 +86,7 @@ static const struct {
     {"reset", okos_mac_len, 0, okos_wdctl_reset},
     {"offline", okos_mac_len, 0, okos_wdctl_offline},
     {"query", okos_mac_len, 0, okos_wdctl_query_mac},
+    {"insert", okos_mac_len, 0, okos_wdctl_insert},
     {NULL, 0, 0, NULL},
 };
 
@@ -339,7 +342,7 @@ okos_wdctl_restart(int afd, const char *_1, const char *_2)
                           "|fd=%d|auth_mode=%u|user_name=%s|flag=%d"
                           "|remain_time=%u|last_flushed=%lu|if_name=%s\n",
                           client->ip, client->mac, client->fw_connection_state,
-                          client->fd, client->auth_mode, client->user_name,
+                          client->fd, client->auth_mode, client->user_name, client->flag,
                           client->remain_time, client->last_flushed, client->if_name);
 
             debug(LOG_DEBUG, "<WDCTL> Sending to child client data: %s", tempstring);
@@ -451,6 +454,75 @@ static void okos_wdctl_config(int fd, const char *_1, const char *_2)
     debug(LOG_DEBUG, "<WDCTL> Existing wdctl_config.");
 }
 
+static int
+okos_wdctl_insert_client(const char *mac, unsigned int remain_time)
+{
+    sqlite3 *stainfo_db = okos_open_stainfo_db();
+    if (NULL == stainfo_db) {
+        return;
+    }
+    t_client *client = okos_client_get_new("");
+    client->mac = safe_strdup(mac);
+    okos_fill_local_info_by_stainfo(&client, stainfo_db);
+    okos_close_stainfo_db(stainfo_db);
+    if (NULL == client) {
+        debug(LOG_WARNING, "<WDCTL> can't file local info.");
+        return -1;
+    }
+    client->remain_time = remain_time;
+    client->last_flushed = time(NULL);
+
+    debug(LOG_DEBUG, "<WDCTL> Created a client"
+            "{%s, %s, %s, remain_time=%ld }",
+            client->ip, client->mac, client->if_name, client->remain_time);
+    okos_add_validation_client(&client);
+    return 0;
+}
+
+static unsigned int str2int(const char *str)
+{
+    uintmax_t num = strtoumax(str, NULL, 10);
+    if (num == UINTMAX_MAX && errno == ERANGE)
+        return 0;
+    else
+        return num;
+}
+
+static void
+okos_wdctl_insert(int fd, const char *mac, const char *remain)
+{
+    debug(LOG_DEBUG, "<WDCTL> Entering wdctl_insert.");
+    debug(LOG_DEBUG, "<WDCTL> Argument: {mac = %s, remain time is %s}", mac, remain);
+
+	if (!okos_judge_mac(mac)) {
+		debug(LOG_DEBUG, "<WDCTL> Can't insert client without MAC address.");
+		write_to_socket(fd, "Bad", 3);
+		return;
+	}
+
+    unsigned int remain_time = str2int(remain);
+    if (0 == remain_time) {
+		debug(LOG_DEBUG, "<WDCTL> No action for unavaiable remain time.");
+		write_to_socket(fd, "Sorry", 5);
+        return;
+    }
+
+    if (NULL != client_list_find_by_mac(mac)) {
+        debug(LOG_DEBUG, "<WDCTL> No action since client is already in.");
+        write_to_socket(fd, "No", 2);
+        return;
+    }
+
+    int rc = 0;
+    rc = okos_wdctl_insert_client(mac, 5);
+    if (0 != rc) {
+		debug(LOG_DEBUG, "<WDCTL> insert client failed.");
+		write_to_socket(fd, "Sorry", 5);
+    } else {
+        debug(LOG_DEBUG, "<WDCTL> insert client successfully.");
+        write_to_socket(fd, "Yes", 3);
+    }
+}
 
 
 

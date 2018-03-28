@@ -20,6 +20,8 @@ struct _t_client * okos_client_get_new(const char *);
 void okos_client_update_allow_time(struct _t_client **, const char *);
 void okos_fill_local_info_by_stainfo(struct _t_client **, sqlite3 *);
 void okos_update_station_info(sqlite3 *, struct _t_client *);
+void okos_update_station_info_v1(sqlite3 *, struct _t_client *);
+void okos_update_portal_status_info(sqlite3 *, struct _t_client *);
 
 sqlite3 * okos_open_stainfo_db(void);
 void okos_close_stainfo_db(sqlite3 *);

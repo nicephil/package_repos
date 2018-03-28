@@ -47,14 +47,6 @@ static void init_config(void);
 static void parse_commandline(int, char **);
 static int connect_to_server(const char *);
 static size_t send_request(int, const char *);
-#if 0
-static void wdctl_status(void);
-static void wdctl_stop(void);
-static void wdctl_reset(void);
-static void wdctl_offline(void);
-static void wdctl_restart(void);
-#endif
-
 static void wdctl_cmd_without_reply(const char *);
 static void wdctl_cmd_parse_reply(const char *);
 
@@ -80,6 +72,7 @@ usage(void)
     fprintf(stdout, "  stop                  Stop the running wifidog\n");
     fprintf(stdout, "  restart               Re-start the running wifidog\n");
 	fprintf(stdout, "  query mac [ssid]      Obtain the status of a client\n");
+    fprintf(stdout, "  insert mac remain     Insert a client for timeout and kickout\n");
     fprintf(stdout, "\n");
 }
 
@@ -110,6 +103,7 @@ static const struct {
     {"offline", 2, WDCTL_OFFLINE, wdctl_cmd_parse_reply},
     {"query", 2, WDCTL_QUERY, wdctl_cmd_parse_reply},
     {"config", 0, WDCTL_CONFIG, wdctl_cmd_without_reply},
+    {"insert", 2, WDCTL_INSERT, wdctl_cmd_parse_reply},
     {NULL, 0, WDCTL_UNDEF, NULL},
 };
 
@@ -178,56 +172,6 @@ parse_commandline(int argc, char **argv)
     usage();
     exit(1);
 
-#if 0
-    if (strcmp(*(argv + optind), "status") == 0) {
-        config.command = WDCTL_STATUS;
-    } else if (strcmp(*(argv + optind), "stop") == 0) {
-        config.command = WDCTL_STOP;
-    } else if (strcmp(*(argv + optind), "reset") == 0) {
-        config.command = WDCTL_KILL;
-        if ((argc - (optind + 1)) <= 0) {
-            fprintf(stderr, "wdctl: Error: You must specify a Mac address to reset\n");
-            usage();
-            exit(1);
-        }
-        config.param = strdup(*(argv + optind + 1));
-		if ((argc - (optind + 1)) == 2) {
-			config.param1 = strdup(*(argv + optind + 2));
-		}
-    } else if (strcmp(*(argv + optind), "restart") == 0) {
-        config.command = WDCTL_RESTART;
-#if OK_PATCH
-    } else if (strcmp(*(argv + optind), "offline") == 0) {
-        config.command = WDCTL_OFFLINE;
-        if ((argc - (optind + 1)) <= 0) {
-            fprintf(stderr, "wdctl: Error: You must specify a Mac address to do offline\n");
-            usage();
-            exit(1);
-        }
-        config.param = strdup(*(argv + optind + 1));
-		if ((argc - (optind + 1)) == 2) {
-			config.param1 = strdup(*(argv + optind + 2));
-		}
-	} else if (strcmp(*(argv + optind), "query") == 0) {
-		config.command = WDCTL_QUERY;
-        if ((argc - (optind + 1)) <= 0) {
-            fprintf(stderr, "wdctl: Error: You must specify a Mac address to query\n");
-            usage();
-            exit(1);
-        }
-        config.param = strdup(*(argv + optind + 1));
-		if ((argc - (optind + 1)) == 2) {
-			config.param1 = strdup(*(argv + optind + 2));
-		}
-	} else if (strcmp(*(argv + optind), "config") == 0) {
-		config.command = WDCTL_CONFIG;
-#endif
-    } else {
-        fprintf(stderr, "wdctl: Error: Invalid command \"%s\"\n", *(argv + optind));
-        usage();
-        exit(1);
-    }
-#endif
 }
 
 static int

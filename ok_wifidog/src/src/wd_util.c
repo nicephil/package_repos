@@ -266,7 +266,7 @@ int okos_judge_mac(const char *p_mac)
         return 0;
     }
 	unsigned int tmp[6];
-	if (6 != sscanf(p_mac, "%x:%X:%X:%X:%X:%X", &tmp[0], &tmp[1], &tmp[2], &tmp[3], &tmp[4], &tmp[5])) {
+	if (6 != sscanf(p_mac, "%X:%X:%X:%X:%X:%X", &tmp[0], &tmp[1], &tmp[2], &tmp[3], &tmp[4], &tmp[5])) {
         return 0;
 	}
     int i;

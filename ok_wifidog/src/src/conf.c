@@ -1113,17 +1113,24 @@ config_notnull(const void *parm, const char *parmname)
 /**
  * This function returns the current (first auth_server)
  */
+#if OK_PATCH
+t_auth_serv *
+get_auth_server_by_client(const t_client *client)
+{
+    return get_auth_server();
+}
+#else
 t_auth_serv *
 get_auth_server_by_client(const t_client *client)
 {
     if (NULL == client)
         return NULL;
-
     if (NULL == client->ssid)
         return NULL;
 
     return client->ssid->auth_servers;
 }
+#endif
 
 t_auth_serv *
 get_auth_server(void)

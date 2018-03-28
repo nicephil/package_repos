@@ -78,6 +78,34 @@ thread_client_timeout_check(const void *arg)
     }
 }
 
+static int
+_do_command(const char *format, ...)
+{
+    va_list vlist;
+    char *fmt_cmd;
+    int rc;
+
+    va_start(vlist, format);
+    safe_vasprintf(&fmt_cmd, format, vlist);
+    va_end(vlist);
+
+    debug(LOG_DEBUG, "__Executing logout: %s", fmt_cmd);
+    rc = system(fmt_cmd);
+
+    if (-1 == rc) {
+        debug(LOG_ERR, "__!! shell fork faile!: %s", fmt_cmd);
+        return rc;
+    } else if (!WIFEXITED(rc)) {
+        debug(LOG_ERR, "__!! shell command thread has been killed: %s", fmt_cmd);
+    } else if (0 != WEXITSTATUS(rc)) {
+        debug(LOG_DEBUG, "__!! shell `%s` failed(%d).", fmt_cmd, WEXITSTATUS(rc));
+    } else {
+        debug(LOG_DEBUG, "__shell `%s` successfully.", fmt_cmd);
+    }
+    free(fmt_cmd);
+    return rc;
+}
+
 void
 logout_client(t_client * client)
 {
@@ -85,6 +113,7 @@ logout_client(t_client * client)
         debug(LOG_DEBUG, "!!!!Who are trying to logout NULL client");
     }
     fw_deny(client);
+    _do_command("iwpriv %s kickmac %s", client->if_name, client->mac);
     client_list_remove(client);
     client_free_node(client);
 }

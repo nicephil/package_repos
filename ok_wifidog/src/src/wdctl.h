@@ -38,6 +38,7 @@
 #define WDCTL_QUERY		5
 #define WDCTL_CONFIG	6
 #define WDCTL_OFFLINE   7
+#define WDCTL_INSERT    8
 #endif
 
 typedef struct {

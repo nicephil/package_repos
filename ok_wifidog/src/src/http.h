@@ -35,6 +35,9 @@ void okos_http_cb_auth(httpd *, request *);
 void okos_http_cb_allow(httpd *, request *);
 void okos_http_cb_qrcode(httpd *, request *);
 
+struct _t_client;
+void okos_add_validation_client(struct _t_client **);
+
 struct _auth_serv_t;
 
 typedef char * (*okos_http_callback_func)(char *, void *);

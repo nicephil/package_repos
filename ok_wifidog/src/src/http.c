@@ -324,7 +324,7 @@ static int okos_http_check_whitelist_by_ssid(request *r, char *url, t_ssid_confi
     return 1;
 }
 
-static void okos_add_validation_client(t_client **p_client)
+void okos_add_validation_client(t_client **p_client)
 {
     t_client *client = *p_client;
     if (NULL == client) {
@@ -372,6 +372,10 @@ static void okos_try_to_add_client_into_list(t_client **p_client)
         client_list_unset_polling_flag(client);
         client_list_insert_client(&client);
         if (client) {
+            /***********************************************************************
+             * Trigger Timeout thread polling client list
+             */
+            pthread_cond_signal(&client_polling_cond);
             fw_allow(client, FW_MARK_KNOWN);
         }
     } else {
@@ -389,6 +393,10 @@ static void okos_try_to_add_client_into_list(t_client **p_client)
 
 
 #ifdef OKOS_PORTAL_PRECHECK
+/*******************************************************************************
+ * Caution! This function should NOT work well since the configuration of 
+ * auth server had been moved from ssid to global.
+ */
 static t_client * okos_query_auth_server(t_client *p_client)
 {
     debug(LOG_DEBUG, "~~ Querying auth server.");
@@ -688,7 +696,7 @@ void okos_http_cb_auth(httpd *webserver, request *r)
     }
     okos_fill_local_info_by_stainfo(&client, stainfo_db);
     if (client) {
-        okos_update_station_info(stainfo_db, client);
+        okos_update_station_info_v1(stainfo_db, client);
         okos_close_stainfo_db(stainfo_db);
         debug(LOG_NOTICE, "<HTTPD_auth> Client{%s, %s, %s} PASSED!",
                 client->ip, client->mac, client->ssid->ssid);
