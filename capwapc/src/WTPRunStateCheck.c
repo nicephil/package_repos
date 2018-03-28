@@ -146,6 +146,7 @@ CWBool CWWTPCheckForWTPEventRequest(){
 			CW_FREE_PROTOCOL_MESSAGE(messages[k]);
 		}
 		CW_FREE_OBJECT(messages);
+        CW_FREE_OBJECT(pendingReqIndex);
 		CWDeleteList(&msgElemList, CWProtocolDestroyMsgElemData);
 		return CW_FALSE;
 	}
@@ -209,6 +210,10 @@ void CWWTPRetransmitTimerExpiredHandler(CWTimerArg arg, CWTimerID id)
 void CWWTPRetransmitTimerExpiredHandler(CWTimerArg hdl_arg)
 {
 	int index = *((int *)hdl_arg);
+    if (index >= MAX_PENDING_REQUEST_MSGS) {
+        CWLog("CWWTPRetransmitTimerExpieredHandler:index:%d is wrong!", index);
+        return;
+    }
 
 	CWDebugLog("Retransmit Timer Expired for Thread: %08x", (unsigned int)CWThreadSelf());
 	

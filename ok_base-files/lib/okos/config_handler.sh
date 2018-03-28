@@ -3,9 +3,9 @@
 DEBUG="$1"
 [ -n "$DEBUG" ] && {
     # cpumem info
-    export 'json_data={"data":"{\"cpu_memory\":1}","operate_type":10001}'
+    #export 'json_data={"data":"{\"cpu_memory\":1}","operate_type":10001}'
     # channel scanning
-    #export 'json_data={"data":"","operate_type":15}'
+    export 'json_data={"data":"{\"radio\":-1}","operate_type":15}'
     # config channel
     # export 'json_data={"data":"{\"r24_channel\":1,\"r5_channel\":149}","operate_type":17}'
 }
@@ -56,11 +56,24 @@ handle_devstats()
     local json_data="$2"
     local ret="0"
 
+    if [ -n "$json_data" ]
+    then
+        json_init
+        json_load "$json_data"
+        json_get_vars radio
+    fi
+
+    if [ -z "$radio" ]
+    then
+        radio = "-1"
+    fi
+
     # 1. check icm process exists or not
     if [ -z "$(pgrep 'icm')" -a -z "$(pgrep 'restartservices.sh')" ]
     then
-        icm -i /tmp/icmseldebug.csv >/dev/null 2>&1 &
-        (sleep 110; has_chscanningjson=1 /lib/okos/devstats.sh) &
+        icm -r $radio -i /tmp/icmseldebug.csv 2>&1 | logger -t 'devstats'
+        (sleep 150;killall icm)&
+        has_chscanningjson=1 /lib/okos/devstats.sh "$radio"
     fi
 
     [ -f "/tmp/restartservices.lock" ] && ret="1"

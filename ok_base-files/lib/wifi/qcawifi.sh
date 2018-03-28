@@ -974,6 +974,7 @@ enable_qcawifi() {
 		[ -n "$puren" ] && iwpriv "$ifname" puren "$puren"
 
 		iwconfig "$ifname" channel "$channel" >/dev/null 2>/dev/null
+		iwpriv "$ifname" mode "$hwmode"
 
 		config_get_bool hidden "$vif" hidden 0
 		iwpriv "$ifname" hide_ssid "$hidden"

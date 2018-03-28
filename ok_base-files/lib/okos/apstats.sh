@@ -9,7 +9,7 @@ then
 fi
 
 apstats_trap () {
-    logger -t apstats "gets trap"
+    logger -t apstats "gets trap on apstats"
     lock -u /tmp/.iptables.lock
 }
 trap 'apstats_trap; exit' INT TERM ABRT QUIT ALRM

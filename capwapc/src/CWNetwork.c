@@ -85,7 +85,10 @@ CWBool CWNetworkSendUnsafeConnected(CWSocket sock, const char *buf, int len) {
 
 	while(send(sock, buf, len, 0) < 0) {
 	
-		if(errno == EINTR) continue;
+		if(errno == EINTR) {
+            CWLog("-->send with EINTER error, try again");
+            continue;
+        }
 		CWNetworkRaiseSystemError(CW_ERROR_SENDING);
 	}
 	return CW_TRUE;
@@ -183,7 +186,7 @@ CWBool CWNetworkTimedPollRead(CWSocket sock, struct timeval *timeout) {
 
 	if((r = select(sock+1, &fset, NULL, NULL, timeout)) == 0) {
 
-		CWDebugLog_F("Select Time Expired");
+		CWDebugLog_F("-->Select Time Expired:%d", timeout->tv_sec);
 		return CWErrorRaise(CW_ERROR_TIME_EXPIRED, NULL);
 	} else 
 		if (r < 0) {

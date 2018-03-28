@@ -99,7 +99,6 @@ int log_set_bufferlevel(int level)
 
 int log_apply_all(int enabled)
 {
-    return 0;
     if (enabled) {
         system("/etc/init.d/boot restart&");
     } else {

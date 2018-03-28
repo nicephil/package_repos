@@ -13,8 +13,8 @@ then
     exit 0
 fi
 
-#echo sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_HMODE,PORTAL_USER,HOSTNAME,PPSK_KEY);COMMIT;" | logger
-sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(MAC TEXT PRIMARY KEY NOT NULL,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,HOSTNAME,PPSK_KEY);COMMIT;"
+#echo sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_HMODE,PORTAL_USER,HOSTNAME,PPSK_KEY,PORTAL_STATUS,REMAIN_TIME);COMMIT;" | logger
+sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(MAC TEXT PRIMARY KEY NOT NULL,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,HOSTNAME,PPSK_KEY,PORTAL_STATUS,REMAIN_TIME);COMMIT;"
 
 # the dbfile should be delete after wifi down/up
 if [ "$ath" = "/lib/wifi" ]
@@ -29,8 +29,8 @@ case "$event" in
     "AP-STA-CONNECTED")
         
         # add new record
-        CMD="INSERT OR REPLACE INTO ${tablename} (MAC,IFNAME,RADIOID) VALUES('$mac','$ath','${ath:3:1}')"
-        #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
+        CMD="REPLACE INTO ${tablename} (MAC,IFNAME,RADIOID) VALUES('$mac','$ath','${ath:3:1}')"
+        echo $CMD | logger -t 'clienteventdb'
         sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
 
         bssid=`ifconfig $ath | awk '$1 ~ /ath/{print $5;exit}'`
@@ -46,7 +46,7 @@ case "$event" in
 
         # add new record
         CMD="UPDATE ${tablename} SET BSSID = '$bssid', AUTHENTICATION = '$_auth', PORTAL_SCHEME = '$_ps', SSID = '$_ssid', VLAN = '${_vlan:3}', PPSK_KEY = '${ppsk_key}' WHERE MAC = '$mac'"
-        #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
+        echo ${CMD} | logger -t 'clienteventdb'
         sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
     ;;
 
@@ -55,6 +55,13 @@ case "$event" in
         CMD="DELETE FROM ${tablename} WHERE MAC = '$mac'"
         #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
         sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
+
+        # statsinfo
+        statsinfo_dbfile="/tmp/statsinfo.db"
+        statsinfo_tablename="STATSINFO"
+        CMD="DELETE FROM ${statsinfo_tablename} WHERE MAC = '$mac'"
+        #echo sqlite3 $statsinfo_dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
+        sqlite3 $statsinfo_dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
     ;;
 
     *)

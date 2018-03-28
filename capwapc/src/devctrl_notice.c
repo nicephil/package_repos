@@ -4,12 +4,13 @@
 #include "devctrl_protocol.h"
 #include "devctrl_payload.h"
 #include "devctrl_notice.h"
+#include <sys/wait.h>
 
 #include "services/cfg_services.h"
 #include "services/wlan_services.h"
 #include "sqlite3.h"
 
-#define WLAN_STA_STAUS_TIMER    5
+#define WLAN_STA_STAUS_TIMER   5
 
 static CWTimerID g_sta_notice_timerid = -1;
 
@@ -251,6 +252,11 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
         stas[row].max_rssi = atoi(argv[31]) - 95;
     }
 
+    /*PORTAL_STATUS*/
+    if (argv[32]) {
+        stas[row].portal_status = atoi(argv[32]);
+    }
+
     /*location*/
     cfg_get_option_value(CAPWAPC_CFG_OPTION_LOCATION_TUPLE, stas[row].location, MAX_LOCATION_LEN);
     stas[row].location_len = strlen(stas[row].location);
@@ -327,8 +333,6 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
     all.count = 0;
     all.stas = stas;
     int ret = 0;
-
-    system("/lib/okos/getstainfo.sh");
 
     ret = wlan_get_sta_info_db((void*)&all);
     if (ret) {
@@ -497,36 +501,40 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
                             || strncmp(pre->user, cur->user, pre->name_len) != 0
                             || pre->psmode != cur->psmode) {
                             cur->updated = 1;
-                            if (cur->txB > pre->txB) {
-                                cur->delta_txB = cur->txB - pre->txB;
+                            if (cur->ts <= pre->ts) {
+                                cur->delta_txB = pre->delta_txB;
+                                cur->delta_rxB = pre->delta_rxB;
+                                cur->delta_wan_txB = pre->delta_wan_txB;
+                                cur->delta_wan_rxB = pre->delta_wan_rxB;
+                                cur->atxrb = pre->atxrb;
+                                cur->arxrb = pre->arxrb;
+                                cur->wan_atxrb = pre->wan_atxrb;
+                                cur->wan_arxrb = pre->wan_arxrb;
                             } else {
-                                cur->delta_txB = 0;
-                            }
-                            if (cur->rxB > pre->rxB) {
-                                cur->delta_rxB = cur->rxB - pre->rxB;
-                            } else {
-                                cur->delta_rxB = 0;
-                            }
-                            if (cur->wan_txB > pre->wan_txB) {
-                                cur->delta_wan_txB = cur->wan_txB - pre->wan_txB;
-                            } else {
-                                cur->delta_wan_txB = 0;
-                            }
-                            if(cur->wan_rxB > pre->wan_rxB) {
-                                cur->delta_wan_rxB = cur->wan_rxB - pre->wan_rxB;
-                            } else {
-                                cur->delta_wan_rxB = 0;
-                            }
-                            if (cur->ts > pre->ts) {
+                                if (cur->txB > pre->txB) {
+                                    cur->delta_txB = cur->txB - pre->txB;
+                                } else {
+                                    cur->delta_txB = 0;
+                                }
+                                if (cur->rxB > pre->rxB) {
+                                    cur->delta_rxB = cur->rxB - pre->rxB;
+                                } else {
+                                    cur->delta_rxB = 0;
+                                }
+                                if (cur->wan_txB > pre->wan_txB) {
+                                    cur->delta_wan_txB = cur->wan_txB - pre->wan_txB;
+                                } else {
+                                    cur->delta_wan_txB = 0;
+                                }
+                                if(cur->wan_rxB > pre->wan_rxB) {
+                                    cur->delta_wan_rxB = cur->wan_rxB - pre->wan_rxB;
+                                } else {
+                                    cur->delta_wan_rxB = 0;
+                                }
                                 cur->atxrb = (unsigned int)(((long double)cur->delta_txB * 8) / (cur->ts - pre->ts) / 1024);
                                 cur->arxrb = (unsigned int)(((long double)cur->delta_rxB * 8) / (cur->ts - pre->ts) / 1024);
                                 cur->wan_atxrb = (unsigned int)(((long double)cur->delta_wan_txB * 8) / (cur->ts - pre->ts) / 1024);
                                 cur->wan_arxrb = (unsigned int)(((long double)cur->delta_wan_rxB * 8) / (cur->ts - pre->ts) / 1024);
-                            } else {
-                                cur->atxrb = 0;
-                                cur->arxrb = 0;
-                                cur->wan_atxrb = 0;
-                                cur->wan_arxrb = 0;
                             }
                                 
                             //syslog(LOG_ERR, "O%x%x===>ts:%lld dtxB:%lld drxB:%lld txB:%lld rxB:%lld atx:%d arx:%d", pre->mac[4], pre->mac[5],  pre->ts, pre->delta_txB, pre->delta_rxB, pre->txB, pre->rxB, pre->atxrb, pre->arxrb);
@@ -608,6 +616,7 @@ static void dc_sta_notice_timer_handler(void *arg)
     char *payload = NULL, *data = NULL;
     int count = 0, paylength = 0, totalsize = 0; 
 
+    CWLog("-->sta notice handler In1:%d");
     count = dc_get_wlan_sta_stats(&stas,1);
     if (stas != NULL && count > 0) { 
 
@@ -664,6 +673,7 @@ static void dc_sta_notice_timer_handler(void *arg)
         }
     }
 
+    CWLog("-->sta notice handler In2:%d", clock());
     /* radio status */
     count = dc_get_wlan_radio_stats(&radio_stats);
     if (radio_stats != NULL && count > 0) { 
@@ -698,6 +708,7 @@ static void dc_sta_notice_timer_handler(void *arg)
             totalsize += (paylength + 6);
         }
     }
+    CWLog("-->sta notice handler In3:%d", clock());
 
 
     if (payload != NULL && totalsize > 0) {
@@ -715,6 +726,7 @@ static void dc_sta_notice_timer_handler(void *arg)
        
         CW_FREE_OBJECT(payload);
     }
+    CWLog("-->sta notice handler In4:%d", clock());
 
 RESTART_TIMER:
     if (stas) {

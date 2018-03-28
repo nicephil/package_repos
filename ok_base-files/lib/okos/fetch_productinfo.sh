@@ -9,7 +9,8 @@ case "$board" in
 unifi)
     mac=$(hexdump -e '1/1 "%02x:"' -n6 /dev/mtd7)
     mac=${mac%:*}
-    serial=`echo $mac |tr -d :|tr '[a-z]' '[A-Z]'`
+    mac=`echo $mac | tr '[a-z]' '[A-Z]'`
+    serial=`echo $mac |tr -d :`
     model=`echo $model |tr '[a-z]' '[A-Z]'`
     echo -e "config productinfo productinfo"
     echo -e  "\toption production AC-${model}"

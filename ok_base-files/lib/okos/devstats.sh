@@ -30,6 +30,10 @@ json_select_object() {
 	json_select "$1"
 }
 
+# 0.1 args
+arg1="$1"
+arg2="$2"
+
 
 # 1. read config
 config_load capwapc
@@ -138,13 +142,25 @@ generate_cpumemjson()
 generate_chscanningjson()
 {
     local vname="$1"
+    local radio="$arg1"
+
+    if [ -z "$radio" ]
+    then
+        radio="-1"
+    fi
 
     local ch_usabs="$(awk -F',' '{if(match($54,/[0-9]+/))print $2"_"$54;}' /tmp/icmseldebug.csv )"
 
     killall icm
 
-    local _2ch_nums="$(iwlist ath50 scanning 2>&1 | awk '/Channel/{key=substr($4,1,length($4)-1);sum[key]++;}END{for(k in sum)print k"_"sum[k];}')"
-    local _5ch_nums="$(iwlist ath60 scanning 2>&1 | awk '/Channel/{key=substr($4,1,length($4)-1);sum[key]++;}END{for(k in sum)print k"_"sum[k];}')" 
+    if [ "$radio" != "1" ]
+    then
+        local _2ch_nums="$(iwlist ath50 scanning 2>&1 | awk '/Channel/{key=substr($4,1,length($4)-1);sum[key]++;}END{for(k in sum)print k"_"sum[k];}')"
+    fi
+    if [ "$radio" != "0" ]
+    then
+        local _5ch_nums="$(iwlist ath60 scanning 2>&1 | awk '/Channel/{key=substr($4,1,length($4)-1);sum[key]++;}END{for(k in sum)print k"_"sum[k];}')" 
+    fi
 
     #echo "-------------->$ch_usabs" | logger -t 'devstats'
     #echo "==============>$_2ch_nums" | logger -t 'devstats'
@@ -152,10 +168,11 @@ generate_chscanningjson()
 
 
     json_init
-    json_select_array "list"
+    json_add_int radio "$radio"
+    json_select_array 'list'
 
     # 2.4G
-    if [ -n "$_2ch_nums" ]
+    if [ "$radio" != "1" -a -n "$_2ch_nums" ]
     then
     for i in `seq 1 1 13`
     do
@@ -199,7 +216,7 @@ generate_chscanningjson()
     fi
 
     # 5G
-    if [ -n "$_5ch_nums" ]
+    if [ "$radio" != "0" -a -n "$_5ch_nums" ]
     then
     for ch_usab in $ch_usabs
     do
@@ -280,8 +297,9 @@ json_select ..
 
 json_data=$(json_dump)
 
-# echo $json_data | logger -t 'devstats'
+#echo $json_data | logger -t 'devstats'
+echo $json_data 
 
 # 4. upload json file to nms
 URL="http://${mas_server}/nms/api/device/ap/info"
-curl -i -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "$json_data" $URL
+curl -m 120 -i -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "$json_data" $URL
