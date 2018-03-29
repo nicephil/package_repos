@@ -14,6 +14,7 @@ fi
 
 upstabycron_trap () {
     logger -t upstabycron "gets trap on upstabycron"
+    lock -u /tmp/.iptables.lock
     rm -rf /tmp/upstabycron.lock
 }
 
