@@ -591,7 +591,7 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
             }
             
             sta->len = WLAN_STA_UPDATE_FIXLEN + sta->name_len + sta->client_hostname_len;
-            
+
             CWProtocolStore16(&msg, sta->len);
             CWProtocolStoreRawBytes(&msg, (char *)(sta->mac), 6);
             CWProtocolStore32(&msg, sta->ip);
@@ -635,6 +635,7 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
                 sta->len = WLAN_STA_STATUS_FIXLEN + sta->ssid_len + sta->name_len + sta->ps_len + sta->client_type_len + sta->client_hostname_len + sta->location_len;
                 CWProtocolStore16(&msg, sta->len);
                 CWProtocolStore8(&msg, sta->state);
+                syslog(LOG_WARNING, "xxxxxxxxxxxxx>STATUS:%02x:%02x:%d\n", sta->mac[4], sta->mac[5],sta->state);
             }
             
             CWProtocolStoreRawBytes(&msg, (char *)(sta->mac), 6);

@@ -206,7 +206,7 @@ class Client(Thread):
                 url = '%s/authority?info=%s' % (auth_url, self.pack_info())
 
             syslog(LOG_DEBUG, 'query url:%s' % url)
-            response = urllib2.urlopen(url, timeout=3)
+            response = urllib2.urlopen(url, timeout=5)
         except urllib2.HTTPError, e:
             syslog(LOG_ERR, "HTTPError:%d %s" % (e.errno, e.strerror))
             return True, 0, 0, 0, 0, 0, 0, 0, ''
@@ -327,9 +327,7 @@ class Client(Thread):
     def update_db(self, mac, ath, remain_time, username):
         #sql_cmd="REPLACE INTO STAINFO (MAC,IFNAME,REMAIN_TIME,PORTAL_USER,PORTAL_STATUS) VALUES('%s','%s','%d','%s','%d')" % (mac, ath, remain_time, username, 1 if remain_time > 0 else 0)
         sql_cmd="UPDATE STAINFO SET IFNAME = '%s', REMAIN_TIME = '%d', PORTAL_USER = '%s', PORTAL_STATUS = '%d' WHERE MAC = '%s'" % (ath, remain_time, username, 1 if remain_time > 0 else 0, mac)
-
         cmd="sqlite3 /tmp/stationinfo.db \"BEGIN TRANSACTION;%s;COMMIT;\"" % sql_cmd
-        syslog(LOG_ERR, "%s" % cmd)
         os.system(cmd)
         pass
 
