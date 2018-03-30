@@ -3,6 +3,13 @@
 
 CMD="iptables"
 
+apfw_static_trap () {
+    echo "gets trap on apfw.static" | logger -p 3 -t 'apfw.static'
+    lock -u /tmp/.iptables.lock
+}
+
+trap 'apfw_static_trap; exit 1' INT TERM ABRT QUIT ALRM
+
 set_static_statistics_rules ()
 {
     # set user statistics chains

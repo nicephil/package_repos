@@ -37,7 +37,15 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
         return 0;
     }
 
-    struct wlan_sta_stat *stas = (struct wlan_sta_stat *)cookie;
+    struct wlan_sta_stat_all {
+        int count;
+        struct wlan_sta_stat **stas;
+    };
+    struct wlan_sta_stat_all *all = (struct wlan_sta_stat_all *)cookie;
+    struct wlan_sta_stat *stas = *(all->stas);
+    if (row >= all->count) {
+        return 0;
+    }
 
     /*MAC*/
     if (argv[0]) {
@@ -257,10 +265,6 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
         stas[row].portal_status = atoi(argv[32]);
     }
 
-    /*location*/
-    cfg_get_option_value(CAPWAPC_CFG_OPTION_LOCATION_TUPLE, stas[row].location, MAX_LOCATION_LEN);
-    stas[row].location_len = strlen(stas[row].location);
-    
     row ++;
 
     return 0;
@@ -304,7 +308,7 @@ static int wlan_get_sta_info_db(void *stats)
     }
     memset(*(all->stas), 0, count * sizeof(struct wlan_sta_stat));
 
-    ret = sqlite3_exec(db, sql_str, _sql_callback, *(all->stas), &pErrMsg);
+    ret = sqlite3_exec(db, sql_str, _sql_callback, all, &pErrMsg);
     if (ret != SQLITE_OK) {
         CWLog("SQL create error: %s\n", pErrMsg);
         ret = -4;

@@ -999,7 +999,17 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
         return 0;
     }
 
-    struct device_interface_info *info = (struct device_interface_info *)cookie;
+    struct device_interface_infos {
+        int count;
+        struct device_interface_info **info;
+    };
+    struct device_interface_infos *infos = (struct device_interface_infos *)cookie;
+    struct device_interface_info *info = *(infos->info);
+    if (row >= infos->count) {
+        return 0;
+    }
+
+
     /*IFNAME*/
     if (argv[0]) {
         strncpy(info[row].interface_name, argv[0], SYS_INTF_NAME_SIZE-1);
@@ -1118,7 +1128,16 @@ static int dc_get_interface_info(struct device_interface_info **info)
     }
     memset(*info, 0, count * sizeof(struct device_interface_info));
 
-    ret = sqlite3_exec(db, sql_str, _sql_callback, *info, &pErrMsg);
+    struct device_interface_infos {
+        int count;
+        struct device_interface_info **info;
+    };
+
+    struct device_interface_infos infos;
+    infos.count = count;
+    infos.info = info;
+
+    ret = sqlite3_exec(db, sql_str, _sql_callback, &infos, &pErrMsg);
     if (ret != SQLITE_OK) {
         CWLog("SQL create error: %s\n", pErrMsg);
         ret = -4;
