@@ -91,19 +91,34 @@ _do_command(const char *format, ...)
 
     debug(LOG_DEBUG, "__Executing logout: %s", fmt_cmd);
     rc = system(fmt_cmd);
-
+/*
     if (-1 == rc) {
-        debug(LOG_ERR, "__!! shell fork faile!: %s", fmt_cmd);
+        debug(LOG_ERR, "__!! shell `%s` fork faile! [%d]", fmt_cmd, rc);
         return rc;
     } else if (!WIFEXITED(rc)) {
-        debug(LOG_ERR, "__!! shell command thread has been killed: %s", fmt_cmd);
+        debug(LOG_ERR, "__!! shell command thread has been killed: %s[%d]", fmt_cmd, rc);
     } else if (0 != WEXITSTATUS(rc)) {
         debug(LOG_DEBUG, "__!! shell `%s` failed(%d).", fmt_cmd, WEXITSTATUS(rc));
     } else {
         debug(LOG_DEBUG, "__shell `%s` successfully.", fmt_cmd);
     }
+    */
     free(fmt_cmd);
+    debug(LOG_DEBUG, "__Logout Completed: %d", rc);
     return rc;
+}
+
+static int
+peer_ifname(const char* ori, char* peer)
+{
+    int radio;
+    char vap[16];
+    if (2 != sscanf(ori, "ath%1d%s", &radio, vap)) {
+        return 0;
+    }
+    radio = (1 - radio) % 2;
+    sprintf(peer, "ath%1d%s", radio, vap);
+    return 1;
 }
 
 void
@@ -114,6 +129,11 @@ logout_client(t_client * client)
     }
     fw_deny(client);
     _do_command("iwpriv %s kickmac %s", client->if_name, client->mac);
+    char peer[16];
+    if (peer_ifname(client->if_name, peer)) {
+        _do_command("iwpriv %s kickmac %s", peer, client->mac);
+    }
+
     client_list_remove(client);
     client_free_node(client);
 }

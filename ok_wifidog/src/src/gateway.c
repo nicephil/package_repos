@@ -298,7 +298,7 @@ sigchld_handler(int s)
 
     rc = waitpid(-1, &status, WNOHANG);
 
-    debug(LOG_DEBUG, "____Handler for SIGCHLD reaped child PID %d", rc);
+    debug(LOG_DEBUG, "____Handler for SIGCHLD reaped child PID %d[%d]", rc, WEXITSTATUS(status));
 }
 
 /** Exits cleanly after cleaning up the firewall.  

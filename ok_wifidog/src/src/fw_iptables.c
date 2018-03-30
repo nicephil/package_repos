@@ -134,7 +134,7 @@ iptables_do_command(const char *format, ...)
 
     //rc = execute(cmd, fw_quiet);
     rc = system(cmd);
-
+/*
     if (-1 == rc) {
         debug(LOG_ERR, "__!! shell `%s` fork failed!", cmd);
     } else {
@@ -148,8 +148,10 @@ iptables_do_command(const char *format, ...)
             }
         }
     }
+    */
 
     free(cmd);
+    debug(LOG_DEBUG, "__Command Completed: %d", rc);
 
     return rc;
 #else /*  OKOS_SUSPRESS_IPTABLES  */
