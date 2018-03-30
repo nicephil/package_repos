@@ -66,8 +66,8 @@ class Client(Thread):
             queue.put_nowait(clientevent)
         except qq.Full:
             tmp_event = self.queue.get_nowait()
-            syslog(LOG_INFO, "%s:Queue Full, ignore %s-%s" %
-                   (self.mac, tmp_event.ath, tmp_event.event))
+            syslog(LOG_INFO, "%s:Queue Full, ignore %s-%s, put %s-%s" %
+                   (self.mac, tmp_event.ath, tmp_event.event, clientevent.ath, clientevent.event))
             queue.put_nowait(clientevent)
 
     # query and save params
@@ -414,7 +414,7 @@ class Manager(object):
             client = self.client_dict[k]
             client.term = True
             client.put_event('ath00', 'TERM', '')
-            del(client)
+            del(self.client_dict[k])
         gc.collect()
 
         for c in threading.enumerate():
@@ -464,7 +464,7 @@ class Manager(object):
             if (not client.is_alive()) or client.term:
                 client.term = True
                 client.put_event('ath00', 'TERM', '')
-                del(client)
+                del(self.client_dict[mac])
                 client = Client(mac)
                 self.client_dict[mac] = client
                 client.daemon = True
@@ -480,7 +480,7 @@ class Manager(object):
                client.term:
                 client.term = True
                 client.put_event('ath00', 'TERM', '')
-                del(client)
+                del(self.client_dict[key])
 
         # 4. gc
         gc.collect()
