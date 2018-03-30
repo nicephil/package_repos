@@ -15,9 +15,6 @@ fi
 
 touch $lockfile
 
-/etc/init.d/cron stop
-/etc/init.d/supervisor stop
-
 /etc/init.d/network restart
 
 sync;echo 3 > /proc/sys/vm/drop_caches
@@ -25,8 +22,6 @@ sync;echo 3 > /proc/sys/vm/drop_caches
 /etc/init.d/qos restart &
 /etc/init.d/arpwatch restart&
 /etc/init.d/apfw.dyn restart&
-/etc/init.d/cron restart&
 /etc/init.d/supervisor restart&
-rm -rf $lockfile
 
 return 0
