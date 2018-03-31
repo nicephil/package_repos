@@ -162,7 +162,7 @@ class Client(Thread):
     # main event handler
     def handle_event(self):
         try:
-            clientevent = self.queue.get(block=True, timeout=60)
+            clientevent = self.queue.get(block=True, timeout=30)
         except qq.Empty:
             self.term = True
             clientevent = ClientEvent('ath00', 'TERM', '')
@@ -410,11 +410,9 @@ class Manager(object):
                (device_mac, auth_url, domain))
 
         # free all existing clients
-        for k in self.client_dict.keys():
-            client = self.client_dict[k]
-            client.term = True
+        for k,v in self.client_dict.iteritems():
             client.put_event('ath00', 'TERM', '')
-            del(self.client_dict[k])
+        self.client_dict.clear()
         gc.collect()
 
         for c in threading.enumerate():
@@ -452,35 +450,18 @@ class Manager(object):
     # dispatch each client event
     def dispatch_client_event(self, ath, mac, event, ppsk_key):
         # 1. find or create Client object by client mac
-        if mac not in self.client_dict.keys():
-            # 1.1 new one
-            client = Client(mac)
-            self.client_dict[mac] = client
-            # 1.2 run it
+        if mac not in self.client_dict or self.client_dict[mac].term:
+            client = self.client_dict[mac] = Client(mac)
             client.daemon = True
             client.start()
         else:
             client = self.client_dict[mac]
-            if (not client.is_alive()) or client.term:
-                client.term = True
-                client.put_event('ath00', 'TERM', '')
-                del(self.client_dict[mac])
-                client = Client(mac)
-                self.client_dict[mac] = client
-                client.daemon = True
-                client.start()
 
         # 2. add event into client event queue
         client.put_event(ath, event, ppsk_key)
 
         # 3. clean up dead process
-        for key in self.client_dict.keys():
-            client = self.client_dict[key]
-            if (not client.is_alive()) or \
-               client.term:
-                client.term = True
-                client.put_event('ath00', 'TERM', '')
-                del(self.client_dict[key])
+        self.client_dict = {k:v for k,v in self.client_dict.iteritems() if not v.term}
 
         # 4. gc
         gc.collect()

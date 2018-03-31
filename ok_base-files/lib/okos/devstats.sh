@@ -163,7 +163,7 @@ generate_chscanningjson()
     fi
 
     #echo "-------------->$ch_usabs" | logger -t 'devstats'
-    #echo "==============>$_2ch_nums" | logger -t 'devstats'
+    echo "==============>$_2ch_nums" | logger -t 'devstats'
     echo "-------------->$_5ch_nums" | logger -t 'devstats'
 
 
@@ -172,7 +172,7 @@ generate_chscanningjson()
     json_select_array 'list'
 
     # 2.4G
-    if [ "$radio" != "1" -a -n "$_2ch_nums" ]
+    if [ "$radio" != "1" ]
     then
     for i in `seq 1 1 13`
     do
@@ -216,7 +216,7 @@ generate_chscanningjson()
     fi
 
     # 5G
-    if [ "$radio" != "0" -a -n "$_5ch_nums" ]
+    if [ "$radio" != "0" ]
     then
     for ch_usab in $ch_usabs
     do

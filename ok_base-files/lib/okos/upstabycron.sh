@@ -34,13 +34,13 @@ touch /tmp/upstabycron.lock
 
 upsta_debug_log "$(date) in"
 
+all_db=$(sqlite3 /tmp/stationinfo.db 'select * from stainfo';sqlite3 /tmp/statsinfo.db 'select * from statsinfo' | awk -F'|' '!a[$1]++')
+
 # delete client who already gone
-for client_tmp in $(sqlite3 /tmp/stationinfo.db 'select * from stainfo')
+for client_tmp in $all_db
 do
-    unset _mac
-    unset _ath
     OIFS=$IFS;IFS='|';set -- $client_tmp;_mac=$1;_ath=$2;IFS=$OIFS        
-    __ath=$(apstats -s -m $_mac | awk '/'"$_mac"'/{print substr($7,1, length($7)-1);exit}')
+    __ath=$(apstats -s -m $_mac 2>/dev/null | awk '/'"$_mac"'/{print substr($7,1, length($7)-1);exit}')
     # no find mac really
     if [ -z "$__ath" ]
     then
@@ -82,7 +82,7 @@ do
     }
 
 upsta_debug_log "$(date) :4:$_mac"
-    __ath=$(apstats -s -m $client | awk '/'"$client"'/{print substr($7,1, length($7)-1);exit}')
+    __ath=$(apstats -s -m $client 2>/dev/null | awk '/'"$client"'/{print substr($7,1, length($7)-1);exit}')
     # no find mac really
     if [ -z "$__ath" ]
     then
@@ -124,7 +124,7 @@ upsta_debug_log "$(date) :4:$_mac"
         _ip=`awk '{if ($4 == "'$_mac'" && $6 == "'$vlan_if'") {print $1; exit}}' /proc/net/arp` 
     }
     
-    _chan_rssi_assoctime=`wlanconfig $_ath list sta | awk '$1 ~ /'${_mac}'/{print $3,$4,$5,$6,$7,$8,$17,$19,$20,$21;exit}'`
+    _chan_rssi_assoctime=`wlanconfig $_ath list sta 2>/dev/null | awk '$1 ~ /'${_mac}'/{print $3,$4,$5,$6,$7,$8,$17,$19,$20,$21;exit}'`
     [ -z "$_chan_rssi_assoctime" ] && {
         upsta_err_log "missed _mac:$_mac _ath:$_ath disconnected event"
         /lib/okos/wifievent.sh $_ath AP-STA-DISCONNECTED $_mac ""  &
@@ -144,7 +144,7 @@ upsta_debug_log "$(date) :4:$_mac"
     _smode=`echo $_smode|tr [A-Z] [a-z]`
     
     # all traffic
-    _stats=`apstats -s -i $_ath -m $_mac | awk -F'=' '/Tx Data Bytes|Rx Data Bytes|Average Tx Rate|Average Rx Rate|Tx failures|Rx errors/{print $2}'`
+    _stats=`apstats -s -i $_ath -m $_mac 2>/dev/null | awk -F'=' '/Tx Data Bytes|Rx Data Bytes|Average Tx Rate|Average Rx Rate|Tx failures|Rx errors/{print $2}'`
     [ -z "$_stats" ] && {
         upsta_err_log "missed _mac:$_mac _ath:$_ath disconnected event"
         /lib/okos/wifievent.sh $_ath AP-STA-DISCONNECTED $_mac "" &
