@@ -46,6 +46,14 @@ do
     then
         upsta_err_log "missed xxclient:$_mac xx_ath:$_ath disconnected event"
         /lib/okos/wifievent.sh $_ath AP-STA-DISCONNECTED $_mac "" &
+		continue
+    fi
+    __ip_status=$(iptables -S client_wan_downlink_traf | grep "$_mac" 2>/dev/null)
+    if [ -z "$__ip_status" ] 
+    then
+        upsta_err_log "missed xxclient:$_mac xx_ath:$_ath disconnected event"
+        /lib/okos/wifievent.sh $_ath STA-IP-CHANGED_0.0.0.0 $_mac "" &
+        continue
     fi
 done
 
