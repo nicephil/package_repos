@@ -20,6 +20,8 @@ class CfgRadio(CfgObj):
             d['channel'] = radio['channel']
             d['bandwidth'] = radio['bandwidth']
             d['txpower'] = radio['max_power']
+            d['rssi_access'] = radio['rssi_access']
+            d['rssi_access_threshold'] = radio['rssi_access_threshold']
             d['client_max'] = radio['client_max']
             d['country_code'] = system['country_code']
         return res

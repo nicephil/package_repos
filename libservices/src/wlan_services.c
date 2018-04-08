@@ -1400,16 +1400,22 @@ int wlan_set_bind(int radio_id, int stid)
             sprintf(tuple, "wireless.ath%d%d.wpa_psk_file", radio_id, stid);
             sprintf(buf, "/var/run/wpa_psk_file-stid%d", stid);
             cfg_set_option_value(tuple, buf);
+        } else if (!strcmp(buf, "wpa-psk")) {
+            sprintf(tuple, "wireless.ath%d%d.encryption", radio_id, stid);
+            cfg_set_option_value(tuple, "psk+tkip+ccmp");
+        } else if (!strcmp(buf, "wpa2-psk")) {
+            sprintf(tuple, "wireless.ath%d%d.encryption", radio_id, stid);
+            cfg_set_option_value(tuple, "psk2+tkip+ccmp");
         } else {
             sprintf(tuple, "wireless.ath%d%d.encryption", radio_id, stid);
             cfg_set_option_value(tuple, "psk-mixed+tkip+ccmp");
-
-            //wireless.ath15.key='123456789' <-> wlan_service_template.ServiceTemplate1.psk_key='123456789'
-            sprintf(tuple, "wlan_service_template.ServiceTemplate%d.psk_key", stid);
-            cfg_get_option_value(tuple, buf, sizeof(buf));
-            sprintf(tuple, "wireless.ath%d%d.key", radio_id, stid);
-            cfg_set_option_value(tuple, buf);
         }
+
+        //wireless.ath15.key='123456789' <-> wlan_service_template.ServiceTemplate1.psk_key='123456789'
+        sprintf(tuple, "wlan_service_template.ServiceTemplate%d.psk_key", stid);
+        cfg_get_option_value(tuple, buf, sizeof(buf));
+        sprintf(tuple, "wireless.ath%d%d.key", radio_id, stid);
+        cfg_set_option_value(tuple, buf);
     }
 
 
