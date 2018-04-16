@@ -89,6 +89,7 @@ struct service_template_json {
     int client_isolation;
     int type;
     char ppsk_keys_url[PPSK_KEYS_URL_MAX_LENGTH];
+    int enabled;
 #endif
 };
             
@@ -2006,6 +2007,7 @@ static int dc_parse_node_service_template(struct json_object *obj,
         {"client_isolation",      json_type_int,    NULL, sizeof(service_template.client_isolation)}, 
         {"type",                  json_type_int,    NULL, sizeof(service_template.type)}, 
         {"ppsk_keys_url",         json_type_string, NULL, sizeof(service_template.ppsk_keys_url)}, 
+        {"enabled",                json_type_int,    NULL, sizeof(service_template.enabled)}, 
 #endif
     };   
     struct json_object *array;
@@ -2062,6 +2064,7 @@ static int dc_parse_node_service_template(struct json_object *obj,
         paires[j++].value = &(service_templates->config[service_templates->num].client_isolation);
         paires[j++].value = &(service_templates->config[service_templates->num].type);
         paires[j++].value = &(service_templates->config[service_templates->num].ppsk_keys_url);
+        paires[j++].value = &(service_templates->config[service_templates->num].enabled);
 #endif
         
         service_templates->config[service_templates->num].uplink_limit_enable = -1;
@@ -3911,7 +3914,8 @@ int dc_hdl_node_wlan(struct json_object *obj)
 #if OK_PATCH
         .bandwidth_priority = 3,
         .client_isolation = 0,
-        .type = 0
+        .type = 0,
+        .enabled = 1
 #endif
     };
     
@@ -4307,6 +4311,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
         CHECK_DEFAULT_INTEGER_CONFIG(st_json->bandwidth_priority, st_def_cfg.bandwidth_priority);
         CHECK_DEFAULT_INTEGER_CONFIG(st_json->client_isolation, st_def_cfg.client_isolation);
         CHECK_DEFAULT_INTEGER_CONFIG(st_json->type, st_def_cfg.type);
+        CHECK_DEFAULT_INTEGER_CONFIG(st_json->enabled, st_def_cfg.enabled);
 #endif
     }
 
@@ -4338,6 +4343,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
                     && st_json->bandwidth_priority == st_cur->bandwidth_priority
                     && st_json->client_isolation == st_cur->client_isolation
                     && st_json->type == st_cur->type
+                    && st_json->enabled == st_cur->enabled
 #endif
                     ) {
                     if (st_json->cipher == WLAN_CIPHER_WEP40) {
@@ -4586,7 +4592,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
         }
         //end for rate limit
 
-        ret = wlan_set_service_template_enable(stid, 1);
+        ret = wlan_set_service_template_enable(stid, st_json->bandwidth_priority);
         if (ret) {
             nmsc_log("Enable service template %d failed for %d.", stid, ret);
             ret = dc_error_code(dc_error_commit_failed, node, ret); 
