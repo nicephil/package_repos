@@ -2007,7 +2007,7 @@ static int dc_parse_node_service_template(struct json_object *obj,
         {"client_isolation",      json_type_int,    NULL, sizeof(service_template.client_isolation)}, 
         {"type",                  json_type_int,    NULL, sizeof(service_template.type)}, 
         {"ppsk_keys_url",         json_type_string, NULL, sizeof(service_template.ppsk_keys_url)}, 
-        {"enabled",                json_type_int,    NULL, sizeof(service_template.enabled)}, 
+        {"enabled",               json_type_int,    NULL, sizeof(service_template.enabled)}, 
 #endif
     };   
     struct json_object *array;
@@ -4327,7 +4327,6 @@ int dc_hdl_node_wlan(struct json_object *obj)
         if (i < st_cur_cfg->num) {
             /* the ssid already existed in the current config, check if change the config */
             struct wlan_service_template *st_cur = &(st_cur_cfg->wlan_st_info[i]);
-            if (st_cur->enabled) {
                 if (!strcmp(st_json->radius_scheme, st_cur->radius_scheme)
                     && st_json->beacon_ssid_hide == st_cur->beacon_ssid_hide
                     && st_json->client_max == st_cur->client_max
@@ -4368,7 +4367,6 @@ int dc_hdl_node_wlan(struct json_object *obj)
                         }
                     }
                 }
-            }
             /* if change the st config, save the stid and disable it, then will be set config  */
             stid = st_cur_cfg->wlan_st_info[i].id;
             wlan_undo_service_template_enable(stid);
@@ -4592,13 +4590,11 @@ int dc_hdl_node_wlan(struct json_object *obj)
         }
         //end for rate limit
 
-        ret = wlan_set_service_template_enable(stid, st_json->bandwidth_priority);
+        ret = wlan_set_service_template_enable(stid, st_json->enabled);
         if (ret) {
             nmsc_log("Enable service template %d failed for %d.", stid, ret);
             ret = dc_error_code(dc_error_commit_failed, node, ret); 
             goto ERROR_OUT;
-        } else {
-            later_enable = 1;
         }
     }
 
@@ -5044,7 +5040,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
                 }
 
                 if (later_enable) {
-                    ret = wlan_set_service_template_enable(stid, 1);
+                    ret = wlan_set_service_template_enable(stid, st_json_cfg.config[m].enabled);
                     if (ret) {
                         nmsc_log("Enable service template %d failed for %d.", stid, ret);
                         ret = dc_error_code(dc_error_commit_failed, node, ret); 

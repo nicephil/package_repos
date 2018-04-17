@@ -22,22 +22,24 @@ class CfgSsidEnabled(CfgObj):
         aths = s.communicate()[0]
 
         for ath in aths.split('\n'):
-            print ath
             if len(ath) == 5:
-                # 1. set enabled/disabled in configure
-                cmd = "uci set wireless.%s.disabled=%d;uci commit wireless" % (ath, 0 if self.data['enabled'] else 1)
+                # 1. up/down the related VAP
+                cmd = "ifconfig %s %s 2>&1" % (ath, "up" if self.data['enabled'] else "down")
                 s = Popen(cmd, shell=True, stdout=PIPE)
                 result = s.communicate()[0]
-                print result
                 if len(result) != 0:
+                    print "bbb", ath, self.data['enabled'], result
                     ret = False
-                # 2. up/down the related VAP
-                cmd = "ifconfig %s %s" % (ath, "up" if self.data['enabled'] else "down")
+                    return ret
+                # 2. set enabled/disabled in configure
+                cmd = "uci set wireless.%s.disabled=%d;uci commit wireless;uci set wlan_service_template.ServiceTemplate%s.service_template=%s;uci commit wlan_service_template;" % \
+                    (ath, 0 if self.data['enabled'] else 1, ath[4:], "enabled" if self.data['enabled'] else "disabled")
                 s = Popen(cmd, shell=True, stdout=PIPE)
                 result = s.communicate()[0]
-                print result
                 if len(result) != 0:
+                    print "ddd", ath, self.data['enabled'], result
                     ret = False
+                    return ret
 
         return ret
 

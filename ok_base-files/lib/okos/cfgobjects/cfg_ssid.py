@@ -35,6 +35,6 @@ class CfgSsid(CfgObj):
     def add(self):
         if not self.enabled:
             return True
-        else
+        else:
             return False
 
