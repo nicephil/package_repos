@@ -17,11 +17,12 @@ class CfgSsidEnabled(CfgObj):
     def change(self):
         ret = True
         # 0. find the VAP and config
-        cmd = "uci show wireless | awk -F'.' '/'\\\''%s'\\\''/{print $2;exit}'" % self.data['ssid']
+        cmd = "uci show wireless | awk -F'.' '/'\\\''%s'\\\''/{print $2}'" % self.data['ssid']
         s = Popen(cmd, shell=True, stdout=PIPE)
         aths = s.communicate()[0]
 
         for ath in aths.split('\n'):
+            print ath, self.data['ssid'], self.data['enabled']
             if len(ath) == 5:
                 # 1. up/down the related VAP
                 cmd = "ifconfig %s %s 2>&1" % (ath, "up" if self.data['enabled'] else "down")
