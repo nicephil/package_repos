@@ -191,12 +191,12 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
 
     /*TXB*/
     if (argv[18]) {
-        stas[row].txB = atoll(argv[18]);
+        stas[row].txB = strtoull(argv[18], NULL, 10);
     }
 
     /*RXB*/
     if (argv[19]) {
-        stas[row].rxB = atoll(argv[19]);
+        stas[row].rxB = strtoull(argv[19], NULL, 10);
     }
 
     //syslog(LOG_ERR, "sql:%x%x txB:%s:%lld rxB:%s:%lld", stas[row].mac[4], stas[row].mac[5], argv[18], stas[row].txB, argv[19], stas[row].rxB);
@@ -219,7 +219,7 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
 
     /*TS*/
     if (argv[24]) {
-        stas[row].ts = atoll(argv[24]);
+        stas[row].ts = strtoull(argv[24], NULL, 10);
     }
 
     /*client type*/
@@ -237,12 +237,12 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
 
     /*WANTXB*/
     if (argv[27]) {
-        stas[row].wan_txB = atoll(argv[27]);
+        stas[row].wan_txB = strtoull(argv[27], NULL, 10);
     }
 
     /*WANRXB*/
     if (argv[28]) {
-        stas[row].wan_rxB = atoll(argv[28]);
+        stas[row].wan_rxB = strtoull(argv[28], NULL, 10);
     }
 
     /*GWADDR*/
@@ -505,7 +505,7 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
                             || strncmp(pre->user, cur->user, pre->name_len) != 0
                             || pre->psmode != cur->psmode) {
                             cur->updated = 1;
-                            if (cur->ts <= pre->ts) {
+                            if (cur->ts <= pre->ts || pre->txB == 0 || pre->rxB == 0) {
                                 cur->delta_txB = 0;
                                 cur->delta_rxB = 0;
                                 cur->delta_wan_txB = 0;
@@ -514,8 +514,8 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
                                 cur->arxrb = pre->arxrb;
                                 cur->wan_atxrb = pre->wan_atxrb;
                                 cur->wan_arxrb = pre->wan_arxrb;
-                                //syslog(LOG_ERR, "O%x%x===>ts:%lld dtxB:%lld drxB:%lld txB:%lld rxB:%lld atx:%d arx:%d", pre->mac[4], pre->mac[5],  pre->ts, pre->delta_txB, pre->delta_rxB, pre->txB, pre->rxB, pre->atxrb, pre->arxrb);
-                                //syslog(LOG_ERR, "N%x%x+++>%lld %lld %lld %lld %lld %d %d", cur->mac[4], cur->mac[5], cur->ts, cur->delta_txB, cur->delta_rxB, cur->txB, cur->rxB, cur->atxrb, cur->arxrb);
+                                syslog(LOG_ERR, "O%x%x===>ts:%lld dtxB:%lld drxB:%lld txB:%lld rxB:%lld atx:%d arx:%d", pre->mac[4], pre->mac[5],  pre->ts, pre->delta_txB, pre->delta_rxB, pre->txB, pre->rxB, pre->atxrb, pre->arxrb);
+                                syslog(LOG_ERR, "N%x%x+++>%lld %lld %lld %lld %lld %d %d", cur->mac[4], cur->mac[5], cur->ts, cur->delta_txB, cur->delta_rxB, cur->txB, cur->rxB, cur->atxrb, cur->arxrb);
                             } else {
                                 if (cur->txB > pre->txB) {
                                     cur->delta_txB = cur->txB - pre->txB;
