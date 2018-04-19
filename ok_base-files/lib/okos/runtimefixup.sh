@@ -56,6 +56,7 @@ done
 # active missed client
 for client in $(for ath in `iwconfig 2>/dev/null | awk '/ath/{print $1}'`;do wlanconfig $ath list sta; done | awk '$1 !~ /ADDR/{if (!(a[$1]++)) print $1}')
 do
+    (
     unset _mac
     unset _ath
     client_tmp=$(sqlite3 /tmp/stationinfo.db "SELECT * FROM STAINFO WHERE MAC = \"$client\"")
@@ -94,7 +95,8 @@ do
             continue
         fi
     fi
+    )&
 done
-
+wait
 rm -rf /tmp/runtimefixup.lock
 
