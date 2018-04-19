@@ -4830,7 +4830,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
             }
         }
 
-        if (1/* rd_cur->radio.dot11nonly != rd_json->dot11nonly */) {
+        if (rd_cur->radio.dot11nonly != rd_json->dot11nonly) {
             ret = wlan_set_dot11nonly(rd_json->id, rd_json->dot11nonly);
             if (ret) {
                 nmsc_log("Set radio %d dot11nonly %d:%d failed for %d.", 
@@ -4840,7 +4840,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
             }
         }
 
-        if (1/* rd_cur->radio.dot11aconly != rd_json->dot11aconly */) {
+        if (rd_cur->radio.dot11aconly != rd_json->dot11aconly) {
             ret = wlan_set_dot11aconly(rd_json->id, rd_json->dot11aconly);
             if (ret) {
                 nmsc_log("Set radio %d dot11aconly %d:%d failed for %d.", 
