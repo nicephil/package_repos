@@ -8,8 +8,8 @@ config system
     option log_type circular
     option log_file /var/log/messages
     option log_size 128
-    option log_remote 0
-    option log_ip 0.0.0.0
+    option log_remote 1
+    option log_ip support.oakridge.vip
     option log_prefix oakridge
     option ttylogin 0
 

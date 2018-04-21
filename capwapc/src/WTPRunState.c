@@ -161,7 +161,7 @@ CWStateTransition CWWTPEnterRun() {
     }
     unlock_pendingbox();
 
-    if (!CWErr(CWStartHeartbeatTimer()) || dc_start_sta_notice_timer() != 0) {
+    if (!CWErr(CWStartHeartbeatTimer()) /*|| dc_start_sta_notice_timer() != 0*/) {
         CWLog("Start heartbeat timer or notice timer failed, will enter RESET State.");
         return CW_ENTER_RESET;
     }

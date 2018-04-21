@@ -489,9 +489,9 @@ int main (int argc, const char * argv[])
 				nextState = CWWTPEnterRun();
 				break;
 			case CW_ENTER_RESET:
-				 CWStopHeartbeatTimer();
-				 CWStopNeighborDeadTimer();
-                  		 dc_stop_sta_notice_timer();                 
+				CWStopHeartbeatTimer();
+				CWStopNeighborDeadTimer();
+                /*dc_stop_sta_notice_timer();*/
 				/*
 				 * CWNetworkCloseSocket(gWTPSocket);
 				 * CWSecurityDestroySession(gWTPSession);
