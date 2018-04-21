@@ -1,5 +1,5 @@
 config autossh
 	option ssh	'-y -i /etc/id_rsa -N -T -R 23022:localhost:22 support@support.oakridge.vip'
 	option gatetime	'30'
-	option monitorport	'23000'
+	option monitorport	'60001'
 	option poll	'600'
