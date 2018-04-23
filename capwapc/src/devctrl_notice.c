@@ -278,8 +278,8 @@ static int wlan_get_sta_info_db(void *stats)
     };
     struct wlan_sta_stat_all *all = (struct wlan_sta_stat_all *)stats;
 
-    const char *sql_count_str="SELECT count(*) FROM STATSINFO";
-    const char *sql_str="SELECT * FROM STATSINFO";
+    const char *sql_count_str="BEGIN TRANSACTION;SELECT count(*) FROM STATSINFO";
+    const char *sql_str="SELECT * FROM STATSINFO;COMMIT;";
     sqlite3 *db = NULL;
     char *pErrMsg = NULL; 
     int ret = 0;
@@ -474,6 +474,9 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
     if (diff == 1) {
         for (i = 0; i < cur_count; i++) {
             cur = &(cur_stas[i]);
+            if (!memcmp(cur->mac, "\x00\x00\x00\x00\x00\x00", sizeof(cur->mac)) || cur->ssid_len == 0 || cur->txB == 0 || cur->rxB == 0) {
+                CWLog("---->mac is warning:%lld,mac=%02x%02x%02x%02x,ssid_len=%d,cur->txB=%lld,cur->rxB=%lld", cur->ts, cur->mac[2], cur->mac[3], cur->mac[4], cur->mac[5], cur->ssid_len, cur->txB, cur->rxB);
+            }
             for (j = 0; j < pre_count; j++) {
                 pre = &(pre_stas[j]);
                 if (!memcmp(cur->mac, pre->mac, sizeof(cur->mac))) {
@@ -505,7 +508,7 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
                             || strncmp(pre->user, cur->user, pre->name_len) != 0
                             || pre->psmode != cur->psmode) {
                             cur->updated = 1;
-                            if (cur->ts <= pre->ts || pre->txB == 0 || pre->rxB == 0) {
+                            if (cur->ts <= pre->ts) {
                                 cur->delta_txB = 0;
                                 cur->delta_rxB = 0;
                                 cur->delta_wan_txB = 0;
@@ -514,25 +517,25 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
                                 cur->arxrb = pre->arxrb;
                                 cur->wan_atxrb = pre->wan_atxrb;
                                 cur->wan_arxrb = pre->wan_arxrb;
-                                syslog(LOG_ERR, "O%x%x===>ts:%lld dtxB:%lld drxB:%lld txB:%lld rxB:%lld atx:%d arx:%d", pre->mac[4], pre->mac[5],  pre->ts, pre->delta_txB, pre->delta_rxB, pre->txB, pre->rxB, pre->atxrb, pre->arxrb);
-                                syslog(LOG_ERR, "N%x%x+++>%lld %lld %lld %lld %lld %d %d", cur->mac[4], cur->mac[5], cur->ts, cur->delta_txB, cur->delta_rxB, cur->txB, cur->rxB, cur->atxrb, cur->arxrb);
+                                //syslog(LOG_ERR, "mac is warning:O%x%x===>ts:%lld dtxB:%lld drxB:%lld txB:%lld rxB:%lld atx:%d arx:%d", pre->mac[4], pre->mac[5],  pre->ts, pre->delta_txB, pre->delta_rxB, pre->txB, pre->rxB, pre->atxrb, pre->arxrb);
+                                //syslog(LOG_ERR, "mac is warning:N%x%x+++>%lld %lld %lld %lld %lld %d %d", cur->mac[4], cur->mac[5], cur->ts, cur->delta_txB, cur->delta_rxB, cur->txB, cur->rxB, cur->atxrb, cur->arxrb);
                             } else {
-                                if (cur->txB > pre->txB) {
+                                if (cur->txB > pre->txB && pre->txB != 0) {
                                     cur->delta_txB = cur->txB - pre->txB;
                                 } else {
                                     cur->delta_txB = 0;
                                 }
-                                if (cur->rxB > pre->rxB) {
+                                if (cur->rxB > pre->rxB && pre->rxB !=0) {
                                     cur->delta_rxB = cur->rxB - pre->rxB;
                                 } else {
                                     cur->delta_rxB = 0;
                                 }
-                                if (cur->wan_txB > pre->wan_txB) {
+                                if (cur->wan_txB > pre->wan_txB && pre->wan_txB !=0) {
                                     cur->delta_wan_txB = cur->wan_txB - pre->wan_txB;
                                 } else {
                                     cur->delta_wan_txB = 0;
                                 }
-                                if(cur->wan_rxB > pre->wan_rxB) {
+                                if(cur->wan_rxB > pre->wan_rxB && pre->wan_rxB !=0) {
                                     cur->delta_wan_rxB = cur->wan_rxB - pre->wan_rxB;
                                 } else {
                                     cur->delta_wan_rxB = 0;
