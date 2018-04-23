@@ -48,6 +48,7 @@ boot() {
 	uci_apply_defaults
     # OK_PATCH
     # generate productinfo
+    /lib/okos/okos_init.sh
     /lib/okos/fetch_productinfo.sh > /etc/config/productinfo
     mac=`uci get productinfo.productinfo.mac|tr -d :|tr '[a-z]' '[A-Z]'`
     uci set system.@system[0].hostname="$mac";uci set system.@system[0].log_prefix="$mac";uci commit system

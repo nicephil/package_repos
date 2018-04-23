@@ -26,4 +26,6 @@ iptables -I forwarding_rule -m comment --comment "forward interface downlink sta
 
 
 iptables -t nat -A PREROUTING -p tcp -m set --match-set gfwlist dst -j REDIRECT --to-port 1080
+iptables -t nat -A OUTPUT -p tcp -m set --match-set gfwlist dst -j REDIRECT --to-port 1080
+iptables -t filter -A INPUT -p tcp --tcp --dport 1080 -j ACCEPT
 
