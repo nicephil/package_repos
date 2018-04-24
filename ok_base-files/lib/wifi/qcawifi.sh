@@ -1967,8 +1967,15 @@ detect_qcawifi() {
 		echo $nss_olcfg >/lib/wifi/wifi_nss_olcfg
 		echo $nss_ol_num >/lib/wifi/wifi_nss_olnum
 		reload=1
+
         base_mac="$(cat /sys/class/net/eth0/address)"
-        mac="${base_mac%:*}:`printf "%02x" $((0x${base_mac##*:} + $((${devidx}*8))))`"
+        machex=$(echo "$base_mac" | tr -d ':') # to remove colons
+        macdec=$(printf "%d" "0x"$machex) # to convert to decimal
+        macdec1=$(($macdec + 8)) # to subtract one
+        machex1=$(printf "%02x" $macdec1) # to convert to hex again
+        machex2=$(echo $machex1 | sed 's/\(..\)/\1:/g;s/:$//')
+        mac=$machex2
+
         amsdu="1"
         if [ $devidx == "0" ]; then
             amsdu="0"
