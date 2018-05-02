@@ -22,6 +22,12 @@ do
         /etc/init.d/capwapc restart
     }
 
+    
+    [ -f "/etc/init.d/shadowsocks-libev" -a -z "`pgrep ss-redir`" ] && {
+        logger -t supervisor -p 5 "SS-REDIR is exit abnormally, restart it !!!"
+        /etc/init.d/shadowsocks-libev restart
+    }
+
     top -n1 -d1 -b | logger -t supervisor -p 7
     ls -la /tmp | logger -t supervisor -p 7
     df -h | logger -t supervisor -p 7
