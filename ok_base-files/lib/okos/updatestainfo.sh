@@ -8,7 +8,7 @@ tablename="STAINFO"
 CMD=
 
 # ath50/ath60 is for debug, so ignore it
-if [ "$ath" = "ath50" || "$ath" = "ath60" ]
+if [ "$ath" = "ath50" -o "$ath" = "ath60" ]
 then
     exit 0
 fi
@@ -31,7 +31,19 @@ case "$event" in
         # add new record
         CMD="REPLACE INTO ${tablename} (MAC,IFNAME,RADIOID) VALUES('$mac','$ath','${ath:3:1}')"
         echo $CMD | logger -t 'clienteventdb'
-        sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
+        i=0
+        while [ $i -lt 3 ]
+        do
+            i=$(($i+1))
+            sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
+            ret="$?"
+            if [ "$ret" = "0" ]
+            then
+                break
+            fi
+            sleep 2
+            echo "$ret, $i, $CMD"
+        done
 
         bssid=`ifconfig $ath | awk '$1 ~ /ath/{print $5;exit}'`
         
@@ -47,6 +59,19 @@ case "$event" in
         # add new record
         CMD="UPDATE ${tablename} SET BSSID = '$bssid', AUTHENTICATION = '$_auth', PORTAL_SCHEME = '$_ps', SSID = '$_ssid', VLAN = '${_vlan:3}', PPSK_KEY = '${ppsk_key}' WHERE MAC = '$mac'"
         echo ${CMD} | logger -t 'clienteventdb'
+        i=0
+        while [ $i -lt 3 ]
+        do
+            i=$(($i+1))
+            sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
+            ret="$?"
+            if [ "$ret" = "0" ]
+            then
+                break
+            fi
+            sleep 2
+            echo "$ret, $i, $CMD"
+        done
         sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
     ;;
 
@@ -54,14 +79,38 @@ case "$event" in
         # delete record
         CMD="DELETE FROM ${tablename} WHERE MAC = '$mac'"
         #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
-        sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
+        i=0
+        while [ $i -lt 3 ]
+        do
+            i=$(($i+1))
+            sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
+            ret="$?"
+            if [ "$ret" = "0" ]
+            then
+                break
+            fi
+            sleep 2
+            echo "$ret, $i, $CMD"
+        done
 
         # statsinfo
         statsinfo_dbfile="/tmp/statsinfo.db"
         statsinfo_tablename="STATSINFO"
         CMD="DELETE FROM ${statsinfo_tablename} WHERE MAC = '$mac'"
         #echo sqlite3 $statsinfo_dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
-        sqlite3 $statsinfo_dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
+        i=0
+        while [ $i -lt 3 ]
+        do
+            i=$(($i+1))
+            sqlite3 $statsinfo_dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
+            ret="$?"
+            if [ "$ret" = "0" ]
+            then
+                break
+            fi
+            sleep 2
+            echo "$ret, $i, $CMD"
+        done
     ;;
 
     *)

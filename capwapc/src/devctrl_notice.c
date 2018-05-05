@@ -385,7 +385,7 @@ static int dc_get_wlan_radio_stats(struct wlan_radio_stat **stats)
     struct wlan_radio_stat *cur_stats = NULL;
     cur_stats = (struct wlan_radio_stat *)malloc(count*sizeof(struct wlan_radio_stat));
     if (cur_stats == NULL) {
-        count  = 0;
+        count  = -1;
         return count;
     }
 
@@ -682,7 +682,7 @@ static void dc_sta_notice_timer_handler(void *arg)
         }
     }
 
-    CWLog("-->sta notice handler In2:%d", clock());
+    CWLog("-->sta notice handler In2:%d, count:%d", clock(), count);
     /* radio status */
     count = dc_get_wlan_radio_stats(&radio_stats);
     if (radio_stats != NULL && count > 0) { 
@@ -717,7 +717,7 @@ static void dc_sta_notice_timer_handler(void *arg)
             totalsize += (paylength + 6);
         }
     }
-    CWLog("-->sta notice handler In3:%d", clock());
+    CWLog("-->sta notice handler In3:%d, count:%d", clock(), count);
 
 
     if (payload != NULL && totalsize > 0) {
