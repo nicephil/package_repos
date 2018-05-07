@@ -129,10 +129,11 @@ logout_client(t_client * client)
     }
     fw_deny(client);
     _do_command("iwpriv %s kickmac %s", client->if_name, client->mac);
+    /*
     char peer[16];
     if (peer_ifname(client->if_name, peer)) {
         _do_command("iwpriv %s kickmac %s", peer, client->mac);
-    }
+    }*/
 
     client_list_remove(client);
     client_free_node(client);
