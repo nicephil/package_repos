@@ -78,7 +78,7 @@ case "$event" in
     "AP-STA-DISCONNECTED")
         # delete record
         CMD="DELETE FROM ${tablename} WHERE MAC = '$mac'"
-        #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
+        echo "$CMD" | logger -t 'clienteventdb'
         i=0
         while [ $i -lt 3 ]
         do
@@ -97,7 +97,7 @@ case "$event" in
         statsinfo_dbfile="/tmp/statsinfo.db"
         statsinfo_tablename="STATSINFO"
         CMD="DELETE FROM ${statsinfo_tablename} WHERE MAC = '$mac'"
-        #echo sqlite3 $statsinfo_dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
+        echo "$CMD" | logger -t 'clienteventdb'
         i=0
         while [ $i -lt 3 ]
         do
