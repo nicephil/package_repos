@@ -48,7 +48,7 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
     }
 
     /*MAC*/
-    if (argv[0]) {
+    if (argv[0] && strlen(argv[0])) {
         /* mac address */
         char *s = argv[0], *e;
         int i = 0;
@@ -64,20 +64,20 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
     /*argv[1]*/
 
     /*CHAN*/
-    if (argv[2]) {
+    if (argv[2] && strlen(argv[2])) {
         stas[row].channel = atoi(argv[2]);
     } else {
         stas[row].channel = 0;
     }
 
     /*RSSI*/
-    if (argv[3]) {
+    if (argv[3] && strlen(argv[3])) {
         stas[row].rssi = atoi(argv[3]) - 95;
         stas[row].rs_level = dc_rssi2level(stas[row].rssi);
     }
 
     /*ASSOCTIME*/
-    if (argv[4]) {
+    if (argv[4] && strlen(argv[4])) {
         int hours=0,minutes=0,seconds=0;
         if (sscanf(argv[4], "%d:%d:%d", &hours, &minutes, &seconds)) {
             stas[row].uptime = hours*60*60 + minutes*60 + seconds;
@@ -88,12 +88,12 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
     }
     
     /*RADIOID*/
-    if (argv[5]) {
+    if (argv[5] && strlen(argv[5])) {
         stas[row].radioid = atoi(argv[5]);
     }
 
     /*BSSID*/
-    if (argv[6]) {
+    if (argv[6] && strlen(argv[6])) {
         char mac[22] = {0};
         strcpy(mac, argv[6]);
         char *s = mac;
@@ -108,19 +108,19 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
     }
 
     /*IPADDR*/
-    if (argv[7]) {
+    if (argv[7] && strlen(argv[7])) {
         stas[row].ip = inet_addr(argv[7]);
     }
 
     /*AUTHENTICATION*/
-    if (argv[8]) {
+    if (argv[8] && strlen(argv[8])) {
         if (strcmp(argv[8], "open")) {
             stas[row].auth = 5;
         }
     }
 
     /*PORTAL_SCHEME*/
-    if (argv[9]) {
+    if (argv[9] && strlen(argv[9])) {
         strcpy(stas[row].ps_name, argv[9]);
         stas[row].ps_len = strlen(stas[row].ps_name);
         if (stas[row].ps_len) {
@@ -129,29 +129,29 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
     }
     
     /*SSID*/
-    if (argv[10]) {
+    if (argv[10] && strlen(argv[10])) {
         strcpy(stas[row].ssid, argv[10]);
         stas[row].ssid_len = strlen(stas[row].ssid);
     }
 
     /*VLAN*/
-    if (argv[11]) {
+    if (argv[11] && strlen(argv[11])) {
         stas[row].vlan = atoi(argv[11]);
     }
 
     /*PORTAL_MODE*/
-    if (argv[12]) {
+    if (argv[12] && strlen(argv[12])) {
         stas[row].portal_mode = atoi(argv[12]);
     }
 
     /*PORTAL_USER*/
-    if (argv[13]) {
+    if (argv[13] && strlen(argv[13])) {
         strncpy(stas[row].user, argv[13], sizeof(stas[row].user)-1);
         stas[row].name_len = strlen(stas[row].user);
     }
 
     /*SMODE*/
-    if (argv[14]) {
+    if (argv[14] && strlen(argv[14])) {
         if (!strcmp(argv[14], "ac") || !strcmp(argv[14], "11ac")) {
             stas[row].mode = DOT11_RADIO_MODE_AC;
         } else if (!strcmp(argv[14], "na")) {
@@ -168,7 +168,7 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
     }
 
     /*SBW*/
-    if (argv[15]) {
+    if (argv[15] && strlen(argv[15])) {
         int bw = 0;
         if (strstr(argv[15], "VHT")) {
             sscanf(argv[15],"VHT%2d", &bw);
@@ -180,34 +180,34 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
     }
 
     /*NTXRT*/
-    if (argv[16]) {
+    if (argv[16] && strlen(argv[16])) {
         stas[row].ntxrt = atoi(argv[16]);
     }
 
     /*NRXRT*/
-    if (argv[17]) {
+    if (argv[17] && strlen(argv[17])) {
         stas[row].nrxrt = atoi(argv[17]);
     }
 
     /*TXB*/
-    if (argv[18]) {
-        stas[row].txB = atoll(argv[18]);
+    if (argv[18] && strlen(argv[18])) {
+        stas[row].txB = strtoull(argv[18], NULL, 10);
     }
 
     /*RXB*/
-    if (argv[19]) {
-        stas[row].rxB = atoll(argv[19]);
+    if (argv[19] && strlen(argv[19])) {
+        stas[row].rxB = strtoull(argv[19], NULL, 10);
     }
 
     //syslog(LOG_ERR, "sql:%x%x txB:%s:%lld rxB:%s:%lld", stas[row].mac[4], stas[row].mac[5], argv[18], stas[row].txB, argv[19], stas[row].rxB);
 
     /*ATXRB*/
-    if (argv[20]) {
+    if (argv[20] && strlen(argv[20])) {
         //stas[row].atxrb = atoi(argv[20]);
     }
     
     /*ARXRB*/
-    if (argv[21]) {
+    if (argv[21] && strlen(argv[21])) {
         //stas[row].arxrb = atoi(argv[21]);
     }
 
@@ -218,50 +218,50 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
     /*argv[23]*/
 
     /*TS*/
-    if (argv[24]) {
-        stas[row].ts = atoll(argv[24]);
+    if (argv[24] && strlen(argv[24])) {
+        stas[row].ts = strtoull(argv[24], NULL, 10);
     }
 
     /*client type*/
 
     /*hostname*/
-    if (argv[25]) {
+    if (argv[25] && strlen(argv[25])) {
         strncpy(stas[row].client_hostname, argv[25], HOST_NAME_MAX);
         stas[row].client_hostname_len = strlen(stas[row].client_hostname);
     }
 
     /*psmode*/
-    if (argv[26]) {
+    if (argv[26] && strlen(argv[26])) {
         stas[row].psmode = atoi(argv[26]);
     }
 
     /*WANTXB*/
-    if (argv[27]) {
-        stas[row].wan_txB = atoll(argv[27]);
+    if (argv[27] && strlen(argv[27])) {
+        stas[row].wan_txB = strtoull(argv[27], NULL, 10);
     }
 
     /*WANRXB*/
-    if (argv[28]) {
-        stas[row].wan_rxB = atoll(argv[28]);
+    if (argv[28] && strlen(argv[28])) {
+        stas[row].wan_rxB = strtoull(argv[28], NULL, 10);
     }
 
     /*GWADDR*/
-    if (argv[29]) {
+    if (argv[29] && strlen(argv[29])) {
         stas[row].gwaddr = inet_addr(argv[29]);
     }
 
     /*MINRSSI*/
-    if (argv[30]) {
+    if (argv[30] && strlen(argv[30])) {
         stas[row].min_rssi = atoi(argv[30]) - 95;
     }
 
     /*MAXRSSI*/
-    if (argv[31]) {
+    if (argv[31] && strlen(argv[31])) {
         stas[row].max_rssi = atoi(argv[31]) - 95;
     }
 
     /*PORTAL_STATUS*/
-    if (argv[32]) {
+    if (argv[32] && strlen(argv[32])) {
         stas[row].portal_status = atoi(argv[32]);
     }
 
@@ -300,13 +300,13 @@ static int wlan_get_sta_info_db(void *stats)
     }
     all->count = count;
 
-    *(all->stas) = (struct wlan_sta_stat *)malloc(count * sizeof(struct wlan_sta_stat));
+    *(all->stas) = (struct wlan_sta_stat *)malloc((count+1) * sizeof(struct wlan_sta_stat));
     if (*(all->stas) == NULL) {
         CWLog("SQL create error: %s\n", pErrMsg);
         ret = -3;
         goto __cleanup;
     }
-    memset(*(all->stas), 0, count * sizeof(struct wlan_sta_stat));
+    memset(*(all->stas), 0, (count+1) * sizeof(struct wlan_sta_stat));
 
     ret = sqlite3_exec(db, sql_str, _sql_callback, all, &pErrMsg);
     if (ret != SQLITE_OK) {
@@ -385,7 +385,7 @@ static int dc_get_wlan_radio_stats(struct wlan_radio_stat **stats)
     struct wlan_radio_stat *cur_stats = NULL;
     cur_stats = (struct wlan_radio_stat *)malloc(count*sizeof(struct wlan_radio_stat));
     if (cur_stats == NULL) {
-        count  = 0;
+        count  = -1;
         return count;
     }
 
@@ -464,7 +464,7 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
     static struct wlan_sta_stat *pre_stas = NULL;
     static int pre_count = 0;
     struct wlan_sta_stat *cur_stas = NULL, *rse_stas = NULL, *cur, *pre;
-    int i, j, cur_count, res_count = 0, totalsize = 0;
+    int i, j, cur_count = -1, res_count = 0, totalsize = 0;
 
     cur_count = wlan_get_sta_info(&cur_stas);
     if (cur_count < 0 && cur_stas == NULL) {
@@ -474,6 +474,9 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
     if (diff == 1) {
         for (i = 0; i < cur_count; i++) {
             cur = &(cur_stas[i]);
+            if (!memcmp(cur->mac, "\x00\x00\x00\x00\x00\x00", sizeof(cur->mac)) || cur->ssid_len == 0 || cur->txB == 0 || cur->rxB == 0) {
+                CWLog("---->mac is warning:%lld,mac=%02x%02x%02x%02x,ssid_len=%d,cur->txB=%lld,cur->rxB=%lld", cur->ts, cur->mac[2], cur->mac[3], cur->mac[4], cur->mac[5], cur->ssid_len, cur->txB, cur->rxB);
+            }
             for (j = 0; j < pre_count; j++) {
                 pre = &(pre_stas[j]);
                 if (!memcmp(cur->mac, pre->mac, sizeof(cur->mac))) {
@@ -506,31 +509,33 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
                             || pre->psmode != cur->psmode) {
                             cur->updated = 1;
                             if (cur->ts <= pre->ts) {
-                                cur->delta_txB = pre->delta_txB;
-                                cur->delta_rxB = pre->delta_rxB;
-                                cur->delta_wan_txB = pre->delta_wan_txB;
-                                cur->delta_wan_rxB = pre->delta_wan_rxB;
+                                cur->delta_txB = 0;
+                                cur->delta_rxB = 0;
+                                cur->delta_wan_txB = 0;
+                                cur->delta_wan_rxB = 0;
                                 cur->atxrb = pre->atxrb;
                                 cur->arxrb = pre->arxrb;
                                 cur->wan_atxrb = pre->wan_atxrb;
                                 cur->wan_arxrb = pre->wan_arxrb;
+                                //syslog(LOG_ERR, "mac is warning:O%x%x===>ts:%lld dtxB:%lld drxB:%lld txB:%lld rxB:%lld atx:%d arx:%d", pre->mac[4], pre->mac[5],  pre->ts, pre->delta_txB, pre->delta_rxB, pre->txB, pre->rxB, pre->atxrb, pre->arxrb);
+                                //syslog(LOG_ERR, "mac is warning:N%x%x+++>%lld %lld %lld %lld %lld %d %d", cur->mac[4], cur->mac[5], cur->ts, cur->delta_txB, cur->delta_rxB, cur->txB, cur->rxB, cur->atxrb, cur->arxrb);
                             } else {
-                                if (cur->txB > pre->txB) {
+                                if (cur->txB > pre->txB && pre->txB != 0) {
                                     cur->delta_txB = cur->txB - pre->txB;
                                 } else {
                                     cur->delta_txB = 0;
                                 }
-                                if (cur->rxB > pre->rxB) {
+                                if (cur->rxB > pre->rxB && pre->rxB !=0) {
                                     cur->delta_rxB = cur->rxB - pre->rxB;
                                 } else {
                                     cur->delta_rxB = 0;
                                 }
-                                if (cur->wan_txB > pre->wan_txB) {
+                                if (cur->wan_txB > pre->wan_txB && pre->wan_txB !=0) {
                                     cur->delta_wan_txB = cur->wan_txB - pre->wan_txB;
                                 } else {
                                     cur->delta_wan_txB = 0;
                                 }
-                                if(cur->wan_rxB > pre->wan_rxB) {
+                                if(cur->wan_rxB > pre->wan_rxB && pre->wan_rxB !=0) {
                                     cur->delta_wan_rxB = cur->wan_rxB - pre->wan_rxB;
                                 } else {
                                     cur->delta_wan_rxB = 0;
@@ -677,7 +682,7 @@ static void dc_sta_notice_timer_handler(void *arg)
         }
     }
 
-    CWLog("-->sta notice handler In2:%d", clock());
+    CWLog("-->sta notice handler In2:%d, count:%d", clock(), count);
     /* radio status */
     count = dc_get_wlan_radio_stats(&radio_stats);
     if (radio_stats != NULL && count > 0) { 
@@ -712,7 +717,7 @@ static void dc_sta_notice_timer_handler(void *arg)
             totalsize += (paylength + 6);
         }
     }
-    CWLog("-->sta notice handler In3:%d", clock());
+    CWLog("-->sta notice handler In3:%d, count:%d", clock(), count);
 
 
     if (payload != NULL && totalsize > 0) {

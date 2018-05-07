@@ -1010,12 +1010,12 @@ int wlan_set_mode(int radio_id, int mode)
         cfg_set_option_value(tuple, "HT80");
 
         //wireless.wifi1.dot11nonly='1'
-        sprintf(tuple, "wireless.wifi%d.dot11nonly", radio_id);
-        cfg_set_option_value_int(tuple, 0);
+        //sprintf(tuple, "wireless.wifi%d.dot11nonly", radio_id);
+        //cfg_set_option_value_int(tuple, 0);
 
         //wireless.wifi1.dot11aconly='1'
-        sprintf(tuple, "wireless.wifi%d.dot11aconly", radio_id);
-        cfg_set_option_value_int(tuple, 1);
+        //sprintf(tuple, "wireless.wifi%d.dot11aconly", radio_id);
+        //cfg_set_option_value_int(tuple, 1);
 
     }
     else if ((mode & DOT11_RADIO_MODE_N) == 0) {
@@ -1040,12 +1040,12 @@ int wlan_set_mode(int radio_id, int mode)
         cfg_set_option_value(tuple, "HT20");
 
         //wireless.wifi1.dot11nonly='1'
-        sprintf(tuple, "wireless.wifi%d.dot11nonly", radio_id);
-        cfg_set_option_value_int(tuple, 0);
+        //sprintf(tuple, "wireless.wifi%d.dot11nonly", radio_id);
+        //cfg_set_option_value_int(tuple, 0);
 
         //wireless.wifi1.dot11aconly='1'
-        sprintf(tuple, "wireless.wifi%d.dot11aconly", radio_id);
-        cfg_set_option_value_int(tuple, 0);
+        //sprintf(tuple, "wireless.wifi%d.dot11aconly", radio_id);
+        //cfg_set_option_value_int(tuple, 0);
 
     }
     else if ((mode & DOT11_RADIO_MODE_N) != 0) {
@@ -1070,12 +1070,12 @@ int wlan_set_mode(int radio_id, int mode)
         cfg_set_option_value(tuple, "HT40");
 
         //wireless.wifi1.dot11nonly='1'
-        sprintf(tuple, "wireless.wifi%d.dot11nonly", radio_id);
-        cfg_set_option_value_int(tuple, 0);
+        //sprintf(tuple, "wireless.wifi%d.dot11nonly", radio_id);
+        //cfg_set_option_value_int(tuple, 0);
 
         //wireless.wifi1.dot11aconly='1'
-        sprintf(tuple, "wireless.wifi%d.dot11aconly", radio_id);
-        cfg_set_option_value_int(tuple, 0);
+        //sprintf(tuple, "wireless.wifi%d.dot11aconly", radio_id);
+        //cfg_set_option_value_int(tuple, 0);
 
     }
     else {
@@ -1181,10 +1181,10 @@ int wlan_set_dot11nonly(int radio_id, int dot11nonly)
     char tuple[128];
     //wireless.wifi1.hwmode=11na
     sprintf(tuple, "wireless.wifi%d.hwmode", radio_id);
-    cfg_set_option_value(tuple, dot11nonly?"11na":"11ng");
+    cfg_set_option_value(tuple, "ng");
     //wireless.wifi1.htmode=HT40
     sprintf(tuple, "wireless.wifi%d.htmode", radio_id);
-    cfg_set_option_value(tuple, dot11nonly?"HT40":"auto");
+    cfg_set_option_value(tuple, dot11nonly?"HT40":"HT20");
     
     //wireless.wifi1.dot11nonly='0'
     sprintf(tuple, "wireless.wifi%d.dot11only", radio_id);
@@ -1202,7 +1202,7 @@ int wlan_set_dot11aconly(int radio_id, int dot11aconly)
     cfg_set_option_value(tuple, "ac");
     //wireless.wifi1.htmode=HT80
     sprintf(tuple, "wireless.wifi%d.htmode", radio_id);
-    cfg_set_option_value(tuple, dot11aconly?"HT80":"auto");
+    cfg_set_option_value(tuple, dot11aconly?"HT80":"HT20");
     
     //wireless.wifi1.dot11aconly='1'
     sprintf(tuple, "wireless.wifi%d.dot11aconly", radio_id);
@@ -1400,16 +1400,22 @@ int wlan_set_bind(int radio_id, int stid)
             sprintf(tuple, "wireless.ath%d%d.wpa_psk_file", radio_id, stid);
             sprintf(buf, "/var/run/wpa_psk_file-stid%d", stid);
             cfg_set_option_value(tuple, buf);
+        } else if (!strcmp(buf, "wpa-psk")) {
+            sprintf(tuple, "wireless.ath%d%d.encryption", radio_id, stid);
+            cfg_set_option_value(tuple, "psk+tkip+ccmp");
+        } else if (!strcmp(buf, "wpa2-psk")) {
+            sprintf(tuple, "wireless.ath%d%d.encryption", radio_id, stid);
+            cfg_set_option_value(tuple, "psk2+tkip+ccmp");
         } else {
             sprintf(tuple, "wireless.ath%d%d.encryption", radio_id, stid);
             cfg_set_option_value(tuple, "psk-mixed+tkip+ccmp");
-
-            //wireless.ath15.key='123456789' <-> wlan_service_template.ServiceTemplate1.psk_key='123456789'
-            sprintf(tuple, "wlan_service_template.ServiceTemplate%d.psk_key", stid);
-            cfg_get_option_value(tuple, buf, sizeof(buf));
-            sprintf(tuple, "wireless.ath%d%d.key", radio_id, stid);
-            cfg_set_option_value(tuple, buf);
         }
+
+        //wireless.ath15.key='123456789' <-> wlan_service_template.ServiceTemplate1.psk_key='123456789'
+        sprintf(tuple, "wlan_service_template.ServiceTemplate%d.psk_key", stid);
+        cfg_get_option_value(tuple, buf, sizeof(buf));
+        sprintf(tuple, "wireless.ath%d%d.key", radio_id, stid);
+        cfg_set_option_value(tuple, buf);
     }
 
 

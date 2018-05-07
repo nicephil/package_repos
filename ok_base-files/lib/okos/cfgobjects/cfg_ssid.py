@@ -14,6 +14,7 @@ class CfgSsid(CfgObj):
             ssids[i]['__template_id'] = i
             d['ssid'] = ssids[i]['ssid']
             d['type'] = ssids[i]['type']
+            self.enabled = 1 if not 'enabled' in ssids[i].keys() else ssids[i]['enabled']
             d['beacon_ssid_hide'] = ssids[i]['ssid_hide']
             d['client_max'] = ssids[i]['client_max']
             d['ptk_lifetime'] = ssids[i]['ptk_lifetime']
@@ -24,7 +25,16 @@ class CfgSsid(CfgObj):
             d['client_isolation'] = ssids[i]['client_isolation']
             d['psk_key'] = ssids[i].setdefault('key', '')
             d['portal_scheme'] = ssids[i]['portal_scheme']
+            d['auth'] = ssids[i]['auth']
+            d['uplink_limit_enable'] = ssids[i]['uplink_limit_enable']
+            d['downlink_limit_enable'] = ssids[i]['downlink_limit_enable']
+            d['bandwidth_priority'] = ssids[i]['bandwidth_priority']
             d['radios'] = [p['radio'] for p in j['ports'] if p['name'] == d['ssid']]
             d['vlan'] = {p['pvlan'] for p in j['ports'] if p['name'] == d['ssid']}
         return res
+    def add(self):
+        if not self.enabled:
+            return True
+        else:
+            return False
 

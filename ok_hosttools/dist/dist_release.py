@@ -6,36 +6,10 @@ import md5
 import requests
 import pprint
 
-class ToolTest(object):
-    def __init__(self, cmd, url):
-        self.cmd = cmd
-        self.url = url
-
-    def curl(self, method, params=None, body=None):
-        params = params and '&'.join(('='.join((str(k),str(v))) for k,v in params.iteritems())) or ''
-        params = params and '?'+ params or ''
-        body = body and '{body}'.format(body=body).replace("'",'"') or ''
-        body = body and "-d '{body}'".format(body=body) or ''
-        cmd = self.cmd.format(
-                method=method,
-                url=self.url,
-                params=params,
-                body=body
-                )
-        print cmd
-        print '--->'
-        return bool(os.system(cmd) == 0)
-
-    def get(self, params=None, body=None):
-        return self.curl('GET', body=body, params=params)
-    def post(self, params=None, body=None):
-        return self.curl('POST', body=body, params=params)
-    def delete(self, params=None, body=None):
-        return self.curl('DELETE', body=body, params=params)
-
 class ToolRequest(object):
     def __init__(self, url):
         self.url = url
+        print self.url
 
     def curl(self, response):
         print response.url
@@ -47,25 +21,27 @@ class ToolRequest(object):
         return True
 
     def get(self, params=None, body=None):
+        print body
         return self.curl(requests.get(self.url, params=params, json=body))
     def post(self, params=None, body=None):
+        print body
         return self.curl(requests.post(self.url, params=params, json=body))
     def delete(self, params=None, body=None):
+        print body
         return self.curl(requests.delete(self.url, params=params, json=body))
 
 class ApiServer(object):
     def __init__(self, target, port):
         self.target = target
         self.port = port
+        #self.path = ''
         self.url = 'http://{target}:{port}{path}'.format(target=target, port=port, path=self.path)
         self.cmd = 'curl -H "Content-Type: application/json" -X {method} {url}{params} {body}'
         self.tool = ToolRequest(self.url)
-        #self.tool = ToolCurl(self.cmd, self.url)
-
         
 class DeviceRegister(ApiServer):
     def __init__(self, target, port):
-        self.path = '/redirector/v1/device/register/'
+        self.path = '/redirector/v1/device/register'
         super(DeviceRegister,self).__init__(target, port)
 
     def gen_key(self, mac):
@@ -81,7 +57,7 @@ class DeviceRegister(ApiServer):
             
 class OakmgrRegister(ApiServer):
     def __init__(self, target, port):
-        self.path = '/redirector/v1/oakmgr/register/'
+        self.path = '/redirector/v1/oakmgr/register'
         self.params = {}
         super(OakmgrRegister,self).__init__(target, port)
 
@@ -119,7 +95,7 @@ class OakmgrRegister(ApiServer):
 
 class VersionRelease(ApiServer):
     def __init__(self, target, port):
-        self.path = '/redirector/v1/version/release/'
+        self.path = '/redirector/v1/version/release'
         self.params = {'key':1}
         super(VersionRelease,self).__init__(target, port)
 
@@ -144,7 +120,7 @@ class VersionRelease(ApiServer):
     
 class VersionControl(ApiServer):
     def __init__(self, target, port):
-        self.path = '/redirector/v1/version/control/'
+        self.path = '/redirector/v1/version/control'
         self.params = {'key':1}
         super(VersionControl, self).__init__(target, port)
 
@@ -155,13 +131,13 @@ class VersionControl(ApiServer):
         return self.tool.post(params=self.params, body=body)
 
     def unbind_dev(self, md5, macs, comment):
-        body = {'action':'dettach_mac', 'md5':md5, 'devices':macs}
+        body = {'action':'detach_mac', 'md5':md5, 'devices':macs}
         if comment is not None:
             body['comment'] = comment
         return self.tool.post(params=self.params, body=body)
 
     def unbind_ver(self, md5, comment):
-        body = {'action':'dettach_all', 'md5':md5}
+        body = {'action':'detach_all', 'md5':md5}
         if comment is not None:
             body['comment'] = comment
         return self.tool.post(params=self.params, body=body)
@@ -184,13 +160,23 @@ class VersionControl(ApiServer):
 
     def del_cookie(self, md5, cookie):
         body = {'action':'del_cookie', 'md5':md5, 'cookie':cookie}
+        if md5:
+            body['md5'] = md5
         return self.tool.post(params=self.params, body=body)
 
-    def show(self, md5=None, devtype=None):
+    def clr_cookie(self, cookie):
+        body = {'action':'clr_cookie', 'cookie':cookie}
+        return self.tool.post(params=self.params, body=body)
+
+    def show(self, md5=None, devtype=None, cookie=None, device=None):
         if md5:
             self.params['md5'] = md5
         if devtype:
             self.params['type'] = devtype[0]
+        if cookie:
+            self.params['cookie'] = cookie
+        if device:
+            self.params['devices'] = device
         return self.tool.get(params=self.params)
 
 def main(args):
@@ -243,8 +229,12 @@ def main(args):
             return svr.add_cookie(args.md5, args.cookie)
         elif args.del_cookie and args.md5 and args.cookie:
             return svr.del_cookie(args.md5, args.cookie)
+        elif args.del_cookie and args.cookie:
+            return svr.del_cookie(args.md5, args.cookie)
+        elif args.clr_cookie and args.cookie:
+            return svr.clr_cookie(args.cookie)
         elif args.show:
-            return svr.show(md5=args.md5, devtype=args.devtype)
+            return svr.show(md5=args.md5, devtype=args.devtype, cookie=args.cookie, device=args.macs)
         else:
             return
     else:
@@ -259,7 +249,7 @@ if __name__ == '__main__':
     parser.add_argument('-A', '--action', choices=['register', 'device', 'release', 'deploy'], required=True,
             help='Catagory of behavior')
 
-    parser.add_argument('-s', '--show', action='store_true', help='<register> [oakmgr][macs] | <release> [md5][devtype] | <deploy> [md5][devtype]')
+    parser.add_argument('-s', '--show', action='store_true', help='<register> [oakmgr][macs] | <release> [md5][devtype] | <deploy> [md5][devtype][cookie][macs]')
     parser.add_argument('-q', '--query', action='store_true', help='<register> macs | <device> macs devtype')
     parser.add_argument('-a', '--add', action='store_true', help='<register> macs oakmgr [svrport][cookie][override] | <release> md5 url types [comment]')
     parser.add_argument('-d', '--delete', action='store_true', help='<register> oakmgr macs | <release> md5')
@@ -268,7 +258,8 @@ if __name__ == '__main__':
     parser.add_argument('-S', '--set_default', action='store_true', help='<deploy> md5 type [comment]')
     parser.add_argument('-U', '--unset_default', action='store_true', help='<deploy> md5 type [comment]')
     parser.add_argument('-c', '--add_cookie', action='store_true', help='<deploy> md5 cookie')
-    parser.add_argument('-C', '--del_cookie', action='store_true', help='<deploy> md5 cookie')
+    parser.add_argument('-D', '--del_cookie', action='store_true', help='<deploy> [md5] cookie')
+    parser.add_argument('-C', '--clr_cookie', action='store_true', help='<deploy> cookie')
     #parser.add_argument('-X', '--remove', action='store_true', help='DELETE ALL entries on register | release')
 
     parser.add_argument('--oakmgr', type=str, help='IP address of Oak Manager')

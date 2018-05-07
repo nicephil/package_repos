@@ -132,7 +132,7 @@ struct device_update_info* chk_dev_updateinfo(void)
 	}
 
     paddr = (struct sockaddr_in *) &ifr.ifr_addr;
-    info.ip = paddr->sin_addr.s_addr;
+    info.ip = ntohl(paddr->sin_addr.s_addr);
 
     if (ioctl(sk, SIOCGIFNETMASK, &ifr) < 0) {
 		close(sk);
@@ -140,13 +140,13 @@ struct device_update_info* chk_dev_updateinfo(void)
 	}
 
     paddr = (struct sockaddr_in *) &ifr.ifr_netmask;
-    info.netmask = paddr->sin_addr.s_addr;
+    info.netmask = ntohl(paddr->sin_addr.s_addr);
     gethostname(info.hostname, HOST_NAME_MAX);
     info.len = strlen(info.hostname);
 	close(sk);
     execute_cmd(". /lib/functions/network.sh;network_get_gateway __aa lan1;echo $__aa", gateway, 64);
     if (strlen(gateway)) {
-        info.gateway = inet_addr(gateway);
+        info.gateway = ntohl(inet_addr(gateway));
     }
 
     if (g_dev_updateinfo.iptype != info.iptype
@@ -241,7 +241,7 @@ static int get_device_info(device_info_s *devinfo)
 	}
 
     paddr = (struct sockaddr_in *) &ifr.ifr_addr;
-    devinfo->ip = paddr->sin_addr.s_addr;
+    devinfo->ip = ntohl(paddr->sin_addr.s_addr);
 
     if (ioctl(sk, SIOCGIFNETMASK, &ifr) < 0) {
 		close(sk);
@@ -249,11 +249,11 @@ static int get_device_info(device_info_s *devinfo)
 	}
 
     paddr = (struct sockaddr_in *) &ifr.ifr_netmask;
-    devinfo->netmask = paddr->sin_addr.s_addr;
+    devinfo->netmask = ntohl(paddr->sin_addr.s_addr);
 	close(sk);
     execute_cmd(". /lib/functions/network.sh;network_get_gateway __aa lan1;echo $__aa", gateway, 64);
     if (strlen(gateway)) {
-        devinfo->gateway = inet_addr(gateway);
+        devinfo->gateway = ntohl(inet_addr(gateway));
     }
 
     /* uptime in second unit */

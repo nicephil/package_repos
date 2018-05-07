@@ -5,5 +5,4 @@ cscope*
 tags
 *.log
 file.list
-ok_base-files/etc/issue
 *.lprof
