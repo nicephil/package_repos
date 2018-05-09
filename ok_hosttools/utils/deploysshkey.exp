@@ -1,0 +1,14 @@
+#!/usr/bin/expect
+# set timeout 20
+if { $argc !=1 } {
+    send_user "Usage:expect <ssh ip>\n"
+    exit
+}
+set ip [lindex $argv 0]
+spawn scp ~/.ssh/id_rsa.pub root@$ip:/tmp/
+spawn ssh root@$ip 'tee -a /etc/dropbear/authorized_keys' < /home/llwang/.ssh/id_rsa.pub
+expect "*password:"
+send "oakridge\n"
+expect "*#"
+exit
+expect eof

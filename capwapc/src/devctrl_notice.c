@@ -278,8 +278,8 @@ static int wlan_get_sta_info_db(void *stats)
     };
     struct wlan_sta_stat_all *all = (struct wlan_sta_stat_all *)stats;
 
-    const char *sql_count_str="SELECT count(*) FROM STATSINFO";
-    const char *sql_str="SELECT * FROM STATSINFO";
+    const char *sql_count_str="BEGIN TRANSACTION;SELECT count(*) FROM STATSINFO;COMMIT";
+    const char *sql_str="BEGIN TRANSACTION;SELECT * FROM STATSINFO;COMMIT";
     sqlite3 *db = NULL;
     char *pErrMsg = NULL; 
     int ret = 0;
@@ -298,20 +298,30 @@ static int wlan_get_sta_info_db(void *stats)
         ret = -2;
         goto __cleanup;
     }
-    all->count = count;
 
-    *(all->stas) = (struct wlan_sta_stat *)malloc((count+1) * sizeof(struct wlan_sta_stat));
+    all->count = count;
+    if (count <= 0) {
+        ret = -2;
+        goto __cleanup;
+    }
+
+    *(all->stas) = (struct wlan_sta_stat *)malloc(count * sizeof(struct wlan_sta_stat));
     if (*(all->stas) == NULL) {
         CWLog("SQL create error: %s\n", pErrMsg);
         ret = -3;
         goto __cleanup;
     }
-    memset(*(all->stas), 0, (count+1) * sizeof(struct wlan_sta_stat));
+    memset(*(all->stas), 0, count * sizeof(struct wlan_sta_stat));
 
+    if (pErrMsg) {
+        free(pErrMsg);
+        pErrMsg = NULL;
+    }
     ret = sqlite3_exec(db, sql_str, _sql_callback, all, &pErrMsg);
     if (ret != SQLITE_OK) {
         CWLog("SQL create error: %s\n", pErrMsg);
         ret = -4;
+        goto __cleanup;
     }
 
     ret = 0;
@@ -467,14 +477,18 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
     int i, j, cur_count = -1, res_count = 0, totalsize = 0;
 
     cur_count = wlan_get_sta_info(&cur_stas);
+    CWLog("cur_count:%d, pre_count=%d\n", cur_count, pre_count);
     if (cur_count < 0 && cur_stas == NULL) {
+        if (cur_stas) {
+            free(cur_stas);
+        }
         return -1;
     }
 
     if (diff == 1) {
         for (i = 0; i < cur_count; i++) {
             cur = &(cur_stas[i]);
-            if (!memcmp(cur->mac, "\x00\x00\x00\x00\x00\x00", sizeof(cur->mac)) || cur->ssid_len == 0 || cur->txB == 0 || cur->rxB == 0) {
+            if (!memcmp(cur->mac, "\x00\x00\x00\x00\x00\x00", sizeof(cur->mac)) || cur->ssid_len == 0) {
                 CWLog("---->mac is warning:%lld,mac=%02x%02x%02x%02x,ssid_len=%d,cur->txB=%lld,cur->rxB=%lld", cur->ts, cur->mac[2], cur->mac[3], cur->mac[4], cur->mac[5], cur->ssid_len, cur->txB, cur->rxB);
             }
             for (j = 0; j < pre_count; j++) {
@@ -625,7 +639,7 @@ static void dc_sta_notice_timer_handler(void *arg)
     char *payload = NULL, *data = NULL;
     int count = 0, paylength = 0, totalsize = 0; 
 
-    CWLog("-->sta notice handler In1:%d");
+    CWLog("-->sta notice handler In1:%d, cout:%d", clock(), count);
     count = dc_get_wlan_sta_stats(&stas,1);
     if (stas != NULL && count > 0) { 
 
@@ -717,8 +731,8 @@ static void dc_sta_notice_timer_handler(void *arg)
             totalsize += (paylength + 6);
         }
     }
-    CWLog("-->sta notice handler In3:%d, count:%d", clock(), count);
 
+    CWLog("-->sta notice handler In3:%d, count:%d", clock(), count);
 
     if (payload != NULL && totalsize > 0) {
         memset(&dc_resp, 0, sizeof(dc_resp));
@@ -735,6 +749,7 @@ static void dc_sta_notice_timer_handler(void *arg)
        
         CW_FREE_OBJECT(payload);
     }
+
     CWLog("-->sta notice handler In4:%d", clock());
 
 RESTART_TIMER:
