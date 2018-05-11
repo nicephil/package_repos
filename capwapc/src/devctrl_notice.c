@@ -300,24 +300,26 @@ static int wlan_get_sta_info_db(void *stats)
     }
 
     all->count = count;
-    if (count <= 0) {
+    if (count < 0) {
         ret = -2;
         goto __cleanup;
     }
 
-    *(all->stas) = (struct wlan_sta_stat *)malloc(count * sizeof(struct wlan_sta_stat));
-    if (*(all->stas) == NULL) {
-        CWLog("SQL create error: %s\n", pErrMsg);
-        ret = -3;
-        goto __cleanup;
-    }
-    memset(*(all->stas), 0, count * sizeof(struct wlan_sta_stat));
+    if (count > 0) {
+        *(all->stas) = (struct wlan_sta_stat *)malloc(count * sizeof(struct wlan_sta_stat));
+        if (*(all->stas) == NULL) {
+            CWLog("SQL create error: %s\n", pErrMsg);
+            ret = -3;
+            goto __cleanup;
+        }
+        memset(*(all->stas), 0, count * sizeof(struct wlan_sta_stat));
 
-    ret = sqlite3_exec(db, sql_str, _sql_callback, all, &pErrMsg);
-    if (ret != SQLITE_OK) {
-        CWLog("SQL create error: %s\n", pErrMsg);
-        ret = -4;
-        goto __cleanup;
+        ret = sqlite3_exec(db, sql_str, _sql_callback, all, &pErrMsg);
+        if (ret != SQLITE_OK) {
+            CWLog("SQL create error: %s\n", pErrMsg);
+            ret = -4;
+            goto __cleanup;
+        }
     }
 
     if (db) {

@@ -334,7 +334,7 @@ static int dc_sta_query_response(devctrl_block_s *dc_block, void *reserved)
     int paylength = 0, ret = 0, count = 0; 
 
     count = dc_get_wlan_sta_stats(&stas, 0);
-    if (count < 0 || stas == NULL) {
+    if (count < 0 && stas == NULL) {
         goto err;
     }
     if (assemble_wlan_sta_status_elem(&data, &paylength, stas, count, WLAN_STA_TYPE_QUERY) != CW_TRUE) {
