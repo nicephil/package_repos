@@ -313,10 +313,6 @@ static int wlan_get_sta_info_db(void *stats)
     }
     memset(*(all->stas), 0, count * sizeof(struct wlan_sta_stat));
 
-    if (pErrMsg) {
-        free(pErrMsg);
-        pErrMsg = NULL;
-    }
     ret = sqlite3_exec(db, sql_str, _sql_callback, all, &pErrMsg);
     if (ret != SQLITE_OK) {
         CWLog("SQL create error: %s\n", pErrMsg);
@@ -324,9 +320,21 @@ static int wlan_get_sta_info_db(void *stats)
         goto __cleanup;
     }
 
-    ret = 0;
+    if (db) {
+        sqlite3_close(db);
+    }
+    if (pErrMsg) {
+        free(pErrMsg);
+        pErrMsg = NULL;
+    }
+    return 0;
 
 __cleanup:
+    if (*(all->stas)) {
+        free(*(all->stas));
+        *(all->stas) = NULL;
+    }
+    all->count = -1;
     if (db) {
         sqlite3_close(db);
     }
@@ -479,9 +487,6 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
     cur_count = wlan_get_sta_info(&cur_stas);
     CWLog("cur_count:%d, pre_count=%d\n", cur_count, pre_count);
     if (cur_count < 0 && cur_stas == NULL) {
-        if (cur_stas) {
-            free(cur_stas);
-        }
         return -1;
     }
 
@@ -672,7 +677,7 @@ static void dc_sta_notice_timer_handler(void *arg)
         if (data != NULL && paylength > 0) {
             if (payload != NULL) {
                 /* 2bytes type + 4bytes length */
-                char * payload_tmp;
+                char * payload_tmp = NULL;
                 payload_tmp = (char *)realloc(payload, (totalsize + paylength + 6));
                 if (payload_tmp == NULL) {
                     goto RESTART_TIMER;
@@ -708,7 +713,7 @@ static void dc_sta_notice_timer_handler(void *arg)
         if (data != NULL && paylength > 0) {
             if (payload != NULL) {
                 /* 2bytes type + 4bytes length */
-                char * payload_tmp;
+                char * payload_tmp = NULL;
                 payload_tmp = (char *)realloc(payload, (totalsize + paylength + 6));
                 if (payload_tmp == NULL) {
                     goto RESTART_TIMER;
@@ -753,6 +758,9 @@ static void dc_sta_notice_timer_handler(void *arg)
     CWLog("-->sta notice handler In4:%d", clock());
 
 RESTART_TIMER:
+    if (payload) {
+        CW_FREE_OBJECT(payload);
+    }
     if (stas) {
         free(stas);
     }
