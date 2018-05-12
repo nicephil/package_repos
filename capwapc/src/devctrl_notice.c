@@ -487,7 +487,7 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
     int i, j, cur_count = -1, res_count = 0, totalsize = 0;
 
     cur_count = wlan_get_sta_info(&cur_stas);
-    CWLog("cur_count:%d, pre_count=%d\n", cur_count, pre_count);
+    CWLog("cur_count:%d, pre_count=%d, cur_stas:%p, pre_stas:%p\n", cur_count, pre_count, cur_stas, pre_stas);
     if (cur_count < 0 && cur_stas == NULL) {
         return -1;
     }
@@ -502,7 +502,7 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
                 pre = &(pre_stas[j]);
                 if (!memcmp(cur->mac, pre->mac, sizeof(cur->mac))) {
                     /* Roaming from pre radio to cur radio or reassocation with same radio */
-                    if (cur->radioid != pre->radioid || cur->uptime < WLAN_STA_STAUS_TIMER) { 
+                    if (cur->radioid != pre->radioid || (cur->uptime != pre->uptime && cur->uptime < WLAN_STA_STAUS_TIMER)) { 
                         pre->state = 1; /* disassociation from pre radio */
                         pre->updated = 0; /* fix bug 2776: need reset to 0 */
                         totalsize = dc_reserves_stas(&rse_stas, totalsize, res_count, pre, 1);
@@ -701,7 +701,6 @@ static void dc_sta_notice_timer_handler(void *arg)
             }
             totalsize += (paylength + 6);
         }
-    }
 
     CWLog("-->sta notice handler In2:%d, count:%d", clock(), count);
     /* radio status */
@@ -737,6 +736,7 @@ static void dc_sta_notice_timer_handler(void *arg)
             }
             totalsize += (paylength + 6);
         }
+    }
     }
 
     CWLog("-->sta notice handler In3:%d, count:%d", clock(), count);
