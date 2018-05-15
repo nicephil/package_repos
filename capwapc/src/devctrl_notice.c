@@ -353,7 +353,7 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
         struct wlan_sta_stat **stas;
     };
 
-    system("/lib/okos/upstabycron.sh&");
+    system("/lib/okos/upstabycron.sh");
 
     struct wlan_sta_stat_all all;
     all.count = 0;

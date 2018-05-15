@@ -1,4 +1,3 @@
 * * * * * sleep 5;/lib/okos/runtimefixup.sh
-* * * * * sleep 5;/lib/okos/upstabycron.sh
 */10 * * * * /lib/okos/apstats.sh
 */10 * * * * /lib/okos/setgre.sh
