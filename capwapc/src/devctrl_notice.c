@@ -278,8 +278,8 @@ static int wlan_get_sta_info_db(void *stats)
     };
     struct wlan_sta_stat_all *all = (struct wlan_sta_stat_all *)stats;
 
-    const char *sql_count_str="BEGIN TRANSACTION;SELECT count(*) FROM STATSINFO;COMMIT";
-    const char *sql_str="BEGIN TRANSACTION;SELECT * FROM STATSINFO;COMMIT";
+    const char *sql_count_str="SELECT count(*) FROM STATSINFO";
+    const char *sql_str="SELECT * FROM STATSINFO";
     sqlite3 *db = NULL;
     char *pErrMsg = NULL; 
     int ret = 0;
@@ -294,7 +294,7 @@ static int wlan_get_sta_info_db(void *stats)
 
     ret = sqlite3_exec(db, sql_count_str, _sql_callback, &count, &pErrMsg);
     if (ret != SQLITE_OK) {
-        CWLog("SQL create error: %s\n", pErrMsg);
+        CWLog("SQL create error: %s, line:%d\n", pErrMsg, __LINE__);
         ret = -2;
         goto __cleanup;
     }
@@ -308,7 +308,7 @@ static int wlan_get_sta_info_db(void *stats)
     if (count > 0) {
         *(all->stas) = (struct wlan_sta_stat *)malloc(count * sizeof(struct wlan_sta_stat));
         if (*(all->stas) == NULL) {
-            CWLog("SQL create error: %s\n", pErrMsg);
+            CWLog("SQL create error: malloc err\n");
             ret = -3;
             goto __cleanup;
         }
@@ -316,7 +316,7 @@ static int wlan_get_sta_info_db(void *stats)
 
         ret = sqlite3_exec(db, sql_str, _sql_callback, all, &pErrMsg);
         if (ret != SQLITE_OK) {
-            CWLog("SQL create error: %s\n", pErrMsg);
+            CWLog("SQL create error: %s, line:%d\n", pErrMsg, __LINE__);
             ret = -4;
             goto __cleanup;
         }
@@ -352,6 +352,8 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
         int count;
         struct wlan_sta_stat **stas;
     };
+
+    system("/lib/okos/upstabycron.sh&");
 
     struct wlan_sta_stat_all all;
     all.count = 0;
@@ -477,9 +479,10 @@ static int dc_get_wlan_radio_stats(struct wlan_radio_stat **stats)
 
     return count;
 }
-
+pthread_mutex_t stats_mutex = PTHREAD_MUTEX_INITIALIZER;
 int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
 {
+    pthread_mutex_lock(&stats_mutex);
 #define UPTIME_DIFF   1 /* s */
     static struct wlan_sta_stat *pre_stas = NULL;
     static int pre_count = 0;
@@ -487,8 +490,9 @@ int dc_get_wlan_sta_stats(struct wlan_sta_stat **stas, int diff)
     int i, j, cur_count = -1, res_count = 0, totalsize = 0;
 
     cur_count = wlan_get_sta_info(&cur_stas);
-    CWLog("cur_count:%d, pre_count=%d, cur_stas:%p, pre_stas:%p\n", cur_count, pre_count, cur_stas, pre_stas);
+    CWLog("threadid:%d, cur_count:%d, pre_count=%d, cur_stas:%p, pre_stas:%p, diff=%d\n", pthread_self(), cur_count, pre_count, cur_stas, pre_stas, diff);
     if (cur_count < 0 && cur_stas == NULL) {
+        pthread_mutex_unlock(&stats_mutex);
         return -1;
     }
 
@@ -633,6 +637,7 @@ FREE_STAS:
     pre_stas = cur_stas;
     pre_count = cur_count;
 
+    pthread_mutex_unlock(&stats_mutex);
     *stas = rse_stas;
     
     return res_count;

@@ -1118,14 +1118,14 @@ static int dc_get_interface_info(struct device_interface_info **info)
 
     ret = sqlite3_exec(db, sql_count_str, _sql_callback, &count, &pErrMsg);
     if (ret != SQLITE_OK) {
-        CWLog("SQL create error: %s\n", pErrMsg);
+        CWLog("SQL create error: %s, line:%d\n", pErrMsg, __LINE__);
         ret = -2;
         goto __cleanup;
     }
 
     *info = (struct device_interface_info *)malloc(count * sizeof(struct device_interface_info));
     if (*info == NULL) {
-        CWLog("SQL create error: %s\n", pErrMsg);
+        CWLog("SQL create error: malloc err\n");
         ret = -3;
         goto __cleanup;
     }
@@ -1142,13 +1142,24 @@ static int dc_get_interface_info(struct device_interface_info **info)
 
     ret = sqlite3_exec(db, sql_str, _sql_callback, &infos, &pErrMsg);
     if (ret != SQLITE_OK) {
-        CWLog("SQL create error: %s\n", pErrMsg);
+        CWLog("SQL create error: %s, line:%d\n", pErrMsg, __LINE__);
         ret = -4;
+        goto __cleanup;
     }
 
-    ret = count;
+    if (db) {
+        sqlite3_close(db);
+    }
+    if(pErrMsg) {
+        free(pErrMsg);
+    }
+    return count;
 
 __cleanup:
+    if (*info) {
+        free(*info);
+        *info = NULL;
+    }
     if (db) {
         sqlite3_close(db);
     }

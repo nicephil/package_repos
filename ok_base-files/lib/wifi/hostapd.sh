@@ -856,7 +856,7 @@ EOF
 			rm /var/run/hostapd-$ifname.lock
 		wpa_cli -g /var/run/hostapd/global raw ADD bss_config=$ifname:/var/run/hostapd-$ifname.conf
 		pid=/var/run/hostapd_cli-$ifname.pid
-        ulimit -c unlimited; nice -n -20 hostapd_cli -P $pid -p /var/run/hostapd-${device} -i $ifname -a /lib/okos/wifievent.sh -B
+        ulimit -c unlimited; nice -n -20 hostapd_cli -P $pid -p /var/run/hostapd-${device} -i $ifname -a /lib/okos/wifievent.sh 2>&1 | logger -t 'hostapd_cli' &
 		touch /var/run/hostapd-$ifname.lock
 		if [ -n "$wps_possible" -a -n "$config_methods" ]; then
 			pid=/var/run/hostapd_cli-$ifname.pid

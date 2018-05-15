@@ -31,7 +31,7 @@ do
         pid=`pgrep -f "hostapd_cli.*${ath}.*"`
         [ -z "$pid" ] && {
             logger -t supervisor -p 5 "HOSTAPD_CLI is exit abnormally, restart it !!!"
-            ulimit -c unlimited;nice -n -20 hostapd_cli -P /var/run/hostapd_cli-${ath}.pid -p /var/run/hostapd-wifi${ath:3:1} -i $ath -a /lib/okos/wifievent.sh -B
+            ulimit -c unlimited;nice -n -20 hostapd_cli -P /var/run/hostapd_cli-${ath}.pid -p /var/run/hostapd-wifi${ath:3:1} -i $ath -a /lib/okos/wifievent.sh  2>&1 | logger -t 'hostapd_cli' &
         }
     done
     top -n1 -d1 -b | logger -t supervisor -p 7
