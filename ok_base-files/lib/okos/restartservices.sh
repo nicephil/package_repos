@@ -24,6 +24,8 @@ sync;echo 3 > /proc/sys/vm/drop_caches
 /etc/init.d/apfw.dyn restart&
 /etc/init.d/supervisor restart&
 
+sleep 5
+
 rm -rf $lockfile
 
 return 0
