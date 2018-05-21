@@ -360,6 +360,8 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
     while (i++ < 3) {
         int ret = system("/lib/okos/upstabycron.sh");
         if (ret == -1 || (ret != -1 && WEXITSTATUS(ret))) {
+            CWLog("database is updating");
+            sleep(1);
             continue;
         } else {
             break;
