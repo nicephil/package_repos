@@ -292,6 +292,8 @@ static int wlan_get_sta_info_db(void *stats)
         goto __cleanup;
     }
 
+    sqlite3_busy_timeout(db, 500);
+
     ret = sqlite3_exec(db, sql_count_str, _sql_callback, &count, &pErrMsg);
     if (ret != SQLITE_OK) {
         CWLog("SQL create error: %s, line:%d\n", pErrMsg, __LINE__);
@@ -353,7 +355,21 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
         struct wlan_sta_stat **stas;
     };
 
-    system("/lib/okos/upstabycron.sh");
+    int i = 0;
+
+    while (i++ < 3) {
+        int ret = system("/lib/okos/upstabycron.sh");
+        if (ret == -1 || (ret != -1 && WEXITSTATUS(ret))) {
+            continue;
+        } else {
+            break;
+        }
+    }
+
+    if (i >= 3) {
+        *stas = NULL;
+        return -1;
+    }
 
     struct wlan_sta_stat_all all;
     all.count = 0;

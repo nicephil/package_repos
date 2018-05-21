@@ -335,10 +335,12 @@ static int dc_sta_query_response(devctrl_block_s *dc_block, void *reserved)
 
     count = dc_get_wlan_sta_stats(&stas, 0);
     if (count < 0 && stas == NULL) {
+        ret = -1;
         goto err;
     }
     if (assemble_wlan_sta_status_elem(&data, &paylength, stas, count, WLAN_STA_TYPE_QUERY) != CW_TRUE) {
         CWLog("Get wlan client stat count %d but assmeble query msg failed.", count);
+        ret = -1;
         goto err;
     }
 
