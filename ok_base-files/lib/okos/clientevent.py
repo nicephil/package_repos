@@ -66,7 +66,7 @@ class Client(Thread):
             queue.put_nowait(clientevent)
         except qq.Full:
             tmp_event = self.queue.get_nowait()
-            syslog(LOG_INFO, "%s:Queue Full, ignore %s-%s, put %s-%s" %
+            syslog(LOG_ERR, "%s:Queue Full, ignore %s-%s, put %s-%s" %
                    (self.mac, tmp_event.ath, tmp_event.event, clientevent.ath, clientevent.event))
             queue.put_nowait(clientevent)
 
@@ -76,7 +76,7 @@ class Client(Thread):
             err, acl_type, time, tx_rate_limit, rx_rate_limit, \
              tx_rate_limit_local, rx_rate_limit_local, remain_time, \
              username = self.query_auth(clientevent)
-            syslog(LOG_DEBUG, "mac:%s err:%s acl_type:%s time:%s tx_rate_limit:%s \
+            syslog(LOG_ERR, "mac:%s err:%s acl_type:%s time:%s tx_rate_limit:%s \
                    rx_rate_limit:%s rx_rate_limit_local:%s \
                    tx_rate_limit_local:%s remain_time:%s username:%s" %
                    (repr(self.mac),
@@ -169,7 +169,7 @@ class Client(Thread):
             syslog(LOG_DEBUG, "%s: exit as no more event" % self.mac)
 
         self.clientevent = clientevent
-        syslog(LOG_DEBUG, "++>mac:%s event:%s" % (self.mac, clientevent.event))
+        syslog(LOG_ERR, "++>mac:%s event:%s" % (self.mac, clientevent.event))
 
         # 1. handle connected event
         if clientevent.event == 'AP-STA-CONNECTED':
@@ -192,7 +192,7 @@ class Client(Thread):
             syslog(LOG_WARNING, "Unknow Event on %s %s" %
                    (self.mac, clientevent.event))
 
-        syslog(LOG_DEBUG, "-->mac:%s event:%s" % (self.mac, clientevent.event))
+        syslog(LOG_ERR, "-->mac:%s event:%s" % (self.mac, clientevent.event))
 
     # query auth server and fetch info
     def query_auth(self, clientevent):
@@ -207,18 +207,19 @@ class Client(Thread):
 
             syslog(LOG_DEBUG, 'query url:%s' % url)
             response = urllib2.urlopen(url, timeout=5)
-        except urllib2.HTTPError, e:
-            syslog(LOG_ERR, "HTTPError:%d %s" % (e.errno, e.strerror))
-            return True, 0, 0, 0, 0, 0, 0, 0, ''
         except Exception, e:
-            syslog(LOG_WARNING, "HTTPError: %s" % str(e))
+            syslog(LOG_ERR, "HTTPError: %s" % str(e))
             return True, 0, 0, 0, 0, 0, 0, 0, ''
         response_str = response.read()
         # hacky avoidance (https://bugs.python.org/issue1208304)
         response.fp._sock.recv = None
         response.close()
         del(response)
-        return self.unpack_info(response_str)
+        try:
+            return self.unpack_info(response_str)
+        except Exception, e:
+            syslog(LOG_ERR, "UnpackError: %s" % str(e))
+            return True, 0, 0, 0, 0, 0, 0, 0, ''
 
     # pack the info for auth query
     def pack_info(self):
@@ -376,8 +377,8 @@ class Client(Thread):
             try:
                 self.handle_event()
             except Exception, e:
-                syslog(LOG_WARNING, "%s: Exception - %s" % (self.mac, str(e)))
-        syslog(LOG_WARNING, "%s: thread exit" % (self.mac))
+                syslog(LOG_ERR, "%s: Exception - %s" % (self.mac, str(e)))
+        syslog(LOG_ERR, "%s: thread exit" % (self.mac))
 
 
 # Class describes the manager
@@ -531,7 +532,7 @@ class Manager(object):
             except KeyboardInterrupt:
                 sys.exit(0)
 
-            syslog(LOG_INFO, "=++=>ath:%s, mac:%s, event:%s xx:%s" %
+            syslog(LOG_ERR, "=++=>ath:%s, mac:%s, event:%s xx:%s" %
                    (ath,
                     mac,
                     event,
@@ -551,12 +552,12 @@ class Manager(object):
 
             # 7. Unknown
             else:
-                syslog(LOG_INFO, "Unknown Event:%s,%s,%s,%s" % (ath,
+                syslog(LOG_ERR, "Unknown Event:%s,%s,%s,%s" % (ath,
                                                                 mac,
                                                                 event,
                                                                 ppsk_key))
             # 8. add log
-            syslog(LOG_INFO, "=--=>ath:%s, mac:%s, event:%s, xx:%s" %
+            syslog(LOG_ERR, "=--=>ath:%s, mac:%s, event:%s, xx:%s" %
                    (ath,
                     mac,
                     event,
