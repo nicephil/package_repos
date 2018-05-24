@@ -47,9 +47,12 @@ set_static_firewall_rules ()
     $CMD -A Firewall -p tcp -m tcp --dport 80 -j ACCEPT 
 }
 
-set_static_whitelist_rules ()
+set_static_clientcontrol_rules ()
 {
-    $CMD -t nat -I WhiteList -d 10.10.111.111/32 -p tcp -m tcp --dport 80 -j REDIRECT --to-ports 2060
+    $CMD -t nat -A ClientControl -d 10.10.111.111/32 -p tcp -m tcp --dport 80 -j REDIRECT --to-ports 2060
+    $CMD -t nat -A ClientControl -j WhiteList
+    $CMD -t nat -A ClientControl -j GotoPortal
+    $CMD -t nat -A ClientControl -j ACCEPT
 }
 
 
@@ -74,7 +77,7 @@ set_other_static_chains_rules ()
 
     set_static_firewall_rules
 
-    set_static_whitelist_rules
+    set_static_clientcontrol_rules
 
     set_static_guest_network_rules
 }
@@ -95,8 +98,10 @@ set_global_static_chains_rules()
     # wifidog chains
     $CMD -N Portal
 
-    # whitelist chain
+    # ClientControl chain
+    $CMD -N ClientControl
     $CMD -N WhiteList
+    $CMD -N GotoPortal
 
     # statistics chains
     $CMD -N wan_downlink_traf
@@ -122,8 +127,10 @@ set_global_static_chains_rules()
     $CMD -A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT 
     # network isolation
     $CMD -A FORWARD -j isolation
-    # whitelist rule
-    $CMD -A FORWARD -j WhiteList 
+    # ClientControl rule
+    $CMD -A FORWARD -j ClientControl 
+    $CMD -A ClientControl -j WhiteList
+    $CMD -A ClientControl -j GotoPortal
     # wifidog rule
     $CMD -A FORWARD -j Portal 
 
@@ -135,12 +142,12 @@ set_global_static_chains_rules()
     $CMD -t nat -P POSTROUTING ACCEPT
 
     $CMD -t nat -N Portal
-    # whitelist chain
-    $CMD -t nat -N WhiteList
+    # ClientControl chain
+    $CMD -t nat -N ClientControl
 
     ##### make sure the ordering of rule
-    # whitelist rule
-    $CMD -t nat -A PREROUTING -j WhiteList 
+    # ClientControl rule
+    $CMD -t nat -A PREROUTING -j ClientControl
     # wifidog rule
     $CMD -t nat -A PREROUTING -j Portal 
 
