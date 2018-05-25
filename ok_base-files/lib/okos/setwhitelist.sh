@@ -3,6 +3,8 @@
 mac=$1
 time=$2
 action=$3 # 1 means set, 0 means unset
+mode=$4
+[ -z $mode ] && mode=0
 
 
 setwhitelist_trap () {
@@ -14,13 +16,15 @@ trap 'setwhitelist_trap; exit' INT TERM ABRT QUIT ALRM
 
 lock /tmp/whitelist.lock
 
-logger -t clientevent "++setwhitelist:mac:$mac, time:$time, action:$action"
+logger -t clientevent "++setwhitelist:mac:$mac, time:$time, action:$action, mode:$mode"
 
 atjobs_dir="/var/spool/cron/atjobs"
 
 . /lib/okos/whitelist.sh
 
-
+if [ "$mode" = "0" ]
+then
+# whitelist
 if [ "$action" = "1" ]
 then
 
@@ -47,11 +51,11 @@ then
     # 4. add it into whitelist timer
     if [ "$time" -ne "0" ]
     then
-        echo ". /lib/okos/whitelist.sh start;del $mac" | at now +$((time/60))minutes
+        echo ". /lib/okos/whitelist.sh start;del_from_whitelist $mac" | at now +$((time/60))minutes
     fi
 
     # 5. add it into whitelist
-    add $mac
+    add_to_whitelist $mac
     logger -t clientevent "==setwhitelist:mac:$mac, time:$time, action:$action"
     lock -u /tmp/whitelist.lock
 
@@ -61,12 +65,12 @@ fi
 if [ "$action" = "0" ]
 then
     # 1. del it from whitelist
-    del $mac
+    del_from_whitelist $mac
 
     # 2. del it from whitelist timer
     for file in $(ls $atjobs_dir)
     do
-        grep -q "del $mac" ${atjobs_dir}/${file}
+        grep -q "del_from_whitelist $mac" ${atjobs_dir}/${file}
         if [ "$?" -eq "0" ]
         then
             if [ ! "${file:0:1}" = "=" ]
@@ -77,5 +81,14 @@ then
         fi
     done 
 fi
-logger -t clientevent "==setwhitelist:mac:$mac, time:$time, action:$action"
+# gotoportal
+else
+if [ "$action" = "1" ]
+then
+    add_to_gotoportal $mac
+else
+    del_from_gotoportal $mac
+fi
+fi
+logger -t clientevent "==setwhitelist:mac:$mac, time:$time, action:$action, mode:$mode"
 lock -u /tmp/whitelist.lock

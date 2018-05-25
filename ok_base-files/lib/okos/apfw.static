@@ -144,6 +144,7 @@ set_global_static_chains_rules()
     $CMD -t nat -N Portal
     # ClientControl chain
     $CMD -t nat -N ClientControl
+    $CMD -t nat -N GotoPortal
 
     ##### make sure the ordering of rule
     # ClientControl rule

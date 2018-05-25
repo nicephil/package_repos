@@ -53,6 +53,8 @@ class Client(Thread):
         self.last_ath = ''
         self.last_remain_time = 0
         self.last_username = ''
+        self.last_err = False
+        self.last_auth_mode = 0
         self.name = mac
 
     # add a new event in queue
@@ -72,13 +74,13 @@ class Client(Thread):
 
     # query and save params
     def query_and_init(self, clientevent):
-        if not self.last_ath or self.last_ath != clientevent.ath:
+        if not self.last_ath or self.last_ath != clientevent.ath or self.last_err:
             err, acl_type, time, tx_rate_limit, rx_rate_limit, \
              tx_rate_limit_local, rx_rate_limit_local, remain_time, \
-             username = self.query_auth(clientevent)
+             username, auth_mode = self.query_auth(clientevent)
             syslog(LOG_ERR, "mac:%s err:%s acl_type:%s time:%s tx_rate_limit:%s \
                    rx_rate_limit:%s rx_rate_limit_local:%s \
-                   tx_rate_limit_local:%s remain_time:%s username:%s" %
+                   tx_rate_limit_local:%s remain_time:%s username:%s auth_mode:%s" %
                    (repr(self.mac),
                     repr(err),
                     repr(acl_type),
@@ -88,7 +90,8 @@ class Client(Thread):
                     repr(tx_rate_limit_local),
                     repr(rx_rate_limit_local),
                     repr(remain_time),
-                    repr(username)))
+                    repr(username),
+                    repr(auth_mode)))
             self.last_acl_type = acl_type
             self.last_tx_rate_limit = tx_rate_limit
             self.last_rx_rate_limit = rx_rate_limit
@@ -97,6 +100,8 @@ class Client(Thread):
             self.last_remain_time = remain_time
             self.last_username = username
             self.last_ath = clientevent.ath
+            self.last_auth_mode = auth_mode
+            self.last_err = err
             if err == True:
                 self.last_remain_time = 43200
                 self.last_username = 'timeout'
@@ -117,6 +122,8 @@ class Client(Thread):
             self.set_blacklist(0, 0, self.last_ath)
             if self.last_remain_time == 0:
                 self.set_whitelist(0, 0)
+                if self.last_auth_mode > 0: # add gotoprotal
+                    self.set_whitelist(0, 1, mode=1)
             else:
                 self.set_whitelist(0, 1)
                 self.notify_wifidog(self.mac, self.last_remain_time)
@@ -132,6 +139,7 @@ class Client(Thread):
     def handle_disconnected_event(self, clientevent):
         # 2.1 clean up whitelist
         self.set_whitelist(0, 0)
+        self.set_whitelist(0, 0, mode=1)
         # 2.2 clean up blacklist
         # self.set_blacklist(0, 0 clientevent.ath)
         # 2.3 clean up wd db
@@ -209,7 +217,7 @@ class Client(Thread):
             response = urllib2.urlopen(url, timeout=5)
         except Exception, e:
             syslog(LOG_ERR, "HTTPError: %s" % str(e))
-            return True, 0, 0, 0, 0, 0, 0, 0, ''
+            return True, 0, 0, 0, 0, 0, 0, 0, '', 0
         response_str = response.read()
         # hacky avoidance (https://bugs.python.org/issue1208304)
         response.fp._sock.recv = None
@@ -219,7 +227,7 @@ class Client(Thread):
             return self.unpack_info(response_str)
         except Exception, e:
             syslog(LOG_ERR, "UnpackError: %s" % str(e))
-            return True, 0, 0, 0, 0, 0, 0, 0, ''
+            return True, 0, 0, 0, 0, 0, 0, 0, '', 0
 
     # pack the info for auth query
     def pack_info(self):
@@ -323,7 +331,7 @@ class Client(Thread):
 
         return err, acl_type, time, tx_rate_limit, rx_rate_limit, \
             tx_rate_limit_local, rx_rate_limit_local, remain_time, \
-            username
+            username, auth_mode
 
     def update_db(self, mac, ath, remain_time, username):
         #sql_cmd="REPLACE INTO STAINFO (MAC,IFNAME,REMAIN_TIME,PORTAL_USER,PORTAL_STATUS) VALUES('%s','%s','%d','%s','%d')" % (mac, ath, remain_time, username, 1 if remain_time > 0 else 0)
@@ -336,10 +344,10 @@ class Client(Thread):
         os.system("wdctl insert %s %d" % (mac, remain_time));
         pass
 
-    def set_whitelist(self, time, action):
-        os.system("/lib/okos/setwhitelist.sh %s %d %d >/dev/null 2>&1" %
+    def set_whitelist(self, time, action, mode=0):
+        os.system("/lib/okos/setwhitelist.sh %s %d %d %d >/dev/null 2>&1" %
                   (self.mac, time,
-                   action))
+                   action, mode))
         pass
 
     def set_blacklist(self, time, action, ath):
