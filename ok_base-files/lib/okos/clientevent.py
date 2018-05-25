@@ -37,7 +37,8 @@ class Client(Thread):
     __slots__ = ('mac', 'queue', 'term', 'clientevent', 'last_acl_type',
                  'last_tx_rate_limit', 'last_rx_rate_limit',
                  'last_tx_rate_limit_local', 'last_rx_rate_limit_local',
-                 'last_ath', 'last_remain_time', 'last_username')
+                 'last_ath', 'last_remain_time', 'last_username', 'last_err',
+                 'last_auth_mode')
 
     def __init__(self, mac):
         Thread.__init__(self)
@@ -53,7 +54,7 @@ class Client(Thread):
         self.last_ath = ''
         self.last_remain_time = 0
         self.last_username = ''
-        self.last_err = False
+        self.last_err = True
         self.last_auth_mode = 0
         self.name = mac
 
@@ -66,10 +67,10 @@ class Client(Thread):
         # 2. put into queue if queue is empty
         try:
             queue.put_nowait(clientevent)
-        except qq.Full:
+        except Exception, e:
             tmp_event = self.queue.get_nowait()
-            syslog(LOG_ERR, "%s:Queue Full, ignore %s-%s, put %s-%s" %
-                   (self.mac, tmp_event.ath, tmp_event.event, clientevent.ath, clientevent.event))
+            syslog(LOG_ERR, "%s:Queue Full, ignore %s-%s, put %s-%s, %s" %
+                   (self.mac, tmp_event.ath, tmp_event.event, clientevent.ath, clientevent.event, repr(e)))
             queue.put_nowait(clientevent)
 
     # query and save params
@@ -155,16 +156,7 @@ class Client(Thread):
 
     # handle STA-IP-CHANGED event
     def handle_ip_changed_event(self, clientevent):
-        # 4.1 check if need to query auth again
-        self.query_and_init(clientevent)
-        # 4.2 set_ratelimit
-        self.set_ratelimit(self.last_tx_rate_limit, self.last_rx_rate_limit,
-                           self.last_tx_rate_limit_local,
-                           self.last_rx_rate_limit_local,
-                           self.last_ath,
-                           1)
-        # 4.3 add client into client traffic track in iptables
-        self.set_client_track(1)
+        self.handle_connected_event(clientevent)
 
     # @profile
     # main event handler
