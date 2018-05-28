@@ -357,18 +357,9 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
 
     int i = 0;
 
-    while (i++ < 3) {
-        int ret = system("/lib/okos/upstabycron.sh");
-        if (ret == -1 || (ret != -1 && WEXITSTATUS(ret))) {
-            CWLog("database is updating");
-            sleep(1);
-            continue;
-        } else {
-            break;
-        }
-    }
-
-    if (i >= 3) {
+    int ret = system("/lib/okos/upstabycron.sh");
+    if (ret == -1 || (ret != -1 && WEXITSTATUS(ret))) {
+        CWLog("database is updating");
         *stas = NULL;
         return -1;
     }
@@ -376,10 +367,10 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
     struct wlan_sta_stat_all all;
     all.count = 0;
     all.stas = stas;
-    int ret = 0;
 
     ret = wlan_get_sta_info_db((void*)&all);
     if (ret) {
+        *stas = NULL;
         return -1;
     }
 
@@ -724,6 +715,7 @@ static void dc_sta_notice_timer_handler(void *arg)
             }
             totalsize += (paylength + 6);
         }
+    }
 
     CWLog("-->sta notice handler In2:%d, count:%d", clock(), count);
     /* radio status */
@@ -759,7 +751,6 @@ static void dc_sta_notice_timer_handler(void *arg)
             }
             totalsize += (paylength + 6);
         }
-    }
     }
 
     CWLog("-->sta notice handler In3:%d, count:%d", clock(), count);

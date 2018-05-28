@@ -135,6 +135,8 @@ class Client(Thread):
                            self.last_rx_rate_limit_local,
                            self.last_ath,
                            1)
+        # 1.6 set client trac
+        self.set_client_track(1)
 
     # handle AP-STA-DISCONNECTED event
     def handle_disconnected_event(self, clientevent):
