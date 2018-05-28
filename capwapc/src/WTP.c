@@ -36,7 +36,6 @@ CW_THREAD_RETURN_TYPE CWWTPReceiveFrame(void *arg);
 CW_THREAD_RETURN_TYPE CWWTPReceiveStats(void *arg);
 CW_THREAD_RETURN_TYPE CWWTPReceiveFreqStats(void *arg);
 
-extern int dc_stop_sta_notice_timer(void);
 
 capwapc_config g_capwapc_config  = {
     .enable       = CAPWAPC_DEFAULT_ENABLE,
@@ -491,7 +490,6 @@ int main (int argc, const char * argv[])
 			case CW_ENTER_RESET:
 				 CWStopHeartbeatTimer();
 				 CWStopNeighborDeadTimer();
-                  		 dc_stop_sta_notice_timer();                 
 				/*
 				 * CWNetworkCloseSocket(gWTPSocket);
 				 * CWSecurityDestroySession(gWTPSession);

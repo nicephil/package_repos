@@ -12,7 +12,6 @@
 
 #define WLAN_STA_STAUS_TIMER   5
 
-static CWTimerID g_sta_notice_timerid = -1;
 
 static inline rssi_level_e dc_rssi2level(int rssi) 
 {
@@ -355,8 +354,6 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
         struct wlan_sta_stat **stas;
     };
 
-    int i = 0;
-
     int ret = system("/lib/okos/upstabycron.sh");
     if (ret == -1 || (ret != -1 && WEXITSTATUS(ret))) {
         CWLog("database is updating");
@@ -651,6 +648,25 @@ FREE_STAS:
     
     return res_count;
 }
+
+
+static void dc_sta_notice_timer_handler(void *arg);
+CW_THREAD_RETURN_TYPE dc_sta_notice_handler(void *arg) 
+{
+    time_t start, end;
+    int cost;
+    while(1) {
+        time(&start);
+        dc_sta_notice_timer_handler(NULL);
+        time(&end);
+        cost=(int)difftime(end,start);
+        if (cost < WLAN_STA_STAUS_TIMER) {
+            sleep(WLAN_STA_STAUS_TIMER-cost);
+        } else {
+            CWLog("xxxxxcost:%d", cost);
+        }
+    }
+}
  
 static void dc_sta_notice_timer_handler(void *arg) 
 {
@@ -783,49 +799,9 @@ RESTART_TIMER:
     if (radio_stats) {
         free(radio_stats);
     }
-    if (dc_start_sta_notice_timer() != 0) {
-        CWDebugLog("Start sta status notice timer failed.");
-    }
     return;
 }
 
-int dc_start_sta_notice_timer(void) 
-{	  
-	g_sta_notice_timerid = timer_add(WLAN_STA_STAUS_TIMER, 0, &dc_sta_notice_timer_handler, NULL);
-	
-	if (g_sta_notice_timerid == -1)	{
-        CWLog("Add sta status notice timer failed.");
-        return -1;
-    }
-
-	return 0;
-}
-
-int dc_stop_sta_notice_timer(void)
-{
-    int ret = 0, i, times = 1;
-
-    for (i = 0; i < 4; ++i) {
-        ret = timer_rem(g_sta_notice_timerid, NULL);
-        if (ret != 0 && g_sta_notice_timerid >= 0) {
-            times = (1 << i);
-            CWDebugLog("Stop sta notice timer %d failed, will try to stop again after %d seconds.", 
-                g_sta_notice_timerid, times);
-            sleep(times);
-        }
-        else {
-            if (i > 0) {
-                CWDebugLog("Stop sta notice timer %d success now.", g_sta_notice_timerid);
-            }
-            break;
-        }
-    }
-
-	CWDebugLog_D("Wlan sta stats Timer Stopped");
-    
-	return 0;
-}
- 
 void dc_dev_update_notice(void) 
 {
     devctrl_block_s dc_resp;

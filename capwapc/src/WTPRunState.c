@@ -146,6 +146,7 @@ CWStateTransition CWWTPEnterRun() {
 
 	int k;
     static CWThread devctrl_thread = -1;
+    static CWThread devctrl_notice_thread = -1;
 
 	// CWLog("######### WTP enters in RUN State #########");
 
@@ -166,8 +167,8 @@ CWStateTransition CWWTPEnterRun() {
     }
     unlock_pendingbox();
 
-    if (!CWErr(CWStartHeartbeatTimer()) || dc_start_sta_notice_timer() != 0) {
-        CWLog("Start heartbeat timer or notice timer failed, will enter RESET State.");
+    if (!CWErr(CWStartHeartbeatTimer())) {
+        CWLog("Start heartbeat timer failed, will enter RESET State.");
         return CW_ENTER_RESET;
     }
     CWLog("Start heartbeat timer and wclient notice timer success.");
@@ -179,6 +180,15 @@ CWStateTransition CWWTPEnterRun() {
             return CW_ENTER_RESET;
         }
         CWLog("Create NMS task success.");
+    }
+
+    if (devctrl_notice_thread == -1) {
+        if(!CWErr(CWCreateThread(&devctrl_notice_thread, dc_sta_notice_handler, NULL))) {
+            CWLog("Create sta notice task failed.");
+            CWDebugLog_E("Create Task thread failed");
+            return CW_ENTER_RESET;
+        }
+        CWLog("Create sta notice task success.");
     }
     
 	CW_REPEAT_FOREVER
