@@ -50,7 +50,7 @@ set_static_firewall_rules ()
 set_static_clientcontrol_rules ()
 {
     $CMD -t nat -A ClientControl -d 10.10.111.111/32 -p tcp -m tcp --dport 80 -j REDIRECT --to-ports 2060
-    $CMD -t nat -A ClientControl -j WhiteList
+    #$CMD -t nat -A ClientControl -j WhiteList
     $CMD -t nat -A ClientControl -j GotoPortal
     $CMD -t nat -A ClientControl -j ACCEPT
 }
@@ -101,7 +101,7 @@ set_global_static_chains_rules()
     # ClientControl chain
     $CMD -N ClientControl
     $CMD -N WhiteList
-    $CMD -N GotoPortal
+    #$CMD -N GotoPortal
 
     # statistics chains
     $CMD -N wan_downlink_traf
@@ -130,7 +130,7 @@ set_global_static_chains_rules()
     # ClientControl rule
     $CMD -A FORWARD -j ClientControl 
     $CMD -A ClientControl -j WhiteList
-    $CMD -A ClientControl -j GotoPortal
+    #$CMD -A ClientControl -j GotoPortal
     # wifidog rule
     $CMD -A FORWARD -j Portal 
 
@@ -144,7 +144,6 @@ set_global_static_chains_rules()
     $CMD -t nat -N Portal
     # ClientControl chain
     $CMD -t nat -N ClientControl
-    $CMD -t nat -N GotoPortal
 
     ##### make sure the ordering of rule
     # ClientControl rule
