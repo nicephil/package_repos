@@ -22,8 +22,8 @@ upsta_err_log () {
 }
 
 upstabycron_trap () {
+    trafstats_trap
     upsta_err_log "gets trap on upstabycron"
-    lock -u /tmp/.iptables.lock
     rm -rf /tmp/upstabycron.lock
 }
 

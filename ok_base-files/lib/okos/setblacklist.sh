@@ -1,14 +1,19 @@
 #!/bin/sh
 
 mac=$1
-time=$2
+l_time=$2
 action=$3 # 1 means set, 0 means unset
 ath=$4
-time=240
+l_time=240
+
+[ -z "$mac" -o -z "$l_time" -o -z "$action" -o -z "$ath" ] && {
+    logger -t clientevent -p 3 "xxsetblacklist:mac:$mac, l_time:$L_time, action:$action, ath:$ath"
+    exit 1
+}
 
 
 setblacklist_trap () {
-    logger -t setblacklist "gets trap"
+    logger -p 3 -t setblacklist "gets trap"
     lock -u /tmp/blacklist.lock
 }
 
@@ -21,7 +26,7 @@ lock /tmp/blacklist.lock
 
 
 
-logger -t clientevent "++setblacklist:mac:$mac, time:$time, action:$action, ath:$ath"
+logger -p 3 -t clientevent "++setblacklist:mac:$mac, l_time:$l_time, action:$action, ath:$ath"
 
 atjobs_dir="/var/spool/cron/atjobs"
 
@@ -45,14 +50,14 @@ then
             then
                 sleep 20
             else
-                echo "cancel exising timer ${file}"
+                echo "cancel existing timer ${file}"
                 rm -rf ${atjobs_dir}/${file}
             fi
         fi
     done 
 
     # 4. add it into blacklist timer
-    echo "iwpriv $ath delmac $mac" | at now +$((time/60))minutes
+    echo "iwpriv $ath delmac $mac" | at now +$((l_time/60))minutes
 
     # 5. add it into blacklist
     iwpriv "$ath" addmac "$mac"
@@ -60,9 +65,6 @@ then
     # 6. kickoff it
     iwpriv "$ath" kickmac "$mac"
 
-    logger -t clientevent "==setblacklist:mac:$mac, time:$time, action:$action, ath:$ath"
-    lock -u /tmp/blacklist.lock
-    exit 0
 fi
 
 if [ "$action" = "0" ]
@@ -77,12 +79,12 @@ then
         then
             if [ ! "${file:0:1}" = "=" ]
             then
-                echo "cancel exising timer ${file}"
+                echo "cancel existing timer ${file}"
                 rm -rf ${atjobs_dir}/${file}
             fi
         fi
     done 
 fi
 
-logger -t clientevent "==setblacklist:mac:$mac, time:$time, action:$action"
+logger -p 3 -t clientevent "--setblacklist:mac:$mac, l_time:$l_time, action:$action"
 lock -u /tmp/blacklist.lock

@@ -1,14 +1,16 @@
 #!/bin/sh
 
 mac=$1
-time=$2
+l_time=$2
 action=$3 # 1 means set, 0 means unset
 mode=$4
-[ -z $mode ] && mode=0
-
+[ -z "$mac" -o -z "$mode" -o -z "$l_time" -o -z "$action" -o -z "$mode" ] && {
+    logger -t clientevent -p 3 "xxsetwhitelist:mac:$mac, l_time:$l_time, action:$action, mode:$mode"
+    exit 1
+}
 
 setwhitelist_trap () {
-    logger -t setwhitelist "gets trap"
+    logger -t -p 3 setwhitelist "gets trap"
     lock -u /tmp/whitelist.lock
 }
 trap 'setwhitelist_trap; exit' INT TERM ABRT QUIT ALRM
@@ -16,7 +18,7 @@ trap 'setwhitelist_trap; exit' INT TERM ABRT QUIT ALRM
 
 lock /tmp/whitelist.lock
 
-logger -t clientevent "++setwhitelist:mac:$mac, time:$time, action:$action, mode:$mode"
+logger -t clientevent -p 3 "++setwhitelist:mac:$mac, l_time:$l_time, action:$action, mode:$mode"
 
 atjobs_dir="/var/spool/cron/atjobs"
 
@@ -42,29 +44,27 @@ then
             then
                 sleep 20
             else
-                echo "cancel exising timer ${file}"
+                echo "cancel existing timer ${file}"
                 rm -rf ${atjobs_dir}/${file}
             fi
         fi
     done 
 
     # 4. add it into whitelist timer
-    if [ "$time" -ne "0" ]
+    if [ "$l_time" -ne "0" ]
     then
-        echo ". /lib/okos/whitelist.sh start;del_from_whitelist $mac" | at now +$((time/60))minutes
+        echo ". /lib/okos/whitelist.sh start;del_from_whitelist $mac" | at now +$((l_time/60))minutes
     fi
 
     # 5. add it into whitelist
+    logger -t clientevent "setwhitelist:add_mac:$mac"
     add_to_whitelist $mac
-    logger -t clientevent "==setwhitelist:mac:$mac, time:$time, action:$action"
-    lock -u /tmp/whitelist.lock
-
-    exit 0
 fi
 
 if [ "$action" = "0" ]
 then
     # 1. del it from whitelist
+    logger -t clientevent "setwhitelist:del_mac:$mac"
     del_from_whitelist $mac
 
     # 2. del it from whitelist timer
@@ -75,20 +75,25 @@ then
         then
             if [ ! "${file:0:1}" = "=" ]
             then
-                echo "cancel exising timer ${file}"
+                echo "cancel existing timer ${file}"
                 rm -rf ${atjobs_dir}/${file}
             fi
         fi
     done 
 fi
-# gotoportal
+
 else
+
+# gotoportal
 if [ "$action" = "1" ]
 then
+    logger -t clientevent "setwhitelist:add_gotoportal:$mac"
     add_to_gotoportal $mac
 else
+    logger -t clientevent "setwhitelist:del_gotoportal:$mac"
     del_from_gotoportal $mac
 fi
+
 fi
-logger -t clientevent "==setwhitelist:mac:$mac, time:$time, action:$action, mode:$mode"
+logger -p 3 -t clientevent "--setwhitelist:mac:$mac, l_time:$l_time, action:$action, mode:$mode"
 lock -u /tmp/whitelist.lock

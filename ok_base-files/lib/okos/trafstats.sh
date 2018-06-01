@@ -32,14 +32,11 @@ trafstats_err_log () {
 
 # $1 - client mac
 # $2 - ip var
-# $3 - ifname
-# $4 - ifname var
 # ret - 0 - success, 1 - failure
 get_ip ()
 {
     local mac="$1"
     local ip_var="$2"
-    local ifname="$3"
     local sta_db="/tmp/stationinfo.db"
     local sta_table="STAINFO"
     
@@ -49,6 +46,7 @@ get_ip ()
     ip=`sqlite3 $sta_db "select IPADDR from '${sta_table}' where MAC='${mac}' COLLATE NOCASE;"`
     [ -z "$ip" ] && return 1
     
+    unset"${ip_var}"
     export "${ip_var}=${ip}"
     return 0
 } 
@@ -70,7 +68,7 @@ add_client_track ()
 
 
     # delete first
-    del_client_track "$1"
+    del_client_track "$mac"
 
     trafstats_debug_log "2-->add_client_track: $mac $_ip"
     # add new rule
