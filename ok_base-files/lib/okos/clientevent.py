@@ -69,9 +69,14 @@ class Client(Thread):
             queue.put_nowait(clientevent)
         except Exception, e:
             tmp_event = self.queue.get_nowait()
-            syslog(LOG_ERR, "%s:Queue Full, ignore %s-%s, put %s-%s, %s" %
-                   (self.mac, tmp_event.ath, tmp_event.event, clientevent.ath, clientevent.event, repr(e)))
-            queue.put_nowait(clientevent)
+            if clientevent.event.find('STA-IP-CHANGED', 0) == 0:
+                queue.put_nowait(tmp_event)
+                syslog(LOG_ERR, "%s:Queue Full, ignore %s-%s, put %s-%s, %s" %
+                    (self.mac, clientevent.ath, clientevent.event, tmp_event.ath, tmp_event.event, repr(e)))
+            else:
+                queue.put_nowait(clientevent)
+                syslog(LOG_ERR, "%s:Queue Full, ignore %s-%s, put %s-%s, %s" %
+                    (self.mac, tmp_event.ath, tmp_event.event, clientevent.ath, clientevent.event, repr(e)))
 
     # query and save params
     def query_and_init(self, clientevent):

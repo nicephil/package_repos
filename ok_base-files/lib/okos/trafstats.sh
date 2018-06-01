@@ -46,7 +46,7 @@ get_ip ()
     ip=`sqlite3 $sta_db "select IPADDR from '${sta_table}' where MAC='${mac}' COLLATE NOCASE;"`
     [ -z "$ip" ] && return 1
     
-    unset"${ip_var}"
+    unset "${ip_var}"
     export "${ip_var}=${ip}"
     return 0
 } 
