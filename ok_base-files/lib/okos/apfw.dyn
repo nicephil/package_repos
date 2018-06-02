@@ -1,5 +1,4 @@
-#!/bin/sh
-
+#!/bin/sh 
 . /lib/functions.sh
 
 apfw_dyn_trap () {
@@ -10,6 +9,16 @@ apfw_dyn_trap () {
 trap 'apfw_dyn_trap; exit 1' INT TERM ABRT QUIT ALRM
 
 
+
+clean_whitelist()
+{
+    iptables -F WhiteList
+}
+
+clean_gotoportal()
+{
+    iptables -t nat -F GotoPortal
+}
 
 clean_traf_statistics()
 {
@@ -52,7 +61,7 @@ apfw_dyn_start()
 
 apfw_dyn_stop()
 {
+    clean_whitelist
     clean_traf_statistics
     clean_guestnetwork
 }
-
