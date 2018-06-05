@@ -3,13 +3,6 @@
 
 CMD="iptables"
 
-apfw_static_trap () {
-    echo "gets trap on apfw.static" | logger -p 3 -t 'apfw.static'
-    lock -u /tmp/.iptables.lock
-}
-
-trap 'apfw_static_trap; exit 1' INT TERM ABRT QUIT ALRM
-
 set_static_statistics_rules ()
 {
     # set user statistics chains
@@ -86,7 +79,6 @@ set_other_static_chains_rules ()
 # set the global static chains and 1 level rules
 set_global_static_chains_rules()
 {
-    lock /tmp/.iptables.lock
 
     # filter table
     # firewall
@@ -166,7 +158,6 @@ set_global_static_chains_rules()
     ## set other user defined static rules
     set_other_static_chains_rules
 
-    lock -u /tmp/.iptables.lock
 }
 
 apfw_static_start()

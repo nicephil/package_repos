@@ -1,15 +1,6 @@
 #!/bin/sh 
 . /lib/functions.sh
 
-apfw_dyn_trap () {
-    echo "gets trap on apfw.dyn" | logger -p 3 -t 'apfw.dyn'
-    lock -u /tmp/.iptables.lock
-}
-
-trap 'apfw_dyn_trap; exit 1' INT TERM ABRT QUIT ALRM
-
-
-
 clean_whitelist()
 {
     iptables -F WhiteList
@@ -22,14 +13,12 @@ clean_gotoportal()
 
 clean_traf_statistics()
 {
-    lock /tmp/.iptables.lock
     iptables -Z total_uplink_traf
     iptables -Z total_downlink_traf
     iptables -F client_total_uplink_traf
     iptables -F client_total_downlink_traf
     iptables -F client_wan_uplink_traf
     iptables -F client_wan_downlink_traf
-    lock -u /tmp/.iptables.lock
 }
 
 clean_guestnetwork()

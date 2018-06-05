@@ -24,7 +24,6 @@ apstats_err_log () {
 apstats_trap () {
     apstats_err_log "gets trap on apstats"
     rm -rf /tmp/apstats.lock
-    lock -u /tmp/.iptables.lock
 }
 trap 'apstats_trap; exit 1' INT TERM ABRT QUIT ALRM
 
@@ -66,20 +65,17 @@ fetch_client_stats ()
 
     unset "${all_total_uplink_var}"
     unset "${all_total_downlink_var}"
-    lock /tmp/.iptables.lock
-    apstats_debug_log "$(date): lock /tmp/.iptables.lock"
 
     local _all_total_uplink=$(iptables -L total_uplink_traf -n -v --line-number -x | awk '/RETURN/{print $3}')
     local _all_total_downlink=$(iptables -L total_downlink_traf -n -v --line-number -x | awk '/RETURN/{print $3}')
+    [ -z "$_all_total_uplink" ] && _all_total_uplink=0
+    [ -z "$_all_total_downlink" ] && _all_total_downlink=0
 
     export "${all_total_uplink_var}=$_all_total_uplink"
     export "${all_total_downlink_var}=$_all_total_downlink"
 
     iptables -Z total_uplink_traf
     iptables -Z total_downlink_traf
-
-    lock -u /tmp/.iptables.lock
-    apstats_debug_log "$(date):lock -u /tmp/.iptables.lock"
 
     return 0
 }

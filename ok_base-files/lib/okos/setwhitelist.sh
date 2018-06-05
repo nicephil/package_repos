@@ -9,15 +9,6 @@ mode=$4
     exit 1
 }
 
-setwhitelist_trap () {
-    logger -t -p 3 setwhitelist "gets trap"
-    lock -u /tmp/whitelist.lock
-}
-trap 'setwhitelist_trap; exit' INT TERM ABRT QUIT ALRM
-
-
-lock /tmp/whitelist.lock
-
 logger -t clientevent -p 3 "++setwhitelist:mac:$mac, l_time:$l_time, action:$action, mode:$mode"
 
 atjobs_dir="/var/spool/cron/atjobs"
@@ -96,4 +87,3 @@ fi
 
 fi
 logger -p 3 -t clientevent "--setwhitelist:mac:$mac, l_time:$l_time, action:$action, mode:$mode"
-lock -u /tmp/whitelist.lock

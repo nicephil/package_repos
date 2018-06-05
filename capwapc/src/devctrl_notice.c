@@ -164,6 +164,8 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
         } else if (!strcmp(argv[14], "n")) {
             stas[row].mode = DOT11_RADIO_MODE_N;
         }
+    } else {
+        stas[row].mode = DOT11_RADIO_MODE_G | DOT11_RADIO_MODE_N;
     }
 
     /*SBW*/
@@ -262,6 +264,8 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
     /*PORTAL_STATUS*/
     if (argv[32] && strlen(argv[32])) {
         stas[row].portal_status = atoi(argv[32]);
+    } else {
+        stas[row].portal_status = 1;
     }
 
     row ++;

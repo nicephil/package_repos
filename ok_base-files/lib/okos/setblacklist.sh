@@ -12,20 +12,6 @@ l_time=240
 }
 
 
-setblacklist_trap () {
-    logger -p 3 -t setblacklist "gets trap"
-    lock -u /tmp/blacklist.lock
-}
-
-trap 'setblacklist_trap; exit' INT TERM ABRT QUIT ALRM
-
-lock /tmp/blacklist.lock
-
-
-
-
-
-
 logger -p 3 -t clientevent "++setblacklist:mac:$mac, l_time:$l_time, action:$action, ath:$ath"
 
 atjobs_dir="/var/spool/cron/atjobs"
@@ -87,4 +73,3 @@ then
 fi
 
 logger -p 3 -t clientevent "--setblacklist:mac:$mac, l_time:$l_time, action:$action"
-lock -u /tmp/blacklist.lock

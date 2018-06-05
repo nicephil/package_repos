@@ -2,13 +2,6 @@
 
 DEBUG=
 
-trafstats_trap () {
-    logger -t trafstats "gets trap on trafstats" -p 3
-    lock -u /tmp/.iptables.lock
-}
-
-trap 'trafstats_trap; exit 1' INT TERM ABRT QUIT ALRM
-
 
 # DEBUG
 # $1 - string
@@ -67,19 +60,29 @@ add_client_track ()
     [ -z "$mac" -o -z "$_ip" ] && return 1
 
 
-    # delete first
-    del_client_track "$mac"
-
     trafstats_debug_log "2-->add_client_track: $mac $_ip"
     # add new rule
-    lock /tmp/.iptables.lock
 
-    iptables -A client_total_uplink_traf -s "$_ip" -j total_uplink_traf -m comment --comment "$mac"
-    iptables -A client_total_downlink_traf -d "$_ip" -j total_downlink_traf -m comment --comment "$mac"
-    iptables -A client_wan_uplink_traf -s "$_ip" -m comment --comment "$mac"
-    iptables -A client_wan_downlink_traf -d "$_ip" -m comment --comment "$mac"
-
-    lock -u /tmp/.iptables.lock
+    local rule=$(iptables -S client_total_uplink_traf  2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
+    if [ -z "$rule" ]
+    then
+        iptables -A client_total_uplink_traf -s "$_ip" -j total_uplink_traf -m comment --comment "$mac"
+    fi
+    local rule=$(iptables -S client_total_downlink_traf  2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
+    if [ -z "$rule" ]
+    then
+        iptables -A client_total_downlink_traf -d "$_ip" -j total_downlink_traf -m comment --comment "$mac"
+    fi
+    local rule=$(iptables -S client_wan_uplink_traf  2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
+    if [ -z "$rule" ]
+    then
+        iptables -A client_wan_uplink_traf -s "$_ip" -m comment --comment "$mac"
+    fi
+    local rule=$(iptables -S client_wan_downlink_traf  2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
+    if [ -z "$rule" ]
+    then
+        iptables -A client_wan_downlink_traf -d "$_ip" -m comment --comment "$mac"
+    fi
 
     return 0
 }
@@ -96,40 +99,53 @@ del_client_track ()
     [ -z "$mac" ] && return 1
 
 
-    lock /tmp/.iptables.lock
     # delete the mac existing in total uplink chain
-    local num=$(iptables -L client_total_uplink_traf -n -v --line-number -x 2>&1 | awk '/'"$mac"'/{print $1;exit}' 2>&1)
-    if [ -n "$num" ]
+    local rule=$(iptables -S client_total_uplink_traf  2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
+    if [ -n "$rule" ]
     then
-        trafstats_debug_log "aa1-->$mac, $num<--"
-        iptables -D client_total_uplink_traf "$num"
+        trafstats_debug_log "aa1-->$mac, $rule<--"
+        for i in 1 2 3
+        do
+            iptables $rule
+            [ "$?" = "0" ] && break
+        done
     fi
 
     # delete the mac existing in total downlink chain
-    local num=$(iptables -L client_total_downlink_traf -n -v --line-number -x 2>&1 | awk '/'"$mac"'/{print $1;exit}' 2>&1)
-    if [ -n "$num" ]
+    local rule=$(iptables -S client_total_downlink_traf 2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
+    if [ -n "$rule" ]
     then
-        trafstats_debug_log "bb1-->$mac, $num<--"
-        iptables -D client_total_downlink_traf "$num"
+        trafstats_debug_log "bb1-->$mac, $rule<--"
+        for i in 1 2 3
+        do
+            iptables $rule
+            [ "$?" = "0" ] && break
+        done
     fi
 
     # delete the mac existing in uplink chain
-    local num=$(iptables -L client_wan_uplink_traf -n -v --line-number -x 2>&1 | awk '/'"$mac"'/{print $1;exit}' 2>&1)
-    if [ -n "$num" ]
+    local rule=$(iptables -S client_wan_uplink_traf 2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
+    if [ -n "$rule" ]
     then
-        trafstats_debug_log "aa-->$mac, $num<--"
-        iptables -D client_wan_uplink_traf "$num"
+        trafstats_debug_log "aa-->$mac, $rule<--"
+        for i in 1 2 3
+        do
+            iptables $rule
+            [ "$?" = "0" ] && break
+        done
     fi
 
     # delete the mac existing in downlink chain
-    local num=$(iptables -L client_wan_downlink_traf -n -v --line-number -x 2>&1 | awk '/'"$mac"'/{print $1;exit}' 2>&1)
-    if [ -n "$num" ]
+    local rule=$(iptables -S client_wan_downlink_traf 2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
+    if [ -n "$rule" ]
     then
-        trafstats_debug_log "bb-->$mac, $num<--"
-        iptables -D client_wan_downlink_traf "$num"
+        trafstats_debug_log "bb-->$mac, $rule<--"
+        for i in 1 2 3
+        do
+            iptables $rule
+            [ "$?" = "0" ] && break
+        done
     fi
-
-    lock -u /tmp/.iptables.lock
 
     return 0
 }
@@ -153,19 +169,20 @@ fetch_client_stats ()
     unset "${total_uplink_var}"
     unset "${total_downlink_var}"
 
-    lock /tmp/.iptables.lock
-
     local _uplink=$(iptables -L client_wan_uplink_traf -n -v --line-number -x | awk '/'"${mac}"'/{print $3}')
     local _downlink=$(iptables -L client_wan_downlink_traf -n -v --line-number -x | awk '/'"${mac}"'/{print $3}')
     local _total_uplink=$(iptables -L client_total_uplink_traf -n -v --line-number -x | awk '/'"${mac}"'/{print $3}')
     local _total_downlink=$(iptables -L client_total_downlink_traf -n -v --line-number -x | awk '/'"${mac}"'/{print $3}')
 
+    [ -z "$_uplink" ] && _uplink=0
+    [ -z "$_downlink" ] && _downlink=0
+    [ -z "$_total_uplink" ] && _total_uplink=0
+    [ -z "$_total_downlink" ] && _total_downlink=0
+
     export "${uplink_var}=$_uplink"
     export "${downlink_var}=$_downlink"
     export "${total_uplink_var}=$_total_uplink"
     export "${total_downlink_var}=$_total_downlink"
-
-    lock -u /tmp/.iptables.lock
 
     return 0
 }
