@@ -157,11 +157,11 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
             stas[row].mode = DOT11_RADIO_MODE_A | DOT11_RADIO_MODE_N;
         } else if (!strcmp(argv[14], "ng") || !strcmp(argv[14], "11ng")) {
             stas[row].mode = DOT11_RADIO_MODE_G | DOT11_RADIO_MODE_N;
-        } else if (!strcmp(argv[14], "a")) {
+        } else if (!strcmp(argv[14], "a") || !strcmp(argv[14], "11a")) {
             stas[row].mode = DOT11_RADIO_MODE_A;
-        } else if (!strcmp(argv[14], "g")) {
+        } else if (!strcmp(argv[14], "g") || !strcmp(argv[14], "11g")) {
             stas[row].mode = DOT11_RADIO_MODE_G;
-        } else if (!strcmp(argv[14], "n")) {
+        } else if (!strcmp(argv[14], "n") || !strcmp(argv[14], "11n")) {
             stas[row].mode = DOT11_RADIO_MODE_N;
         }
     } else {
