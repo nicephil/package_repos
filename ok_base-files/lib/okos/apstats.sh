@@ -55,6 +55,7 @@ config_load wireless
 
 timestamp=`date +%s`
 
+ebtabls_CMD="ebtables"
 
 # $1 - all total uplink
 # $2 - all total downlink
@@ -66,16 +67,16 @@ fetch_client_stats ()
     unset "${all_total_uplink_var}"
     unset "${all_total_downlink_var}"
 
-    local _all_total_uplink=$(iptables -L total_uplink_traf -n -v --line-number -x | awk '/RETURN/{print $3}')
-    local _all_total_downlink=$(iptables -L total_downlink_traf -n -v --line-number -x | awk '/RETURN/{print $3}')
+    local _all_total_uplink=$($ebtabls_CMD -L total_uplink_traf --Lc --Lmac2 | awk '/RETURN/{print $NF}')
+    local _all_total_downlink=$($ebtabls_CMD -L total_downlink_traf --Lc --Lmac2 | awk '/RETURN/{print $NF}')
     [ -z "$_all_total_uplink" ] && _all_total_uplink=0
     [ -z "$_all_total_downlink" ] && _all_total_downlink=0
 
     export "${all_total_uplink_var}=$_all_total_uplink"
     export "${all_total_downlink_var}=$_all_total_downlink"
 
-    iptables -Z total_uplink_traf
-    iptables -Z total_downlink_traf
+    $ebtabls_CMD -Z total_uplink_traf
+    $ebtabls_CMD -Z total_downlink_traf
 
     return 0
 }

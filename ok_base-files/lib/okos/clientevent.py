@@ -151,7 +151,7 @@ class Client(Thread):
         os.system("wdctl reset %s &" % self.mac)
         # 2.4 clean up ratelimit
         self.set_ratelimit(0, 0, 0, 0, clientevent.ath, 0)
-        # 2.5 del client into client traffic track in iptables
+        # 2.5 del client into client traffic track in ebtables
         self.set_client_track(0)
 
         # check queue again

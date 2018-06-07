@@ -3,30 +3,6 @@
 
 CMD="iptables"
 
-set_static_statistics_rules ()
-{
-    # set user statistics chains
-    $CMD -N client_wan_downlink_traf
-    $CMD -N client_wan_uplink_traf
-    $CMD -N total_downlink_traf
-    $CMD -N total_uplink_traf
-
-    # statistics rule
-    $CMD -A wan_downlink_traf -s 192.168.0.0/16 -j RETURN 
-    $CMD -A wan_downlink_traf -s 172.16.0.0/12 -j RETURN 
-    $CMD -A wan_downlink_traf -s 10.0.0.0/8 -j RETURN 
-    $CMD -A wan_downlink_traf -j client_wan_downlink_traf 
-
-    $CMD -A wan_uplink_traf -d 192.168.0.0/16 -j RETURN 
-    $CMD -A wan_uplink_traf -d 172.16.0.0/12 -j RETURN 
-    $CMD -A wan_uplink_traf -d 10.0.0.0/8 -j RETURN 
-    $CMD -A wan_uplink_traf -j client_wan_uplink_traf 
-
-    $CMD -A total_uplink_traf -j RETURN
-    $CMD -A total_downlink_traf -j RETURN
-}
-
-
 set_static_firewall_rules ()
 {
     $CMD -A Firewall -m state --state RELATED,ESTABLISHED -j ACCEPT 
@@ -66,8 +42,6 @@ set_static_guest_network_rules ()
 
 set_other_static_chains_rules ()
 {
-    set_static_statistics_rules
-
     set_static_firewall_rules
 
     set_static_clientcontrol_rules
@@ -95,12 +69,6 @@ set_global_static_chains_rules()
     $CMD -N WhiteList
     #$CMD -N GotoPortal
 
-    # statistics chains
-    $CMD -N wan_downlink_traf
-    $CMD -N wan_uplink_traf
-    $CMD -N client_total_downlink_traf
-    $CMD -N client_total_uplink_traf
-
     # guest network isolation
     $CMD -N isolation
 
@@ -108,12 +76,6 @@ set_global_static_chains_rules()
     #### make sure ordering of rules
     # firewall rule
     $CMD -A INPUT -j Firewall 
-
-    # statistic rule
-    $CMD -A FORWARD -j client_total_downlink_traf 
-    $CMD -A FORWARD -j client_total_uplink_traf 
-    $CMD -A FORWARD -j wan_downlink_traf 
-    $CMD -A FORWARD -j wan_uplink_traf 
 
     # firewall rule
     $CMD -A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT 
@@ -160,9 +122,12 @@ set_global_static_chains_rules()
 
 }
 
+. /lib/okos/ebtables.static
+
 apfw_static_start()
 {
     set_global_static_chains_rules
+    ebtables_static_start
 }
 
 

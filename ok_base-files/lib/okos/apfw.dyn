@@ -11,16 +11,6 @@ clean_gotoportal()
     iptables -t nat -F GotoPortal
 }
 
-clean_traf_statistics()
-{
-    iptables -Z total_uplink_traf
-    iptables -Z total_downlink_traf
-    iptables -F client_total_uplink_traf
-    iptables -F client_total_downlink_traf
-    iptables -F client_wan_uplink_traf
-    iptables -F client_wan_downlink_traf
-}
-
 clean_guestnetwork()
 {
     iptables -F isolation
@@ -47,10 +37,10 @@ apfw_dyn_start()
 {
     walk_config_and_setup
 }
-
+. /lib/okos/ebtables.dyn
 apfw_dyn_stop()
 {
     clean_whitelist
-    clean_traf_statistics
+    ebtables_clean_traf_statistics
     clean_guestnetwork
 }

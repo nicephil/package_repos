@@ -22,7 +22,6 @@ upsta_err_log () {
 }
 
 upstabycron_trap () {
-    trafstats_trap
     upsta_err_log "gets trap on upstabycron"
     rm -rf /tmp/upstabycron.lock
 }
@@ -98,9 +97,9 @@ do
    
     # add new record
     #echo sqlite3 $dbfile "BEGIN TRANSACTION;CREATE TABLE ${tablename}(MAC,IFNAME,CHAN,RSSI,ASSOCTIME,RADIOID,BSSID,IPADDR,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PORTAL_MODE,PORTAL_USER,SMODE,SBW,NTXRT,NRXRT,TXB,RXB,ATXRB,ARXRB,TXFS,RXES,TS,HOSTNAME,PSMODE,WANTXB,WANRXB,GWADDR,MINRSSI,MAXRSSI,PORTAL_STATUS);COMMIT;" | logger
-    CMD="INSERT OR REPLACE INTO ${tablename} VALUES('$_mac','$_ath','$_chan','$_rssi','$_assoctime','${_ath:3:1}','$_bssid','$_ip','$_auth','$_ps','$_ssid','$_vlan','$_pm','$_pu','$_smode','$_sbw','$_ntxrt','$_nrxrt','$_txB','$_rxB','$_atxrb','$_arxrb','$_txfs','$_rxes','$_ts','$_hostname','$_psmode','$_wan_txB','$_wan_rxB','$_gwaddr','$_min_rssi', '$_max_rssi', '$_portal_status')"
-    #echo sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;" | logger
-    sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
+    sqlite3_CMD="INSERT OR REPLACE INTO ${tablename} VALUES('$_mac','$_ath','$_chan','$_rssi','$_assoctime','${_ath:3:1}','$_bssid','$_ip','$_auth','$_ps','$_ssid','$_vlan','$_pm','$_pu','$_smode','$_sbw','$_ntxrt','$_nrxrt','$_txB','$_rxB','$_atxrb','$_arxrb','$_txfs','$_rxes','$_ts','$_hostname','$_psmode','$_wan_txB','$_wan_rxB','$_gwaddr','$_min_rssi', '$_max_rssi', '$_portal_status')"
+    #echo sqlite3 $dbfile "BEGIN TRANSACTION;${sqlite3_CMD};COMMIT;" | logger
+    sqlite3 $dbfile "BEGIN TRANSACTION;${sqlite3_CMD};COMMIT;"
    
 done
 

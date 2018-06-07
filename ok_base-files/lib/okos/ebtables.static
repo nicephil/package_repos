@@ -1,0 +1,65 @@
+#!/bin/sh 
+
+
+ebtables_CMD="ebtables"
+
+ebtables_set_static_statistics_rules ()
+{
+    # set user statistics chains
+    $ebtables_CMD -N client_wan_downlink_traf
+    $ebtables_CMD -N client_wan_uplink_traf
+    $ebtables_CMD -N total_downlink_traf
+    $ebtables_CMD -N total_uplink_traf
+
+    # statistics rule
+    $ebtables_CMD -M ip -A wan_downlink_traf -p ipv4 --ip-source 192.168.0.0/16 -j RETURN 
+    $ebtables_CMD -M ip -A wan_downlink_traf -p ipv4 --ip-source  172.16.0.0/12 -j RETURN 
+    $ebtables_CMD -M ip -A wan_downlink_traf -p ipv4 --ip-source  10.0.0.0/8 -j RETURN 
+    $ebtables_CMD -A wan_downlink_traf -j client_wan_downlink_traf
+
+    $ebtables_CMD -M ip -A wan_uplink_traf -p ipv4 --ip-destination 192.168.0.0/16 -j RETURN 
+    $ebtables_CMD -M ip -A wan_uplink_traf -p ipv4 --ip-destination 172.16.0.0/12 -j RETURN 
+    $ebtables_CMD -M ip -A wan_uplink_traf -p ipv4 --ip-destination  10.0.0.0/8 -j RETURN 
+    $ebtables_CMD -M ip -A wan_uplink_traf -j client_wan_uplink_traf 
+
+    $ebtables_CMD -A total_uplink_traf -j RETURN
+    $ebtables_CMD -A total_downlink_traf -j RETURN
+}
+
+
+# put other user defined chains' rules here
+ebtables_set_other_static_chains_rules ()
+{
+    ebtables_set_static_statistics_rules
+
+}
+
+
+# set the global static chains and first level rules
+ebtables_set_global_static_chains_rules()
+{
+
+    # filter table
+    # statistics chains
+    $ebtables_CMD -N wan_downlink_traf
+    $ebtables_CMD -N wan_uplink_traf
+    $ebtables_CMD -N client_total_downlink_traf
+    $ebtables_CMD -N client_total_uplink_traf
+
+    # statistic rule
+    $ebtables_CMD -A FORWARD -j client_total_downlink_traf 
+    $ebtables_CMD -A FORWARD -j client_total_uplink_traf 
+    $ebtables_CMD -A FORWARD -j wan_downlink_traf 
+    $ebtables_CMD -A FORWARD -j wan_uplink_traf 
+
+    ## set other user defined static rules
+    ebtables_set_other_static_chains_rules
+
+}
+
+ebtables_static_start()
+{
+    ebtables_set_global_static_chains_rules
+}
+
+

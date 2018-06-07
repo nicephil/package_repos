@@ -1,0 +1,11 @@
+#!/bin/sh
+
+ebtables_clean_traf_statistics()
+{
+    ebtables -Z total_uplink_traf
+    ebtables -Z total_downlink_traf
+    ebtables -F client_total_uplink_traf
+    ebtables -F client_total_downlink_traf
+    ebtables -F client_wan_uplink_traf
+    ebtables -F client_wan_downlink_traf
+}
