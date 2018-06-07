@@ -51,12 +51,12 @@ add_client_track ()
     local rule=$($ebtables_CMD -L client_wan_uplink_traf --Lx --Lmac2  2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
     if [ -z "$rule" ]
     then
-        $ebtables_CMD -A client_wan_uplink_traf -s "$mac" -j RETURN
+        $ebtables_CMD -A client_wan_uplink_traf -s "$mac" -j total_wan_uplink_traf
     fi
     local rule=$($ebtables_CMD -L client_wan_downlink_traf --Lx --Lmac2 2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
     if [ -z "$rule" ]
     then
-        $ebtables_CMD -A client_wan_downlink_traf -d "$mac" -j RETURN
+        $ebtables_CMD -A client_wan_downlink_traf -d "$mac" -j total_wan_downlink_traf
     fi
 
     return 0

@@ -59,24 +59,38 @@ ebtabls_CMD="ebtables"
 
 # $1 - all total uplink
 # $2 - all total downlink
+# $3 - all total wan uplink
+# $4 - all total wan downlink
 fetch_client_stats ()
 {
     local all_total_uplink_var="$1"
     local all_total_downlink_var="$2"
+    local all_total_wan_uplink_var="$3"
+    local all_total_wan_downlink_var="$4"
 
     unset "${all_total_uplink_var}"
     unset "${all_total_downlink_var}"
+    unset "${all_total_wan_uplink_var}"
+    unset "${all_total_wan_downlink_var}"
 
-    local _all_total_uplink=$($ebtabls_CMD -L total_uplink_traf --Lc --Lmac2 | awk '/RETURN/{print $NF}')
-    local _all_total_downlink=$($ebtabls_CMD -L total_downlink_traf --Lc --Lmac2 | awk '/RETURN/{print $NF}')
+    local _all_total_uplink=$($ebtabls_CMD -L total_uplink_traf --Lc --Lmac2 | awk '/-j RETURN/{print $NF}')
+    local _all_total_downlink=$($ebtabls_CMD -L total_downlink_traf --Lc --Lmac2 | awk '/-j RETURN/{print $NF}')
+    local _all_total_wan_uplink=$($ebtabls_CMD -L total_wan_uplink_traf --Lc --Lmac2 | awk '/-j RETURN/{print $NF}')
+    local _all_total_wan_downlink=$($ebtabls_CMD -L total_wan_downlink_traf --Lc --Lmac2 | awk '/-j RETURN/{print $NF}')
     [ -z "$_all_total_uplink" ] && _all_total_uplink=0
     [ -z "$_all_total_downlink" ] && _all_total_downlink=0
+    [ -z "$_all_total_wan_uplink" ] && _all_total_wan_uplink=0
+    [ -z "$_all_total_wan_downlink" ] && _all_total_wan_downlink=0
 
     export "${all_total_uplink_var}=$_all_total_uplink"
     export "${all_total_downlink_var}=$_all_total_downlink"
+    export "${all_total_wan_uplink_var}=$_all_total_wan_uplink"
+    export "${all_total_wan_downlink_var}=$_all_total_wan_downlink"
 
     $ebtabls_CMD -Z total_uplink_traf
     $ebtabls_CMD -Z total_downlink_traf
+    $ebtabls_CMD -Z total_wan_uplink_traf
+    $ebtabls_CMD -Z total_wan_downlink_traf
 
     return 0
 }
@@ -91,13 +105,17 @@ json_add_int "timestamp" "$timestamp"
 # fetch WLAN Stats
 local Delta_txB=""
 local Delta_rxB=""
+local Delta_wan_txB=""
+local Delta_wan_rxB=""
 
-fetch_client_stats Delta_txB Delta_rxB
-# echo "+++++>"WLAN", $Delta_txB, $Delta_rxB"
+fetch_client_stats Delta_txB Delta_rxB Delta_wan_txB Delta_wan_rxB
+# echo "+++++>"WLAN", $Delta_txB, $Delta_rxB $Delta_wan_txB $Delta_wan_rxB"
 
 json_add_object "WLAN"
 json_add_int "Tx_Data_Bytes" "$Delta_rxB"
 json_add_int "Rx_Data_Bytes" "$Delta_txB"
+json_add_int "Tx_Bytes_Wan" "$Delta_wan_rxB"
+json_add_int "Rx_Bytes_Wan" "$Delta_wan_txB"
 json_close_object
 
 
