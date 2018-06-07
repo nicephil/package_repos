@@ -189,7 +189,8 @@ class Client(Thread):
 
         # 4. station ip changed event
         elif clientevent.event.find('STA-IP-CHANGED', 0) == 0:
-            self.handle_ip_changed_event(clientevent)
+            #self.handle_ip_changed_event(clientevent)
+            pass
 
         # 5. Unknow Event
         else:
