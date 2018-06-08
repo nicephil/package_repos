@@ -81,7 +81,7 @@ del_client_track ()
         trafstats_debug_log "aa1-->$mac, $rule<--"
         for i in 1 2 3
         do
-            $ebtables_CMD $rule
+            $rule
             [ "$?" = "0" ] && break
         done
     fi
@@ -93,7 +93,7 @@ del_client_track ()
         trafstats_debug_log "bb1-->$mac, $rule<--"
         for i in 1 2 3
         do
-            $ebtables_CMD $rule
+            $rule
             [ "$?" = "0" ] && break
         done
     fi
@@ -105,7 +105,7 @@ del_client_track ()
         trafstats_debug_log "aa-->$mac, $rule<--"
         for i in 1 2 3
         do
-            $ebtables_CMD $rule
+            $rule
             [ "$?" = "0" ] && break
         done
     fi
@@ -117,7 +117,7 @@ del_client_track ()
         trafstats_debug_log "bb-->$mac, $rule<--"
         for i in 1 2 3
         do
-            $ebtables_CMD $rule
+            $rule
             [ "$?" = "0" ] && break
         done
     fi
