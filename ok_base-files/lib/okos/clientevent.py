@@ -574,6 +574,7 @@ class Manager(object):
                         mac,
                         event,
                         ppsk_key))
+            fifo.close()
 
 def main():
     # 1. daemonlize
