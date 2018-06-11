@@ -47,8 +47,8 @@ do
     __iptables_check=`(iptables -S WhiteList;iptables -t nat -S GotoPortal)| grep -i $_mac`
     if [ -z "$__iptables_check" ]
     then
-        runtimefixup_err_log "missed __ath:$__ath client:$client connected event"
-        iwpriv $__ath kickmac $client
+        runtimefixup_err_log "missed __ath:$__ath client:$_mac connected event"
+        iwpriv $__ath kickmac $_mac
         continue
     fi
 done

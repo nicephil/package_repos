@@ -414,9 +414,6 @@ class Manager(object):
                                                          e.strerror))
             sys.exit(0)
 
-        self.pipe_f = os.open(self.pipe_name, os.O_SYNC |
-                              os.O_CREAT | os.O_RDWR)
-
     # handle /lib/wifi event
     def handle_wifi_down_event(self, ath, mac, event):
         # refetch auth_url and domain as config maybe changed
@@ -503,83 +500,80 @@ class Manager(object):
     def handle_pipe_loop(self):
         # loop processing pipe event
         while True:
-            # 1. read pipe
-            s = os.read(self.pipe_f, 168)
-            s = s.strip('\n')
+            # 1. open file
+            fifo = open(self.pipe_name, "r")
+            for line in fifo:
+                # 2. read one line
+                s = line.strip('\n')
+                syslog(LOG_DEBUG, "ssssss:%s" % s)
+                # 3. parse content
+                try:
+                    vs = s.split(' ')
+                    if len(vs) == 1:
+                        ath = vs[0]
+                        mac = ''
+                        event = ''
+                        ppsk_key = ''
+                    elif len(vs) == 2:
+                        ath = vs[0]
+                        mac = vs[1]
+                        event = ''
+                        ppsk_key = ''
+                    elif len(vs) == 3:
+                        ath = vs[0]
+                        mac = vs[1]
+                        event = vs[2]
+                        ppsk_key = ''
+                    elif len(vs) == 4:
+                        ath = vs[0]
+                        mac = vs[1]
+                        event = vs[2]
+                        ppsk_key = vs[3]
+                    else:
+                        ath = s
+                        mac = ''
+                        event = ''
+                        ppsk_key = ''
 
-            # 2. no char, sender is closed, so sleep
-            if len(s) == 0:
-                time.sleep(1)
-                continue
-
-            # 3. parse content
-            try:
-                vs = s.split(' ')
-                if len(vs) == 1:
-                    ath = vs[0]
-                    mac = ''
-                    event = ''
-                    ppsk_key = ''
-                elif len(vs) == 2:
-                    ath = vs[0]
-                    mac = vs[1]
-                    event = ''
-                    ppsk_key = ''
-                elif len(vs) == 3:
-                    ath = vs[0]
-                    mac = vs[1]
-                    event = vs[2]
-                    ppsk_key = ''
-                elif len(vs) == 4:
-                    ath = vs[0]
-                    mac = vs[1]
-                    event = vs[2]
-                    ppsk_key = vs[3]
-                else:
+                except ValueError:
                     ath = s
                     mac = ''
                     event = ''
                     ppsk_key = ''
+                except KeyboardInterrupt:
+                    sys.exit(0)
 
-            except ValueError:
-                ath = s
-                mac = ''
-                event = ''
-                ppsk_key = ''
-            except KeyboardInterrupt:
-                sys.exit(0)
+                syslog(LOG_ERR, "=++=>ath:%s, mac:%s, event:%s xx:%s" %
+                       (ath,
+                        mac,
+                        event,
+                        ppsk_key))
 
-            syslog(LOG_ERR, "=++=>ath:%s, mac:%s, event:%s xx:%s" %
-                   (ath,
-                    mac,
-                    event,
-                    ppsk_key))
 
-            # 4. handle wifi driver down event
-            if ath == '/lib/wifi':
-                self.handle_wifi_down_event(ath, mac, event)
+                # 4. handle wifi driver down event
+                if ath == '/lib/wifi':
+                    self.handle_wifi_down_event(ath, mac, event)
 
-            # 5. bypass AP-DISABLED event
-            elif event == 'AP-DISABLED' or len(mac) == 0:
-                self.handle_ap_disabled_event(ath, mac, event)
+                # 5. bypass AP-DISABLED event
+                elif event == 'AP-DISABLED' or len(mac) == 0:
+                    self.handle_ap_disabled_event(ath, mac, event)
 
-            # 6. handle client event
-            elif len(ath) > 0 and self.isValidMac(mac) and len(event) > 0:
-                self.dispatch_client_event(ath, mac, event, ppsk_key)
+                # 6. handle client event
+                elif len(ath) > 0 and self.isValidMac(mac) and len(event) > 0:
+                    self.dispatch_client_event(ath, mac, event, ppsk_key)
 
-            # 7. Unknown
-            else:
-                syslog(LOG_ERR, "Unknown Event:%s,%s,%s,%s" % (ath,
-                                                                mac,
-                                                                event,
-                                                                ppsk_key))
-            # 8. add log
-            syslog(LOG_ERR, "=--=>ath:%s, mac:%s, event:%s, xx:%s" %
-                   (ath,
-                    mac,
-                    event,
-                    ppsk_key))
-
+                # 7. Unknown
+                else:
+                    syslog(LOG_ERR, "Unknown Event:%s,%s,%s,%s" % (ath,
+                                                                   mac,
+                                                                   event,
+                                                                   ppsk_key))
+                # 8. add log
+                syslog(LOG_ERR, "=--=>ath:%s, mac:%s, event:%s, xx:%s" %
+                        (ath,
+                        mac,
+                        event,
+                        ppsk_key))
 
 def main():
     # 1. daemonlize
