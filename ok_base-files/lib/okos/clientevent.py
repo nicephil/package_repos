@@ -15,28 +15,7 @@ import Queue as qq
 from Queue import Queue
 from okos_utils import get_auth_url, mac_to_byte, get_mac, get_portalscheme, \
     get_ssid, get_domain
-import logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    #filename='log.txt',
-    #filemode='w',
-    format='%(asctime)s [%(threadName)s-%(thread)d] %(levelname)s: %(message)s',
-)
-def log_debug(msg):
-    logging.debug(msg)
-
-def log_info(msg):
-    logging.info(msg)
-
-def log_warning(msg):
-    logging.warning(msg)
-
-def log_err(msg):
-    logging.error(msg)
-
-def log_crit(msg):
-    logging.critical(msg)
-
+from syslog import syslog, LOG_INFO, LOG_WARNING, LOG_ERR, LOG_DEBUG
 # import objgraph
 # import pdb
 
@@ -59,7 +38,7 @@ class Client(Thread):
                  'last_tx_rate_limit', 'last_rx_rate_limit',
                  'last_tx_rate_limit_local', 'last_rx_rate_limit_local',
                  'last_ath', 'last_remain_time', 'last_username', 'last_err',
-                 'last_auth_mode')
+                 'last_auth_mode', 'putting_event')
 
     def __init__(self, mac):
         Thread.__init__(self)
@@ -78,11 +57,14 @@ class Client(Thread):
         self.last_err = True
         self.last_auth_mode = 0
         self.name = mac
+        self.putting_event = False
 
     # add a new event in queue
     def put_event(self, ath, event, ppsk_key=''):
-        if event.find('STA-IP-CHANGED', 0) == 0 and not self.queue.empty():
-            return
+        self.putting_event = True
+        #if event.find('STA-IP-CHANGED', 0) == 0:
+        #    self.putting_event = False
+        #    return
         # 1. new client event
         clientevent = ClientEvent(ath, event, ppsk_key)
         queue = self.queue
@@ -93,8 +75,10 @@ class Client(Thread):
         except Exception, e:
             tmp_event = self.queue.get_nowait()
             queue.put_nowait(clientevent)
-            log_err("%s:Queue Full, ignore %s-%s, put %s-%s, %s" %
+            syslog(LOG_ERR, "%s:Queue Full, ignore %s-%s, put %s-%s, %s" %
                 (self.mac, tmp_event.ath, tmp_event.event, clientevent.ath, clientevent.event, repr(e)))
+        self.putting_event = False
+        syslog(LOG_DEBUG, "%s:put %s-%s into queue" % (self.mac, clientevent.ath, clientevent.event))
 
     # query and save params
     def query_and_init(self, clientevent):
@@ -102,7 +86,7 @@ class Client(Thread):
             err, acl_type, time, tx_rate_limit, rx_rate_limit, \
              tx_rate_limit_local, rx_rate_limit_local, remain_time, \
              username, auth_mode = self.query_auth(clientevent)
-            log_err("mac:%s err:%s acl_type:%s time:%s tx_rate_limit:%s \
+            syslog(LOG_ERR, "mac:%s err:%s acl_type:%s time:%s tx_rate_limit:%s \
                    rx_rate_limit:%s rx_rate_limit_local:%s \
                    tx_rate_limit_local:%s remain_time:%s username:%s auth_mode:%s" %
                    (repr(self.mac),
@@ -145,9 +129,10 @@ class Client(Thread):
         elif self.last_acl_type == 0:
             self.set_blacklist(0, 0, self.last_ath)
             if self.last_remain_time == 0:
-                self.set_whitelist(0, 0)
                 if self.last_auth_mode > 0: # add gotoprotal
                     self.set_whitelist(0, 1, mode=1)
+                else:
+                    self.set_whitelist(0,1)
             else:
                 self.set_whitelist(0, 1)
                 self.notify_wifidog(self.mac, self.last_remain_time)
@@ -189,12 +174,15 @@ class Client(Thread):
         try:
             clientevent = self.queue.get(block=True, timeout=30)
         except qq.Empty:
-            self.term = True
-            clientevent = ClientEvent('ath00', 'TERM', '')
-            log_debug("%s: exit as no more event" % self.mac)
+            if not self.putting_event:
+                self.term = True
+                syslog(LOG_DEBUG, "%s: exit as no more event" % self.mac)
+            else:
+                syslog(LOG_DEBUG, "%s: more event comming" % self.mac)
+            return
 
         self.clientevent = clientevent
-        log_err("++>mac:%s event:%s" % (self.mac, clientevent.event))
+        syslog(LOG_ERR, "++>mac:%s event:%s" % (self.mac, clientevent.event))
 
         # 1. handle connected event
         if clientevent.event == 'AP-STA-CONNECTED':
@@ -206,19 +194,22 @@ class Client(Thread):
 
         # 3. term event
         elif clientevent.event == 'TERM':
-            self.term = True
+            if not self.putting_event:
+                self.term = True
+                syslog(LOG_DEBUG, "%s: TERM event" % self.mac)
+                return
 
         # 4. station ip changed event
         elif clientevent.event.find('STA-IP-CHANGED', 0) == 0:
-            #self.handle_ip_changed_event(clientevent)
+            self.handle_ip_changed_event(clientevent)
             pass
 
         # 5. Unknow Event
         else:
-            log_warning("Unknow Event on %s %s" %
+            syslog(LOG_WARNING, "Unknow Event on %s %s" %
                    (self.mac, clientevent.event))
 
-        log_err("-->mac:%s event:%s" % (self.mac, clientevent.event))
+        syslog(LOG_ERR, "-->mac:%s event:%s" % (self.mac, clientevent.event))
 
     # query auth server and fetch info
     def query_auth(self, clientevent):
@@ -231,10 +222,10 @@ class Client(Thread):
             else:
                 url = '%s/authority?info=%s' % (auth_url, self.pack_info())
 
-            log_debug('query url:%s' % url)
+            syslog(LOG_DEBUG, 'query url:%s' % url)
             response = urllib2.urlopen(url, timeout=5)
         except Exception, e:
-            log_err("HTTPError: %s" % str(e))
+            syslog(LOG_ERR, "HTTPError: %s" % str(e))
             return True, 0, 0, 0, 0, 0, 0, 0, '', 0
         response_str = response.read()
         # hacky avoidance (https://bugs.python.org/issue1208304)
@@ -244,7 +235,7 @@ class Client(Thread):
         try:
             return self.unpack_info(response_str)
         except Exception, e:
-            log_err("UnpackError: %s" % str(e))
+            syslog(LOG_ERR, "UnpackError: %s" % str(e))
             return True, 0, 0, 0, 0, 0, 0, 0, '', 0
 
     # pack the info for auth query
@@ -344,7 +335,7 @@ class Client(Thread):
                 struct.unpack_from(fmt1, ss_str, offset)
             acl_type = ord(acl_type)
         else:
-            log_err("str_len:%d" % len(ss_str))
+            syslog(LOG_ERR, "str_len:%d" % len(ss_str))
             err = True
 
         return err, acl_type, time, tx_rate_limit, rx_rate_limit, \
@@ -403,8 +394,8 @@ class Client(Thread):
             try:
                 self.handle_event()
             except Exception, e:
-                log_err("%s: Exception - %s" % (self.mac, str(e)))
-        log_err("%s: thread exit" % (self.mac))
+                syslog(LOG_ERR, "%s: Exception - %s" % (self.mac, str(e)))
+        syslog(LOG_ERR, "%s: thread exit" % (self.mac))
 
 
 # Class describes the manager
@@ -419,7 +410,7 @@ class Manager(object):
         try:
             os.mkfifo(self.pipe_name)
         except OSError, e:
-            log_warning("mkfifo error: %d %s" % (e.errno,
+            syslog(LOG_WARNING, "mkfifo error: %d %s" % (e.errno,
                                                          e.strerror))
             sys.exit(0)
 
@@ -433,7 +424,7 @@ class Manager(object):
         auth_url = get_auth_url()
         global domain
         domain = get_domain()
-        log_debug("device_mac:%s auth_url:%s domain:%s" %
+        syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
                (device_mac, auth_url, domain))
 
         # free all existing clients
@@ -443,7 +434,7 @@ class Manager(object):
         gc.collect()
 
         for c in threading.enumerate():
-            log_debug('FFF> %s' % str(c))
+            syslog(LOG_DEBUG, 'FFF> %s' % str(c))
 
     # handle AP-DISABLED event
     def handle_ap_disabled_event(self, ath, mac, event):
@@ -452,27 +443,27 @@ class Manager(object):
         auth_url = get_auth_url()
         global domain
         domain = get_domain()
-        log_debug("device_mac:%s auth_url:%s domain:%s" %
+        syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
                (device_mac, auth_url, domain))
 
         return 0
         # get garbages info
         for c in threading.enumerate():
-            log_debug('FFF> %s' % str(c))
+            syslog(LOG_DEBUG, 'FFF> %s' % str(c))
         rt = gc.collect()
-        log_debug("%d unreachable" % rt)
+        syslog(LOG_DEBUG, "%d unreachable" % rt)
         garbages = gc.garbage
-        log_debug("\n%d garbages:" % len(garbages))
+        syslog(LOG_DEBUG, "\n%d garbages:" % len(garbages))
         i = 0
         for garbage in garbages:
             i = i + 1
             if i > 30:
                 break
             if hasattr(garbage, "name"):
-                log_debug("-----> obj:%s,name:%s" %
+                syslog(LOG_DEBUG, "-----> obj:%s,name:%s" %
                        (garbage, garbage.name,))
             else:
-                log_debug(LOG_DEBUG, "%s" % str(garbage))
+                syslog(LOG_DEBUG, "%s" % str(garbage))
 
     # dispatch each client event
     def dispatch_client_event(self, ath, mac, event, ppsk_key):
@@ -493,7 +484,7 @@ class Manager(object):
         # 4. gc
         gc.collect()
         # for c in threading.enumerate():
-        #    log_debug('CCC> %s' % str(c))
+        #    syslog(LOG_DEBUG, 'CCC> %s' % str(c))
         # rt = gc.collect()
         # print "%d unreachable" % rt
         # garbages = gc.garbage
@@ -558,7 +549,7 @@ class Manager(object):
             except KeyboardInterrupt:
                 sys.exit(0)
 
-            log_err("=++=>ath:%s, mac:%s, event:%s xx:%s" %
+            syslog(LOG_ERR, "=++=>ath:%s, mac:%s, event:%s xx:%s" %
                    (ath,
                     mac,
                     event,
@@ -578,12 +569,12 @@ class Manager(object):
 
             # 7. Unknown
             else:
-                log_err("Unknown Event:%s,%s,%s,%s" % (ath,
+                syslog(LOG_ERR, "Unknown Event:%s,%s,%s,%s" % (ath,
                                                                 mac,
                                                                 event,
                                                                 ppsk_key))
             # 8. add log
-            log_err("=--=>ath:%s, mac:%s, event:%s, xx:%s" %
+            syslog(LOG_ERR, "=--=>ath:%s, mac:%s, event:%s, xx:%s" %
                    (ath,
                     mac,
                     event,
@@ -602,7 +593,7 @@ def main():
                 # exit first parent
                 sys.exit(0)
         except OSError, e:
-            log_warning("fork #1 failed: %d (%s)" %
+            syslog(LOG_WARNING, "fork #1 failed: %d (%s)" %
                    (e.errno, e.strerror))
             sys.exit(1)
         # decouple from parent environment
@@ -614,10 +605,10 @@ def main():
             pid = os.fork()
             if pid > 0:
                 # exit from second parent, print eventual PID before
-                log_info("Daemon PID %d" % pid)
+                syslog(LOG_INFO, "Daemon PID %d" % pid)
                 sys.exit(0)
         except OSError, e:
-            log_err("fork #2 failed: %d (%s)" % (e.errno,
+            syslog(LOG_ERR, "fork #2 failed: %d (%s)" % (e.errno,
                                                          e.strerror))
             sys.exit(1)
 
@@ -630,7 +621,7 @@ def main():
     auth_url = get_auth_url()
     global domain
     domain = get_domain()
-    log_debug("device_mac:%s auth_url:%s domain:%s" %
+    syslog(LOG_DEBUG, "device_mac:%s auth_url:%s domain:%s" %
            (device_mac, auth_url, domain))
     # 3. create manager object and go into event loop
     manager = Manager()

@@ -10,7 +10,7 @@
 #include "services/wlan_services.h"
 #include "sqlite3.h"
 
-#define WLAN_STA_STAUS_TIMER   5
+#define WLAN_STA_STAUS_TIMER   10
 
 
 static inline rssi_level_e dc_rssi2level(int rssi) 
@@ -149,26 +149,8 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
         stas[row].name_len = strlen(stas[row].user);
     }
 
-    /*SMODE*/
-    if (argv[14] && strlen(argv[14])) {
-        if (!strcmp(argv[14], "ac") || !strcmp(argv[14], "11ac")) {
-            stas[row].mode = DOT11_RADIO_MODE_AC;
-        } else if (!strcmp(argv[14], "na") || !strcmp(argv[14], "11na")) {
-            stas[row].mode = DOT11_RADIO_MODE_A | DOT11_RADIO_MODE_N;
-        } else if (!strcmp(argv[14], "ng") || !strcmp(argv[14], "11ng")) {
-            stas[row].mode = DOT11_RADIO_MODE_G | DOT11_RADIO_MODE_N;
-        } else if (!strcmp(argv[14], "a") || !strcmp(argv[14], "11a")) {
-            stas[row].mode = DOT11_RADIO_MODE_A;
-        } else if (!strcmp(argv[14], "g") || !strcmp(argv[14], "11g")) {
-            stas[row].mode = DOT11_RADIO_MODE_G;
-        } else if (!strcmp(argv[14], "n") || !strcmp(argv[14], "11n")) {
-            stas[row].mode = DOT11_RADIO_MODE_N;
-        }
-    } else {
-        stas[row].mode = DOT11_RADIO_MODE_G | DOT11_RADIO_MODE_N;
-    }
 
-    /*SBW*/
+    /*SBW*/ /*handle SBW first, and it will be overwritten by following SMODE*/
     if (argv[15] && strlen(argv[15])) {
         int bw = 0;
         if (strstr(argv[15], "VHT")) {
@@ -179,6 +161,31 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
             stas[row].bandwidth = bw;
         }
     }
+
+    /*SMODE*/
+    if (argv[14] && strlen(argv[14])) {
+        if (!strcmp(argv[14], "ac") || !strcmp(argv[14], "11ac")) {
+            stas[row].mode = DOT11_RADIO_MODE_AC;
+        } else if (!strcmp(argv[14], "na") || !strcmp(argv[14], "11na")) {
+            stas[row].mode = DOT11_RADIO_MODE_A | DOT11_RADIO_MODE_N;
+        } else if (!strcmp(argv[14], "ng") || !strcmp(argv[14], "11ng")) {
+            stas[row].mode = DOT11_RADIO_MODE_G | DOT11_RADIO_MODE_N;
+        } else if (!strcmp(argv[14], "a") || !strcmp(argv[14], "11a")) {
+            stas[row].mode = DOT11_RADIO_MODE_A;
+            stas[row].bandwidth = 20;
+        } else if (!strcmp(argv[14], "b") || !strcmp(argv[14], "11b")) {
+            stas[row].mode = DOT11_RADIO_MODE_B;
+            stas[row].bandwidth = 20;
+        } else if (!strcmp(argv[14], "g") || !strcmp(argv[14], "11g")) {
+            stas[row].mode = DOT11_RADIO_MODE_G;
+            stas[row].bandwidth = 20;
+        } else if (!strcmp(argv[14], "n") || !strcmp(argv[14], "11n")) {
+            stas[row].mode = DOT11_RADIO_MODE_N;
+        }
+    } else {
+        stas[row].mode = DOT11_RADIO_MODE_G | DOT11_RADIO_MODE_N;
+    }
+
 
     /*NTXRT*/
     if (argv[16] && strlen(argv[16])) {

@@ -112,10 +112,10 @@ fetch_client_stats Delta_txB Delta_rxB Delta_wan_txB Delta_wan_rxB
 # echo "+++++>"WLAN", $Delta_txB, $Delta_rxB $Delta_wan_txB $Delta_wan_rxB"
 
 json_add_object "WLAN"
-json_add_int "Tx_Data_Bytes" "$Delta_rxB"
-json_add_int "Rx_Data_Bytes" "$Delta_txB"
-json_add_int "Tx_Bytes_Wan" "$Delta_wan_rxB"
-json_add_int "Rx_Bytes_Wan" "$Delta_wan_txB"
+json_add_int "Tx_Data_Bytes" "$Delta_txB"
+json_add_int "Rx_Data_Bytes" "$Delta_rxB"
+json_add_int "Tx_Bytes_Wan" "$Delta_wan_txB"
+json_add_int "Rx_Bytes_Wan" "$Delta_wan_rxB"
 json_close_object
 
 

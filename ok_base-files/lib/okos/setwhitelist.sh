@@ -86,4 +86,4 @@ else
 fi
 
 fi
-logger -p 3 -t clientevent "--setwhitelist:mac:$mac, l_time:$l_time, action:$action, mode:$mode"
+echo "--setwhitelist:mac:$mac, l_time:$l_time, action:$action, mode:$mode" | logger -p 3 -t clientevent

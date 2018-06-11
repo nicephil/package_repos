@@ -44,6 +44,13 @@ do
         /lib/okos/wifievent.sh $_ath AP-STA-DISCONNECTED $_mac ""
 		continue
     fi
+    __iptables_check=`(iptables -S WhiteList;iptables -t nat -S GotoPortal)| grep -i $_mac`
+    if [ -z "$__iptables_check" ]
+    then
+        runtimefixup_err_log "missed __ath:$__ath client:$client connected event"
+        iwpriv $__ath kickmac $client
+        continue
+    fi
 done
 
 # active missed client

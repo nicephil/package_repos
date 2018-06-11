@@ -12,7 +12,7 @@ l_time=240
 }
 
 
-logger -p 3 -t clientevent "++setblacklist:mac:$mac, l_time:$l_time, action:$action, ath:$ath"
+logger -t clientevent -p 3 "++setblacklist:mac:$mac, l_time:$l_time, action:$action, ath:$ath"
 
 atjobs_dir="/var/spool/cron/atjobs"
 
@@ -72,4 +72,4 @@ then
     done 
 fi
 
-logger -p 3 -t clientevent "--setblacklist:mac:$mac, l_time:$l_time, action:$action"
+echo "--setblacklist:mac:$mac, l_time:$l_time, action:$action" | logger -t clientevent -p 3

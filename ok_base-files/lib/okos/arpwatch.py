@@ -47,6 +47,7 @@ def call_event(mac, ip, ifname):
     '''Actually, Client_Event doesn't need ifname.
     It's just a ocuppitor to match the format of event from hostapd.
     '''
+    return
     ifname = ifname or get_vap_by_mac(mac);
     if not ifname:
         warning("Couldn't retrieve ifname anyway. Abort")
