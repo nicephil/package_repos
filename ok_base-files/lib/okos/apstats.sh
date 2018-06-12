@@ -152,10 +152,6 @@ fetch_ath_stats ()
     export "${ath_total_wan_uplink_var}=$_ath_total_wan_uplink"
     export "${ath_total_wan_downlink_var}=$_ath_total_wan_downlink"
 
-    $ebtabls_CMD -Z ath_total_uplink_traf
-    $ebtabls_CMD -Z ath_total_downlink_traf
-    $ebtabls_CMD -Z ath_total_wan_uplink_traf
-    $ebtabls_CMD -Z ath_total_wan_downlink_traf
 
     return 0
 }
@@ -182,7 +178,10 @@ do
     json_add_int "Rx_Data_Bytes" "$ath_total_downlink_"
     json_close_object
 done
-
+    $ebtabls_CMD -Z ath_total_uplink_traf
+    $ebtabls_CMD -Z ath_total_downlink_traf
+    $ebtabls_CMD -Z ath_total_wan_uplink_traf
+    $ebtabls_CMD -Z ath_total_wan_downlink_traf
 json_close_array
 
 
