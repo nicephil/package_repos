@@ -12,6 +12,10 @@ ebtables_set_static_statistics_rules ()
     $ebtables_CMD -N total_wan_uplink_traf
     $ebtables_CMD -N client_wan_downlink_traf
     $ebtables_CMD -N client_wan_uplink_traf
+    $ebtables_CMD -N ath_total_downlink_traf
+    $ebtables_CMD -N ath_total_uplink_traf
+    $ebtables_CMD -N ath_total_wan_downlink_traf
+    $ebtables_CMD -N ath_total_wan_uplink_traf
 
     $ebtables_CMD -P total_downlink_traf RETURN
     $ebtables_CMD -P total_uplink_traf RETURN
@@ -19,11 +23,19 @@ ebtables_set_static_statistics_rules ()
     $ebtables_CMD -P total_wan_uplink_traf RETURN
     $ebtables_CMD -P client_wan_downlink_traf RETURN
     $ebtables_CMD -P client_wan_uplink_traf RETURN
+    $ebtables_CMD -P ath_total_downlink_traf RETURN
+    $ebtables_CMD -P ath_total_uplink_traf RETURN
+    $ebtables_CMD -P ath_total_wan_downlink_traf RETURN
+    $ebtables_CMD -P ath_total_wan_uplink_traf RETURN
 
     # statistics rule
+    $ebtables_CMD -A total_downlink_traf -j ath_total_downlink_traf
     $ebtables_CMD -A total_downlink_traf -j RETURN
+    $ebtables_CMD -A total_uplink_traf -j ath_total_uplink_traf
     $ebtables_CMD -A total_uplink_traf -j RETURN
+    $ebtables_CMD -A total_wan_downlink_traf -j ath_total_wan_downlink_traf
     $ebtables_CMD -A total_wan_downlink_traf -j RETURN
+    $ebtables_CMD -A total_wan_uplink_traf -j ath_total_wan_uplink_traf
     $ebtables_CMD -A total_wan_uplink_traf -j RETURN
 
     $ebtables_CMD -M ip -A wan_downlink_traf -p ipv4 --ip-src 192.168.0.0/16 -j RETURN 

@@ -1,6 +1,8 @@
 #!/bin/sh 
 . /lib/functions.sh
 
+. /lib/okos/ebtables.dyn
+
 clean_whitelist()
 {
     iptables -F WhiteList
@@ -16,6 +18,12 @@ clean_guestnetwork()
     iptables -F isolation
 }
 
+setup_network()
+{
+    setup_guestnetwork "$1" "$2"
+    ebtables_setup_ath_statistics "$1" "$2"
+}
+
 setup_guestnetwork()
 {
     ath="$1"
@@ -27,17 +35,22 @@ setup_guestnetwork()
     fi
 }
 
+setup_ath_statistics()
+{
+    ebtables_setup_ath_statistics
+}
+
 walk_config_and_setup()
 {
     config_load wireless
-    config_foreach setup_guestnetwork wifi-iface
+    config_foreach setup_network wifi-iface
 }
 
 apfw_dyn_start()
 {
     walk_config_and_setup
 }
-. /lib/okos/ebtables.dyn
+
 apfw_dyn_stop()
 {
     clean_whitelist

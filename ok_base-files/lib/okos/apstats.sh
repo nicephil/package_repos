@@ -120,8 +120,100 @@ json_close_object
 
 
 # 4.2 Add VAP
+# $1 - ath
+# $2 - all total uplink
+# $3 - all total downlink
+# $4 - all total wan uplink
+# $5 - all total wan downlink
+fetch_ath_stats ()
+{
+    local ath="$1"
+    local ath_total_uplink_var="$2"
+    local ath_total_downlink_var="$3"
+    local ath_total_wan_uplink_var="$4"
+    local ath_total_wan_downlink_var="$5"
+
+    unset "${ath_total_uplink_var}"
+    unset "${ath_total_downlink_var}"
+    unset "${ath_total_wan_uplink_var}"
+    unset "${ath_total_wan_downlink_var}"
+
+    local _ath_total_uplink=$($ebtabls_CMD -L ath_total_uplink_traf --Lc --Lmac2 | awk '/'"$ath"'/{print $NF}')
+    local _ath_total_downlink=$($ebtabls_CMD -L ath_total_downlink_traf --Lc --Lmac2 | awk '/'"$ath"'/{print $NF}')
+    local _ath_total_wan_uplink=$($ebtabls_CMD -L ath_total_wan_uplink_traf --Lc --Lmac2 | awk '/'"$ath"'/{print $NF}')
+    local _ath_total_wan_downlink=$($ebtabls_CMD -L ath_total_wan_downlink_traf --Lc --Lmac2 | awk '/'"$ath"'/{print $NF}')
+    [ -z "$_ath_total_uplink" ] && _ath_total_uplink=0
+    [ -z "$_ath_total_downlink" ] && _ath_total_downlink=0
+    [ -z "$_ath_total_wan_uplink" ] && _ath_total_wan_uplink=0
+    [ -z "$_ath_total_wan_downlink" ] && _ath_total_wan_downlink=0
+
+    export "${ath_total_uplink_var}=$_ath_total_uplink"
+    export "${ath_total_downlink_var}=$_ath_total_downlink"
+    export "${ath_total_wan_uplink_var}=$_ath_total_wan_uplink"
+    export "${ath_total_wan_downlink_var}=$_ath_total_wan_downlink"
+
+    $ebtabls_CMD -Z ath_total_uplink_traf
+    $ebtabls_CMD -Z ath_total_downlink_traf
+    $ebtabls_CMD -Z ath_total_wan_uplink_traf
+    $ebtabls_CMD -Z ath_total_wan_downlink_traf
+
+    return 0
+}
+
+
 json_add_array "VAP_Stats"
+for __ath in $(iwconfig 2>/dev/null | awk '/ath/{print $1}')
+do
+    [ "$__ath" = "ath50" -o "$__ath" = "ath60" ] && continue
+    wifiname=wifi${__ath:3:1}
+    vapssid=$(uci get wireless.$__ath.ssid)
+    ath_total_uplink_=""
+    ath_total_downlink_=""
+    ath_total_wan_uplink_=""
+    ath_total_wan_downlink_=""
+    fetch_ath_stats $__ath ath_total_uplink_ ath_total_downlink_ ath_total_wan_uplink_ ath_total_wan_downlink_
+    echo $wifiname $vapssid $__ath $ath_total_uplink_ $ath_total_downlink_ $ath_total_wan_uplink_ $ath_total_wan_downlink_
+    json_add_object
+    json_add_string "radio" "$wifiname"
+    json_add_string "ssid" "$vapssid"
+    json_add_int "Tx_Bytes_Wan" "$ath_total_wan_uplink_"
+    json_add_int "Rx_Bytes_Wan" "$ath_total_wan_downlink_"
+    json_add_int "Tx_Data_Bytes" "$ath_total_uplink_"
+    json_add_int "Rx_Data_Bytes" "$ath_total_downlink_"
+    json_close_object
+done
+
 json_close_array
+
+
+# 4.3 mem_cpu
+# $1 - cpu_load
+# $2 - mem_load
+fetch_cpu_memory()
+{
+    __cpu_load_name="$1"
+    __mem_load_name="$2"
+    unset $__cpu_load_name
+    unset $__mem_load_name
+    kill -9 `pgrep -f "sar -r -u 6 10 -o /tmp/cpu_memory.log"` 2>/dev/null
+    __cpu_load=$(sar -u -f /tmp/cpu_memory.log 2>/dev/null | awk '/Average:/{print int(100-$8)}')
+    __mem_load=$(sar -r -f /tmp/cpu_memory.log 2>/dev/null | awk '/Average:/{print int($4)}')
+    [ -z "$__cpu_load" ] && __cpu_load=20
+    [ -z "$__mem_load" ] && __mem_load=70
+    export "${__cpu_load_name}=${__cpu_load}"
+    export "${__mem_load_name}=${__mem_load}"
+    sar -r -u 6 10 -o /tmp/cpu_memory.log > /dev/null 2>&1 &
+}
+
+cpu_load_=""
+mem_load_=""
+fetch_cpu_memory "cpu_load_" "mem_load_"
+
+json_add_object "cpu_memory"
+json_add_int "cpu_load" "$cpu_load_"
+json_add_int "mem_load" "$mem_load_"
+json_close_object
+
 
 # 8. generate .json
 rm -rf /tmp/apstats_*.json

@@ -1,11 +1,46 @@
 #!/bin/sh
 
+ebtables_CMD="ebtables"
+
 ebtables_clean_traf_statistics()
 {
-    ebtables -Z total_uplink_traf
-    ebtables -Z total_downlink_traf
-    ebtables -F client_total_uplink_traf
-    ebtables -F client_total_downlink_traf
-    ebtables -F client_wan_uplink_traf
-    ebtables -F client_wan_downlink_traf
+    $ebtables_CMD -Z total_uplink_traf
+    $ebtables_CMD -Z total_downlink_traf
+    $ebtables_CMD -Z total_wan_downlink_traf
+    $ebtables_CMD -Z total_wan_uplink_traf
+    $ebtables_CMD -F client_total_uplink_traf
+    $ebtables_CMD -F client_total_downlink_traf
+    $ebtables_CMD -F client_wan_uplink_traf
+    $ebtables_CMD -F client_wan_downlink_traf
+    $ebtables_CMD -F ath_total_uplink_traf
+    $ebtables_CMD -F ath_total_downlink_traf
+    $ebtables_CMD -F ath_total_wan_downlink_traf
+    $ebtables_CMD -F ath_total_wan_uplink_traf
 }
+
+ebtables_setup_ath_statistics()
+{
+    local _ath=$1
+
+    local rule=$($ebtables_CMD -L ath_total_uplink_traf --Lx --Lmac2 2>&1 | sed -n '/'"$_ath"'/s/-A/-D/p' 2>&1)
+    if [ -z "$rule" ]
+    then
+        $ebtables_CMD -A ath_total_uplink_traf -i "$_ath" -j RETURN
+    fi
+    local rule=$($ebtables_CMD -L ath_total_downlink_traf --Lx  --Lmac2 2>&1 | sed -n '/'"$_ath"'/s/-A/-D/p' 2>&1)
+    if [ -z "$rule" ]
+    then
+        $ebtables_CMD -A ath_total_downlink_traf -o "$_ath" -j RETURN
+    fi
+    local rule=$($ebtables_CMD -L ath_total_wan_uplink_traf --Lx --Lmac2  2>&1 | sed -n '/'"$_ath"'/s/-A/-D/p' 2>&1)
+    if [ -z "$rule" ]
+    then
+        $ebtables_CMD -A ath_total_wan_uplink_traf -i "$_ath" -j RETURN
+    fi
+    local rule=$($ebtables_CMD -L ath_total_wan_downlink_traf --Lx --Lmac2 2>&1 | sed -n '/'"$_ath"'/s/-A/-D/p' 2>&1)
+    if [ -z "$rule" ]
+    then
+        $ebtables_CMD -A ath_total_wan_downlink_traf -o "$_ath" -j RETURN
+    fi
+}
+
