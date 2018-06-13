@@ -67,8 +67,7 @@ doing_chscanning()
             sleep 1
         fi
 
-        icm -r $radio -i /tmp/icmseldebug_$radio.csv 2>&1 | logger -t 'devstats'
-        has_chscanningjson=1 /lib/okos/devstats.sh "$radio" "$disabled"
+        (icm -r $radio -i /tmp/icmseldebug_$radio.csv 2>&1 | logger -t 'devstats';has_chscanningjson=1 /lib/okos/devstats.sh "$radio" "$disabled")&
     fi
 
     [ -f "/tmp/restartservices.lock" ] && ret="1"
