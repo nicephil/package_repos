@@ -708,7 +708,6 @@ enable_qcawifi() {
     config_get rssi_access_threshold "$device" rssi_access_thresold -92            
     iwpriv "$phy" set_min_snr $((rssi_access_threshold+97))  
     iwpriv "$phy" chutil_enab 1
-    iwpriv "$phy" dcs_enable 1
     # end of OK_PATCH
 
 	config_get_bool enable_ol_stats "$device" enable_ol_stats
