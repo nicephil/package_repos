@@ -143,28 +143,29 @@ generate_chscanningjson()
 {
     local vname="$1"
     local radio="$arg1"
+    local disabled="$arg2"
 
-    if [ -z "$radio" ]
-    then
-        radio="-1"
-    fi
+    local ch_usabs="$(awk -F',' '{if(match($54,/[0-9]+/))print $2"_"$54;}' /tmp/icmseldebug_$radio.csv )"
 
-    local ch_usabs="$(awk -F',' '{if(match($54,/[0-9]+/))print $2"_"$54;}' /tmp/icmseldebug.csv )"
-
-    killall icm
-
-    if [ "$radio" != "1" ]
+    if [ "$radio" = "0" ]
     then
         local _2ch_nums="$(iwlist ath50 scanning 2>&1 | awk '/Channel/{key=substr($4,1,length($4)-1);sum[key]++;}END{for(k in sum)print k"_"sum[k];}')"
     fi
-    if [ "$radio" != "0" ]
+    if [ "$radio" = "1" ]
     then
         local _5ch_nums="$(iwlist ath60 scanning 2>&1 | awk '/Channel/{key=substr($4,1,length($4)-1);sum[key]++;}END{for(k in sum)print k"_"sum[k];}')" 
     fi
 
-    #echo "-------------->$ch_usabs" | logger -t 'devstats'
-    echo "==============>$_2ch_nums" | logger -t 'devstats'
+    echo "-------------->$ch_usabs" | logger -t 'devstats'
+    echo "==============>$_2ch_nums"  | logger -t 'devstats'
     echo "-------------->$_5ch_nums" | logger -t 'devstats'
+
+    if [ "$disabled" = "1" ]
+    then
+        uci set wireless.wifi$radio.disabled=1
+        uci commit wireless
+        wifi down wifi$radio
+    fi
 
 
     json_init
@@ -172,7 +173,7 @@ generate_chscanningjson()
     json_select_array 'list'
 
     # 2.4G
-    if [ "$radio" != "1" ]
+    if [ "$radio" = "0" ]
     then
     for i in `seq 1 1 13`
     do
@@ -216,7 +217,7 @@ generate_chscanningjson()
     fi
 
     # 5G
-    if [ "$radio" != "0" ]
+    if [ "$radio" = "1" ]
     then
     for ch_usab in $ch_usabs
     do

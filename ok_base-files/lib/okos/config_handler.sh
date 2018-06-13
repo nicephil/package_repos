@@ -50,7 +50,33 @@ handle_devstats()
     return 0
 }
 
- handle_chscanning()
+doing_chscanning()
+{
+    radio="$1"
+    disabled=$(uci get wireless.wifi$radio.disabled)
+
+    # 1. check icm process exists or not
+    if [ -z "$(pgrep -f "icm -r $radio")" -a -z "$(pgrep 'restartservices.sh')" ]
+    then
+        # check disabled wifi
+        if [ "$disabled" = "1" ]
+        then
+            uci set wireless.wifi$radio.disabled=0
+            uci commit wireless
+            wifi up wifi$radio
+            sleep 1
+        fi
+
+        icm -r $radio -i /tmp/icmseldebug_$radio.csv 2>&1 | logger -t 'devstats'
+        has_chscanningjson=1 /lib/okos/devstats.sh "$radio" "$disabled"
+    fi
+
+    [ -f "/tmp/restartservices.lock" ] && ret="1"
+
+    return $ret
+}
+
+handle_chscanning()
 {
     local ops="$1"
     local json_data="$2"
@@ -68,15 +94,16 @@ handle_devstats()
         radio = "-1"
     fi
 
-    # 1. check icm process exists or not
-    if [ -z "$(pgrep 'icm')" -a -z "$(pgrep 'restartservices.sh')" ]
+    if [ "$radio" = "-1" ]
     then
-        icm -r $radio -i /tmp/icmseldebug.csv 2>&1 | logger -t 'devstats'
-        (sleep 150;killall icm)&
-        has_chscanningjson=1 /lib/okos/devstats.sh "$radio"
+        doing_chscanning 1
+        ret=$?
+        doing_chscanning 0
+        ret=$?
+    else
+        doing_chscanning $radio
+        ret=$?
     fi
-
-    [ -f "/tmp/restartservices.lock" ] && ret="1"
 
     return $ret
 }

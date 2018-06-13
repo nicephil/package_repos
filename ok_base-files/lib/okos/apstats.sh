@@ -92,6 +92,11 @@ fetch_client_stats ()
     $ebtabls_CMD -Z total_wan_uplink_traf
     $ebtabls_CMD -Z total_wan_downlink_traf
 
+    $ebtabls_CMD -Z ath_total_uplink_traf
+    $ebtabls_CMD -Z ath_total_downlink_traf
+    $ebtabls_CMD -Z ath_total_wan_uplink_traf
+    $ebtabls_CMD -Z ath_total_wan_downlink_traf
+
     return 0
 }
 
@@ -101,25 +106,9 @@ json_init
 json_add_string "mac" "`echo ${mac} | sed 's/://g'`"
 json_add_int "timestamp" "$timestamp"
 
-# 4.1 Add WLAN
-# fetch WLAN Stats
-local Delta_txB=""
-local Delta_rxB=""
-local Delta_wan_txB=""
-local Delta_wan_rxB=""
-
-fetch_client_stats Delta_txB Delta_rxB Delta_wan_txB Delta_wan_rxB
-# echo "+++++>"WLAN", $Delta_txB, $Delta_rxB $Delta_wan_txB $Delta_wan_rxB"
-
-json_add_object "WLAN"
-json_add_int "Tx_Data_Bytes" "$Delta_txB"
-json_add_int "Rx_Data_Bytes" "$Delta_rxB"
-json_add_int "Tx_Bytes_Wan" "$Delta_wan_txB"
-json_add_int "Rx_Bytes_Wan" "$Delta_wan_rxB"
-json_close_object
 
 
-# 4.2 Add VAP
+# 4.1 Add VAP
 # $1 - ath
 # $2 - all total uplink
 # $3 - all total downlink
@@ -168,21 +157,36 @@ do
     ath_total_wan_uplink_=""
     ath_total_wan_downlink_=""
     fetch_ath_stats $__ath ath_total_uplink_ ath_total_downlink_ ath_total_wan_uplink_ ath_total_wan_downlink_
-    echo $wifiname $vapssid $__ath $ath_total_uplink_ $ath_total_downlink_ $ath_total_wan_uplink_ $ath_total_wan_downlink_
     json_add_object
     json_add_string "radio" "$wifiname"
     json_add_string "ssid" "$vapssid"
-    json_add_int "Tx_Bytes_Wan" "$ath_total_wan_uplink_"
-    json_add_int "Rx_Bytes_Wan" "$ath_total_wan_downlink_"
     json_add_int "Tx_Data_Bytes" "$ath_total_uplink_"
     json_add_int "Rx_Data_Bytes" "$ath_total_downlink_"
+    json_add_int "Tx_Bytes_Wan" "$ath_total_wan_uplink_"
+    json_add_int "Rx_Bytes_Wan" "$ath_total_wan_downlink_"
     json_close_object
 done
-    $ebtabls_CMD -Z ath_total_uplink_traf
-    $ebtabls_CMD -Z ath_total_downlink_traf
-    $ebtabls_CMD -Z ath_total_wan_uplink_traf
-    $ebtabls_CMD -Z ath_total_wan_downlink_traf
 json_close_array
+
+
+
+# 4.2 Add WLAN
+# fetch WLAN Stats
+local Delta_txB=""
+local Delta_rxB=""
+local Delta_wan_txB=""
+local Delta_wan_rxB=""
+
+fetch_client_stats Delta_txB Delta_rxB Delta_wan_txB Delta_wan_rxB
+# echo "+++++>"WLAN", $Delta_txB, $Delta_rxB $Delta_wan_txB $Delta_wan_rxB"
+
+json_add_object "WLAN"
+json_add_int "Tx_Data_Bytes" "$Delta_txB"
+json_add_int "Rx_Data_Bytes" "$Delta_rxB"
+json_add_int "Tx_Bytes_Wan" "$Delta_wan_txB"
+json_add_int "Rx_Bytes_Wan" "$Delta_wan_rxB"
+json_close_object
+
 
 
 # 4.3 mem_cpu
