@@ -201,7 +201,7 @@ fetch_cpu_memory()
     [ -z "$__mem_load" ] && __mem_load=70
     export "${__cpu_load_name}=${__cpu_load}"
     export "${__mem_load_name}=${__mem_load}"
-    sar -r -u 6 10 -o /tmp/cpu_memory.log > /dev/null 2>&1 &
+    rm -rf /tmp/cpu_memory.log;sar -r -u 6 10 -o /tmp/cpu_memory.log > /dev/null 2>&1 &
 }
 
 cpu_load_=""
