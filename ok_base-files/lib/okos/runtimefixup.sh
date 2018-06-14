@@ -40,15 +40,15 @@ do
     # no find mac really
     if [ -z "$__ath" ]
     then
-        runtimefixup_err_log "missed xxclient:$_mac xx_ath:$_ath disconnected event"
-        /lib/okos/wifievent.sh $_ath AP-STA-DISCONNECTED $_mac ""
+        runtimefixup_err_log "missed xxclient:$_mac xx_ath:$__ath disconnected event"
+        /lib/okos/wifievent.sh $__ath AP-STA-DISCONNECTED $_mac ""
 		continue
     fi
     __iptables_check=`(iptables -S WhiteList;iptables -t nat -S GotoPortal)| grep -i $_mac`
     if [ -z "$__iptables_check" ]
     then
         runtimefixup_err_log "missed __ath:$__ath client:$_mac connected event"
-        iwpriv $__ath kickmac $_mac
+        /lib/okos/wifievent.sh $__ath AP-STA-CONNECTED $_mac ""
         continue
     fi
 done
