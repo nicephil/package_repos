@@ -43,6 +43,7 @@ __inline__ void okos_system_log(const char *format, ...) {
 	va_end(args);
     closelog();
     openlog("capwapc", LOG_NDELAY, LOG_USER);
+    setlogmask(LOG_UPTO(LOG_INFO));
 }
 #endif
 

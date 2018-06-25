@@ -215,7 +215,7 @@ SLEEP_AGAIN:
 	else {
 		CWUseSockNtop(&(gACInfoPtr->preferredAddress),
 			{CWLog("Preferred server address: %s", str); 
-			CWDebugLog_F("Preferred server address: %s", str);okos_system_log("Preferred nms server address: %s", str);});
+			CWDebugLog_F("Preferred server address: %s", str);okos_system_log("Preferred server address: %s", str);});
 	}
 	
 	return CW_ENTER_JOIN;
