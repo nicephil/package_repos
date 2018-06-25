@@ -11,8 +11,8 @@ config system
     option log_ip 0.0.0.0
 
 config timeserver ntp
-	list server	time.nist.gov
-	list server	time.windows.com
+	list server	pool.ntp.org
+	list server	cn.ntp.org.cn
 	option enable_server 1 
 
 config button

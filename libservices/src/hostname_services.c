@@ -9,6 +9,7 @@
 
 int hostname_undo(void)
 {
+    return 0;
     return hostname_set(HOSTNAME_DEFAULT);
 }
 
@@ -20,6 +21,7 @@ int hostname_get(char * hostname, int len)
 
 int hostname_set(const char *hostname)
 {
+    return 0;
     /* update config */
     cfg_set_option_value(SYSTEM_OPTION_HOSTNAME_TUPLE, hostname);
 

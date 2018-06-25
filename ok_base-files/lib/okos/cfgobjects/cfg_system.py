@@ -15,6 +15,7 @@ class CfgSystem(CfgObj):
         d['location'] = system['location']
         return [res,]
     def change(self):
+        '''
         cmd = 'uci set system.@system[0].hostname="' + str(self.data['hostname']) + '";' + \
             'uci set system.@system[0].location="' + str(self.data['location']) + '";' + \
             'uci set system.@system[0].zone="' + str(self.data['zone']) + '";' + \
@@ -25,4 +26,6 @@ class CfgSystem(CfgObj):
             return True
         else:
             return False
+        '''
+        return True
 
