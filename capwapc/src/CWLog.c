@@ -34,6 +34,18 @@
 
 static FILE *gLogFile = NULL;
 
+#if OK_PATCH
+__inline__ void okos_system_log(const char *format, ...) {
+    openlog("01-SYSTEM-LOG", LOG_NDELAY, LOG_USER);
+	va_list args;
+	va_start(args, format);
+    syslog(LOG_INFO, format, args);
+	va_end(args);
+    closelog();
+    openlog("capwapc", LOG_NDELAY, LOG_USER);
+}
+#endif
+
 #ifndef CW_SINGLE_THREAD
 	CWThreadMutex gFileMutex;
 #endif

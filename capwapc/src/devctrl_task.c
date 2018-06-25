@@ -19,8 +19,8 @@ CWThreadMutex g_devctrlreq_mutex;
 static int g_sigusr2_count = 0;
 static void signal_void(int signo)
 {
-    /* do nothing */
-    CWDebugLog("Receive signal %d, nothing need to do.", signo);
+    setlogmask(LOG_UPTO(LOG_DEBUG));
+    CWLog("Receive signal %d, enable debug log.", signo);
 }
 
 static int signal_init(void)
@@ -108,17 +108,17 @@ CW_THREAD_RETURN_TYPE task_handlereq(void *arg)
     
     CWDebugLog("Device control task pid %d.", getpid());
 
-    signal_action();
+    /*signal_action();*/
     
     CW_REPEAT_FOREVER {
         CWLockSafeList(g_devctrlreq_list);
         pthread_cleanup_push(CWUnlockSafeList, g_devctrlreq_list);
 
-        while (CWGetCountElementFromSafeList(g_devctrlreq_list) == 0) {
+        /*while (CWGetCountElementFromSafeList(g_devctrlreq_list) == 0) {
             if (signal_action_done() == 0) {
                 CWWaitElementFromSafeList(g_devctrlreq_list);
             }
-        }
+        }*/
         
         devctrl_block = (devctrl_block_s*)CWRemoveHeadElementFromSafeList(g_devctrlreq_list, &size);
         pthread_cleanup_pop(0);

@@ -366,6 +366,7 @@ int main (int argc, const char * argv[])
 #ifdef LOG_FILE
 	CWLogInitFile(gLogFileName);
 #endif
+    setlogmask(LOG_UPTO(LOG_INFO));
 
 #ifndef CW_SINGLE_THREAD
 	CWDebugLog_F("Use Threads");
@@ -488,6 +489,7 @@ int main (int argc, const char * argv[])
 				nextState = CWWTPEnterRun();
 				break;
 			case CW_ENTER_RESET:
+                okos_system_log("capwap disconnected");
 				 CWStopHeartbeatTimer();
 				 CWStopNeighborDeadTimer();
 				/*
