@@ -282,6 +282,7 @@ then
     json_add_int operate_type "12"
     json_add_string mac "$mac"
     json_add_string data "$cpumemjson"
+    json_data_int cookie_id "$has_cookie"
     json_close_object
 fi
 
@@ -291,6 +292,7 @@ then
     json_add_int operate_type "16"
     json_add_string mac "$mac"
     json_add_string data "$chscanningjson"
+    json_data_int cookie_id "$has_cookie"
     json_close_object
 fi
 

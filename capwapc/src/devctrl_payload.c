@@ -1993,11 +1993,11 @@ static int dc_router_config_handler(devctrl_block_s *dc_block, struct tlv *paylo
     char terminated = payload->v[payload->l];
     payload->v[payload->l] = 0;
     char *env = (char *)malloc(payload->l + 4);
-    char *env2 = (char *)malloc(sizeof(dc_block->cookie));
-    if (!env || !env2) {
+    if (!env) {
         return -1;
     }
-    memcpy(env2, dc_block->cookie, sizeof(dc_block->cookie));
+    char *env2[23] = {0};
+    sprintf(env2, "%lu", dc_block->cookie);
     strcpy(env, payload->v);
     setenv("json_data", env, 1);
     setenv("cookie", env2, 1);
@@ -2018,7 +2018,6 @@ static int dc_router_config_handler(devctrl_block_s *dc_block, struct tlv *paylo
     }
 
     free(env);
-    free(env2);
     payload->v[payload->l] = terminated;
     *reserved = result;
     return 0;

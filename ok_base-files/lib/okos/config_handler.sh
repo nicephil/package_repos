@@ -31,7 +31,7 @@ operate_type=""
 data=""
 json_get_vars operate_type data
 
-#config_log "$operate_type" "$data"
+#config_log "$cookie" "$operate_type" "$data"
 
 handle_devstats()
 {
@@ -45,7 +45,7 @@ handle_devstats()
 
     if [ "$cpu_memory" = "1" ]
     then
-        has_cpumemjson=1 /lib/okos/devstats.sh
+        has_cpumemjson=1 has_cookie=$cookie /lib/okos/devstats.sh
     fi
     return 0
 }
@@ -67,7 +67,7 @@ doing_chscanning()
             sleep 1
         fi
 
-        (icm -r $radio -i /tmp/icmseldebug_$radio.csv 2>&1 | logger -t 'devstats';has_chscanningjson=1 /lib/okos/devstats.sh "$radio" "$disabled")&
+        (icm -r $radio -i /tmp/icmseldebug_$radio.csv 2>&1 | logger -t 'devstats';has_chscanningjson=1 has_cookie=$cookie /lib/okos/devstats.sh "$radio" "$disabled")&
     fi
 
     [ -f "/tmp/restartservices.lock" ] && ret="1"
@@ -127,6 +127,11 @@ handle_chscanning()
     return 0
 }
 
+handle_radtest()
+{
+    return 0
+}
+
 case "$operate_type" in
     "10001")
         if ! handle_devstats "$operate_type" "$data"
@@ -150,6 +155,16 @@ case "$operate_type" in
 
     "17")
         if ! handle_setchan "$operate_type" "$data"
+        then
+            config_log "$operate_type $data failed"
+            return 1
+        fi
+        config_log "$operate_type $data success"
+        return 0
+        ;;
+
+    "18")
+        if ! handle_radtest "$operate_type" "$data"
         then
             config_log "$operate_type $data failed"
             return 1
