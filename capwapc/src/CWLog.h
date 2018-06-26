@@ -49,6 +49,7 @@ void CWDebugLog(const char *format, ...);
 #define CWDebugLog_D(fmt, ...) syslog(LOG_DEBUG, fmt, ##__VA_ARGS__)
 #endif
 void CWLogInitFile(char *fileName);
+extern int loglevel;
 void okos_system_log(const char *format, ...);
 
 #endif

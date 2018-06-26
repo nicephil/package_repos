@@ -19,7 +19,8 @@ CWThreadMutex g_devctrlreq_mutex;
 static int g_sigusr2_count = 0;
 static void signal_void(int signo)
 {
-    setlogmask(LOG_UPTO(LOG_DEBUG));
+    loglevel = LOG_DEBUG;
+    setlogmask(LOG_UPTO(loglevel));
     CWLog("Receive signal %d, enable debug log.", signo);
 }
 

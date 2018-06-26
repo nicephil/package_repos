@@ -34,11 +34,13 @@ int hostname_set(const char *hostname)
 
 int zone_undo(void)
 {
+    return 0;
     return zone_set(ZONE_DEFAULT);
 }
 
 int zone_set(const char *zone)
 {
+    return 0;
     /* update config */
     cfg_set_option_value(SYSTEM_OPTION_ZONE_TUPLE, zone);
 

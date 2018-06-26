@@ -33,7 +33,7 @@
 #endif
 
 static FILE *gLogFile = NULL;
-
+int loglevel = LOG_INFO;
 #if OK_PATCH
 __inline__ void okos_system_log(const char *format, ...) {
     openlog("01-SYSTEM-LOG", LOG_NDELAY, LOG_USER);
@@ -43,7 +43,7 @@ __inline__ void okos_system_log(const char *format, ...) {
 	va_end(args);
     closelog();
     openlog("capwapc", LOG_NDELAY, LOG_USER);
-    setlogmask(LOG_UPTO(LOG_INFO));
+    setlogmask(LOG_UPTO(loglevel));
 }
 #endif
 

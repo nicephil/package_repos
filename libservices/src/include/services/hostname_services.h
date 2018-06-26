@@ -11,7 +11,7 @@
 
 
 /* default value for zone */
-#define ZONE_DEFAULT "CST-8"
+#define ZONE_DEFAULT "UTC"
 #define SYSTEM_OPTION_ZONE_TUPLE "system.@system[0].timezone" 
 
 /* tuple */

@@ -366,7 +366,7 @@ int main (int argc, const char * argv[])
 #ifdef LOG_FILE
 	CWLogInitFile(gLogFileName);
 #endif
-    setlogmask(LOG_UPTO(LOG_INFO));
+    setlogmask(LOG_UPTO(loglevel));
 
 #ifndef CW_SINGLE_THREAD
 	CWDebugLog_F("Use Threads");
