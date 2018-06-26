@@ -115,11 +115,12 @@ CW_THREAD_RETURN_TYPE task_handlereq(void *arg)
         CWLockSafeList(g_devctrlreq_list);
         pthread_cleanup_push(CWUnlockSafeList, g_devctrlreq_list);
 
-        /*while (CWGetCountElementFromSafeList(g_devctrlreq_list) == 0) {
-            if (signal_action_done() == 0) {
+        while (CWGetCountElementFromSafeList(g_devctrlreq_list) == 0) {
+            CWWaitElementFromSafeList(g_devctrlreq_list);
+            /*if (signal_action_done() == 0) {
                 CWWaitElementFromSafeList(g_devctrlreq_list);
-            }
-        }*/
+            }*/
+        }
         
         devctrl_block = (devctrl_block_s*)CWRemoveHeadElementFromSafeList(g_devctrlreq_list, &size);
         pthread_cleanup_pop(0);

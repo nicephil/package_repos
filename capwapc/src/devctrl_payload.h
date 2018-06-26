@@ -60,7 +60,7 @@ struct tlv {
 
 struct dc_payloadfunc_table {
     int type;
-    int (*handler)(struct tlv *, void **);
+    int (*handler)(devctrl_block_s *, struct tlv *, void **);
     int (*response)(devctrl_block_s *, void *);
     int (*finished)(void *);
 };

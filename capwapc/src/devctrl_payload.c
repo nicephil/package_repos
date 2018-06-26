@@ -135,7 +135,7 @@ _cleanup:
     return ret;
 }
 
-static int dc_json_config_handler(struct tlv *payload, void **reserved)
+static int dc_json_config_handler(devctrl_block_s *dc_block, struct tlv *payload, void **reserved)
 {
     int ret;
     char terminated;
@@ -232,7 +232,7 @@ static inline int dc_kickoff_sta(const char *ssid, char *mac)
     return 0;
 }
 
-static int dc_sta_kickoff_handler(struct tlv *payload, void **reserved)
+static int dc_sta_kickoff_handler(devctrl_block_s *dc_block, struct tlv *payload, void **reserved)
 {
     struct kickoff_cmd {
         char mac[32];
@@ -371,7 +371,7 @@ err:
     return ret;
 }
 
-static int dc_image_upgrade_handler(struct tlv *payload, void **reserved)
+static int dc_image_upgrade_handler(devctrl_block_s *dc_block, struct tlv *payload, void **reserved)
 {
 #define CST_IMG_TMP_FILE    "/tmp/okos_tmp.img"
     struct image_upgrade_cmd {
@@ -481,7 +481,7 @@ static int dc_image_upgrade_response(devctrl_block_s *dc_block, void *reserved)
     return ret;
 }
 
-static int dc_reboot_handler(struct tlv *payload, void **reserved)
+static int dc_reboot_handler(devctrl_block_s *dc_block, struct tlv *payload, void **reserved)
 {
     return system("/sbin/reboot -f");
 }
@@ -528,7 +528,7 @@ enum {
     OT_RATELIMIT
 } OPERATE_TYPE;
 
-static int dc_portal_offline_handler(struct tlv *payload, void **reserved)
+static int dc_portal_offline_handler(devctrl_block_s *dc_block, struct tlv *payload, void **reserved)
 {
     struct portal_cmd {
         char mac[20];
@@ -730,7 +730,7 @@ static int dc_portal_offline_response(devctrl_block_s *dc_block, void *reserved)
     return ret;
 }
 
-static int dc_portal_authentication_handler(struct tlv *payload, void **reserved)
+static int dc_portal_authentication_handler(devctrl_block_s *dc_block, struct tlv *payload, void **reserved)
 {
     struct portal_authentication_cmd {
         char mac[20];
@@ -843,7 +843,7 @@ static int dc_portal_authentication_response(devctrl_block_s *dc_block, void *re
     return ret;
 }
 
-static int dc_upload_techsupport_handler(struct tlv *payload, void **reserved)
+static int dc_upload_techsupport_handler(devctrl_block_s *dc_block, struct tlv *payload, void **reserved)
 {
 #define SUPPORT_FILE	    "tech_data.tar"
 #define TECH_SUPPORT_FILE	"/tmp/tech_data.tar"
@@ -1216,7 +1216,7 @@ err:
     return ret;
 }
 
-static int dc_portal_ssh_tunnel_handler(struct tlv *payload, void **reserved)
+static int dc_portal_ssh_tunnel_handler(devctrl_block_s *dc_block, struct tlv *payload, void **reserved)
 {
     struct ssh_tunnel_result result;
     struct ssh_tunnel_cmd json_cfg;
@@ -1896,7 +1896,7 @@ static int do_simulate_cli(char *cmd, int len, struct cli_exec_result **result)
     return 0;
 }
 
-static int dc_cli_handler(struct tlv *payload, void **reserved)
+static int dc_cli_handler(devctrl_block_s *dc_block, struct tlv *payload, void **reserved)
 {
     struct cli_exec_result *cli_result = NULL;
     int ret = 0;
@@ -1977,22 +1977,31 @@ static int dc_cli_finished(void *reserved)
 /*
  * handle router config request
  */
-static int dc_router_config_handler(struct tlv *payload, void **reserved)
+static int dc_router_config_handler(devctrl_block_s *dc_block, struct tlv *payload, void **reserved)
 {
     struct dc_handle_result {
         int  code;
         char key[32];
     };
     char *prog = "/lib/okos/config_handler.sh";
+    struct dc_handle_result *result = (struct dc_handle_result *)malloc(sizeof(struct dc_handle_result));
+    if (!result) {
+        return -1;
+    }
+    memset(result, 0, sizeof(struct dc_handle_result));
 
     char terminated = payload->v[payload->l];
     payload->v[payload->l] = 0;
     char *env = (char *)malloc(payload->l + 4);
+    char *env2 = (char *)malloc(sizeof(dc_block->cookie));
+    if (!env || !env2) {
+        return -1;
+    }
+    memcpy(env2, dc_block->cookie, sizeof(dc_block->cookie));
     strcpy(env, payload->v);
     setenv("json_data", env, 1);
+    setenv("cookie", env2, 1);
 
-    struct dc_handle_result *result = (struct dc_handle_result *)malloc(sizeof(struct dc_handle_result));
-    memset(result, 0, sizeof(struct dc_handle_result));
 
     int ret = 0;
 
@@ -2008,7 +2017,8 @@ static int dc_router_config_handler(struct tlv *payload, void **reserved)
         CWLog("Result env:%s", tmp);
     }
 
-    free (env);
+    free(env);
+    free(env2);
     payload->v[payload->l] = terminated;
     *reserved = result;
     return 0;
@@ -2109,7 +2119,7 @@ static int dc_router_config_finished(void *reserved)
 }
 #endif
 
-static int dc_flowsta_handler(struct tlv *payload, void **reserved)
+static int dc_flowsta_handler(devctrl_block_s *dc_block, struct tlv *payload, void **reserved)
 {
 #define CALC_RATE_PERIOD    2
     struct json_object *root, *array;
@@ -2394,7 +2404,7 @@ int dc_task_handler(devctrl_block_s *dc_block)
             void *arg = NULL;
             
             if (func->handler) {                
-                ret = func->handler(&tlv, &arg);
+                ret = func->handler(dc_block, &tlv, &arg);
             }
 
             if (func->response) {
