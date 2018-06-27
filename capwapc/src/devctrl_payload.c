@@ -410,7 +410,7 @@ static int dc_image_upgrade_handler(devctrl_block_s *dc_block, struct tlv *paylo
         goto ERROR_OUT;
     }
 
-    system("/lib/okos/stopservices.sh");
+    system("/lib/okos/stopservices.sh;umount /overlay");
 
     sprintf(cmd, "wget -q -T %d -O - \'%s\' | tail -c +65 | tar xzf - -O > %s", json_cfg.timeout, json_cfg.src, CST_IMG_TMP_FILE);
     ret = system(cmd);

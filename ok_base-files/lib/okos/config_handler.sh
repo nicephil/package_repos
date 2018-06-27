@@ -5,7 +5,8 @@ DEBUG="$1"
     # cpumem info
     #export 'json_data={"data":"{\"cpu_memory\":1}","operate_type":10001}'
     # channel scanning
-    export 'json_data={"data":"{\"radio\":-1}","operate_type":15}'
+    #export 'json_data={"data":"{\"radio\":-1}","operate_type":15}'
+    export 'json_data={"data":"{\"server\":\"192.168.254.191\",\"port\":\"1812\",\"username\":\"steve\",\"password\":\"testing\",\"key\":\"testing123\"}","operate_type":18}'
     # config channel
     # export 'json_data={"data":"{\"r24_channel\":1,\"r5_channel\":149}","operate_type":17}'
 }
@@ -137,7 +138,7 @@ handle_radtest()
     json_load "$json_data"
     json_get_vars server port username password
 
-    has_radtestjson=1 has_cookie=$cookie /lib/okos/devstats.sh 
+    has_radtestjson=1 has_cookie=$cookie server=$server port=$port username=$username password=$password /lib/okos/devstats.sh 
 
     return 0
 }

@@ -263,10 +263,29 @@ generate_chscanningjson()
 generate_radtestjson()
 {
     local vname="$1"
+    # echo "has_radtestjson=1 has_cookie=$cookie server=$server port=$port username=$username password=$password /lib/okos/devstats.sh"
+    local _code="0"
+    local _msg="success"
+
+    #1. ping it
+    ping -w 3 $server > /dev/null 2>&1
+    [ "$?" != "0" ] && {
+        _code="1"
+        _msg="ping gets no response"
+    }
+
+    #2. nc port
+    nc -zuv $server $port > /dev/null 2>&1
+    [ "$?" != "0" ] && {
+        _code="2"
+        _msg="ping ok, but port not opened"
+    }
+
+    #3. radtest with user and password
 
     json_init
-    json_add_int code "0"
-    json_add_string msg "success"
+    json_add_int code "$_code"
+    json_add_string msg "$_msg"
     unset "${vname}"
     export "${vname}=$(json_dump)"
     return 0
@@ -333,6 +352,7 @@ json_select ..
 json_data=$(json_dump)
 
 echo $json_data | logger -p user.info -t '01-SYSTEM-LOG'
+#echo $json_data
 
 # 4. upload json file to nms
 URL="http://${mas_server}/nms/api/device/ap/info"
