@@ -10,6 +10,7 @@
 #include "devctrl_notice.h"
 #include "json/json.h"
 #include "nmsc/nmsc.h"
+#include <endian.h>
 
 #include "services/cfg_services.h"
 #include "services/portal_services.h"
@@ -1997,7 +1998,7 @@ static int dc_router_config_handler(devctrl_block_s *dc_block, struct tlv *paylo
         return -1;
     }
     char *env2[23] = {0};
-    sprintf(env2, "%lu", dc_block->cookie);
+    sprintf(env2, "%llu",be64toh(*(unsigned long long *)dc_block->cookie));
     strcpy(env, payload->v);
     setenv("json_data", env, 1);
     setenv("cookie", env2, 1);

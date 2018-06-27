@@ -231,6 +231,8 @@ then
     return 1
 fi
 
+cat /tmp/${json_file} | logger -p user.info -t '01-SYSTEM-LOG'
+
 # 10. upload json file to nms
 URL="http://${mas_server}/nms/file/device/stat?objectname=${json_file}&override=1"
 curl -m 60 -s -F "action=upload" -F "filename=@/tmp/${json_file}"  "$URL"

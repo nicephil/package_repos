@@ -129,6 +129,16 @@ handle_chscanning()
 
 handle_radtest()
 {
+    local ops="$1"
+    local json_data="$2"
+    local ret=""
+
+    json_init
+    json_load "$json_data"
+    json_get_vars server port username password
+
+    has_radtestjson=1 has_cookie=$cookie /lib/okos/devstats.sh 
+
     return 0
 }
 
@@ -172,6 +182,7 @@ case "$operate_type" in
         config_log "$operate_type $data success"
         return 0
         ;;
+
     *)
         config_log "unknown type $operate_type $data"
         return 1

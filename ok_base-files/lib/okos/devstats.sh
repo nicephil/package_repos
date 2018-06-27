@@ -260,6 +260,21 @@ generate_chscanningjson()
     return 0
 }
 
+generate_radtestjson()
+{
+    local vname="$1"
+
+    json_init
+    json_add_int code "0"
+    json_add_string msg "success"
+    unset "${vname}"
+    export "${vname}=$(json_dump)"
+    return 0
+}
+
+
+
+
 # 2. process
 has_cpumemjson=${has_cpumemjson:=0}
 if [ "$has_cpumemjson" ]
@@ -272,6 +287,11 @@ then
     generate_chscanningjson chscanningjson
 fi
 
+if [ "$has_radtestjson" ]
+then
+    generate_radtestjson radtestjson
+fi
+
 # 3. final json data
 json_init
 json_select_array "list"
@@ -281,8 +301,8 @@ then
     json_add_object
     json_add_int operate_type "12"
     json_add_string mac "$mac"
+    json_add_string cookie_id "$has_cookie"
     json_add_string data "$cpumemjson"
-    json_data_int cookie_id "$has_cookie"
     json_close_object
 fi
 
@@ -291,17 +311,28 @@ then
     json_add_object
     json_add_int operate_type "16"
     json_add_string mac "$mac"
+    json_add_string cookie_id "$has_cookie"
     json_add_string data "$chscanningjson"
-    json_data_int cookie_id "$has_cookie"
     json_close_object
 fi
+
+if [ "$has_radtestjson" = "1" ]
+then
+    json_add_object
+    json_add_int operate_type "10000"
+    json_add_string mac "$mac"
+    json_add_string cookie_id "$has_cookie"
+    json_add_string data "$radtestjson"
+    json_close_object
+fi
+
+
 
 json_select ..
 
 json_data=$(json_dump)
 
-#echo $json_data | logger -t 'devstats'
-echo $json_data 
+echo $json_data | logger -p user.info -t '01-SYSTEM-LOG'
 
 # 4. upload json file to nms
 URL="http://${mas_server}/nms/api/device/ap/info"

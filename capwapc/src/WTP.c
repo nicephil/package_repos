@@ -467,7 +467,7 @@ int main (int argc, const char * argv[])
 
 	/* start CAPWAP state machine */	
 	CW_REPEAT_FOREVER {
-	    CWLog("Switch next state: %s.", state_name[(nextState - CW_ENTER_SULKING) % (CW_QUIT - CW_ENTER_SULKING + 1)]);
+	    okos_system_log("Switch next state: %s.", state_name[(nextState - CW_ENTER_SULKING) % (CW_QUIT - CW_ENTER_SULKING + 1)]);
         CWDebugLog_F("Switch next state: %s.", state_name[(nextState - CW_ENTER_SULKING) % (CW_QUIT - CW_ENTER_SULKING + 1)]);
 		switch(nextState) {
 			case CW_ENTER_DISCOVERY:
