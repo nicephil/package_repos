@@ -269,19 +269,22 @@ generate_radtestjson()
 
     #1. ping it
     ping -w 3 $server > /dev/null 2>&1
-    [ "$?" != "0" ] && {
+    if [ "$?" != "0" ]
+    then
         _code="1"
         _msg="ping gets no response"
-    }
-
-    #2. nc port
-    nc -zuv $server $port > /dev/null 2>&1
-    [ "$?" != "0" ] && {
-        _code="2"
-        _msg="ping ok, but port not opened"
-    }
-
-    #3. radtest with user and password
+    else 
+        #2. nc port
+        nc -zuv $server $port > /dev/null 2>&1
+        if [ "$?" != "0" ]
+        then
+            _code="2"
+            _msg="ping ok, but port not opened"
+        else
+            #3. radtest with user and password
+            :
+        fi
+    fi
 
     json_init
     json_add_int code "$_code"
