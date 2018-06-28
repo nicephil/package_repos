@@ -757,6 +757,16 @@ int wlan_set_psk(int stid,
     return 0;
 }
 
+
+int wlan_set_radius_scheme(int stid, const char *name)
+{
+    char tuple[256];
+    //wlan_service_template.ServiceTemplate1.radius_scheme="aaaa"
+    sprintf(tuple, "wlan_service_template.ServiceTemplate%d.radius_scheme", stid);
+    cfg_set_option_value(tuple, name);
+    return 0;
+}
+
 int wlan_set_ptk_lifetime(int stid, int value)
 {
     //wlan_service_template.ServiceTemplate1.ptk_lifttime='3600'
@@ -1403,19 +1413,56 @@ int wlan_set_bind(int radio_id, int stid)
         } else if (!strcmp(buf, "wpa-psk")) {
             sprintf(tuple, "wireless.ath%d%d.encryption", radio_id, stid);
             cfg_set_option_value(tuple, "psk+tkip+ccmp");
+            //wireless.ath15.key='123456789' <-> wlan_service_template.ServiceTemplate1.psk_key='123456789'
+            sprintf(tuple, "wlan_service_template.ServiceTemplate%d.psk_key", stid);
+            cfg_get_option_value(tuple, buf, sizeof(buf));
+            sprintf(tuple, "wireless.ath%d%d.key", radio_id, stid);
+            cfg_set_option_value(tuple, buf);
         } else if (!strcmp(buf, "wpa2-psk")) {
             sprintf(tuple, "wireless.ath%d%d.encryption", radio_id, stid);
             cfg_set_option_value(tuple, "psk2+tkip+ccmp");
+            //wireless.ath15.key='123456789' <-> wlan_service_template.ServiceTemplate1.psk_key='123456789'
+            sprintf(tuple, "wlan_service_template.ServiceTemplate%d.psk_key", stid);
+            cfg_get_option_value(tuple, buf, sizeof(buf));
+            sprintf(tuple, "wireless.ath%d%d.key", radio_id, stid);
+            cfg_set_option_value(tuple, buf);
+        } else if (!strcmp(buf, "wpa2-radius")) {
+            char radius_scheme_name[128];
+            sprintf(tuple, "wireless.ath%d%d.encryption", radio_id, stid);
+            cfg_set_option_value(tuple, "wpa2+tkip+ccmp");
+            //wlan_serivce_template.ServiceTemplate1.radius_scheme="aaaa"
+            sprintf(tuple, "wlan_service_template.ServiceTemplate%d.radius_scheme", stid);
+            cfg_get_option_value(tuple, buf, sizeof(buf));
+            if (!strlen(buf)) {
+                syslog(LOG_ERR, "no valid readius_scheme\n");
+                return -1;
+            }
+            strcpy(radius_scheme_name, buf);
+            //radius_scheme.aaaa.primary_authentication_ip="1.1.1.1" <-> wireless.ath10.server="1.1.1.1"
+            sprintf(tuple, "radius_scheme.%s.primary_authentication_ip", radius_scheme_name);
+            cfg_get_option_value(tuple, buf, sizeof(buf));
+            sprintf(tuple, "wireless.ath%d%d.server", radio_id, stid);
+            cfg_set_option_value(tuple, buf);
+            //radius_scheme.aaaa.primary_authentication_port="1812" <-> wireless.ath10.port="1812"
+            sprintf(tuple, "radius_scheme.%s.primary_authentication_port", radius_scheme_name);
+            cfg_get_option_value(tuple, buf, sizeof(buf));
+            sprintf(tuple, "wireless.ath%d%d.port", radio_id, stid);
+            cfg_set_option_value(tuple, buf);
+            //radius_scheme.aaaa.primary_authentication_key="12345" <-> wireless.ath10.key="12345"
+            sprintf(tuple, "radius_scheme.%s.primary_authentication_key", radius_scheme_name);
+            cfg_get_option_value(tuple, buf, sizeof(buf));
+            sprintf(tuple, "wireless.ath%d%d.key", radio_id, stid);
+            cfg_set_option_value(tuple, buf);
         } else {
             sprintf(tuple, "wireless.ath%d%d.encryption", radio_id, stid);
             cfg_set_option_value(tuple, "psk-mixed+tkip+ccmp");
+            //wireless.ath15.key='123456789' <-> wlan_service_template.ServiceTemplate1.psk_key='123456789'
+            sprintf(tuple, "wlan_service_template.ServiceTemplate%d.psk_key", stid);
+            cfg_get_option_value(tuple, buf, sizeof(buf));
+            sprintf(tuple, "wireless.ath%d%d.key", radio_id, stid);
+            cfg_set_option_value(tuple, buf);
         }
 
-        //wireless.ath15.key='123456789' <-> wlan_service_template.ServiceTemplate1.psk_key='123456789'
-        sprintf(tuple, "wlan_service_template.ServiceTemplate%d.psk_key", stid);
-        cfg_get_option_value(tuple, buf, sizeof(buf));
-        sprintf(tuple, "wireless.ath%d%d.key", radio_id, stid);
-        cfg_set_option_value(tuple, buf);
     }
 
 

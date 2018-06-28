@@ -263,26 +263,31 @@ generate_chscanningjson()
 generate_radtestjson()
 {
     local vname="$1"
-    # echo "has_radtestjson=1 has_cookie=$cookie server=$server port=$port username=$username password=$password /lib/okos/devstats.sh"
+    #echo "has_radtestjson=1 has_cookie=$cookie server=$server port=$port username=$username password=$password radkey=$key /lib/okos/devstats.sh" | logger -t 'devstats'
     local _code="0"
     local _msg="success"
 
     #1. ping it
-    ping -w 3 $server > /dev/null 2>&1
+    ping -W 3 -c 1 $server > /dev/null 2>&1
     if [ "$?" != "0" ]
     then
         _code="1"
         _msg="ping gets no response"
     else 
         #2. nc port
-        nc -zuv $server $port > /dev/null 2>&1
+        nc -zuv -w 3 $server $port > /dev/null 2>&1
         if [ "$?" != "0" ]
         then
             _code="2"
             _msg="ping ok, but port not opened"
         else
             #3. radtest with user and password
-            :
+            echo "User-Name=$username,User-Password=$password" | /usr/bin/radclient $server:$port auth "$radkey"
+            if [ "$?" != "0" ]
+            then
+                _code="3"
+                _msg="username,password,or radserver key is wrong"
+            fi
         fi
     fi
 

@@ -374,7 +374,7 @@ extern int wlan_set_cipher(int stid, int cipher);
 extern int wlan_set_wep40_key(int stid, int slot, int type, int crypt, const char *key);
 extern int wlan_set_wep108_key(int stid, int slot, int type, int crypt, const char * key);
 extern int wlan_set_psk(int stid, const char * password, int crypt, int type);
-extern int wlan_set_radius_scheme(int stid, const char * name);
+extern int wlan_set_radius_scheme(int stid, const char *name);
 extern int wlan_set_ptk_lifetime(int stid, int value);
 extern int wlan_set_ptk_lifetime_enable(int stid, int value);
 extern int wlan_set_gtk_lifetime(int stid, int value);

@@ -13,7 +13,7 @@ const dc_json_node dc_nodes[] = {
     {"system",          dc_hdl_node_system},
     {"users",           dc_hdl_node_usrmanage}, /* not supported */
     {"ntp",             dc_hdl_node_ntp},
-    {"radiuss",         dc_hdl_node_radius}, /* not supported */
+    {"radiuss",         dc_hdl_node_radius},
     {"dns",             dc_hdl_node_dns},
     {"capwap",          dc_hdl_node_capwap},
     {"probe",           dc_hdl_node_probe},  /* not supported */

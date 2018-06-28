@@ -136,9 +136,9 @@ handle_radtest()
 
     json_init
     json_load "$json_data"
-    json_get_vars server port username password
+    json_get_vars server port username password key
 
-    has_radtestjson=1 has_cookie=$cookie server=$server port=$port username=$username password=$password /lib/okos/devstats.sh 
+    has_radtestjson=1 has_cookie=$cookie server=$server port=$port username=$username password=$password radkey=$key /lib/okos/devstats.sh 
 
     return 0
 }

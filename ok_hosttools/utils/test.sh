@@ -2,10 +2,22 @@
 
 ip=$1
 
-scp -r test_suit.py root@$1:/tmp/
-scp -r /home/llwang/repos/master_for_AA-12.09/osdk_repos/bin/ar71xx/packages/capwapc_1_ar71xx.ipk root@$1:/tmp/
-scp -r /home/llwang/repos/master_for_AA-12.09/osdk_repos/bin/ar71xx/packages/qca-hostapd-cli-10.4_*-dirty-1_ar71xx.ipk root@$1:/tmp/
-scp -r /home/llwang/repos/master_for_AA-12.09/osdk_repos/package_repos/ok_base-files/lib/okos/* root@$1:/lib/okos/.
-scp -r /home/llwang/repos/master_for_AA-12.09/osdk_repos/package_repos/ok_base-files/lib/wifi/hostapd.sh* root@$1:/lib/wifi/.
-ssh root@$1 "opkg remove capwapc;opkg install /tmp/capwapc_1_ar71xx.ipk;/etc/init.d/capwapc restart;opkg remove qca-hostapd-cli-10.4;opkg install /tmp/qca-hostapd-cli-10.4_*-dirty-1_ar71xx.ipk"
+function test_capwapc()
+{
+    scp -r /home/llwang/repos/master_for_AA-12.09/osdk_repos/bin/ar71xx/packages/libservices_1.0-0_ar71xx.ipk root@$1:/tmp/
+    scp -r /home/llwang/repos/master_for_AA-12.09/osdk_repos/bin/ar71xx/packages/libnmsc_1.0-0_ar71xx.ipk root@$1:/tmp/
+    scp -r /home/llwang/repos/master_for_AA-12.09/osdk_repos/bin/ar71xx/packages/capwapc_1_ar71xx.ipk root@$1:/tmp/
+    ssh root@$1 "/etc/init.d/handle_cloud stop;opkg remove --force-depends capwapc libnmsc libservices;opkg install /tmp/*.ipk;/etc/init.d/capwapc restart;"
+}
+
+
+function test_okos_scripts()
+{
+    scp -r /home/llwang/repos/master_for_AA-12.09/osdk_repos/package_repos/ok_base-files/lib/okos/* root@$1:/lib/okos/.
+}
+
+
+test_capwapc $ip
+
+# test_okos_scripts $ip
 

@@ -24,6 +24,7 @@
 #include "services/cfg_services.h"
 #include "services/util_services.h"
 #include "services/time_range_services.h"
+#include "services/aaad_services.h"
 
 #define SCHEME_TIME_RANGE_MAXSIZE 16
 #define PERIODIC_TIME_RANGE_MAXSIZE 16
@@ -880,8 +881,6 @@ int dc_hdl_node_dns(struct json_object *obj)
 
 int dc_hdl_node_radius(struct json_object *obj)
 {
-    /* not supported yet */
-#if !OK_PATCH
     struct radius_scheme_json json_cfg, cur_cfg;    
     struct node_pair_save paires[] = {
         {"scheme",             json_type_string, NULL, sizeof(json_cfg.config[0].name)},
@@ -949,6 +948,9 @@ int dc_hdl_node_radius(struct json_object *obj)
         json_cfg.num++;
         log_node_paires(paires, sizeof(paires)/sizeof(paires[0]));
     }
+
+
+
 
     memset(&cur_cfg, 0, sizeof(cur_cfg));
     if ((ret = radius_scheme_get_all(&cur_cfg)) != 0) {
@@ -1030,7 +1032,6 @@ int dc_hdl_node_radius(struct json_object *obj)
         }
     }
     
-#endif
     return 0;
 }
 
@@ -4486,7 +4487,16 @@ int dc_hdl_node_wlan(struct json_object *obj)
                 st_json->gtk_enabled, ret);
             ret = dc_error_code(dc_error_commit_failed, node, ret); 
             goto ERROR_OUT;
-        }
+		}
+
+		if (strlen(st_json->radius_scheme) > 0) { 
+			ret = wlan_set_radius_scheme(stid, st_json->radius_scheme); 
+			if (ret) { 
+				nmsc_log("Set service template %d radius_scheme %s failed for %d.", stid,st_json->radius_scheme, ret); 
+				ret = dc_error_code(dc_error_commit_failed, node, ret);  
+				goto ERROR_OUT; 
+			} 
+		}
 
 #if OK_PATCH
         // add bandwidth_priority and client_isolation, guest network type
