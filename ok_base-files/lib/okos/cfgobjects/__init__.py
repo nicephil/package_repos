@@ -8,5 +8,6 @@ from cfg_ssid_enabled import CfgSsidEnabled
 from cfg_ssid import CfgSsid
 from cfg_ppsk import CfgPPSK
 from cfg_portal import CfgPortal
+from cfg_radius import CfgRadius
 from cfg_dns import CfgDomainNameSet
 from cfg_version import CfgVersion

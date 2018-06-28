@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse, os, subprocess, re, json, pprint, sys
-from cfgobjects import CfgCapwap, CfgLogServer, CfgNtp, CfgSystem, CfgNetwork, CfgRadio, CfgSsid, CfgSsidEnabled, CfgPortal, CfgDomainNameSet, CfgVersion, CfgPPSK
+from cfgobjects import CfgCapwap, CfgLogServer, CfgNtp, CfgSystem, CfgNetwork, CfgRadio, CfgSsid, CfgSsidEnabled, CfgPortal, CfgRadius, CfgDomainNameSet, CfgVersion, CfgPPSK
 
 class OakmgrCfg(object):
     Templates = [
@@ -16,6 +16,7 @@ class OakmgrCfg(object):
             CfgPPSK(),
             CfgNetwork(),
             CfgPortal(),
+            CfgRadius(),
             CfgDomainNameSet(),
             ]
     def __init__(self, f=''):

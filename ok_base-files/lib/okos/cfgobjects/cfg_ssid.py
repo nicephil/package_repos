@@ -25,6 +25,7 @@ class CfgSsid(CfgObj):
             d['client_isolation'] = ssids[i]['client_isolation']
             d['psk_key'] = ssids[i].setdefault('key', '')
             d['portal_scheme'] = ssids[i]['portal_scheme']
+            d['radius_scheme'] = ssids[i]['radius_scheme']
             d['auth'] = ssids[i]['auth']
             d['uplink_limit_enable'] = ssids[i]['uplink_limit_enable']
             d['downlink_limit_enable'] = ssids[i]['downlink_limit_enable']
