@@ -906,7 +906,6 @@ int dc_hdl_node_radius(struct json_object *obj)
         {"sec_acc_key",        json_type_string, NULL, sizeof(json_cfg.config[0].secondary_acct_key)}
     };   
     struct json_object *array;
-    struct in_addr  ip;
     int i, j, ret, node = dc_node_radiuss;
     
     if (json_object_get_type(obj) != json_type_array) {
@@ -995,8 +994,7 @@ int dc_hdl_node_radius(struct json_object *obj)
             }
             
             if (strlen(scheme->primary_auth_ip) > 0) {
-                ip.s_addr = inet_addr(scheme->primary_auth_ip);
-                if ((ret = radius_scheme_set_pri_auth(scheme->name, ip, scheme->primary_auth_port,
+                if ((ret = radius_scheme_set_pri_auth(scheme->name, scheme->primary_auth_ip, scheme->primary_auth_port,
                     scheme->primary_auth_key_crypt, scheme->primary_auth_key)) != 0) {
                     nmsc_log("Set radius scheme %s primary auth failed for %d.", scheme->name, ret);
                     return dc_error_code(dc_error_commit_failed, node, ret);
@@ -1004,8 +1002,7 @@ int dc_hdl_node_radius(struct json_object *obj)
             }
 
             if (strlen(scheme->primary_acct_ip) > 0) {
-                ip.s_addr = inet_addr(scheme->primary_acct_ip);
-                if ((ret = radius_scheme_set_pri_acct(scheme->name, ip, scheme->primary_acct_port,
+                if ((ret = radius_scheme_set_pri_acct(scheme->name, scheme->primary_acct_ip, scheme->primary_acct_port,
                     scheme->primary_acct_key_crypt, scheme->primary_acct_key)) != 0) {
                     nmsc_log("Set radius scheme %s primary acct failed for %d.", scheme->name, ret);
                     return dc_error_code(dc_error_commit_failed, node, ret);
@@ -1013,8 +1010,7 @@ int dc_hdl_node_radius(struct json_object *obj)
             }
 
             if (strlen(scheme->secondary_auth_ip) > 0) {
-                ip.s_addr = inet_addr(scheme->secondary_auth_ip);
-                if ((ret = radius_scheme_set_sec_auth(scheme->name, ip, scheme->secondary_auth_port,
+                if ((ret = radius_scheme_set_sec_auth(scheme->name, scheme->secondary_auth_ip, scheme->secondary_auth_port,
                     scheme->secondary_auth_key_crypt, scheme->secondary_auth_key)) != 0) {
                     nmsc_log("Set radius scheme %s secondary auth failed for %d.", scheme->name, ret);
                     return dc_error_code(dc_error_commit_failed, node, ret);
@@ -1022,8 +1018,7 @@ int dc_hdl_node_radius(struct json_object *obj)
             }
 
             if (strlen(scheme->secondary_acct_ip) > 0) {
-                ip.s_addr = inet_addr(scheme->secondary_acct_ip);
-                if ((ret = radius_scheme_set_sec_acct(scheme->name, ip, scheme->secondary_acct_port,
+                if ((ret = radius_scheme_set_sec_acct(scheme->name, scheme->secondary_acct_ip, scheme->secondary_acct_port,
                     scheme->secondary_acct_key_crypt, scheme->secondary_acct_key)) != 0) {
                     nmsc_log("Set radius scheme %s secondary acct failed for %d.", scheme->name, ret);
                     return dc_error_code(dc_error_commit_failed, node, ret);

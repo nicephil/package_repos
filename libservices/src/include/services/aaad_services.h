@@ -38,19 +38,19 @@ enum RADIUS_KEY_CRYPT {
 extern int radius_scheme_create(const char * name);
 
 extern int radius_scheme_set_pri_auth(const char * name, 
-        struct in_addr  addr, unsigned int port, 
+        const char *addr, unsigned int port, 
         int key_crypt, const char * key);
 
 extern int radius_scheme_set_pri_acct(const char * name, 
-        struct in_addr  addr, unsigned int port, 
+        const char *addr, unsigned int port, 
         int key_crypt, const char * key);
 
 extern int radius_scheme_set_sec_auth(const char * name, 
-        struct in_addr  addr, unsigned int port, 
+        const char *addr, unsigned int port, 
         int key_crypt, const char * key);
 
 extern int radius_scheme_set_sec_acct(const char * name, 
-        struct in_addr  addr, unsigned int port, 
+        const char *addr, unsigned int port, 
         int key_crypt, const char * key);
 
 struct radius_scheme_config_json {

@@ -18,13 +18,13 @@ int radius_scheme_create(const char * name)
 }
 
 int radius_scheme_set_pri_auth(const char * name, 
-        struct in_addr  addr, unsigned int port, 
+        const char *addr, unsigned int port, 
         int key_crypt, const char * key)
 {
     char tuple[256];
     //radius_scheme.aa.primary_authentication_ip="1.1.1.1"
     sprintf(tuple, "%s.%s.%s", CFG_RADIUS_SCHEME_PACKAGE, name, CFG_RADIUS_PRI_AUTH_IP);
-    cfg_set_option_value(tuple, inet_ntoa(addr));
+    cfg_set_option_value(tuple, addr);
     //radius_scheme.aa.primary_authentication_port="1812"
     sprintf(tuple, "%s.%s.%s", CFG_RADIUS_SCHEME_PACKAGE, name, CFG_RADIUS_PRI_AUTH_PORT);
     cfg_set_option_value_int(tuple, port);
@@ -38,13 +38,13 @@ int radius_scheme_set_pri_auth(const char * name,
 }
 
 int radius_scheme_set_pri_acct(const char * name, 
-        struct in_addr  addr, unsigned int port, 
+        const char *addr, unsigned int port, 
         int key_crypt, const char * key)
 {
     char tuple[256];
     //radius_scheme.aa.primary_accounting_ip="1.1.1.1"
     sprintf(tuple, "%s.%s.%s", CFG_RADIUS_SCHEME_PACKAGE, name, CFG_RADIUS_PRI_ACCT_IP);
-    cfg_set_option_value(tuple, inet_ntoa(addr));
+    cfg_set_option_value(tuple, addr);
     //radius_scheme.aa.primary_accounting_port="1812"
     sprintf(tuple, "%s.%s.%s", CFG_RADIUS_SCHEME_PACKAGE, name, CFG_RADIUS_PRI_ACCT_PORT);
     cfg_set_option_value_int(tuple, port);
@@ -58,13 +58,13 @@ int radius_scheme_set_pri_acct(const char * name,
 }
 
 int radius_scheme_set_sec_auth(const char * name, 
-        struct in_addr  addr, unsigned int port, 
+        const char *addr, unsigned int port, 
         int key_crypt, const char * key)
 {
     char tuple[256];
     //radius_scheme.aa.secondary_authentication_ip="1.1.1.1"
     sprintf(tuple, "%s.%s.%s", CFG_RADIUS_SCHEME_PACKAGE, name, CFG_RADIUS_SEC_AUTH_IP);
-    cfg_set_option_value(tuple, inet_ntoa(addr));
+    cfg_set_option_value(tuple, addr);
     //radius_scheme.aa.secondary_authentication_port="1812"
     sprintf(tuple, "%s.%s.%s", CFG_RADIUS_SCHEME_PACKAGE, name, CFG_RADIUS_SEC_AUTH_PORT);
     cfg_set_option_value_int(tuple, port);
@@ -78,13 +78,13 @@ int radius_scheme_set_sec_auth(const char * name,
 }
 
 int radius_scheme_set_sec_acct(const char * name, 
-        struct in_addr  addr, unsigned int port, 
+        const char *addr, unsigned int port, 
         int key_crypt, const char * key)
 {
     char tuple[256];
     //radius_scheme.aa.priondary_accounting_ip="1.1.1.1"
     sprintf(tuple, "%s.%s.%s", CFG_RADIUS_SCHEME_PACKAGE, name, CFG_RADIUS_SEC_ACCT_IP);
-    cfg_set_option_value(tuple, inet_ntoa(addr));
+    cfg_set_option_value(tuple, addr);
     //radius_scheme.aa.priondary_accounting_port="1812"
     sprintf(tuple, "%s.%s.%s", CFG_RADIUS_SCHEME_PACKAGE, name, CFG_RADIUS_SEC_ACCT_PORT);
     cfg_set_option_value_int(tuple, port);
