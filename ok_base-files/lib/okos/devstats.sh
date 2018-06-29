@@ -282,11 +282,16 @@ generate_radtestjson()
             _msg="ping ok, but port not opened"
         else
             #3. radtest with user and password
-            echo "User-Name=$username,User-Password=$password" | /usr/bin/radclient $server:$port auth "$radkey"
+            #echo "User-Name=$username,User-Password=$password" | /usr/bin/radclient $server:$port auth "$radkey"
+            /usr/sbin/eapol_test -c /etc/eapol_test.conf -r 0 -s "$radkey" -a "$server" -p "$port" > /tmp/eapol_test.log 2>&1
             if [ "$?" != "0" ]
             then
-                _code="3"
-                _msg="username,password,or radserver key is wrong"
+                grep -q 'EAPOL test timed out' /tmp/eapol_test.log
+                if [ "$?" = "0" ]
+                then
+                    _code="3"
+                    _msg="radserver key is wrong"
+                fi
             fi
         fi
     fi
