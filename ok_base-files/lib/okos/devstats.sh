@@ -364,7 +364,7 @@ json_select ..
 
 json_data=$(json_dump)
 
-echo $json_data | logger -p user.info -t '01-SYSTEM-LOG'
+#echo $json_data | logger -p user.info -t '01-SYSTEM-LOG'
 #echo $json_data
 
 # 4. upload json file to nms

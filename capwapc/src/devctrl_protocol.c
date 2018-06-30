@@ -635,7 +635,7 @@ CWBool assemble_wlan_sta_status_elem(char **payload, int *len,
                 sta->len = WLAN_STA_STATUS_FIXLEN + sta->ssid_len + sta->name_len + sta->ps_len + sta->client_type_len + sta->client_hostname_len + sta->location_len;
                 CWProtocolStore16(&msg, sta->len);
                 CWProtocolStore8(&msg, sta->state);
-                okos_system_log("Client Change Status:%02x:%02x:%02x:%02x:%02x:%02x:%d\n", sta->mac[0], sta->mac[1],sta->mac[2], sta->mac[3],sta->mac[4], sta->mac[5],sta->state);
+                //okos_system_log("Client Change Status:%02x:%02x:%02x:%02x:%02x:%02x:%d\n", sta->mac[0], sta->mac[1],sta->mac[2], sta->mac[3],sta->mac[4], sta->mac[5],sta->state);
             }
             
             CWProtocolStoreRawBytes(&msg, (char *)(sta->mac), 6);

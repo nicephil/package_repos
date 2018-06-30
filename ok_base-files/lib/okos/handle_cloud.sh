@@ -59,13 +59,13 @@ do
 
     if [ -z "$_oakmgr_pub_name" ]
     then
-        echo "no valid oakmgr_pub_name, so query agian" | logger -p user.info -t '01-SYSTEM-LOG'
+        #echo "no valid oakmgr_pub_name, so query agian" | logger -p user.info -t '01-SYSTEM-LOG'
         sleep 5
         continue
     elif [ "$_oakmgr_pub_name" = "$(uci get capwapc.server.mas_server 2>/dev/null)" ]
     then
         FIRSTBOOT="0"
-        echo "existing oakmgr_pub_name:$_oakmgr_pub_name is the same as quried, so no action" | logger -p user.info -t '01-SYSTEM-LOG'
+        #echo "existing oakmgr_pub_name:$_oakmgr_pub_name is the same as quried, so no action" | logger -p user.info -t '01-SYSTEM-LOG'
         sleep 120
         continue
     fi
@@ -78,7 +78,7 @@ do
         FIRSTBOOT="0"
     else
         echo "_oakmgr_pub_name:$_oakmgr_pub_name, capwapc.mas_server=$(uci get capwapc.server.mas_server 2>/dev/null)" | logger -t 'handle_cloud'
-        echo "reboot by handle_cloud!!" | logger -p user.info -t '01-SYSTEM-LOG'
+        #echo "reboot by handle_cloud!!" | logger -p user.info -t '01-SYSTEM-LOG'
         sleep 60
         reboot -f
     fi

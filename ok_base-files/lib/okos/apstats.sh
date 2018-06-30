@@ -217,7 +217,6 @@ json_add_int "cpu_load" "$cpu_load_"
 json_add_int "mem_load" "$mem_load_"
 json_close_object
 
-
 # 8. generate .json
 rm -rf /tmp/apstats_*.json
 json_file=apstats_${mac}_${timestamp}.json
@@ -231,7 +230,7 @@ then
     return 1
 fi
 
-cat /tmp/${json_file} | logger -p user.info -t '01-SYSTEM-LOG'
+echo "@cee:$(cat /tmp/${json_file})" | logger -p user.info -t '03-SYSTEM-STATISTIC'
 
 # 10. upload json file to nms
 URL="http://${mas_server}/nms/file/device/stat?objectname=${json_file}&override=1"

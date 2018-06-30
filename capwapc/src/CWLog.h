@@ -50,6 +50,6 @@ void CWDebugLog(const char *format, ...);
 #endif
 void CWLogInitFile(char *fileName);
 extern int loglevel;
-void okos_system_log(const char *format, ...);
+void okos_system_log(int log_level, const char *format, ...);
 
 #endif

@@ -467,7 +467,6 @@ int main (int argc, const char * argv[])
 
 	/* start CAPWAP state machine */	
 	CW_REPEAT_FOREVER {
-	    okos_system_log("Switch next state: %s.", state_name[(nextState - CW_ENTER_SULKING) % (CW_QUIT - CW_ENTER_SULKING + 1)]);
         CWDebugLog_F("Switch next state: %s.", state_name[(nextState - CW_ENTER_SULKING) % (CW_QUIT - CW_ENTER_SULKING + 1)]);
 		switch(nextState) {
 			case CW_ENTER_DISCOVERY:
@@ -485,22 +484,22 @@ int main (int argc, const char * argv[])
 			case CW_ENTER_DATA_CHECK:
 				nextState = CWWTPEnterDataCheck();
 				break;	
-			case CW_ENTER_RUN:
-				nextState = CWWTPEnterRun();
-				break;
-			case CW_ENTER_RESET:
-                okos_system_log("capwap disconnected");
-				 CWStopHeartbeatTimer();
-				 CWStopNeighborDeadTimer();
-				/*
-				 * CWNetworkCloseSocket(gWTPSocket);
-				 * CWSecurityDestroySession(gWTPSession);
-				 * CWSecurityDestroyContext(gWTPSecurityContext);
-				 * gWTPSecurityContext = NULL;
-				 * gWTPSession = NULL;
-				 */
-				nextState = CW_ENTER_DISCOVERY;
-				break;
+            case CW_ENTER_RUN:
+                nextState = CWWTPEnterRun();
+                break;
+            case CW_ENTER_RESET:
+                okos_system_log(LOG_ERR, "disconnected from oakmanager@%s", g_capwapc_config.mas_server);
+                CWStopHeartbeatTimer();
+                CWStopNeighborDeadTimer();
+                /*
+                 * CWNetworkCloseSocket(gWTPSocket);
+                 * CWSecurityDestroySession(gWTPSession);
+                 * CWSecurityDestroyContext(gWTPSecurityContext);
+                 * gWTPSecurityContext = NULL;
+                 * gWTPSession = NULL;
+                 */
+                nextState = CW_ENTER_DISCOVERY;
+                break;
 			case CW_QUIT:
                 CWLog("Try to destroy WTP");
 				CWWTPDestroy();

@@ -102,7 +102,7 @@ static int dc_json_ap_config_handler(struct tlv *payload, void **reserved)
     strcpy(env, payload->v);
     CWLog("-------->System env:json_data=%s", env);
 
-    okos_system_log("get config success");
+    okos_system_log(LOG_INFO, "configuration data obtained");
 
     ret = setenv("json_data", env, 1);
     if (ret == -1) {
@@ -196,7 +196,6 @@ static int dc_json_config_finished(void *reserved)
         free(reserved);
         reserved = NULL;
     }
-    okos_system_log("finished configuration");
     return 0;
 }
 

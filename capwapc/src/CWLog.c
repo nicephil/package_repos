@@ -35,11 +35,11 @@
 static FILE *gLogFile = NULL;
 int loglevel = LOG_INFO;
 #if OK_PATCH
-__inline__ void okos_system_log(const char *format, ...) {
+__inline__ void okos_system_log(int log_level, const char *format, ...) {
     openlog("01-SYSTEM-LOG", LOG_NDELAY, LOG_USER);
 	va_list args;
     va_start(args, format);
-    vsyslog(LOG_INFO, format, args);
+    vsyslog(log_level, format, args);
     va_end(args);
     closelog();
     openlog("capwapc", LOG_NDELAY, LOG_USER);

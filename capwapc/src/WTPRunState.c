@@ -455,7 +455,7 @@ CWBool CWWTPManageGenericRunMessage(CWProtocolMessage *msgPtr) {
             {
 				CWFreeMessageFragments(messages, fragmentsNum);
 				CW_FREE_OBJECT(messages);
-				okos_system_log("Reset Request received, reboot now!");
+				//okos_system_log("Reset Request received, reboot now!");
                 /* system("[ -z $(pgrep handle_cloud) ] && /etc/init.d/handle_cloud restart"); */
                 system("sleep 10;reboot -f");
                 return CW_FALSE;
