@@ -6,7 +6,7 @@ action=$3 # 1 means set, 0 means unset
 ath=$4
 l_time=240
 
-[ -z "$mac" -o -z "$l_time" -o -z "$action" -o -z "$ath" ] && {
+[ -z "$mac" -o -z "$l_time" -o -z "$action" ] && {
     logger -t clientevent -p 3 "xxsetblacklist:mac:$mac, l_time:$L_time, action:$action, ath:$ath"
     exit 1
 }
@@ -42,14 +42,21 @@ then
         fi
     done 
 
-    # 4. add it into blacklist timer
-    echo "iwpriv $ath delmac $mac" | at now +$((l_time/60))minutes
+    if [ -n "$ath" ]
+    then
+        # 4. add it into blacklist timer
+        echo "iwpriv $ath delmac $mac" | at now +$((l_time/60))minutes
 
-    # 5. add it into blacklist
-    iwpriv "$ath" addmac "$mac"
+        # 5. add it into blacklist
+        iwpriv "$ath" addmac "$mac"
 
-    # 6. kickoff it
-    iwpriv "$ath" kickmac "$mac"
+        # 6. kickoff it
+        iwpriv "$ath" kickmac "$mac"
+    else
+        echo "iwconfig 2>/dev/null | awk '/ath/{system(\"iwpriv \"\$1\" delmac $mac\");}'" | at now +$((time/60))minutes
+        iwconfig 2>/dev/null | awk '/ath/{system("iwpriv "$1" addmac '"$mac"'");}'
+        iwconfig 2>/dev/null | awk '/ath/{system("iwpriv "$1" kickmac '"$mac"'");}'
+    fi
 
 fi
 
