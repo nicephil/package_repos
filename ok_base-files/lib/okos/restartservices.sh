@@ -28,7 +28,7 @@ sync;echo 3 > /proc/sys/vm/drop_caches
 [ -n "$(iwconfig ath60 2>/dev/null)" ] && ifconfig wifi1 up
 [ -n "$(iwconfig ath50 2>/dev/null)" ] && ifconfig wifi0 up
 
-sleep 5
+sleep 7
 
 rm -rf $lockfile
 if [ ! -f "/tmp/firstboot_report" ]

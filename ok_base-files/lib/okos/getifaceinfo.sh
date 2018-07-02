@@ -83,7 +83,7 @@ do
     
     #echo "ifname:$ifname,state:$state,mac:$mac,vlan:$vlan,ssid:$ssid,ipaddr:$ipaddr,maskaddr:$maskaddr,chan:$chan,txpower:$txpoer,mode:$mode,bandwidth:$bandwidth" | logger -p user.info -t '01-SYSTEM-LOG'
     [ "$has_reportnow" = "1" ] && {
-        echo "radio $i is up, ch$chan, ${txpower}dBm, $mode, $bandwidth" | logger -p user.info -t "01-SYSTEM-LOG"
+        echo "radio $i is up, ch$chan, ${txpower}dbm, $mode, $bandwidth" | logger -p user.info -t "01-SYSTEM-LOG"
     }
         
     #echo sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\");COMMIT"

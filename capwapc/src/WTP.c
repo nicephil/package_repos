@@ -488,7 +488,8 @@ int main (int argc, const char * argv[])
                 nextState = CWWTPEnterRun();
                 break;
             case CW_ENTER_RESET:
-                okos_system_log(LOG_ERR, "disconnected from oakmanager@%s", g_capwapc_config.mas_server);
+		        CWUseSockNtop(&(gACInfoPtr->preferredAddress),
+			    {okos_system_log(LOG_INFO, "disconnected from oakmgr @%s, err:timeout", str);});
                 CWStopHeartbeatTimer();
                 CWStopNeighborDeadTimer();
                 /*

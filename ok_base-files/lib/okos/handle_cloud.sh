@@ -37,6 +37,8 @@ setup_capwapc ()
     /etc/init.d/capwapc restart
 }
 
+(sleep 20;echo "oakos is up, version:${_swversion}" | logger -p user.info -t '01-SYSTEM-LOG')&
+
 while :
 do
     URL="http://${ADDR}:${PORT}/redirector/v1/device/register/?key=${KEY}"
