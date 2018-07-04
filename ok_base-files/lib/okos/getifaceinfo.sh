@@ -54,7 +54,7 @@ do
         #echo sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\");COMMIT"
         sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\");COMMIT"
         [ "$has_reportnow" = "1" ] && {
-            echo "radio $i is down" | logger -p user.info -t '01-SYSTEM-LOG'
+            echo "radio $i turned off by configure" | logger -p user.info -t '01-SYSTEM-LOG'
         }
         continue
     }

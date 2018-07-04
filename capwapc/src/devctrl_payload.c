@@ -146,6 +146,9 @@ static int dc_json_config_handler(devctrl_block_s *dc_block, struct tlv *payload
         terminated = payload->v[payload->l];
         payload->v[payload->l] = 0;
         ret = dc_json_machine(payload->v);
+        if (ret) {
+            sysetm("rm -rf /tmp/old_config_json");
+        }
         payload->v[payload->l] = terminated;
         if (*reserved) {
             free(*reserved);

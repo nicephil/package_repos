@@ -25,7 +25,7 @@ function test_okos_scripts()
 function test_busybox()
 {
     scp -r /home/llwang/repos/master_for_AA-12.09/osdk_repos/bin/ar71xx/packages/busybox_1.19.4-6_ar71xx.ipk root@$1:/tmp/
-    ssh root@$1 "/etc/init.d/handle_cloud stop;rm -rf /root/*;opkg remove --force-depends busybox;opkg install /tmp/*.ipk;/etc/init.d/boot restart;"
+    ssh root@$1 "/etc/init.d/handle_cloud stop;rm -rf /root/*;opkg remove --force-removal-of-essential-packages --force-depends busybox;opkg install /tmp/*.ipk;/etc/init.d/boot restart;"
 }
 
 

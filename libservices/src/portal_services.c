@@ -318,6 +318,22 @@ int portald_scheme_update_domain(char * domain_name)
     return 0;
 }
 
+int portald_scheme_update_domain_id(int domain_id)
+{
+    //system.domain_id.domain_id=11
+    cfg_add_section("system","domain_id");
+    cfg_set_option_value_int("system.domain_id.domain_id", domain_id);
+    return 0;
+}
+
+int portald_scheme_update_business_id(int business_id)
+{
+    //system.business_id.business_id=12
+    cfg_add_section("system","business_id");
+    cfg_set_option_value_int("system.business_id.business_id", business_id);
+    return 0;
+}
+
 int portald_scheme_update_auth_url(char *auth_url)
 {
     //system.auth_url.auth_url='aa'

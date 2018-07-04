@@ -583,6 +583,68 @@ static int dc_hdl_node_domain_name(struct json_object *obj)
     return 0;
 }
 
+static int dc_hdl_node_domain_id(struct json_object *obj)
+{
+    int domain_id = 0;
+    int ret, node = dc_node_system;
+    struct node_pair_save pair = {
+        .key   = "domain_id",
+        .type  = json_type_int,
+        .value = &domain_id,
+        .size  = sizeof(domain_id),
+    };
+    
+    if (json_object_get_type(obj) != json_type_int) {
+        return dc_error_code(dc_error_obj_type, node, 0);
+    }
+
+    if ((ret = dc_hdl_node_default(obj, &pair, 1)) != 0) {
+        return dc_error_code(ret, node, 0);
+    }
+
+    log_node_pair(pair);
+
+
+
+    if ((ret = portald_scheme_update_domain_id(domain_id)) != 0) {
+        nmsc_log("Set domain name %s failed for %d.", domain_id, ret);
+        return dc_error_code(dc_error_commit_failed, node, ret);
+    } 
+
+    return 0;
+}
+
+static int dc_hdl_node_business_id(struct json_object *obj)
+{
+    int business_id = 0;
+    int ret, node = dc_node_system;
+    struct node_pair_save pair = {
+        .key   = "business_id",
+        .type  = json_type_int,
+        .value = &business_id,
+        .size  = sizeof(business_id),
+    };
+    
+    if (json_object_get_type(obj) != json_type_int) {
+        return dc_error_code(dc_error_obj_type, node, 0);
+    }
+
+    if ((ret = dc_hdl_node_default(obj, &pair, 1)) != 0) {
+        return dc_error_code(ret, node, 0);
+    }
+
+    log_node_pair(pair);
+
+
+
+    if ((ret = portald_scheme_update_business_id(business_id)) != 0) {
+        nmsc_log("Set domain name %s failed for %d.", business_id, ret);
+        return dc_error_code(dc_error_commit_failed, node, ret);
+    } 
+    
+    return 0;
+}
+
 static int dc_hdl_node_country(struct json_object *obj)
 {
     char country[4] = {};
@@ -638,6 +700,8 @@ int dc_hdl_node_system(struct json_object *obj)
         {"location", dc_hdl_node_location},
         {"country_code", dc_hdl_node_country},
         {"domain_name", dc_hdl_node_domain_name},
+        {"domain_id", dc_hdl_node_domain_id},
+        {"business_id", dc_hdl_node_business_id},
         {"auth_url", dc_hdl_node_auth_url}
     };
     int i, obj_saved, ret, node = dc_node_system;
