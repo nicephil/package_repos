@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from subprocess import Popen, PIPE
+import syslog
 
 
 def get_mac(iface):
@@ -108,6 +109,19 @@ def mac_to_byte(mac):
     for _, item in enumerate(mac_tmp):
         mac_byte += chr(int(item, base=16))
     return mac_byte
+
+def okos_sta_log_info(msg):
+    syslog.openlog("200-STA", syslog.LOG_NDELAY, syslog.LOG_USER)
+    syslog.syslog(syslog.LOG_INFO, msg)
+    syslog.closelog()
+    syslog.openlog("clientevent", syslog.LOG_NDELAY, syslog.LOG_USER)
+
+def okos_sta_log_warn(msg):
+    syslog.openlog("200-STA", syslog.LOG_NDELAY, syslog.LOG_USER)
+    syslog.syslog(syslog.LOG_WARNING, msg)
+    syslog.closelog()
+    syslog.openlog("clientevent", syslog.LOG_NDELAY, syslog.LOG_USER)
+
 
 
 if __name__ == '__main__':

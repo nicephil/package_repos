@@ -14,7 +14,7 @@ from threading import Thread
 import Queue as qq
 from Queue import Queue
 from okos_utils import get_auth_url, mac_to_byte, get_mac, get_portalscheme, \
-    get_ssid, get_domain
+    get_ssid, get_domain, okos_sta_log_info
 from syslog import syslog, LOG_INFO, LOG_WARNING, LOG_ERR, LOG_DEBUG
 # import objgraph
 # import pdb
@@ -122,9 +122,11 @@ class Client(Thread):
         # 1.2 set_whitelist
         if self.last_acl_type == 1:
             self.set_whitelist(0, 1)
+            okos_sta_log_info("{'sta_mac':'%s','logmsg':'transaction authentication finished successful'}" % self.mac)
         # 1.3 set_blacklist
         elif self.last_acl_type == 3:
             self.set_blacklist(120, 1, self.last_ath)
+            okos_sta_log_warn("{'sta_mac':'%s','logmsg':'transaction authentication fail, it's in blacklist'}" % self.mac)
         # 1.4 none acl, so check
         elif self.last_acl_type == 0:
             self.set_blacklist(0, 0, self.last_ath)
@@ -133,9 +135,11 @@ class Client(Thread):
                     self.set_whitelist(0, 1, mode=1)
                 else:
                     self.set_whitelist(0,1)
+                    okos_sta_log_info(r"{'sta_mac':'%s','logmsg':'transaction authentication finished successful'}" % self.mac)
             else:
                 self.set_whitelist(0, 1)
                 self.notify_wifidog(self.mac, self.last_remain_time)
+                okos_sta_log_info(r"{'sta_mac':'%s','logmsg':'transaction authentication finished successful'}" % self.mac)
 
         # 1.5 set_ratelimit
         self.set_ratelimit(self.last_tx_rate_limit, self.last_rx_rate_limit,
