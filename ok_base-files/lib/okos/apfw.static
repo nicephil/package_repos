@@ -114,7 +114,9 @@ set_global_static_chains_rules()
     $CMD -t mangle -P OUTPUT ACCEPT
     $CMD -t mangle -P POSTROUTING ACCEPT
     $CMD -t mangle -N Portal
+    $CMD -t mangle -N TC_USER
     $CMD -t mangle -A PREROUTING -j Portal 
+    $CMD -t mangle -A POSTROUTING -j TC_USER
 
 
     ## set other user defined static rules

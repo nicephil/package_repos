@@ -17,18 +17,14 @@ touch $lockfile
 
 
 /etc/init.d/network restart
-[ -n "$(iwconfig ath60 2>/dev/null)" ] && ifconfig wifi1 down
-[ -n "$(iwconfig ath50 2>/dev/null)" ] && ifconfig wifi0 down
 
+sleep 7
 sync;echo 3 > /proc/sys/vm/drop_caches
 /etc/init.d/wifidog restart
 /etc/init.d/qos restart
 /etc/init.d/arpwatch restart
 /etc/init.d/apfw.dyn restart
-[ -n "$(iwconfig ath60 2>/dev/null)" ] && ifconfig wifi1 up
-[ -n "$(iwconfig ath50 2>/dev/null)" ] && ifconfig wifi0 up
 
-sleep 7
 
 rm -rf $lockfile
 if [ ! -f "/tmp/firstboot_report" ]

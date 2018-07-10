@@ -16,13 +16,16 @@ ath="${ath:0:5}"
      
 logger -t clientevent -p 3 "++setratelimit:mac:$mac, tx_rate_limit:$tx_rate_limit, rx_rate_limit:$rx_rate_limit, tx_rate_limit_local:$tx_rate_limit_local, rx_rate_limit_local:$rx_rate_limit_local, ath:$ath, action:$action"
 
-[ ! "$ath" =~ "ath" ] && { logger -t clientevent "++setratelimit:ath:$ath"; return 1 }
+[ "${ath:0:3}" != "ath" ] && { 
+    logger -t clientevent "++setratelimit:ath:$ath"
+    return 1
+}
 
 [ -z "$action" ] && action="1"
 
 [ "$action" = "0" ] && {
     /lib/okos/qos.sh del $mac 2>&1 | logger -t clientevent
-    logger -t clientevent -p 3 "==/lib/okos/qos.sh del $mac"
+    echo "--/lib/okos/qos.sh del $mac" | logger -t clientevent -p 3 
 }
 
 [ "$action" = "1" ] && {
@@ -35,6 +38,6 @@ logger -t clientevent -p 3 "++setratelimit:mac:$mac, tx_rate_limit:$tx_rate_limi
 
     # 2. set the right limit
     /lib/okos/qos.sh add $mac $qos_weight ${tx_rate_limit} ${rx_rate_limit} ${tx_rate_limit_local} ${rx_rate_limit_local} $ath 2>&1 | logger -t clientevent
-    logger -t clientevent -p 3 "==/lib/okos/qos.sh add $mac $qos_weight ${tx_rate_limit} ${rx_rate_limit} ${tx_rate_limit_local} ${rx_rate_limit_local} $ath"
+    echo "--/lib/okos/qos.sh add $mac $qos_weight ${tx_rate_limit} ${rx_rate_limit} ${tx_rate_limit_local} ${rx_rate_limit_local} $ath" | logger -t clientevent -p 3
 }
 

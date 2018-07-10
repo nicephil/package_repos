@@ -3,6 +3,7 @@
 DEBUG=
 ebtables_CMD="ebtables"
 
+. /lib/okos/qos_id.sh
 
 # DEBUG
 # $1 - string
@@ -13,7 +14,7 @@ trafstats_debug_log ()
         return 0
     }
 
-    echo "$@"  | logger -p 7 -t 'trafstats'
+    echo "$@"  | logger -p 3 -t 'trafstats'
 }
 
 trafstats_err_log () {
@@ -25,38 +26,46 @@ trafstats_err_log () {
 }
 
 # $1 - client mac
+# $2 - ath
 # ret - 0 - success, 1 - failure
 add_client_track ()
 {
     local mac="$1"
+    local ifname="$2"
+    local id
 
-    trafstats_debug_log "1-->add_client_track: $mac"
+    trafstats_debug_log "add_client_track: $mac $ifname"
 
-    [ -z "$mac" ] && return 1
+    [ -z "$mac"  -o -z "$ifname" ] && return 1
 
+    # get mark id and set it for qos
+    qos_del_id_by_mac $mac
+    id=$(qos_new_id $mac $ifname)
+    trafstats_debug_log "Generate ID:${id} for client [${ifname}/${mac}]."
 
-    trafstats_debug_log "2-->add_client_track: $mac" 
     # add new rule
-
     local rule=$($ebtables_CMD -L client_total_uplink_traf --Lx --Lmac2 2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
     if [ -z "$rule" ]
     then
-        $ebtables_CMD -A client_total_uplink_traf -s "$mac" -j total_uplink_traf
+        $ebtables_CMD -A client_total_uplink_traf -s "$mac" -p ipv4 -j mark --mark-or $id --mark-target CONTINUE
+        $ebtables_CMD -A client_total_uplink_traf -s "$mac" -p ipv4 -j total_uplink_traf
+
     fi
     local rule=$($ebtables_CMD -L client_total_downlink_traf --Lx  --Lmac2 2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
     if [ -z "$rule" ]
     then
-        $ebtables_CMD -A client_total_downlink_traf -d "$mac" -j total_downlink_traf
+        $ebtables_CMD -A client_total_downlink_traf -d "$mac" -p ipv4 -j mark --mark-or $((id+split_id)) --mark-target CONTINUE
+        $ebtables_CMD -A client_total_downlink_traf -d "$mac" -p ipv4 -j total_downlink_traf
     fi
     local rule=$($ebtables_CMD -L client_wan_uplink_traf --Lx --Lmac2  2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
     if [ -z "$rule" ]
     then
-        $ebtables_CMD -A client_wan_uplink_traf -s "$mac" -j total_wan_uplink_traf
+        $ebtables_CMD -A client_wan_uplink_traf -s "$mac" -p ipv4 -j total_wan_uplink_traf
     fi
     local rule=$($ebtables_CMD -L client_wan_downlink_traf --Lx --Lmac2 2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
     if [ -z "$rule" ]
     then
-        $ebtables_CMD -A client_wan_downlink_traf -d "$mac" -j total_wan_downlink_traf
+        $ebtables_CMD -A client_wan_downlink_traf -d "$mac" -p ipv4 -j total_wan_downlink_traf
     fi
 
     return 0
@@ -69,40 +78,47 @@ del_client_track ()
 {
     local mac="$1"
 
-    trafstats_debug_log "-->del_client_track: $mac"
+    trafstats_debug_log "del_client_track: $mac"
 
     [ -z "$mac" ] && return 1
 
+    qos_del_id_by_mac $mac
 
     # delete the mac existing in total uplink chain
-    local rule=$($ebtables_CMD -L client_total_uplink_traf --Lx --Lmac2  2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
-    if [ -n "$rule" ]
-    then
-        trafstats_debug_log "aa1-->$mac, $rule<--"
-        for i in 1 2 3
-        do
-            $rule
-            [ "$?" = "0" ] && break
-        done
-    fi
+    local rules=$($ebtables_CMD -L client_total_uplink_traf --Lx --Lmac2  2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
+    echo "$rules" | while read rule
+    do
+        if [ -n "$rule" ]
+        then
+            trafstats_debug_log "$mac, $rule"
+            for i in 1 2 3
+            do
+                $rule
+                [ "$?" = "0" ] && break
+            done
+        fi
+    done
 
     # delete the mac existing in total downlink chain
-    local rule=$($ebtables_CMD -L client_total_downlink_traf --Lx --Lmac2 2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
-    if [ -n "$rule" ]
-    then
-        trafstats_debug_log "bb1-->$mac, $rule<--"
-        for i in 1 2 3
-        do
-            $rule
-            [ "$?" = "0" ] && break
-        done
-    fi
+    local rules=$($ebtables_CMD -L client_total_downlink_traf --Lx --Lmac2 2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
+    echo "$rules" | while read rule
+    do
+        if [ -n "$rule" ]
+        then
+            trafstats_debug_log "$mac, $rule"
+            for i in 1 2 3
+            do
+                $rule
+                [ "$?" = "0" ] && break
+            done
+        fi
+    done
 
     # delete the mac existing in uplink chain
     local rule=$($ebtables_CMD -L client_wan_uplink_traf --Lx --Lmac2 2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
     if [ -n "$rule" ]
     then
-        trafstats_debug_log "aa-->$mac, $rule<--"
+        trafstats_debug_log "$mac, $rule"
         for i in 1 2 3
         do
             $rule
@@ -114,7 +130,7 @@ del_client_track ()
     local rule=$($ebtables_CMD -L client_wan_downlink_traf --Lx --Lmac2 2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
     if [ -n "$rule" ]
     then
-        trafstats_debug_log "bb-->$mac, $rule<--"
+        trafstats_debug_log "$mac, $rule"
         for i in 1 2 3
         do
             $rule
@@ -144,10 +160,10 @@ fetch_client_stats ()
     unset "${total_uplink_var}"
     unset "${total_downlink_var}"
 
-    local _uplink=$($ebtables_CMD -L client_wan_uplink_traf --Lc --Lmac2 | awk '/'"${mac}"'/{print $NF}')
-    local _downlink=$($ebtables_CMD -L client_wan_downlink_traf --Lc --Lmac2 | awk '/'"${mac}"'/{print $NF}')
-    local _total_uplink=$($ebtables_CMD -L client_total_uplink_traf --Lc --Lmac2 | awk '/'"${mac}"'/{print $NF}')
-    local _total_downlink=$($ebtables_CMD -L client_total_downlink_traf --Lc --Lmac2 | awk '/'"${mac}"'/{print $NF}')
+    local _uplink=$($ebtables_CMD -L client_wan_uplink_traf --Lc --Lmac2 | awk '/'"${mac}"'/{print $NF;exit}')
+    local _downlink=$($ebtables_CMD -L client_wan_downlink_traf --Lc --Lmac2 | awk '/'"${mac}"'/{print $NF;exit}')
+    local _total_uplink=$($ebtables_CMD -L client_total_uplink_traf --Lc --Lmac2 | awk '/'"${mac}"'/{print $NF;exit}')
+    local _total_downlink=$($ebtables_CMD -L client_total_downlink_traf --Lc --Lmac2 | awk '/'"${mac}"'/{print $NF;exit}')
 
     [ -z "$_uplink" ] && _uplink=0
     [ -z "$_downlink" ] && _downlink=0

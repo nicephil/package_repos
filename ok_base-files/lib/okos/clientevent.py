@@ -122,11 +122,11 @@ class Client(Thread):
         # 1.2 set_whitelist
         if self.last_acl_type == 1:
             self.set_whitelist(0, 1)
-            okos_sta_log_info("{'sta_mac':'%s','logmsg':'transaction authentication finished successful'}" % self.mac)
+            okos_sta_log_info("{'sta_mac':'%s','logmsg':'network access is allowed'}" % self.mac)
         # 1.3 set_blacklist
         elif self.last_acl_type == 3:
             self.set_blacklist(120, 1, self.last_ath)
-            okos_sta_log_warn("{'sta_mac':'%s','logmsg':'transaction authentication fail, it's in blacklist'}" % self.mac)
+            okos_sta_log_warn("{'sta_mac':'%s','logmsg':'network access is not allowed, as in blacklist'}" % self.mac)
         # 1.4 none acl, so check
         elif self.last_acl_type == 0:
             self.set_blacklist(0, 0, self.last_ath)
@@ -135,20 +135,21 @@ class Client(Thread):
                     self.set_whitelist(0, 1, mode=1)
                 else:
                     self.set_whitelist(0,1)
-                    okos_sta_log_info(r"{'sta_mac':'%s','logmsg':'transaction authentication finished successful'}" % self.mac)
+                    okos_sta_log_info(r"{'sta_mac':'%s','logmsg':'network access is allowed'}" % self.mac)
             else:
                 self.set_whitelist(0, 1)
                 self.notify_wifidog(self.mac, self.last_remain_time)
-                okos_sta_log_info(r"{'sta_mac':'%s','logmsg':'transaction authentication finished successful'}" % self.mac)
+                okos_sta_log_info(r"{'sta_mac':'%s','logmsg':'network access is allowed'}" % self.mac)
 
-        # 1.5 set_ratelimit
+        # 1.5 set client trac
+        self.set_client_track(1)
+
+        # 1.6 set_ratelimit
         self.set_ratelimit(self.last_tx_rate_limit, self.last_rx_rate_limit,
                            self.last_tx_rate_limit_local,
                            self.last_rx_rate_limit_local,
                            self.last_ath,
                            1)
-        # 1.6 set client trac
-        self.set_client_track(1)
 
     # handle AP-STA-DISCONNECTED event
     def handle_disconnected_event(self, clientevent):
@@ -385,12 +386,11 @@ class Client(Thread):
 
     def set_client_track(self, action):
         if action:
-            os.system(". /lib/okos/trafstats.sh; add_client_track %s" %
-                      self.mac)
+            os.system(". /lib/okos/trafstats.sh; add_client_track %s %s" %
+                      (self.mac, self.last_ath))
         else:
-            os.system(". /lib/okos/trafstats.sh; del_client_track %s" %
-                      self.mac)
-        pass
+            os.system(". /lib/okos/trafstats.sh; del_client_track %s %s" %
+                      (self.mac, self.last_ath))
 
     # main thread
     def run(self):
