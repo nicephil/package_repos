@@ -758,9 +758,9 @@ int cfg_upgrade_image(const char *imagefile)
     int ret = 0;
     char buf[128];
     sprintf(buf, "(sleep 5;sysupgrade -n %s)&", imagefile);
-    system(buf);
+    ret = system(buf);
 
-    return 0;
+    return ret;
 }
 
 

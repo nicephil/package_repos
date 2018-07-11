@@ -171,7 +171,7 @@ get_status_led() {
 		status_led="tp-link:green:wps"
 		;;
 	unifi)
-		status_led="ubnt:green:dome"
+		status_led="ubnt:blue:dome"
 		;;
 	whr-g301n | \
 	whr-hp-g300n | \

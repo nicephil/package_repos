@@ -113,6 +113,7 @@ platform_check_image() {
 	ap135-nand | \
 	ap137)
 		platform_check_image_ap135 "$1" && return 0
+        echo "invalid image type" | logger -p user.warning -t '01-SYSTEM-LOG'
 		return 1
 		;;
 	ap81 | \
@@ -144,7 +145,7 @@ platform_check_image() {
 	unifi | \
 	unifi-outdoor )
 		[ "$magic" != "2705" ] && {
-			echo "Invalid image type."
+			echo "Invalid image type." | logger -p user.warning -t '01-SYSTEM-LOG'
 			return 1
 		}
 		return 0

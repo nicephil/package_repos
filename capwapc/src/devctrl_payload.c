@@ -412,17 +412,26 @@ static int dc_image_upgrade_handler(devctrl_block_s *dc_block, struct tlv *paylo
         goto ERROR_OUT;
     }
 
+    okos_system_log(LOG_INFO, "upgrade firmware request received");
+
     system("/lib/okos/stopservices.sh;umount /overlay");
+
+    okos_system_log(LOG_INFO, "downloading firmware from %s", json_cfg.src);
 
     sprintf(cmd, "wget -q -T %d -O - \'%s\' | tail -c +65 | tar xzf - -O > %s", json_cfg.timeout, json_cfg.src, CST_IMG_TMP_FILE);
     ret = system(cmd);
-    if (ret) {
+    if (ret == -1 || (ret != -1 && WEXITSTATUS(ret))) {
         CWDebugLog("Running cmd %s failed.", cmd);
+        okos_system_log(LOG_WARNING, "download firmware failed, err:%d", ret);
         ret = dc_error_imgdown_failed;
         sprintf(cmd, "rm -rf %s", CST_IMG_TMP_FILE);
         system(cmd);
+        system("/lib/okos/restartservices.sh");
         goto ERROR_OUT;
     }
+
+    okos_system_log(LOG_INFO, "writing firmware into Flash");
+
     ret = cfg_upgrade_image(CST_IMG_TMP_FILE);
     //sprintf(cmd, "rm -rf %s", CST_IMG_TMP_FILE);
     //system(cmd);
