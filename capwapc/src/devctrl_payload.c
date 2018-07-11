@@ -416,7 +416,14 @@ static int dc_image_upgrade_handler(devctrl_block_s *dc_block, struct tlv *paylo
 
     system("/lib/okos/stopservices.sh;umount /overlay");
 
-    okos_system_log(LOG_INFO, "downloading firmware from %s", json_cfg.src);
+
+    CWNetworkLev4Address address;
+    if (CW_TRUE != CWNetworkGetAddressForHost("image.oakridge.vip", 
+                &(address))) {
+        CWLog("Can't resolve hostname %s", "image.oakridge.vip");
+    }		
+    CWUseSockNtop(&(address),
+            {okos_system_log(LOG_INFO, "downloading firmware from %s %s", str, strstr(json_cfg.src, "v1"));}); 
 
     sprintf(cmd, "wget -q -T %d -O - \'%s\' | tail -c +65 | tar xzf - -O > %s", json_cfg.timeout, json_cfg.src, CST_IMG_TMP_FILE);
     ret = system(cmd);
