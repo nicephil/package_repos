@@ -34,6 +34,7 @@ setup_capwapc ()
 {
     echo "====> set new oakmgr: $OAKMGR_PUB" | logger -t 'handle_cloud'
     uci set capwapc.server.mas_server="$OAKMGR_PUB"; uci commit capwapc;
+    cp /etc/capwapc/capwapc /etc/init.d/capwapc
     /etc/init.d/capwapc restart
 }
 

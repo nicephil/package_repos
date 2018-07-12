@@ -156,9 +156,9 @@ generate_chscanningjson()
         local _5ch_nums="$(iwlist ath60 scanning 2>&1 | awk '/Channel/{key=substr($4,1,length($4)-1);sum[key]++;}END{for(k in sum)print k"_"sum[k];}')" 
     fi
 
-    echo "-------------->$ch_usabs" | logger -t 'devstats'
-    echo "==============>$_2ch_nums"  | logger -t 'devstats'
-    echo "-------------->$_5ch_nums" | logger -t 'devstats'
+    echo "--->$ch_usabs" | logger -t 'devstats'
+    echo "===>2G:$_2ch_nums"  | logger -t 'devstats'
+    echo "--->5G:$_5ch_nums" | logger -t 'devstats'
 
     if [ "$disabled" = "1" ]
     then
@@ -217,6 +217,7 @@ generate_chscanningjson()
     fi
 
     # 5G
+    local invalid_usab="1"
     if [ "$radio" = "1" ]
     then
     for ch_usab in $ch_usabs
@@ -228,6 +229,13 @@ generate_chscanningjson()
         if [ "$__ch" -lt "13" ]
         then
             continue
+        fi
+
+        [ "$__usab" = "NA" ] && __usab="0"
+
+        if [ "$__usab" != "0" ]
+        then
+            invalid_usab="0"
         fi
 
         json_add_object
@@ -252,10 +260,15 @@ generate_chscanningjson()
 
         json_close_object
     done
+    [ "$invalid_usab" = "1" ] && {
+        unset "$vname"
+        return 1
+    }
     fi
 
     json_select ..
 
+    unset "$vname"
     export "$vname=$(json_dump)"
     return 0
 }
@@ -340,6 +353,7 @@ fi
 
 if [ "$has_chscanningjson" = "1" ]
 then
+    [ -z "$chscanningjson" ] && return 1
     json_add_object
     json_add_int operate_type "16"
     json_add_string mac "$mac"

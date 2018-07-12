@@ -4,12 +4,17 @@ while :
 do
     sleep 30
 
-    [ -z "`pgrep -f capwapc`" ] && {
+
+    capwap_pid=$(pgrep -f "/usr/sbin/ok_capwapc")
+    capwap_count=$(echo $capwap_pid | awk '{print NF}')
+    [ -z "$capwap_pid" -o "$capwap_count" -gt "1" ] && {
         logger -t supervisor -p 5 "CAPWAP is exit abnormally, restart it !!!"
         /etc/init.d/capwapc restart
     }
 
-    [ -z "`pgrep -f wifidog`" ] && {
+    wifidog_pid=$(pgrep -f "/usr/bin/wifidog -s -d")
+    wifidog_count=$(echo $wifidog_pid | awk '{print NF}')
+    [ -z "$wifidog_pid" -o "$wifidog_count" -gt "1" ] && {
         logger -t supervisor -p 5 "WIFIDog is exit abnormally, restart it !!!"
         /etc/init.d/wifidog restart
     }

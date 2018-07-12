@@ -18,7 +18,8 @@ touch $lockfile
 
 /etc/init.d/network restart
 
-sleep 7
+sleep 20
+
 sync;echo 3 > /proc/sys/vm/drop_caches
 /etc/init.d/wifidog restart
 /etc/init.d/qos restart

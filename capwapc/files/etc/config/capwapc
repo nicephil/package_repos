@@ -2,7 +2,7 @@ config capwapc 'global'
         option enable '1'
 
 config capwapc 'server'
-        option mas_server 'alpha1.oakridge.io'
+        option mas_server '0.0.0.0'
 
 config capwapc 'wtp'
         option ctrl_port '5246'

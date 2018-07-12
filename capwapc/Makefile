@@ -34,7 +34,7 @@ define Package/capwapc/install
 	$(INSTALL_CONF) ./files/etc/capwapc/settings.wtp.txt $(1)/etc/capwapc/
 	$(INSTALL_CONF) ./files/etc/capwapc/config.wtp $(1)/etc/capwapc/
 	$(INSTALL_CONF) ./files/etc/config/capwapc $(1)/etc/config/
-	$(INSTALL_BIN) ./files/etc/init.d/capwapc $(1)/etc/init.d/
+	$(INSTALL_BIN) ./files/etc/capwapc/capwapc $(1)/etc/capwapc/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/ok_capwapc $(1)/usr/sbin/
 endef
 

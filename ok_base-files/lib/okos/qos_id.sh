@@ -28,10 +28,10 @@ split_id=32512
 # 0x80xx - 0xFFxx used by qos donwlink
 # Format of ID file: /tmp/qos_client_id
 # -------------------------------------------------
-# MAC                Interface   ID
-# fc:ad:0f:06:a3:28  ath11       256 (0x100)
-# f0:b4:29:c7:70:da  ath01       512 (0x200)
-# f4:0f:24:2d:da:08  ath10       768 (0x300)
+# MAC                Interface   ID   ID_HEX
+# fc:ad:0f:06:a3:28  ath11       256  100
+# f0:b4:29:c7:70:da  ath01       512  200
+# f4:0f:24:2d:da:08  ath10       768  300
 #
 #####################################################
 
@@ -69,7 +69,7 @@ qos_new_id ()
         done
     done
 
-    echo "$mac $ifname $id" >> $id_file
+    echo "$mac $ifname $id $(printf "%04x" $id)" >> $id_file
     lock -u /var/run/qos.lock
     qos_id_log $LOG_DEBUG "new_id(): get ID:$id ."
     echo "$id"
@@ -98,4 +98,13 @@ qos_del_id_by_mac ()
     qos_id_log $LOG_DEBUG "del_id_by_mac(): done."
 }
 
+qos_del_all_ids ()
+{
+    qos_id_log $LOG_DEBUG "del_all_ids()"
+    lock /var/run/qos.lock
+    echo "" >  ${id_file}
+    lock -u /var/run/qos.lock
+
+    qos_id_log $LOG_DEBUG "del_all_ids(): done."
+}
 

@@ -5121,6 +5121,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
 
                 if (ret) {
                     nmsc_log("Set the radio %d mbss bind %d:%d failed for %d.", rd_json->id, 0, stid, ret);
+                    okos_system_log(LOG_WARNING, "configuration loaded failed, err: setradio %d failed for %d", rd_json->id, ret);
                     ret = dc_error_code(dc_error_commit_failed, node, ret);
                     goto ERROR_OUT;
                 }
