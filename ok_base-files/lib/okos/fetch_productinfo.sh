@@ -11,12 +11,14 @@ unifi)
     mac=${mac%:*}
     mac=`echo $mac | tr '[a-z]' '[A-Z]'`
     serial=`echo $mac |tr -d :`
+    myhost=$serial
     model=`echo $model |tr '[a-z]' '[A-Z]'`
     echo -e "config productinfo productinfo"
     echo -e  "\toption production AC-${model}"
     echo -e  "\toption model UBNT_AC-${model}"
     echo -e "\toption serial ${serial}"
     echo -e "\toption mac ${mac}"
+    echo -e "\toption myhost ${myhost}"
     ;;
 *)
     strings /dev/mtd5 | awk -F'=' ' 
@@ -34,11 +36,13 @@ unifi)
             print "\toption model QTS_"$2;
         }
     }
-    else if ($1 == "DEV_SERIAL_NUMBER") 
+    else if ($1 == "DEV_SERIAL_NUMBER") {
         print "\toption serial "$2;  
-    else if ($1 == "MAC_ADDRESS") 
+    } else if ($1 == "MAC_ADDRESS") {
         print "\toption mac "$2; 
-    else if ($1 == "MAC_ADDRESS_COUNT") 
+        gsub(/:/,"",$2);
+        print "\toption myhost "toupper($2);
+    } else if ($1 == "MAC_ADDRESS_COUNT") 
         print "\toption mac_count "$2; 
     }'
     ;;
