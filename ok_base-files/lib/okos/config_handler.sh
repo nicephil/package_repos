@@ -6,8 +6,11 @@ DEBUG="$1"
     #export 'json_data={"data":"{\"cpu_memory\":1}","operate_type":10001}'
     # channel scanning
     #export 'json_data={"data":"{\"radio\":-1}","operate_type":15}'
+    # radius test
     #export 'json_data={"data":"{\"server\":\"192.168.254.191\",\"port\":\"1812\",\"username\":\"steve\",\"password\":\"testing\",\"key\":\"testing123\"}","operate_type":18}'
-    export 'json_data={"data":"{\"server\":\"192.168.254.183\",\"port\":\"1812\",\"username\":\"leilei.wang\",\"password\":\"Oakridge2016!\",\"key\":\"oakridge\"}","operate_type":18}' 
+    #export 'json_data={"data":"{\"server\":\"192.168.254.183\",\"port\":\"1812\",\"username\":\"leilei.wang\",\"password\":\"Oakridge2016!\",\"key\":\"oakridge\"}","operate_type":18}' 
+    # led set
+    export 'json_data={"data":"{\"mode\":0}","operate_type":19}'
     # config channel
     # export 'json_data={"data":"{\"r24_channel\":1,\"r5_channel\":149}","operate_type":17}'
 }
@@ -34,6 +37,36 @@ data=""
 json_get_vars operate_type data
 
 #config_log "$cookie" "$operate_type" "$data"
+. /etc/diag.sh
+handle_ledopt()
+{
+    local ops="$1"
+    local json_data="$2"
+    local ret=""
+
+    json_init
+    json_load "$json_data"
+    json_get_vars mode
+
+    get_status_led
+    case "$mode" in
+        "0")
+            status_led_off
+            ;;
+        "1")
+            status_led_on
+            ;;
+        "2")
+            status_led_set_timer 1000 1000
+            ;;
+        "*")
+            config_log "unknown led mode"
+            return 1
+            ;;
+    esac
+
+    return 0
+}
 
 handle_devstats()
 {
@@ -182,6 +215,16 @@ case "$operate_type" in
 
     "18")
         if ! handle_radtest "$operate_type" "$data"
+        then
+            config_log "$operate_type $data failed"
+            return 1
+        fi
+        config_log "$operate_type $data success"
+        return 0
+        ;;
+
+    "19")
+        if ! handle_ledopt "$operate_type" "$data"
         then
             config_log "$operate_type $data failed"
             return 1
