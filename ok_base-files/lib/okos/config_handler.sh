@@ -69,7 +69,12 @@ doing_chscanning()
             sleep 1
         fi
 
-        (icm -r $radio -i /tmp/icmseldebug_$radio.csv 2>&1 | logger -t 'devstats';has_chscanningjson=1 has_cookie=$cookie /lib/okos/devstats.sh "$radio" "$disabled")&
+        if [ "$radio" = "0" ]
+        then
+            (icm -r $radio -i /tmp/icmseldebug_$radio.csv 2>&1 | logger -t 'devstats';has_chscanningjson=1 has_cookie=$cookie /lib/okos/devstats.sh "$radio" "$disabled")&
+        else
+            (sleep 30;icm -r $radio -i /tmp/icmseldebug_$radio.csv 2>&1 | logger -t 'devstats';has_chscanningjson=1 has_cookie=$cookie /lib/okos/devstats.sh "$radio" "$disabled")&
+        fi
     fi
 
     [ -f "/tmp/restartservices.lock" ] && ret="1"
