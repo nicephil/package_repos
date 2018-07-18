@@ -69,17 +69,23 @@ do
     fi
 
     chan=$(iwinfo $vifname info | awk -F '[: ]+' '/Channel/{print $5;exit}'); 
-    if [ "$i" = "0" ]
-    then
-        export "chan_2=$chan"
-    elif [ "$i" = "1" ]
-    then
-        export "chan_5=$chan"
-    fi
-
     txpower=$(iwconfig $vifname | awk  '/Tx-Power/{txpower=substr($4,10);print txpower;exit}')
     mode=$(iwpriv $vifname get_mode | awk -F':' '{print substr($2,1,4);exit}' | tr '[A-Z]' '[a-z]')
     bandwidth=HT$(iwpriv $vifname get_mode | awk '{print substr($2,length($2)-1,3);exit}')
+    if [ "$i" = "0" ]
+    then
+        export "chan_2=$chan"
+        export "txpower_2=$txpower"
+        export "mode_2=$mode"
+        export "bandwidth_2=$bandwidth"
+    elif [ "$i" = "1" ]
+    then
+        export "chan_5=$chan"
+        export "txpower_5=$txpower"
+        export "mode_5=$mode"
+        export "bandwidth_5=$bandwidth"
+    fi
+
     
     #echo "ifname:$ifname,state:$state,mac:$mac,vlan:$vlan,ssid:$ssid,ipaddr:$ipaddr,maskaddr:$maskaddr,chan:$chan,txpower:$txpoer,mode:$mode,bandwidth:$bandwidth" | logger -p user.info -t '01-SYSTEM-LOG'
     [ "$has_reportnow" = "1" ] && {
@@ -92,8 +98,6 @@ do
 
 done
  
-rm -rf /tmp/ifaceinfo.lock
-return 0
 
 iwconfig 2> /dev/null | awk '{
                               
@@ -103,11 +107,15 @@ if (match($1,"ath") && !match($1, "ath50") && !match($1, "ath60")) {
     "(. /lib/functions.sh;config_load wireless;config_get  _vlan "$1" network;echo $_vlan;)" | getline vlan
     if (match(radio_index, "0")) {
         chan=ENVIRON["chan_2"];
+        txpower=ENVIRON["txpower_2"];
+        mode=ENVIRON["mode_2"];
+        bandwidth=ENVIRON["bandwidth_2"];
     } else {
         chan=ENVIRON["chan_5"];
+        txpower=ENVIRON["txpower_5"];
+        mode=ENVIRON["mode_5"];
+        bandwidth=ENVIRON["bandwidth_5"];
     }
-    "(. /lib/functions.sh;config_load wireless;config_get  _mode wifi"radio_index" hwmode;echo $_mode;)" | getline mode
-    "(. /lib/functions.sh;config_load wireless;config_get  _bandwidth wifi"radio_index" htmode;echo $_bandwidth;)" | getline bandwidth
     ifname=$1;
     ssid=substr($4,7);
     gsub(/"/,"",ssid)
@@ -161,5 +169,4 @@ if (match($1,"eth") || match($1,"br-lan")) {
 
          
 rm -rf /tmp/ifaceinfo.lock
-
-
+return 0

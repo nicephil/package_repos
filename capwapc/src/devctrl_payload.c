@@ -1042,20 +1042,20 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
 
 
     /*IFNAME*/
-    if (argv[0]) {
+    if (argv[0] && strlen(argv[0])) {
         strncpy(info[row].interface_name, argv[0], SYS_INTF_NAME_SIZE-1);
         info[row].interface_len=strlen(info[row].interface_name);
     }
 
     /*STATE*/
-    if (argv[1]) {
+    if (argv[1] && strlen(argv[1])) {
         info[row].state = atoi(argv[1]);
     } else {
         info[row].state = 0;
     }
 
     /*MAC*/
-    if (argv[2]) {
+    if (argv[2] && strlen(argv[2])) {
         /* mac address */
         char *s = argv[2], *e;
         int i = 0;
@@ -1068,59 +1068,71 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
     }
 
     /*VLAN*/
-    if (argv[3]) {
+    if (argv[3] && strlen(argv[3])) {
         info[row].pvid = atoi(argv[3]);
     }
 
     /*SSID*/
-    if (argv[4]) {
+    if (argv[4] && strlen(argv[4])) {
         strncpy(info[row].ssid, argv[4], 32);
         info[row].ssid_len = strlen(info[row].ssid);
     }
 
     /*IPADDR*/
-    if (argv[5]) {
+    if (argv[5] && strlen(argv[5])) {
         info[row].ip_address = inet_addr(argv[5]);
     }
 
 
     /*MASKADDR*/
-    if (argv[6]) {
+    if (argv[6] && strlen(argv[6])) {
         info[row].mask_address = inet_addr(argv[5]);
     }
 
     /*CHAN*/
-    if (argv[7]) {
+    if (argv[7] && strlen(argv[7])) {
         info[row].channel = atoi(argv[7]);
     }
 
     /*TXPOWER*/
-    if (argv[8]) {
+    if (argv[8] && strlen(argv[8])) {
         info[row].txpower = atoi(argv[8]);
     }
         
     /*MODE*/
-    if (argv[9]) {
+    if (argv[9] && strlen(argv[9])) {
         if (!strcmp(argv[9], "ac") || !strcmp(argv[9], "11ac")) {
             info[row].mode = DOT11_RADIO_MODE_AC;
-        } else if (!strcmp(argv[9], "na")) {
+        } else if (!strcmp(argv[9], "na") || !strcmp(argv[9], "11na")) {
             info[row].mode = DOT11_RADIO_MODE_A | DOT11_RADIO_MODE_N;
         } else if (!strcmp(argv[9], "ng") || !strcmp(argv[9], "11ng")) {
             info[row].mode = DOT11_RADIO_MODE_G | DOT11_RADIO_MODE_N;
-        } else if (!strcmp(argv[9], "a")) {
+        } else if (!strcmp(argv[9], "a") || !strcmp(argv[9], "11a")) {
             info[row].mode = DOT11_RADIO_MODE_A;
-        } else if (!strcmp(argv[9], "g")) {
+            info[row].bandwidth = 20;
+        } else if (!strcmp(argv[9], "b") || !strcmp(argv[9], "11b")) {
+            info[row].mode = DOT11_RADIO_MODE_B;
+            info[row].bandwidth = 20;
+        } else if (!strcmp(argv[9], "g") || !strcmp(argv[9], "11g")) {
             info[row].mode = DOT11_RADIO_MODE_G;
-        } else if (!strcmp(argv[9], "n")) {
+            info[row].bandwidth = 20;
+        } else if (!strcmp(argv[9], "n") || !strcmp(argv[9], "11n")) {
             info[row].mode = DOT11_RADIO_MODE_N;
         }
+    } else {
+        info[row].mode = DOT11_RADIO_MODE_G | DOT11_RADIO_MODE_N;
     }
 
     /*BANDWIDTH*/
-    if (argv[10]) {
+    if (argv[10] && strlen(argv[10])) {
         int bw = 0;
-        sscanf(argv[10],"HT%2d", &bw);
-        info[row].bandwidth = bw;
+        if (strstr(argv[10], "VHT")) {
+            sscanf(argv[10],"VHT%2d", &bw);
+            info[row].bandwidth = bw;
+        } else {
+            sscanf(argv[10],"HT%2d", &bw);
+            info[row].bandwidth = bw;
+        }
     }
 
     row ++;
