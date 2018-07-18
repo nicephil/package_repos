@@ -31,7 +31,7 @@ function test_busybox()
 
 #test_capwapc $ip
 
-#test_okos_scripts $ip
+test_okos_scripts $ip
 
-test_busybox $ip
+#test_busybox $ip
 

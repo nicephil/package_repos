@@ -5,12 +5,12 @@ DEBUG="$1"
     # cpumem info
     #export 'json_data={"data":"{\"cpu_memory\":1}","operate_type":10001}'
     # channel scanning
-    #export 'json_data={"data":"{\"radio\":-1}","operate_type":15}'
+    export 'json_data={"data":"{\"radio\":1}","operate_type":15}'
     # radius test
     #export 'json_data={"data":"{\"server\":\"192.168.254.191\",\"port\":\"1812\",\"username\":\"steve\",\"password\":\"testing\",\"key\":\"testing123\"}","operate_type":18}'
     #export 'json_data={"data":"{\"server\":\"192.168.254.183\",\"port\":\"1812\",\"username\":\"leilei.wang\",\"password\":\"Oakridge2016!\",\"key\":\"oakridge\"}","operate_type":18}' 
     # led set
-    export 'json_data={"data":"{\"mode\":0}","operate_type":19}'
+    #export 'json_data={"data":"{\"mode\":0}","operate_type":19}'
     # config channel
     # export 'json_data={"data":"{\"r24_channel\":1,\"r5_channel\":149}","operate_type":17}'
 }

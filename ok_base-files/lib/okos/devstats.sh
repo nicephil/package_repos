@@ -149,11 +149,13 @@ generate_chscanningjson()
 
     if [ "$radio" = "0" ]
     then
-        local _2ch_nums="$(iwlist ath50 scanning 2>&1 | awk '/Channel/{key=substr($4,1,length($4)-1);sum[key]++;}END{for(k in sum)print k"_"sum[k];}')"
+        iwlist ath50 scanning 2>&1 | awk -f /lib/okos/analysis_scanning.awk > /tmp/ath50_scanning
+        local _2ch_nums="$(cat /tmp/ath50_scanning | awk -F '|' '{sum[$3]++;}END{for(k in sum)print k"_"sum[k];}')"
     fi
     if [ "$radio" = "1" ]
     then
-        local _5ch_nums="$(iwlist ath60 scanning 2>&1 | awk '/Channel/{key=substr($4,1,length($4)-1);sum[key]++;}END{for(k in sum)print k"_"sum[k];}')" 
+        iwlist ath60 scanning 2>&1 | awk -f /lib/okos/analysis_scanning.awk > /tmp/ath60_scanning
+        local _5ch_nums="$(cat /tmp/ath60_scanning | awk -F '|' '{sum[$3]++;}END{for(k in sum)print k"_"sum[k];}')" 
     fi
 
     echo "--->$ch_usabs" | logger -t 'devstats'
@@ -166,7 +168,6 @@ generate_chscanningjson()
         uci commit wireless
         wifi down wifi$radio
     fi
-
 
     json_init
     json_add_int radio "$radio"
@@ -188,6 +189,19 @@ generate_chscanningjson()
             if [ "$__2ch" = "$i" ]
             then
                 json_add_int ssid_number "$__2num"
+                json_select_array "ssids"
+                for __ssid_info in $(awk -F'|' '{if($3=='"$__2ch"')print $0}' /tmp/ath50_scanning)
+                do
+                    OIFS=$IFS;IFS='|';set -- $__ssid_info;__bssid=$1;__ssid=$2;__channel=$3;__rssi=$4;__bandwidth=$5;__mode=$6;IFS=$OIFS
+                    json_add_object
+                    json_add_string "ssid" "$(echo $__ssid|base64)"
+                    json_add_string "bssid" "$__bssid"
+                    json_add_int "rssi" "$__rssi"
+                    json_add_int "bandwidth" "$__bandwidth"
+                    json_add_int "mode" "$__mode"
+                    json_close_object
+                done
+                json_select ..
                 has_2num="1"
             fi
         done
@@ -247,6 +261,19 @@ generate_chscanningjson()
             if [ "$__5ch" = "$__ch" ]
             then
                 json_add_int ssid_number "$__5num"
+                json_select_array "ssids"
+                for __ssid_info in $(awk -F'|' '{if($3=='"$__5ch"')print $0}' /tmp/ath60_scanning)
+                do
+                    OIFS=$IFS;IFS='|';set -- $__ssid_info;__bssid=$1;__ssid=$2;__channel=$3;__rssi=$4;__bandwidth=$5;__mode=$6;IFS=$OIFS
+                    json_add_object
+                    json_add_string "ssid" "$(echo $__ssid|base64)"
+                    json_add_string "bssid" "$__bssid"
+                    json_add_int "rssi" "$__rssi"
+                    json_add_int "bandwidth" "$__bandwidth"
+                    json_add_int "mode" "$__mode"
+                    json_close_object
+                done
+                json_select ..
                 has_num="1"
             fi
         done
