@@ -1020,7 +1020,7 @@ static int dc_upload_techsupport_response(devctrl_block_s *dc_block, void *reser
     return ret;
 }
 
-//CREATE TABLE IFINFO(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH);
+//CREATE TABLE IFINFO(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH,LINKSTATUS);
 static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
 {
     static int row = 0;
@@ -1133,6 +1133,12 @@ static int _sql_callback(void *cookie, int argc, char **argv, char **szColName)
             sscanf(argv[10],"HT%2d", &bw);
             info[row].bandwidth = bw;
         }
+    }
+    
+    /*LINKSTATUS*/
+    if(argv[11] && strlen(argv[11])) {
+        strcpy(info[row].linkstatus, argv[11]);
+        info[row].linkstatus_len=strlen(info[row].linkstatus);
     }
 
     row ++;

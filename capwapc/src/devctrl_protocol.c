@@ -386,7 +386,7 @@ CWBool assemble_interface_info_elem(char **payload, int *len,
     size = 1; 
     for (i = 0; i < count; i++) {
         size += WLAN_INTERFACE_INFO_FIXLEN;
-        size += (stas[i].interface_len + stas[i].ssid_len);
+        size += (stas[i].interface_len + stas[i].ssid_len + stas[i].linkstatus_len);
     }
     number = count;
 
@@ -400,7 +400,7 @@ CWBool assemble_interface_info_elem(char **payload, int *len,
     for (i = 0; i < count; i++) {
         struct device_interface_info *info = &(stas[i]);
         
-        info->len = WLAN_INTERFACE_INFO_FIXLEN + info->interface_len + info->ssid_len;
+        info->len = WLAN_INTERFACE_INFO_FIXLEN + info->interface_len + info->ssid_len + info->linkstatus_len;
         
         CWProtocolStore16(&msg, info->len);
         CWProtocolStore8(&msg, info->interface_len);
@@ -416,6 +416,8 @@ CWBool assemble_interface_info_elem(char **payload, int *len,
         CWProtocolStore32(&msg, info->txpower);
         CWProtocolStore32(&msg, info->mode);
         CWProtocolStore8(&msg, info->bandwidth);
+        CWProtocolStore8(&msg, info->linkstatus_len);
+        CWProtocolStoreRawBytes(&msg, info->linkstatus, info->linkstatus_len);
     }
     
     if (msg.offset != size) {

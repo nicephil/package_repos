@@ -28,9 +28,9 @@ touch /tmp/ifaceinfo.lock
 dbfile="/tmp/ifaceinfo.db"
 tablename="IFINFO"
 
-#CREATE TABLE IFINFO(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH);
-# echo sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH);COMMIT;" 
-sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH);COMMIT;" 
+#CREATE TABLE IFINFO(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH,LINKSTATUS);
+# echo sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH,LINKSTATUS);COMMIT;" 
+sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(IFNAME,STATE,MAC,VLAN,SSID,IPADDR,MASKADDR,CHAN,TXPOWER,MODE,BANDWIDTH,LINKSTATUS);COMMIT;" 
 sqlite3 $dbfile "BEGIN TRANSACTION;DELETE FROM ${tablename};COMMIT;"
 
 . /lib/functions.sh
@@ -47,12 +47,13 @@ do
     txpower=""
     mode=""
     bandwidth=""
+    linkstatus=""
     config_get _disabled $ifname disabled
     config_get mac $ifname macaddr
     [ "$_disabled" = "1" ] && { 
         state="0"
-        #echo sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\");COMMIT"
-        sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\");COMMIT"
+        #echo sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\",\"$linkstatus\");COMMIT"
+        sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\",\"$linkstatus\");COMMIT"
         [ "$has_reportnow" = "1" ] && {
             echo "radio $i turned off by configure" | logger -p user.info -t '01-SYSTEM-LOG'
         }
@@ -87,14 +88,14 @@ do
     fi
 
     
-    #echo "ifname:$ifname,state:$state,mac:$mac,vlan:$vlan,ssid:$ssid,ipaddr:$ipaddr,maskaddr:$maskaddr,chan:$chan,txpower:$txpoer,mode:$mode,bandwidth:$bandwidth" | logger -p user.info -t '01-SYSTEM-LOG'
+    #echo "ifname:$ifname,state:$state,mac:$mac,vlan:$vlan,ssid:$ssid,ipaddr:$ipaddr,maskaddr:$maskaddr,chan:$chan,txpower:$txpoer,mode:$mode,bandwidth:$bandwidth,linkstatus:$linkstatus" | logger -p user.info -t '01-SYSTEM-LOG'
     [ "$has_reportnow" = "1" ] && {
         echo "radio $i is up, ch$chan, ${txpower}dbm, $mode, $bandwidth" | logger -p user.info -t "01-SYSTEM-LOG"
     }
         
-    #echo sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\");COMMIT"
+    #echo sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\",\"$linkstatus\");COMMIT"
     # echo "--->$vifname, $txpower, $mode, $bandwidth"
-    sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\");COMMIT"
+    sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"$ifname\",\"$state\",\"$mac\",\"$vlan\",\"$ssid\",\"$ipaddr\",\"$maskaddr\",\"$chan\",\"$txpower\",\"$mode\",\"$bandwidth\",\"$linkstatus\");COMMIT"
 
 done
  
@@ -102,7 +103,7 @@ done
 iwconfig 2> /dev/null | awk '{
                               
 if (match($1,"ath") && !match($1, "ath50") && !match($1, "ath60")) {        
-    ifname=mac=vlan=ssid=ipaddr=maskaddr=chan=txpower=mode=bandwidth="";
+    ifname=mac=vlan=ssid=ipaddr=maskaddr=chan=txpower=mode=bandwidth=linkstatus="";
     radio_index=substr($1,4,1)
     "(. /lib/functions.sh;config_load wireless;config_get  _vlan "$1" network;echo $_vlan;)" | getline vlan
     if (match(radio_index, "0")) {
@@ -131,8 +132,8 @@ if (match($1,"ath") && !match($1, "ath50") && !match($1, "ath60")) {
         }
     }
 
-    #system("echo sqlite3 '"$dbfile"' '\''BEGIN TRANSACTION;INSERT INTO '"${tablename}"' VALUES (\""ifname"\",\"1\",\""mac"\",\""substr(vlan,4)"\",\""ssid"\",\""ipaddr"\",\""maskaddr"\",\""chan"\",\""txpower"\",\""mode"\",\""bandwidth"\");COMMIT'\''");
-    system("sqlite3 '"$dbfile"' '\''BEGIN TRANSACTION;INSERT INTO '"${tablename}"' VALUES (\""ifname"\",\"1\",\""mac"\",\""substr(vlan,4)"\",\""ssid"\",\""ipaddr"\",\""maskaddr"\",\""chan"\",\""txpower"\",\""mode"\",\""bandwidth"\");COMMIT'\''");
+    #system("echo sqlite3 '"$dbfile"' '\''BEGIN TRANSACTION;INSERT INTO '"${tablename}"' VALUES (\""ifname"\",\"1\",\""mac"\",\""substr(vlan,4)"\",\""ssid"\",\""ipaddr"\",\""maskaddr"\",\""chan"\",\""txpower"\",\""mode"\",\""bandwidth"\",\""linkstatus"\");COMMIT'\''");
+    system("sqlite3 '"$dbfile"' '\''BEGIN TRANSACTION;INSERT INTO '"${tablename}"' VALUES (\""ifname"\",\"1\",\""mac"\",\""substr(vlan,4)"\",\""ssid"\",\""ipaddr"\",\""maskaddr"\",\""chan"\",\""txpower"\",\""mode"\",\""bandwidth"\",\""linkstatus"\");COMMIT'\''");
     if (chan && txpower) {
         #system("echo sqlite3 '"$dbfile"' '\''BEGIN TRANSACTION;UPDATE '"${tablename}"' SET CHAN=\""chan"\",TXPOWER=\""txpower"\" WHERE IFNAME=\"wifi"radio_index"\";COMMIT'\''");
         system("sqlite3 '"$dbfile"' '\''BEGIN TRANSACTION;UPDATE '"${tablename}"' SET CHAN=\""chan"\",TXPOWER=\""txpower"\" WHERE IFNAME=\"wifi"radio_index"\";COMMIT'\''");
@@ -144,7 +145,7 @@ if (match($1,"ath") && !match($1, "ath50") && !match($1, "ath60")) {
 ifconfig 2> /dev/null | awk '{
                               
 if (match($1,"eth") || match($1,"br-lan")) {
-    ifname=mac=vlan=ssid=ipaddr=maskaddr=chan=txpower=mode=bandwidth="";
+    ifname=mac=vlan=ssid=ipaddr=maskaddr=chan=txpower=mode=bandwidth=linkstatus="";
     if (match($1,"br-lan")) {               
         ifname=substr($1,4);
     } else {                                       
@@ -159,12 +160,33 @@ if (match($1,"eth") || match($1,"br-lan")) {
         }
     }    
 
-    #system("echo sqlite3 '"$dbfile"' '\''BEGIN TRANSACTION;INSERT INTO '"${tablename}"' VALUES (\""ifname"\",\"1\",\""mac"\",\""substr(vlan,4)"\",\""ssid"\",\""ipaddr"\",\""maskaddr"\",\""chan"\",\""txpower"\",\""mode"\",\""bandwidth"\");COMMIT'\''");
-    system("sqlite3 '"$dbfile"' '\''BEGIN TRANSACTION;INSERT INTO '"${tablename}"' VALUES (\""ifname"\",\"1\",\""mac"\",\""substr(vlan,4)"\",\""ssid"\",\""ipaddr"\",\""maskaddr"\",\""chan"\",\""txpower"\",\""mode"\",\""bandwidth"\");COMMIT'\''");
+    #system("echo sqlite3 '"$dbfile"' '\''BEGIN TRANSACTION;INSERT INTO '"${tablename}"' VALUES (\""ifname"\",\"1\",\""mac"\",\""substr(vlan,4)"\",\""ssid"\",\""ipaddr"\",\""maskaddr"\",\""chan"\",\""txpower"\",\""mode"\",\""bandwidth"\",\""linkstatus"\");COMMIT'\''");
+    system("sqlite3 '"$dbfile"' '\''BEGIN TRANSACTION;INSERT INTO '"${tablename}"' VALUES (\""ifname"\",\"1\",\""mac"\",\""substr(vlan,4)"\",\""ssid"\",\""ipaddr"\",\""maskaddr"\",\""chan"\",\""txpower"\",\""mode"\",\""bandwidth"\",\""linkstatus"\");COMMIT'\''");
 
 }
 
 }'
+
+eth0_state=0
+if [ "$(swconfig dev switch0 show | awk -F '[: ]+' '/pvid: 1/{getline;print $5}')" = "up" ]
+then
+    eth0_state=1
+fi
+eth0_linkstatus=$(swconfig dev switch0 show | awk -F '[: ]+' '/pvid: 1/{getline;print $7,$8}')
+eth0_mac=$(cat /sys/class/net/eth0/address)
+eth0_ipaddr=$(ifconfig br-lan1 | awk -F'[ :]+' '/inet addr/{print $4}')
+eth0_maskaddr=$(ifconfig br-lan1 | awk -F'[ :]+' '/Mask/{print $8}')
+sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"eth0\",\"$eth0_state\",\"$eth0_mac\",\"1\",\"\",\"$eth0_ipaddr\",\"$eth0_maskaddr\",\"\",\"\",\"\",\"\",\"$eth0_linkstatus\");COMMIT"
+
+
+eth1_state=0
+if [ "$(swconfig dev switch0 show | awk -F '[: ]+' '/pvid: 4090/{getline;print $5}')" = "up" ]
+then
+    eth1_state=1
+fi
+eth1_linkstatus=$(swconfig dev switch0 show | awk -F '[: ]+' '/pvid: 4090/{getline;print $7,$8}')
+eth1_mac=$(cat /sys/class/net/eth0.4090/address)
+sqlite3 $dbfile "BEGIN TRANSACTION;INSERT INTO ${tablename} VALUES (\"eth1\",\"$eth1_state\",\"$eth1_mac\",\"$eth1_state\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"$eth1_linkstatus\");COMMIT"
 
 
          
