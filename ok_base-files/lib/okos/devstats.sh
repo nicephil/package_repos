@@ -194,7 +194,7 @@ generate_chscanningjson()
                 do
                     OIFS=$IFS;IFS='|';set -- $__ssid_info;__bssid=$1;__ssid=$2;__channel=$3;__rssi=$4;__bandwidth=$5;__mode=$6;IFS=$OIFS
                     json_add_object
-                    json_add_string "ssid" "$(echo $__ssid|base64)"
+                    json_add_string "ssid" "$__ssid"
                     json_add_string "bssid" "$__bssid"
                     json_add_int "rssi" "$__rssi"
                     json_add_int "bandwidth" "$__bandwidth"
@@ -266,7 +266,7 @@ generate_chscanningjson()
                 do
                     OIFS=$IFS;IFS='|';set -- $__ssid_info;__bssid=$1;__ssid=$2;__channel=$3;__rssi=$4;__bandwidth=$5;__mode=$6;IFS=$OIFS
                     json_add_object
-                    json_add_string "ssid" "$(echo $__ssid|base64)"
+                    json_add_string "ssid" "$__ssid"
                     json_add_string "bssid" "$__bssid"
                     json_add_int "rssi" "$__rssi"
                     json_add_int "bandwidth" "$__bandwidth"

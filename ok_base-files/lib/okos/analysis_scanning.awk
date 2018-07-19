@@ -11,7 +11,8 @@
     while (getline > 0) {
         if(match($0,"ESSID:")) {
             split($0, aa, ":|\"");
-            sta[1]=aa[3];
+            "echo "aa[3]"|base64"|getline ssid;
+            sta[1]=ssid;
         } else if(match($1, "Frequency:.*")) {
             split($4, aa, ")");
             sta[2]=aa[1];
