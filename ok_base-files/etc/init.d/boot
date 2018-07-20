@@ -46,7 +46,7 @@ boot() {
 	/bin/config_generate
 	uci_apply_defaults
     # OK_PATCH
-    /lib/okos/fetch_productinfo.sh > /etc/config/productinfo
+    /lib/okos/okos_init.sh
     #end of OK_PATCH
 
 
