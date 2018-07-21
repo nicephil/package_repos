@@ -509,10 +509,9 @@ class Manager(object):
             for line in fifo:
                 # 2. read one line
                 s = line.strip('\n')
-                syslog(LOG_DEBUG, "ssssss:%s" % s)
                 # 3. parse content
                 try:
-                    vs = s.split(' ')
+                    vs = s.split()
                     if len(vs) == 1:
                         ath = vs[0]
                         mac = ''
@@ -563,7 +562,7 @@ class Manager(object):
                     self.handle_ap_disabled_event(ath, mac, event)
 
                 # 6. handle client event
-                elif len(ath) > 0 and self.isValidMac(mac) and len(event) > 0:
+                elif len(ath) > 0 and len(mac) > 0 and self.isValidMac(mac) and len(event) > 0:
                     self.dispatch_client_event(ath, mac, event, ppsk_key)
 
                 # 7. Unknown
