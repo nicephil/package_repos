@@ -418,7 +418,11 @@ static int dc_image_upgrade_handler(devctrl_block_s *dc_block, struct tlv *paylo
 
     char *v_ptr=strstr(json_cfg.src, "v1");
     char vv[20] = {0};
-    memcpy(vv, v_ptr, 8);
+    if (v_ptr) {
+        memcpy(vv, v_ptr, 8);
+    } else {
+        strcpy(vv, "v1.x.x");
+    }
 
     CWNetworkLev4Address address;
     if (CW_TRUE != CWNetworkGetAddressForHost("image.oakridge.vip", 
