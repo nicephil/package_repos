@@ -9,5 +9,5 @@ echo -e  "\toption production OKGW"
 echo -e  "\toption model Oakridge_OKGW"
 echo -e "\toption serial ${serial}"
 echo -e "\toption mac ${mac}"
-echo -e "\toption bootversion `cat /etc/issue`"
+echo -e "\toption swversion `cat /etc/issue`"
 

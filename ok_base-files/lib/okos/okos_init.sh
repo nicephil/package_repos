@@ -9,6 +9,8 @@ mac=`uci get productinfo.productinfo.mac | tr -d : | tr '[a-z]' '[A-Z]'`
 uci set system.@system[0].hostname="$mac";uci commit system
 echo "$mac" > /proc/sys/kernel/hostname
 
+# 2. mount overlay
+
 # 5. init db
 dbfile="/tmp/stationinfo.db"
 tablename="STAINFO"
