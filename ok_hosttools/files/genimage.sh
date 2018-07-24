@@ -1,6 +1,6 @@
 #!/bin/bash
 swversion=$1
-origin_files__bin_files="lede-x86-64-ramfs.bzImage|bin_x86_64_gw.bzImage|x86_64_gw"
+origin_files__bin_files="lede-x86-generic-ramfs.bzImage|bin_x86_generic_gw.bzImage|x86_gw"
 server=image.oakridge.vip
 
 function add_new_release() 
@@ -9,7 +9,7 @@ function add_new_release()
     img_name=$1
     img_md5=$2
 
-    img_url="http://image.oakridge.vip:8000/images/x86_64_gw/okos/${img_name}"
+    img_url="http://image.oakridge.vip:8000/images/x86_gw/okos/${img_name}"
 
     all_types="OKGW"
     url="api.oakridge.io"
@@ -41,7 +41,7 @@ do
         ln -sf ${swversion}_${bin_file}.md5sum latest-okos.bzImage.md5sum"
     }
 
-    if [ $rdir = "x86_64_gw" ]
+    if [ $rdir = "x86_gw" ]
     then
         add_new_release ${swversion}_${bin_file} $(cat ${swversion}_${bin_file}.md5sum)
     fi
