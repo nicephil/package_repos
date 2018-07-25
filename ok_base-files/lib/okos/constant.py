@@ -1,11 +1,11 @@
 import const
 
-const.BASE_DIR_STR = '/opt/oakridge/'
+const.BASE_DIR_STR = '/'
 const.CONFIG_DIR_STR = './etc/'
 const.SYSLOADER_DIR_STR = './sysloader/'
-const.OKOS_DIR_STR = './okos/'
+const.OKOS_DIR_STR = './'
 const.SYSLOADER_OKOS_LIB_DIR_STR = './lib/okos/'
-const.FETCH_PRODUCTINFO_SCRIPT_STR = './fetch_productinfo.sh'
+const.FETCH_PRODUCTINFO_SCRIPT_STR = './fetch_productinfo_json.sh'
 const.CONFIG_PRODUCTINFO = './productinfo.json'
 const.CONFIG_CAPWAPC = './capwapc.json'
 const.CONFIG_CONF_FILE = './config.json'
