@@ -111,6 +111,7 @@ class Client(Thread):
             self.last_auth_mode = auth_mode
             self.last_err = err
             if err == True:
+                okos_sta_log_info("{'sta_mac':'%s','logmsg':'query auth timeout'}" % self.mac)
                 self.last_remain_time = 43200
                 self.last_username = 'timeout'
             self.update_db(self.mac, self.last_ath, self.last_remain_time, self.last_username)
