@@ -2,7 +2,7 @@
 
 ebtables_CMD="ebtables"
 
-. /lib/qos_id.sh
+. /lib/okos/qos_id.sh
 
 ebtables_clean_traf_statistics()
 {
