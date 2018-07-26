@@ -58,7 +58,7 @@ class CfgDDNS(CfgObj):
 
     def restart_service(self):
         log_debug("post_run")
-        cmd = "systemctl restart ddclient"
+        cmd = "/etc/init.d/ddclient restart"
         ret = subprocess.call(cmd, shell=True)
         if ret == 0:
             return True

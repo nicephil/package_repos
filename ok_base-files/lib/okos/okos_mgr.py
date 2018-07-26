@@ -8,6 +8,7 @@ import conf_mgr
 import json
 import os
 import socket
+import sys
 
 from okos_utils import log_crit, log_err, log_warning, log_info, log_debug, okos_system_log_info
 from constant import const
@@ -139,7 +140,7 @@ class OKOSMgr(object):
         if request_data and 'error_code' in request_data and request_data['error_code'] == 1002:
             log_warning("===========>restart device as nms reject access<============")
             time.sleep(5)
-            os.system("systemctl restart sysloader_mgr")
+            os.system("reboot")
         tmp = self.access_fifo()
         if tmp:
             request_data = tmp
@@ -150,6 +151,9 @@ class OKOSMgr(object):
         self.collect_status_thread.join()
 
 def main():
+    if len(sys.argv) <= 1:
+        pid_file = '/var/run/okos_mgr.pid'
+        okos_utils.daemonlize(pid_file)
     okos_mgr = OKOSMgr()
     okos_mgr.join_threads()
 

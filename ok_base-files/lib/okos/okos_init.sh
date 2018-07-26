@@ -7,6 +7,7 @@
 # 1. sethostname
 mac=`uci get productinfo.productinfo.mac | tr -d : | tr '[a-z]' '[A-Z]'`
 uci set system.@system[0].hostname="$mac";uci commit system
+hostname "$mac"
 echo "$mac" > /proc/sys/kernel/hostname
 
 # 2. mount overlay

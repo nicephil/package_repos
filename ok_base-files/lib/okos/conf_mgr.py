@@ -78,7 +78,7 @@ class ConfMgr(threading.Thread):
         self.mailbox.pub(const.STATUS_Q, (1, msg), timeout=0)
 
     def handle_reboot(self, request):
-        ret = os.system('systemctl restart sysloader_mgr')
+        ret = os.system('reboot')
 
     def process_data(self):
         while not self.term:

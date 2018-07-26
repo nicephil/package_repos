@@ -1,17 +1,19 @@
 #!/bin/sh /etc/rc.common
-START=90
+START=99
 
+SERVICE_USE_PID=1
 SERVICE_DAEMONIZE=1
 #SERVICE_WRITE_PID=1
 #SERVICE_USE_PID=1
+SERVICE_PID_FILE="/var/run/okos_mgr.pid"
 SERVICE_STOP_TIME=3
 
 start () {
-    service_start /lib/okos/okos_mgr.py
+    /lib/okos/okos_mgr.py
 }
 
 stop () {
-    service_stop /lib/okos/okos_mgr.py
+    kill -9 $(cat ${SERVICE_PID_FILE})
 }
 
 
