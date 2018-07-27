@@ -5,6 +5,7 @@
 initramfs_test() {
 	if [ -n "$INITRAMFS" ]; then
 		boot_run_hook initramfs
+        mount -t ext4 /dev/sda2 /overlay
 		preinit_ip_deconfig
 		break
 	fi
