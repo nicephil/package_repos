@@ -719,12 +719,12 @@ iptables_fw_access(fw_access_t type, const char *ip, const char *mac, int tag, c
 
     switch (type) {
     case FW_ACCESS_ALLOW:
-        rc = iptables_do_command("-t mangle -A " CHAIN_OUTGOING_i " -m mac --mac-source %s -j MARK --set-mark %d",
+        rc = iptables_do_command("-t mangle -A " CHAIN_OUTGOING_i " -m mac --mac-source %s -j MARK --set-mark %d/0xff",
                 ssid->sn, mac, tag);
         break;
     case FW_ACCESS_DENY:
         /* XXX Add looping to really clear? */
-        rc = iptables_do_command("-t mangle -D " CHAIN_OUTGOING_i " -m mac --mac-source %s -j MARK --set-mark %d",
+        rc = iptables_do_command("-t mangle -D " CHAIN_OUTGOING_i " -m mac --mac-source %s -j MARK --set-mark %d/0xff",
                 ssid->sn, mac, tag);
         break;
     default:
@@ -813,7 +813,7 @@ iptables_fw_auth_unreachable(int tag)
 {
     int got_authdown_ruleset = NULL == get_ruleset(FWRULESET_AUTH_IS_DOWN) ? 0 : 1;
     if (got_authdown_ruleset)
-        return iptables_do_command("-t mangle -A " CHAIN_AUTH_IS_DOWN " -j MARK --set-mark %u", tag);
+        return iptables_do_command("-t mangle -A " CHAIN_AUTH_IS_DOWN " -j MARK --set-mark %u/0xff", tag);
     else
         return 1;
 }
