@@ -221,6 +221,8 @@ class Client(Thread):
     def query_auth(self, clientevent):
         try:
             global auth_url
+            if not auth_url:
+                auth_url = get_auth_url()
             if len(clientevent.ppsk_key):
                 url = '%s/authority?info=%s&ppsk_key=%s' % (auth_url,
                                                             self.pack_info(),
@@ -269,6 +271,8 @@ class Client(Thread):
         ssid = get_ssid(clientevent.ath)
         ssid_len = len(ssid)
         global domain
+        if not domain:
+            domain = get_domain()
         domain_len = len(domain)
         portal_scheme = get_portalscheme(clientevent.ath)
         portal_scheme_len = len(portal_scheme)

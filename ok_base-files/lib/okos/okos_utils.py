@@ -98,7 +98,8 @@ def get_auth_url():
         auth_url = ""
 
     if len(auth_url) == 0:
-        auth_url = "http://139.196.188.253/auth/device/client"
+        #auth_url = "http://139.196.188.253/auth/device/client"
+        pass
 
     return auth_url
 
