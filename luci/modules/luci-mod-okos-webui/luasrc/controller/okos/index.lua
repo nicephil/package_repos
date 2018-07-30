@@ -187,11 +187,10 @@ function action_internetstatus()
 end
 
 local p2l_names = { }                                             
-p2l_names['eth0.4050'] = 'e0'                            
-p2l_names['eth0.4051'] = 'e1'
-p2l_names['eth0.4052'] = 'e2'
-p2l_names['eth0.4053'] = 'e3'
-p2l_names['eth0.4054'] = 'e4'
+p2l_names['eth0'] = 'e0'                            
+p2l_names['eth1'] = 'e1'
+p2l_names['eth2'] = 'e2'
+p2l_names['eth3'] = 'e3'
 p2l_names['br-lan4000'] = 'switch'          
 
 function swport_is_up(ifname)
@@ -262,11 +261,7 @@ function action_queryifs()
             res.lname = lifname
             res.ifname = ifname
             res.mac = npdev:mac()
-            if ifname:match("eth0") then
-                res.up = swport_is_up(ifname)
-            else
-                res.up = npdev:is_up()
-            end
+            res.up = npdev:is_up()
             res.sid = nt.sid
             res.mtu = npdev:_ubus("mtu")
             if res.mtu == nil then
@@ -322,7 +317,7 @@ function action_configwan()
         mtu = "1500"
     }
     ]]--
-    if input.proto == nil or input.ifname == nil then
+    if input.proto == nil or input.ifname == nil or input.ifname == "br-lan4000" then
         http.status(400, "Bad Request");
         http.close()
         return
@@ -363,9 +358,9 @@ function action_configwan()
     local wifname = np:ifname()
     nw:del_network("wan")
     -- set free lan interface
-    if (wifname == input.ifname) then
-        nw:add_network("lan" .. wifname:sub(4,-1), {proto="none", ifname=wifname})
-    end
+    --if (wifname == input.ifname) then
+    --    nw:add_network("lan" .. wifname:sub(4,-1), {proto="none", ifname=wifname})
+    --end
     -- setup new network
     local net =  { }
     if input.proto == "static" then
@@ -568,7 +563,7 @@ function action_querydiag()
             response.step = 5
         end
     elseif input.step == 5 then
-        if sys.net.pingtest("cloud.oakridge.io") ~=0 then
+        if sys.net.pingtest("cloud2.oakridge.io") ~=0 and sys.net.pingtest("cloud.oakridge.io") ~=0 then
             response.errcode = 1
             response.step = 5
         else
@@ -601,11 +596,18 @@ function action_devumac()
     --[[
     response = {
         errocode = 0,
-        mac = "00:11:22:33:44:55"
+        mac = "00:11:22:33:44:55",
+        is_sysloader = 0
     }
     ]]--
     response.errcode = 0
+    response.is_sysloader = 0
     response.mac = uci:get("productinfo", "productinfo", "mac") 
+    local var = uci:get("productinfo", "productinfo", "swversion") or ""
+
+    if (var == "") then
+        response.is_sysloader = 1
+    end
 
     -- response --
     response_json(response)
@@ -642,7 +644,7 @@ function action_regdev()
     ]]--
     response.errcode = 0
 
-    response.errcode = sys.call("/sbin/uci set capwapc.server.mas_server=" .. input.oakmgr .. " && /sbin/uci commit capwapc && /etc/init.d/capwapc restart")
+    response.errcode = sys.call("/sbin/uci set capwapc.server.mas_server=" .. input.oakmgr .. " && /sbin/uci commit capwapc")
 
     if response.errcode == 0 then
         response.errcode = sys.user.setpasswd("root", input.passcode)

@@ -5,7 +5,12 @@
 initramfs_test() {
 	if [ -n "$INITRAMFS" ]; then
 		boot_run_hook initramfs
-        mount -t ext4 /dev/sda2 /overlay
+        #1. find out virtual rootfs_data partition
+        offset_rootfs_data=$(unsquashfs -s /dev/sda2 | awk '/Filesystem size/{if(($3-int($3))>0)print int($3+1);else print int($3);exit;}')
+        offset_align_64k=$(((((${offset_rootfs_data}*1024)+((64*1024)-1))&~((64*1024)-1)))) 
+        losetup --offset ${offset_align_64k} /dev/loop1 /dev/sda2
+        #2. mount rootfs_data to /overlay
+        mount -t f2fs /dev/loop1 /overlay
 		preinit_ip_deconfig
 		break
 	fi
