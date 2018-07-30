@@ -12,6 +12,7 @@ import os
 import sys
 import time
 import syslog
+import ubus
 
 from constant import const
 
@@ -45,73 +46,35 @@ def log_err(msg):
 def log_crit(msg):
     logging.critical(msg)
 
-fetch_productinfo_script = const.OKOS_FETCH_PRODUCTINFO_SCRIPT
-
-def set_fetch_productinfo_script(str):
-    global fetch_productinfo_script
-    fetch_productinfo_script = str
-
-def get_fetch_productinfo_script():
-    global fetch_productinfo_script
-    return fetch_productinfo_script
-
-config_productinfo = ''.join([const.CONFIG_DIR, const.CONFIG_PRODUCTINFO])
-config_capwapc = ''.join([const.CONFIG_DIR, const.CONFIG_CAPWAPC])
 config_conf_file = ''.join([const.CONFIG_DIR, const.CONFIG_CONF_FILE])
 
-def set_config_productinfo(str):
-    global config_productinfo
-    config_productinfo = str
-
-def set_config_capwapc(str):
-    global config_capwapc
-    config_capwapc = str
+def get_capwapc():
+    """" get capwapc """
+    capwapc_data={}
+    try:
+        ubus.connect()
+        value=ubus.call("uci", "get", {"config":"capwapc","section":"server"})
+        capwapc_data=value[0]['values']
+    except Exception, e:
+        log_warning('get_capwapc get exception {}'.format(repr(e)))
+        capwapc_data={}
+    finally:
+        ubus.disconnect()
+    return capwapc_data
 
 def get_productinfo():
-    with open(config_productinfo, 'r') as f:
-        fcntl.flock(f.fileno(), fcntl.LOCK_SH)
-        str = f.read()
-    productinfo_data = json.loads(str, encoding='utf-8')
-    return productinfo_data
-
-def set_productinfo(str):
-    with open(config_productinfo, 'w+') as f:
-        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-        f.write(str)
-        f.flush()
-    productinfo_data = json.loads(str, encoding='utf-8')
-    return productinfo_data
-
-def set_capwapc(str):
-    with open(config_capwapc, 'w+') as f:
-        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-        f.write(str)
-        f.flush()
-    capwapc_data = json.loads(str, encoding='utf-8')
-    return capwapc_data
-
-def get_capwapc():
-    with open(config_capwapc, 'r') as f:
-        fcntl.flock(f.fileno(), fcntl.LOCK_SH)
-        str = f.read()
-    capwapc_data = json.loads(str, encoding='utf-8')
-    return capwapc_data
-
-def init_productinfo():
-    str = fetch_productinfo()
-    productinfo_data = set_productinfo(str)
-    return productinfo_data
-
-def fetch_productinfo():
-    """" fetch productinfo """
+    """" get productinfo """
+    productinfo_data={}
     try:
-        pid = Popen([fetch_productinfo_script], stdout=PIPE)
-        s = pid.communicate()[0]
-        productinfo = s.strip('\n')
+        ubus.connect()
+        value=ubus.call("uci", "get", {"config":"productinfo","section":"productinfo"})
+        productinfo_data=value[0]['values']
     except Exception, e:
-        log_warning('fetch_productinfo get exception {}'.format(repr(e)))
-        productinfo = ""
-    return productinfo
+        log_warning('get_productinfo get exception {}'.format(repr(e)))
+        productinfo_data={}
+    finally:
+        ubus.disconnect()
+    return productinfo_data
 
 def get_whole_conf_path():
     global config_conf_file

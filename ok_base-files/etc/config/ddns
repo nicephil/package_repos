@@ -1,0 +1,43 @@
+config service "oray.com"
+	option enabled "0"
+	option interface "wan"
+	option use_syslog "0"
+	option service_name "oray.com"
+	#注意下面domain要换成你自己的domain
+	option domain ""
+	#username要更换为你自己的username
+	option username         ""
+	#passwd换成你自己的passwd
+	option password ""
+	option use_https "0"
+	option force_interval "24"
+	option force_unit "hours"
+	option check_interval "10"
+	option check_unit "minutes"
+	option retry_interval "60"
+	option retry_unit "seconds"
+	option ip_source "web"                                  
+	option ip_url "http://ddns.oray.com/checkip"
+	option update_url "http://[USERNAME]:[PASSWORD]@ddns.oray.com/ph/update?hostname=[DOMAIN]&myip=[IP]"
+
+config service "3322.org"
+	option enabled "0"
+	option interface "wan"
+	option use_syslog "0"
+	option service_name "3322.org"
+	#注意下面domain要换成你自己的domain
+	option domain ""
+	#username要更换为你自己的username
+	option username         ""
+	#passwd换成你自己的passwd
+	option password ""
+	option use_https "0"
+	option force_interval "24"
+	option force_unit "hours"
+	option check_interval "10"
+	option check_unit "minutes"
+	option retry_interval "60"
+	option retry_unit "seconds"
+	option ip_source "web"                                  
+	option ip_url "http://ip.3322.org"
+	option update_url "http://[USERNAME]:[PASSWORD]@members.3322.org/dyndns/update?system=&hostname=[DOMAIN]&myip=[IP]"

@@ -15,7 +15,7 @@ class ConfMgr(threading.Thread):
         self.mailbox = mailbox
         self.term = False
         self.sv = vici.Session()
-        self.productinfo_data = okos_utils.init_productinfo()
+        self.productinfo_data = okos_utils.get_productinfo()
         self.confinfo_data = okos_utils.get_whole_confinfo()
         self.capwapc_data = okos_utils.get_capwapc()
         self.handlers = {}

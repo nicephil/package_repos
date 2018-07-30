@@ -5,8 +5,6 @@ const.CONFIG_DIR_STR = './etc/'
 const.SYSLOADER_DIR_STR = './sysloader/'
 const.OKOS_DIR_STR = './'
 const.SYSLOADER_OKOS_LIB_DIR_STR = './lib/okos/'
-const.FETCH_PRODUCTINFO_SCRIPT_STR = './fetch_productinfo_json.sh'
-const.CONFIG_PRODUCTINFO = './productinfo.json'
 const.CONFIG_CAPWAPC = './capwapc.json'
 const.CONFIG_CONF_FILE = './config.json'
 const.OKOS_OKOS_LIB_DIR_STR = './lib/okos/'
@@ -24,8 +22,6 @@ const.OKOS_OKOS_LIB_DIR = ''.join([const.OKOS_DIR, const.OKOS_OKOS_LIB_DIR_STR])
 
 const.SYSLOADER_OKOS_LIB_DIR = ''.join([const.SYSLOADER_DIR, const.SYSLOADER_OKOS_LIB_DIR_STR])
 
-const.SYSLOADER_FETCH_PRODUCTINFO_SCRIPT = ''.join([const.SYSLOADER_OKOS_LIB_DIR, const.FETCH_PRODUCTINFO_SCRIPT_STR])
-const.OKOS_FETCH_PRODUCTINFO_SCRIPT = ''.join([const.OKOS_OKOS_LIB_DIR, const.FETCH_PRODUCTINFO_SCRIPT_STR])
 const.OKOS_CFGDIFF_SCRIPT = ''.join([const.OKOS_OKOS_LIB_DIR, const.OKOS_CFGDIFF_SCRIPT_STR])
 const.OKOS_DDNS_STATUS_SCRIPT = ''.join([const.OKOS_OKOS_LIB_DIR, const.OKOS_DDNS_STATUS_SCRIPT_STR])
 

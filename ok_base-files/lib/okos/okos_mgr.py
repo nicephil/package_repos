@@ -9,6 +9,7 @@ import json
 import os
 import socket
 import sys
+import ubus
 
 from okos_utils import log_crit, log_err, log_warning, log_info, log_debug, okos_system_log_info
 from constant import const
@@ -16,7 +17,7 @@ from constant import const
 
 class OKOSMgr(object):
     def __init__(self):
-        self.productinfo_data = okos_utils.init_productinfo()
+        self.productinfo_data = okos_utils.get_productinfo()
         okos_system_log_info("oakos is up, version:{}".format(self.productinfo_data['swversion']))
         self.process_heartbeat_thread = None
         self.collect_status_thread = None

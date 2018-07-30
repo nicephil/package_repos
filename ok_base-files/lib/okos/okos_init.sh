@@ -10,9 +10,10 @@ uci set system.@system[0].hostname="$mac";uci commit system
 hostname "$mac"
 echo "$mac" > /proc/sys/kernel/hostname
 
-# 2. mount overlay
+# 2. sync config from sysloader
+#[ -f "/overlay/etc/config/capwapc" ] && cp /overlay/etc/config/capwapc /etc/config/capwapc
 
-# 5. init db
+# 3. init db
 dbfile="/tmp/stationinfo.db"
 tablename="STAINFO"
 rm -rf $dbfile
