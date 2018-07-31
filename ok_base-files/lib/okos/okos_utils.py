@@ -116,9 +116,9 @@ def get_whole_confinfo():
     confinfo_data = json.loads(str, encoding='utf-8')
     return confinfo_data
 
-def get_ddns_status(hostname):
+def get_ddns_status(provider):
     try:
-        cmd = "{} {}".format(const.OKOS_DDNS_STATUS_SCRIPT, hostname)
+        cmd = "{} {}".format(const.OKOS_DDNS_STATUS_SCRIPT, provider)
         pid = Popen(cmd, stdout=PIPE, shell=True)
         s = pid.communicate()[0]
         s.strip('\n')

@@ -1,9 +1,11 @@
 #!/bin/sh
-hostname=$1
-msg=$(cat /var/cache/ddclient/ddclient.cache | awk -F',' '/host='"$hostname"'/{i=1;if(NF<7)next;print "{";while(i++<=13){split($i,aa,"=");print "\""aa[1]"\":\""aa[2]"\",";}print"\"dummy\":\"\"}"}' 2>/dev/null)
+provider=$(echo $1 | tr '.' '_')
+msg=$(cat /var/run/ddns/${provider}.dat | awk '{if(NF==2){print $1"_"$2}}' 2>/dev/null)
+mtime=$(cat /var/run/ddns/${provider}.update)
 [ -z "$msg" ] && {
     echo "{}"
     exit  0
 }
+OIFS=$IFS;IFS='_';set -- $msg;__status=$1;__ip=$2;IFS=$OIFS
 
-echo $msg
+echo "{\"status\":\"$__status\",\"ip\":\"$__ip\",\"mtime\":\"$mtime\"}"

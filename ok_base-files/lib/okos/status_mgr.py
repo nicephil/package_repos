@@ -232,7 +232,7 @@ class StatusMgr(threading.Thread):
         json_data_list = {}
         json_data_list['ddnss'] = []
         for v in confinfo_data['network']['ddnss']:
-            ddns_status = okos_utils.get_ddns_status(v['hostname'])
+            ddns_status = okos_utils.get_ddns_status(v['provider'])
             if not ddns_status:
                 log_warning('ddclient start, but no ddclient cache')
                 return None
