@@ -12,6 +12,10 @@ initramfs_test() {
         #2. mount rootfs_data to /overlay
         mount -t f2fs /dev/loop1 /overlay
         #3. init overlay
+        for file in $(ls /etc/config)
+        do
+            [ ! -f "/overlay/upper/etc/config/$file" ] && cp -rvf /etc/config/"$file" /overlay/upper/etc/config/. > /dev/console 2>&1
+        done
         mount --bind /overlay/upper/etc/config /etc/config
         mount --bind /overlay/upper/root /root
 		preinit_ip_deconfig
