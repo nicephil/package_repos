@@ -30,7 +30,7 @@ class CfgDDNS(CfgObj):
                 'config':'ddns',
                 'type':'service',
                 'values':{
-                    'enabled':'0'
+                    'enabled':0
                 }
             }
             ubus.call('uci', 'set', signa)
@@ -38,12 +38,15 @@ class CfgDDNS(CfgObj):
             signa['section'] = self.data['provider'].replace('.','_')
             signa['values'] = {
                 'username':self.data['username'],
-                'passworkd':self.dta['password'],
-                'domain':self.data['hostname']
+                'password':self.data['password'],
+                'domain':self.data['hostname'],
+                'enabled':1
             }
+            ubus.call('uci','set',signa)
             # 3. commit the change
-            signa = {'config':'ddns'}
+            signa={'config':'ddns'}
             ubus.call('uci', 'commit', signa)
+
         except Exception, e:
             log_err("add ddns gets failed,{}".format(e))
             return False
