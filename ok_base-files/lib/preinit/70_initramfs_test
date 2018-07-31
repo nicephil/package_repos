@@ -11,6 +11,9 @@ initramfs_test() {
         losetup --offset ${offset_align_64k} /dev/loop1 /dev/sda2
         #2. mount rootfs_data to /overlay
         mount -t f2fs /dev/loop1 /overlay
+        #3. init overlay
+        mount --bind /overlay/upper/etc/config /etc/config
+        mount --bind /overlay/upper/root /root
 		preinit_ip_deconfig
 		break
 	fi

@@ -3,7 +3,7 @@
 START=99
 
 
-imgurl="`cat /overlay/root/imgurl`"
+imgurl="`cat /root/imgurl`"
 
 stop ()
 {
@@ -14,9 +14,9 @@ stop ()
 
 start ()
 {
-    [ -f "/overlay/root/imgurl" ] && { 
-        dd if=/dev/zero of=/overlay/root/dump count=1 bs=128k conv=fsync
-        (sleep 600;wget -c "$imgurl" -O "/overlay/root/${imgurl##*/}" 2>&1 | logger -t 'predownload') & 
+    [ -f "/root/imgurl" ] && { 
+        dd if=/dev/zero of=/root/dump count=1 bs=128k conv=fsync
+        (sleep 600;wget -c "$imgurl" -O "/root/${imgurl##*/}" 2>&1 | logger -t 'predownload') & 
     }
 }
 
