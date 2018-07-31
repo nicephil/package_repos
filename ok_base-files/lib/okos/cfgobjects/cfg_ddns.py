@@ -8,18 +8,6 @@ import ubus
 class CfgDDNS(CfgObj):
     def __init__(self):
         super(CfgDDNS, self).__init__('provider')
-        try:
-            ubus.connect()
-        except Exception, e:
-            log_err("ubus connect failed {}".format(e))
-            raise e
-
-    def __del__(self):
-        try:
-            ubus.disconnect()
-        except Exception, e:
-            log_err("ubus disconnect failed {}".format(e))
-            raise e
 
     def parse(self, j):
         ddnss = j['network']['ddnss']
@@ -34,7 +22,6 @@ class CfgDDNS(CfgObj):
 
     def add(self):
         log_debug("add")
-        ret = True
         if not self.data['provider'] or not self.data['username'] or not self.data['password'] or not self.data['hostname']:
             return False
         try:
@@ -59,8 +46,8 @@ class CfgDDNS(CfgObj):
             ubus.call('uci', 'commit', signa)
         except Exception, e:
             log_err("add ddns gets failed,{}".format(e))
-            ret = False
-        return ret
+            return False
+        return True
 
     def change(self):
         log_debug("change")

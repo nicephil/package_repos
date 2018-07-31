@@ -4,6 +4,7 @@ import argparse, os, subprocess, re, json, sys
 from cfgobjects import CfgSystem, CfgDDNS
 from okos_utils import log_crit, log_err, log_warning, log_info, log_debug
 import fcntl
+import ubus
 
 class OakmgrCfg(object):
     Templates = [
@@ -51,21 +52,40 @@ class OakmgrCfg(object):
                 return False
         return True
 
+def ubus_connect():
+    try:
+        ubus.connect()
+    except Exception, e:
+        log_err("main ubus connect failed, {}".format(e))
+
+def ubus_disconnect():
+    try:
+        ubus.disconnect()
+    except Exception, e:
+        log_err("main ubus disconnect failed, {}".format(e))
+
 def main(args):
     log_debug(args)
+
+    ubus_connect()
+
     cur = OakmgrCfg(args.target)
     if not cur.parse():
         log_debug('current configuration parse failed.')
+        ubus_disconnect()
         return 1
     ori = OakmgrCfg(args.original)
     if not ori.parse():
         log_debug('original configuration parse failed.')
+        ubus_disconnect()
         return 2
     diff = cur - ori
     diff.dump()
     if not diff.run():
+        ubus_disconnect()
         return 3
     else:
+        ubus_disconnect()
         return 0
 
 if __name__ == '__main__':
