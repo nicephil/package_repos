@@ -19,6 +19,13 @@ do
         /etc/init.d/wifidog restart
     }
 
+    qos_lock_pid=$(pgrep -f "lock /var/run/qos.lock")
+    qos_lock_count=$(echo $qos_lock_pid | awk '{print NF}')
+    [ -z "$qos_lock_pid" -o "$qos_lock_count" -gt "3" ] && {
+        logger -t supervisor -p 3 "QoS Lock ($qos_lock_pid)is exit abnormally, restart it !!!"
+        lock -u /var/run/qos.lock
+    }
+
     clientevent_pid=$(pgrep -f "/lib/okos/clientevent.py")
     clientevent_count=$(echo $clientevent_pid | awk '{print NF}')
     [ -z "$clientevent_pid" -o "$clientevent_count" -gt "1" ] && {
