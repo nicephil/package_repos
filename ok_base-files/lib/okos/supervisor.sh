@@ -19,10 +19,10 @@ do
         /etc/init.d/wifidog restart
     }
 
-    qos_lock_pid=$(pgrep -f "lock /var/run/qos.lock")
-    qos_lock_count=$(echo $qos_lock_pid | awk '{print NF}')
-    [ -z "$qos_lock_pid" -o "$qos_lock_count" -gt "3" ] && {
-        logger -t supervisor -p 3 "QoS Lock ($qos_lock_pid)is exit abnormally, restart it !!!"
+    dnsmasq_pid=$(pgrep -f " /usr/sbin/dnsmasq -C /var/etc/dnsmasq.conf")
+    dnsmasq_count=$(echo $dnsmasq_pid | awk '{print NF}')
+    [ -z "$dnsmasq_pid" -o "$dnsmasq_count" -gt "1" ] && {
+        logger -t supervisor -p 3 "QoS Lock ($dnsmasq_pid)is exit abnormally, restart it !!!"
         lock -u /var/run/qos.lock
     }
 

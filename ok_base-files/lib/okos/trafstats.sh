@@ -47,14 +47,14 @@ add_client_track ()
     local rule=$($ebtables_CMD -L client_total_uplink_traf --Lx --Lmac2 2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
     if [ -z "$rule" ]
     then
-        $ebtables_CMD -A client_total_uplink_traf -s "$mac" -p ipv4 -j mark --mark-or $id --mark-target CONTINUE
+        $ebtables_CMD -A client_total_uplink_traf -s "$mac" -p ipv4 -j mark --mark-or $((id<<16)) --mark-target CONTINUE
         $ebtables_CMD -A client_total_uplink_traf -s "$mac" -p ipv4 -j total_uplink_traf
 
     fi
     local rule=$($ebtables_CMD -L client_total_downlink_traf --Lx  --Lmac2 2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
     if [ -z "$rule" ]
     then
-        $ebtables_CMD -A client_total_downlink_traf -d "$mac" -p ipv4 -j mark --mark-or $((id+split_id)) --mark-target CONTINUE
+        $ebtables_CMD -A client_total_downlink_traf -d "$mac" -p ipv4 -j mark --mark-or $(((id+split_id)<<16)) --mark-target CONTINUE
         $ebtables_CMD -A client_total_downlink_traf -d "$mac" -p ipv4 -j total_downlink_traf
     fi
     local rule=$($ebtables_CMD -L client_wan_uplink_traf --Lx --Lmac2  2>&1 | sed -n '/'"$mac"'/s/-A/-D/p' 2>&1)
