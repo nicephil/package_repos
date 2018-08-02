@@ -30,9 +30,6 @@ enable_interface_stats
 
 fetch_interface_stats _interfaces_stats
 
-echo "$_interfaces_stats"
-exit
-
 json_init
 
 

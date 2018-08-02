@@ -419,28 +419,35 @@ network_get_uptime()
 # 4: phsical device
 network_get_phy_status()
 {
-    local __port=${4:8}
-    [ -z "$__port" ] && return 1
+    local f_link=$1
+    local f_speed=$2
+    local f_duplex=$3
+    local __ifname=$4
+    unset $f_link
+    unset $f_speed
+    unset $f_duplex
+    [ -z "$__ifname" ] && return 1
     
-    local __tmp=$(swconfig dev switch0 port $__port show | awk -v OFS='|' -F'[: ]' '/link/{print $6,$8,$9}')
+    local __tmp=$(ethtool $__ifname | awk -v OFS='|' -F'[: ]+' '/Speed/{speed=substr($2,0,length($2)-4)}/Duplex/{duplex=$2}/Link detected/{link=$3}END{print link,speed,duplex}')
     [ -z "$__tmp" ] && return 1
-    local __tmp2=${__tmp%%|*}
-    if [ "$__tmp2" = "up" ]
+    OIFS=$IFS;IFS='|';set -- $__tmp;__link=$1;__speed=$2;__duplex=$3;IFS=$OIFS
+
+    if [ "$__link" = "yes" ]
     then
-        export "$1=1"
+        export "$f_link=1"
+        export "$f_speed=${__speed}"
+        if [ "$__duplex" = "Full" ]
+        then
+            export "$f_duplex=1"
+        else
+            export "$f_duplex=0"
+        fi
     else
-        export "$1=0"
+        export "$f_link=0"
+        export "$f_speed=0"
+        export "$f_duplex=0"
     fi
-    __tmp=${__tmp#*|}
-    __tmp2=${__tmp%%|*}
-    export "$2=${__tmp2%%b*}"
-    __tmp2=${__tmp##*|}
-    if [ "$__tmp2" = "full-duplex" ]
-    then
-        export "$3=1"
-    else
-        export "$3=0"
-    fi
+
     return 0
 }
 
