@@ -433,9 +433,10 @@ fi
 
 #OK_PATCH change vlan
         uci -q batch <<-EOF
-            set network.lan.ifname='eth1 eth2 eth3'
+            set network.lan.ifname='eth2'
             set network.lan.ipaddr='172.16.254.254'
-            rename network.lan='lan4000'
+            delete network.lan.type
+            rename network.lan='lan4052'
             set network.wan.proto='dhcp'
             set network.wan.ifname='eth0'
             delete network.wan6

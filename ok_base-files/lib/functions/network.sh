@@ -375,20 +375,17 @@ network_get_lname()
         "br-lan4000")
             lname="switch"
             ;;
-        "eth0.4050")
+        "eth0")
             lname="e0"
             ;;
-        "eth0.4051")
+        "eth1")
             lname="e1"
             ;;
-        "eth0.4052")
+        "eth2")
             lname="e2"
             ;;
-        "eth0.4053")
+        "eth3")
             lname="e3"
-            ;;
-        "eth0.4054")
-            lname="e4"
             ;;
         *)
             echo "unknow interface"

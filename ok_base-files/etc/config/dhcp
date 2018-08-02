@@ -22,8 +22,8 @@ config dnsmasq
 	option localservice	1  # disable to allow DNS requests from non-local subnets
     list address '/router.oakridge.vip/172.16.254.254'
 
-config dhcp lan4000
-	option interface	lan4000
+config dhcp lan4052
+	option interface	lan4052
 	option start 	1
 	option limit	200
 	option leasetime	12h
