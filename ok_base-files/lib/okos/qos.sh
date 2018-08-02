@@ -76,7 +76,7 @@ qos_add_filters ()
     # downlink
     local downlink_id_tmp=$(printf "%x" $((id+split_id)))
     local downlink_fwid_tmp=$(printf "%x" $(((id+split_id)<<16)))
-    qos_run "iptables -t mangle -A TC_USER -m mark --mark 0x${downlink_id_tmp}/0xFFFF0000 -j CLASSIFY --set-class 1:${downlink_id_tmp}"
+    qos_run "iptables -t mangle -A TC_USER -m mark --mark 0x${downlink_fwid_tmp}/0xFFFF0000 -j CLASSIFY --set-class 1:${downlink_id_tmp}"
 }
 
 qos_add ()
@@ -126,9 +126,11 @@ del_tc_by_id_ifname ()
 
     qos_log $LOG_DEBUG "Delete filter to class ${id}."
     local uplink_id_tmp=$(printf "%x" ${id})
+    local uplink_fwid_tmp=$(printf "%x" $((id<<16)))
     local downlink_id_tmp=$(printf "%x" $((id+split_id)))
-    qos_run "iptables -t mangle -D TC_USER -m mark --mark 0x${downlink_id_tmp}/0xFF00  -j CLASSIFY --set-class 1:${downlink_id_tmp}"
-    qos_run "iptables -t mangle -D TC_USER -m mark --mark 0x${uplink_id_tmp}/0xFF00 -j CLASSIFY --set-class 1:${uplink_id_tmp}"
+    local downlink_fwid_tmp=$(printf "%x" $(((id+split_id)<<16)))
+    qos_run "iptables -t mangle -D TC_USER -m mark --mark 0x${downlink_fwid_tmp}/0xFFFF0000  -j CLASSIFY --set-class 1:${downlink_id_tmp}"
+    qos_run "iptables -t mangle -D TC_USER -m mark --mark 0x${uplink_fwid_tmp}/0xFFFF0000 -j CLASSIFY --set-class 1:${uplink_id_tmp}"
 
     qos_log $LOG_DEBUG "Delete class for client [${id}]."
     for _iface in ${ifaces}; do

@@ -19,11 +19,11 @@ do
         /etc/init.d/wifidog restart
     }
 
-    dnsmasq_pid=$(pgrep -f " /usr/sbin/dnsmasq -C /var/etc/dnsmasq.conf")
+    dnsmasq_pid=$(pgrep -f "/usr/sbin/dnsmasq -C /var/etc/dnsmasq.conf")
     dnsmasq_count=$(echo $dnsmasq_pid | awk '{print NF}')
     [ -z "$dnsmasq_pid" -o "$dnsmasq_count" -gt "1" ] && {
-        logger -t supervisor -p 3 "QoS Lock ($dnsmasq_pid)is exit abnormally, restart it !!!"
-        lock -u /var/run/qos.lock
+        logger -t supervisor -p 3 "dnsmasq ($dnsmasq_pid)is exit abnormally, restart it !!!"
+        /etc/init.d/dnsmasq restart
     }
 
     clientevent_pid=$(pgrep -f "/lib/okos/clientevent.py")
