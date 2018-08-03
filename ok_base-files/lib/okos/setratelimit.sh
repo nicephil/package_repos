@@ -8,6 +8,8 @@ rx_rate_limit_local=$5
 ath=$6
 action=$7
 
+exit
+
 [ -z "$ath" ] && {
 ath=`apstats -s -m $mac|awk '/VAP/{print $7}'`
 ath="${ath:0:5}"
