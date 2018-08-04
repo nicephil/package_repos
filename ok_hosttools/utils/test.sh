@@ -2,6 +2,8 @@
 
 ip=$1
 
+./deploysshkey.sh $ip
+
 
 function test_upgrade_sysloader()
 {
@@ -10,8 +12,15 @@ function test_upgrade_sysloader()
 }
 function test_okos_scripts()
 {
+    test_okos_config $1
     scp -P22001 -r /home/llwang/repos/x86/osdk_repos/package_repos/ok_base-files/lib/okos/* root@$1:/lib/okos/.
 }
+function test_okos_config()
+{
+    scp -P22001 -r /home/llwang/repos/x86/osdk_repos/package_repos/ok_base-files/etc/config/ddns root@$1:/etc/config/ddns
+    scp -P22001 -r /home/llwang/repos/x86/osdk_repos/package_repos/ok_base-files/bin/config_generate root@$1:/bin/config_generate
+}
+
 
 function test_busybox()
 {
