@@ -27,8 +27,8 @@ config zone
 config zone
 	option name		wan
 	list   network		'wan'
-    list   network      'wan2'
-	list   network		'wan6'
+	list   network		'wan0'
+    list   network      'wan1'
 	option input		REJECT
 	option output		ACCEPT
 	option forward		REJECT

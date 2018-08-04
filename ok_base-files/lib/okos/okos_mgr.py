@@ -133,7 +133,7 @@ class OKOSMgr(object):
     def access_nms(self, post_data):
         capwapc_data = self.conf_mgr.get_capwapc()
         server = capwapc_data['mas_server']
-        url = 'http://{server}/nms/api/device/vpnsrv/info'.format(server=server)
+        url = 'http://{server}/nms/api/device/router/info'.format(server=server)
         request_data = okos_utils.post_url(url, json_data=post_data)
         if self.first_access_nms:
             self.first_access_nms = False
