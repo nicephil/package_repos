@@ -36,7 +36,6 @@ CW_THREAD_RETURN_TYPE CWWTPReceiveFrame(void *arg);
 CW_THREAD_RETURN_TYPE CWWTPReceiveStats(void *arg);
 CW_THREAD_RETURN_TYPE CWWTPReceiveFreqStats(void *arg);
 
-
 capwapc_config g_capwapc_config  = {
     .enable       = CAPWAPC_DEFAULT_ENABLE,
     .def_server   = CAPWAPC_DEFAULT_SERVER,

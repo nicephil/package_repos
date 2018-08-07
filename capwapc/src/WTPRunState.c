@@ -627,7 +627,7 @@ void CWWTPHeartBeatTimerExpiredHandler(void *arg) {
 	int fragmentsNum = 0;
 	int seqNum;
 
-    CWDebugLog_F("-->WTP HeartBeat In1:%d", clock());
+    CWLog("WTP HeartBeat In1:%d", clock());
     dc_dev_update_notice();
     CWDebugLog_F("-->WTP HeartBeat In2:%d", clock());
 
@@ -690,7 +690,7 @@ void CWWTPHeartBeatTimerExpiredHandler(void *arg) {
 			break;
 		}
 	}
-    CWDebugLog_F("-->WTP HeartBeat In5:%d", clock());
+    CWLog("WTP HeartBeat In5:%d", clock());
 
 	int k;
 	for(k = 0; messages && k < fragmentsNum; k++) {
