@@ -16,6 +16,7 @@ import os
 import sqlite3
 import netifaces as ni
 import ubus
+import ping_mgr
 
 class StatusMgr(threading.Thread):
     def __init__(self, mailbox, conf_mgr):
@@ -34,6 +35,8 @@ class StatusMgr(threading.Thread):
         self.if_status_timer.start()
         self.prev_total_tx_bytes = 0
         self.prev_total_rx_bytes = 0
+        self.ping_mgr = ping_mgr.PingMgr()
+        self.ping_mgr.start()
 
     def cpu_mem_timer_func(self):
         try:
@@ -57,6 +60,7 @@ class StatusMgr(threading.Thread):
 
     def if_status_timer_func(self):
         info_msg = {}
+        network_device_status = {}
         network_interface_status = {}
         type_mapping = {'eth0':0, 'eth1':3, 'eth2':1, 'eth3':3}
         ifname_mapping = {'eth0':'wan', 'eth1':'wan1', 'eth2':'lan4052', 'eth3':'lan4053'}
@@ -64,7 +68,6 @@ class StatusMgr(threading.Thread):
         dhcp_conf = {}
         ddns_conf = {}
         try:
-            ubus.connect()
             network_device_status = ubus.call('network.device','status', {})
             network_interface_status = {}
             network_interface_status['eth0'] = ubus.call('network.interface.wan', 'status', {})
@@ -74,9 +77,8 @@ class StatusMgr(threading.Thread):
             network_conf = ubus.call('uci', 'get', {'config':'network'})
             dhcp_conf = ubus.call('uci', 'get', {'config':'dhcp'})
             ddns_conf = ubus.call('uci', 'get', {'config':'ddns'})
-            ubus.disconnect()
         except Exception, e:
-            log_waring("if_status: ubus call gets failed:{}".format(e))
+            log_warning("if_status: ubus call gets failed:{}".format(e))
         info_msg['operate_type'] = const.DEV_IF_STATUS_RESP_OPT_TYPE
         info_msg['timestamp'] = int(time.time())
         info_msg['cookie_id'] = 0

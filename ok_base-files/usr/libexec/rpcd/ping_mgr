@@ -1,0 +1,3 @@
+#!/bin/sh
+
+/lib/okos/ping_mgr.sh $*

@@ -14,7 +14,6 @@ import ubus
 from okos_utils import log_crit, log_err, log_warning, log_info, log_debug, okos_system_log_info
 from constant import const
 
-
 class OKOSMgr(object):
     def __init__(self):
         self.productinfo_data = okos_utils.get_productinfo()
@@ -152,11 +151,13 @@ class OKOSMgr(object):
         self.collect_status_thread.join()
 
 def main():
+    ubus.connect()
     if len(sys.argv) <= 1:
         pid_file = '/var/run/okos_mgr.pid'
         okos_utils.daemonlize(pid_file)
     okos_mgr = OKOSMgr()
     okos_mgr.join_threads()
+    ubus.disconnect()
 
 if __name__ == '__main__':
     main()

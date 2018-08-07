@@ -52,28 +52,22 @@ def get_capwapc():
     """" get capwapc """
     capwapc_data={}
     try:
-        ubus.connect()
         value=ubus.call("uci", "get", {"config":"capwapc","section":"server"})
         capwapc_data=value[0]['values']
     except Exception, e:
         log_warning('get_capwapc get exception {}'.format(repr(e)))
         capwapc_data={}
-    finally:
-        ubus.disconnect()
     return capwapc_data
 
 def get_productinfo():
     """" get productinfo """
     productinfo_data={}
     try:
-        ubus.connect()
         value=ubus.call("uci", "get", {"config":"productinfo","section":"productinfo"})
         productinfo_data=value[0]['values']
     except Exception, e:
         log_warning('get_productinfo get exception {}'.format(repr(e)))
         productinfo_data={}
-    finally:
-        ubus.disconnect()
     return productinfo_data
 
 def get_whole_conf_path():
