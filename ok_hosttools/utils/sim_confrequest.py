@@ -7,6 +7,7 @@ import random
 import time
 import vici
 import sqlite3
+import status_mgr
 
 def write_pipe(str):
     with open("/opt/oakridge/okos/okos_mgr.pipe", 'w') as f:

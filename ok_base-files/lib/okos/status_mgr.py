@@ -15,6 +15,7 @@ import fcntl
 import os
 import sqlite3
 import netifaces as ni
+import ubus
 
 class StatusMgr(threading.Thread):
     def __init__(self, mailbox, conf_mgr):
@@ -25,9 +26,12 @@ class StatusMgr(threading.Thread):
         self.mailbox = mailbox
         self.vs = vici.Session()
         self.prev_conn_list = []
-        self.cpu_mem_timer = threading.Timer(5, self.cpu_mem_timer_func)
+        self.cpu_mem_timer = threading.Timer(1, self.cpu_mem_timer_func)
         self.cpu_mem_timer.name = 'CPU_MEM_Status'
         self.cpu_mem_timer.start()
+        self.if_status_timer = threading.Timer(1, self.if_status_timer_func)
+        self.if_status_timer.name = 'IF_Status'
+        self.if_status_timer.start()
         self.prev_total_tx_bytes = 0
         self.prev_total_rx_bytes = 0
 
@@ -50,6 +54,112 @@ class StatusMgr(threading.Thread):
         self.cpu_mem_timer = threading.Timer(5, self.cpu_mem_timer_func)
         self.cpu_mem_timer.name = 'CPU_MEM_Status'
         self.cpu_mem_timer.start()
+
+    def if_status_timer_func(self):
+        info_msg = {}
+        network_interface_status = {}
+        type_mapping = {'eth0':0, 'eth1':3, 'eth2':1, 'eth3':3}
+        ifname_mapping = {'eth0':'wan', 'eth1':'wan1', 'eth2':'lan4052', 'eth3':'lan4053'}
+        network_conf = {}
+        dhcp_conf = {}
+        ddns_conf = {}
+        try:
+            ubus.connect()
+            network_device_status = ubus.call('network.device','status', {})
+            network_interface_status = {}
+            network_interface_status['eth0'] = ubus.call('network.interface.wan', 'status', {})
+            network_interface_status['eth1'] = ubus.call('network.interface.wan1', 'status', {})
+            network_interface_status['eth2'] = ubus.call('network.interface.lan4052', 'status', {})
+            network_interface_status['eth3'] = ubus.call('network.interface.lan4053', 'status', {})
+            network_conf = ubus.call('uci', 'get', {'config':'network'})
+            dhcp_conf = ubus.call('uci', 'get', {'config':'dhcp'})
+            ddns_conf = ubus.call('uci', 'get', {'config':'ddns'})
+            ubus.disconnect()
+        except Exception, e:
+            log_waring("if_status: ubus call gets failed:{}".format(e))
+        info_msg['operate_type'] = const.DEV_IF_STATUS_RESP_OPT_TYPE
+        info_msg['timestamp'] = int(time.time())
+        info_msg['cookie_id'] = 0
+        data_json = {}
+        ifs_data = []
+        data_json['list'] = ifs_data
+        for ds in network_device_status:
+            ifs = {}
+            ifs_data.append(ifs)
+            for k, v in ds.items():
+                if k.find("eth") == -1:
+                    continue
+                else:
+                    ifname = ifs['ifname'] = k
+                    ifs['name'] = ifname.strip('th')
+                    ifs['state'] = ifs['physical_state'] = 1 if v['up'] else 0
+                    ifs['mac'] = v['macaddr']
+                    ifs['type'] = type_mapping[ifname]
+                    for intfs in network_interface_status[ifname]:
+                        ifs['proto'] = intfs['proto']
+                        if ifs['proto'] == 'none':
+                            ifs['type'] = 3
+
+                    # no connecting
+                    if not ifs['state']:
+                        continue
+
+                    ifs['bandwidth'] = v['speed'][:-2]
+                    ifs['duplex'] = 1 if v['speed'][-1] == 'F' and ifs['bandwidth'] else 0
+
+                    # none config
+                    if ifs['type'] == 3:
+                        continue
+
+                    for intfs in network_interface_status[ifname]:
+                        ifs['uptime'] = intfs['uptime']
+                        ifs['dns'] = []
+                        for dns in intfs['dns-server']:
+                            ifs['dns'].append(dns)
+                        ipinfos = []
+                        ifs['ips'] = ipinfos
+                        for ipv4_addr in intfs['ipv4-address']:
+                            ipinfo = {}
+                            ipinfo['ip'] =  ipv4_addr['address']
+                            ipinfo['netmask'] = ipv4_addr['mask']
+                            ipinfos.append(ipinfo)
+                            for route in intfs['route']:
+                                if route['target'] == '0.0.0.0':
+                                    ipinfo['gateway'] = route['nexthop']
+                            if ifs['type'] == 0:
+                                if ifs['proto'] == 'pppoe':
+                                    ifs_conf = network_conf[0]['values'][ifname_mapping[ifname]]
+                                    ipinfo['pppoe_username'] = ifs_conf['username']
+                                    ipinfo['pppoe_password'] = ifs_conf['password']
+                                ddnss_info = []
+                                ipinfo['ddnss'] = ddnss_info
+                                for k2,v2 in ddns_conf[0]['values'].items():
+                                    if v2['enabled'] != '1':
+                                        continue
+                                    ddns = {}
+                                    ddnss_info.append(ddns)
+                                    ddns['key'] = k2
+                                    ddns['service_name'] = v2['service_name']
+                                    ddns['domain'] = v2['domain']
+                                    ddns['username'] = v2['username']
+                                    ddns['password'] = v2['password']
+                                    ddns['state'] = 0
+                                    ddns['uptime'] = 0
+                                    ddns_status = okos_utils.get_ddns_status(ddns['key'])
+                                    if ddns_status:
+                                        ddns['state'] = 0 if ddns_status['status'] == 'good' else 1
+                                        ddns['update_time'] = int(ddns_status['mtime']) if ddns_status['mtime'] else ddns_status['atime']
+                            elif ifs['type'] == 1:
+                                ifs_dhcp_conf = dhcp_conf[0]['values'][ifname_mapping[ifname]]
+                                ipinfo['dhcp_start'] = ifs_dhcp_conf['start']
+                                ipinfo['dhcp_limit'] = ifs_dhcp_conf['limit']
+
+        info_msg['data'] = json.dumps(data_json)
+        self.if_status_timer = threading.Timer(60, self.if_status_timer_func)
+        self.if_status_timer.name = 'IF_Status'
+        self.if_status_timer.start()
+        return info_msg
+        pass
 
     def run(self):
         self.process_data()
@@ -167,7 +277,7 @@ class StatusMgr(threading.Thread):
             except Exception,e:
                 log_warning("cannot recover vici")
             return None
-        log_info("sas_list:")
+        log_debug("sas_list:")
         conn_list = []
         for k in sas_list:
             conns = dict()
