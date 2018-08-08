@@ -107,7 +107,7 @@ qos_add ()
     qos_log $LOG_INFO "Add client [${mac}] on <${ifname}> with priority $pri and limitation WAN TX/RX [${tx}/${rx}] LAN TX/RX [${lan_tx}/${lan_rx}]."
 
     qos_log $LOG_DEBUG "Del client by ${mac}."
-    qos_del $mac
+    qos_del $mac $ifname
 
     id=$(qos_get_id $mac)
     [ -z "$id" ] && { qos_log $LOG_DEBUG "no valid id for $mac"; return 1;}
@@ -153,9 +153,7 @@ qos_del ()
     local ifname=$2
     qos_log $LOG_DEBUG "Del: $@ ."
 
-    local ifname2
     local id2
-
     id2=$(qos_get_id $mac)
     del_tc_by_id_ifname $id2 $ifname
 

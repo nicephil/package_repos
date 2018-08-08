@@ -19,6 +19,7 @@ from syslog import syslog, LOG_INFO, LOG_WARNING, LOG_ERR, LOG_DEBUG
 # import objgraph
 # import pdb
 
+mutex = threading.Lock()
 
 # Class describes client's event object
 class ClientEvent(object):
@@ -378,6 +379,8 @@ class Client(Thread):
 
     def set_ratelimit(self, tx_rate_limit, rx_rate_limit,
                       tx_rate_limit_local, rx_rate_limit_local, ath, action):
+        global mutex
+        mutex.acquire(10)
         os.system("/lib/okos/setratelimit.sh %s %d %d %d \
                   %d %s %d >/dev/null 2>&1" %
                   (self.mac,
@@ -387,7 +390,7 @@ class Client(Thread):
                    rx_rate_limit_local,
                    ath,
                    action))
-        pass
+        mutex.release()
 
     def set_client_track(self, action):
         if action:
