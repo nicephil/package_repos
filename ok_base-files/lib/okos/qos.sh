@@ -53,6 +53,7 @@ qos_htb_add_classes ()
         if [ "$_iface" != "$iface" ]
         then
             qos_run "tc class add dev $_iface $param $lan_tx"
+            qos_run "tc qdisc add dev $_iface parent 1:$id_tmp sfq perturb 10"
         fi
     done
 
@@ -60,6 +61,7 @@ qos_htb_add_classes ()
     local id_tmp=$(printf "%x" $((id+split_id)))
     local param="parent 1:1 classid 1:${id_tmp} htb burst 15k rate $((${wt}*12))kbit ceil"
     qos_run "tc class add dev $iface $param $lan_rx"
+    qos_run "tc qdisc add dev $iface parent 1:$id_tmp sfq perturb 10"
 }
 
 qos_add_filters ()
