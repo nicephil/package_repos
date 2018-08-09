@@ -73,12 +73,12 @@ qos_add_filters ()
     # uplink
     local uplink_id_tmp=$(printf "%x" ${id})
     local uplink_fwid_tmp=$(printf "%x" $((id<<16)))
-    qos_run "iptables -t mangle -A TC_USER -m mark --mark 0x${uplink_fwid_tmp}/0xFFFF0000 -j CLASSIFY --set-class 1:${uplink_id_tmp}"
+    #qos_run "iptables -t mangle -A TC_USER -m mark --mark 0x${uplink_fwid_tmp}/0xFFFF0000 -j CLASSIFY --set-class 1:${uplink_id_tmp}"
 
     # downlink
     local downlink_id_tmp=$(printf "%x" $((id+split_id)))
     local downlink_fwid_tmp=$(printf "%x" $(((id+split_id)<<16)))
-    qos_run "iptables -t mangle -A TC_USER -m mark --mark 0x${downlink_fwid_tmp}/0xFFFF0000 -j CLASSIFY --set-class 1:${downlink_id_tmp}"
+    #qos_run "iptables -t mangle -A TC_USER -m mark --mark 0x${downlink_fwid_tmp}/0xFFFF0000 -j CLASSIFY --set-class 1:${downlink_id_tmp}"
 }
 
 qos_add ()
