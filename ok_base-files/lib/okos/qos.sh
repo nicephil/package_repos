@@ -74,11 +74,19 @@ qos_add_filters ()
     local uplink_id_tmp=$(printf "%x" ${id})
     local uplink_fwid_tmp=$(printf "%x" $((id<<16)))
     #qos_run "iptables -t mangle -A TC_USER -m mark --mark 0x${uplink_fwid_tmp}/0xFFFF0000 -j CLASSIFY --set-class 1:${uplink_id_tmp}"
+    for _iface in ${ifaces}
+    do
+        if [ "$_iface" != "$iface" ]
+        then
+            qos_run "tc filter add dev $_iface protocol ip parent 1:0 prio 1 handle 0x${uplink_fwid_tmp} fw flowid 1:${uplink_id_tmp}"
+        fi
+    done
 
     # downlink
     local downlink_id_tmp=$(printf "%x" $((id+split_id)))
     local downlink_fwid_tmp=$(printf "%x" $(((id+split_id)<<16)))
     #qos_run "iptables -t mangle -A TC_USER -m mark --mark 0x${downlink_fwid_tmp}/0xFFFF0000 -j CLASSIFY --set-class 1:${downlink_id_tmp}"
+    qos_run "tc filter add dev $iface protocol ip parent 1:0 prio 1 handle 0x${downlink_fwid_tmp} fw flowid 1:${downlink_id_tmp}"
 }
 
 qos_add ()
@@ -129,10 +137,17 @@ del_tc_by_id_ifname ()
     qos_log $LOG_DEBUG "Delete filter to class ${id}."
     local uplink_id_tmp=$(printf "%x" ${id})
     local uplink_fwid_tmp=$(printf "%x" $((id<<16)))
+    #qos_run "iptables -t mangle -D TC_USER -m mark --mark 0x${downlink_fwid_tmp}/0xFFFF0000  -j CLASSIFY --set-class 1:${downlink_id_tmp}"
+    for _iface in ${ifaces}; do
+        if [ "$_iface" !=  "$ifname" ]
+        then
+            qos_run "tc filter del dev $_iface protocol ip parent 1:0 prio 1 handle 0x${uplink_fwid_tmp} fw flowid 1:${uplink_id_tmp}"
+        fi
+    done
     local downlink_id_tmp=$(printf "%x" $((id+split_id)))
     local downlink_fwid_tmp=$(printf "%x" $(((id+split_id)<<16)))
-    qos_run "iptables -t mangle -D TC_USER -m mark --mark 0x${downlink_fwid_tmp}/0xFFFF0000  -j CLASSIFY --set-class 1:${downlink_id_tmp}"
-    qos_run "iptables -t mangle -D TC_USER -m mark --mark 0x${uplink_fwid_tmp}/0xFFFF0000 -j CLASSIFY --set-class 1:${uplink_id_tmp}"
+    #qos_run "iptables -t mangle -D TC_USER -m mark --mark 0x${uplink_fwid_tmp}/0xFFFF0000 -j CLASSIFY --set-class 1:${uplink_id_tmp}"
+    qos_run "tc filter del dev $ifname protocol ip parent 1:0 prio 1 handle 0x${downlink_fwid_tmp} fw flowid 1:${downlink_id_tmp}"
 
     qos_log $LOG_DEBUG "Delete class for client [${id}]."
     for _iface in ${ifaces}; do
