@@ -15,8 +15,11 @@ nms2.oakridge.vip
 nms2.oakridge.io
 "
 other_image_servers="
-alpha1.oakridge.vip
 alpha1.oakridge.io
+beta2.oakridge.vip
+beta2.oakridge.io
+nms1.oakridge.vip
+nms1.oakridge.io
 "
 
 lbase_dir="/var/www/html/images"
@@ -31,13 +34,10 @@ rsync_dirs="
 ./ap/xiaomi3g/okos
 ./ap/ubnterx/okos
 "
-rsync_dirs="
-./x86_gw/okos
-"
 
 for server in $other_image_servers
 do
-    nc -vz -w3 alpha1.oakridge.vip 22
+    nc -vz -w3 $server 22
     if [ "$?" != "0" ]
     then
         echo "$server port 22 is unreachable"
@@ -45,7 +45,7 @@ do
     fi
     for dir in $rsync_dirs
     do
-        rsync -ravz --progress $lbase_dir/$dir $server:$rbase_dir/$dir &
+        rsync -ravz --delete --progress $lbase_dir/$dir $server:$rbase_dir/$dir &
     done
 done
 
