@@ -54,7 +54,7 @@ int dc_hdl_entry_singleobj(struct json_object *obj, const char *obj_key)
 
     node = dc_get_json_node(obj_key);
     if (node) {
-        nmsc_log("Tye to handle the %s node's json config.", obj_key);
+        nmsc_log("Try to handle the %s node's json config.", obj_key);
         return node->node_handler(obj);
     }
 

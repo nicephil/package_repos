@@ -155,7 +155,7 @@ int dc_json_machine(const char *data)
     foreach_dc_entries(dc_entry) { // go through dc_entries  
         json_object_object_foreach(root, key, val) {
             if (!strcmp(dc_entry->key, key)) {
-                nmsc_log("Tye to handle the %s entry's json config.", dc_entry->key);
+                nmsc_log("Try to handle the %s entry's json config.", dc_entry->key);
                 ret = dc_entry->json_handler(val, key);
                 if (ret != 0) {
                     nmsc_log("Handle the module %s config data failed for reason code: %d.", 

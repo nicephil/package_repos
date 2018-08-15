@@ -26,13 +26,13 @@ lbase_dir="/var/www/html/images"
 rbase_dir="/var/www/html/images"
 
 rsync_dirs="
-./x86_gw/okos
 ./ap/ap152/okos
-./ap/xiaomi3/okos
 ./ap/ubntunifi/okos
+./ap/ubnterx/okos
+./x86_gw/okos
 ./ap/xiaomi3g_gw/okos
 ./ap/xiaomi3g/okos
-./ap/ubnterx/okos
+./ap/xiaomi3/okos
 "
 
 for server in $other_image_servers
