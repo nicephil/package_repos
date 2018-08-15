@@ -16,6 +16,8 @@ from Queue import Queue
 from okos_utils import get_auth_url, mac_to_byte, get_mac, get_portalscheme, \
     get_ssid, get_domain, okos_sta_log_info
 from syslog import syslog, LOG_INFO, LOG_WARNING, LOG_ERR, LOG_DEBUG
+from agent import Agent
+from arpwatch import Arpwatch
 # import objgraph
 # import pdb
 
@@ -626,6 +628,12 @@ def main():
            (device_mac, auth_url, domain))
     # 3. create manager object and go into event loop
     manager = Manager()
+    agent = Agent()
+    agent.daemon = True
+    agent.start()
+    arpwatch = Arpwatch()
+    arpwatch.daemon = True
+    arpwatch.start()
     manager.create_pipe('/tmp/wifievent.pipe')
     manager.handle_pipe_loop()
 
