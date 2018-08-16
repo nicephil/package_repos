@@ -473,7 +473,7 @@ okos_http_cb_404(httpd *webserver, request *r, int error_code)
         debug(LOG_DEBUG, "<HTTPD_404> Client {%s} request from invalid ssid", r->clientAddr);
         goto cb_404_ssid_not_support_portal;
     }
-    debug(LOG_DEBUG, "<HTTPD_404> Client {%s, %s, %s}",
+    debug(LOG_INFO, "<HTTPD_404> Client {%s, %s, %s} redirected portal.",
             p_client->ip, p_client->mac, p_client->if_name);
 
     /*---------------------------------------------------------------
@@ -485,12 +485,12 @@ okos_http_cb_404(httpd *webserver, request *r, int error_code)
     int canntMatchHostInWhiteList;
     canntMatchHostInWhiteList = okos_http_check_whitelist(r, a_tmp_url);
     if (!canntMatchHostInWhiteList) {
-        debug(LOG_INFO, "<HTTPD_404> Match target in global WhiteList, redirect client, exit 404.");
+        debug(LOG_DEBUG, "<HTTPD_404> Match target in global WhiteList, redirect client, exit 404.");
         goto cb_404_match_global_whitelist;
     }
     canntMatchHostInWhiteList = okos_http_check_whitelist_by_ssid(r, a_tmp_url, p_client->ssid);
     if (!canntMatchHostInWhiteList) {
-        debug(LOG_INFO, "<HTTPD_404> Match target in WhiteList on ssid(%s), redirect client, exit 404.",
+        debug(LOG_DEBUG, "<HTTPD_404> Match target in WhiteList on ssid(%s), redirect client, exit 404.",
                 p_client->ssid->ssid);
         goto cb_404_match_ssid_whitelist;
     }
@@ -504,15 +504,15 @@ okos_http_cb_404(httpd *webserver, request *r, int error_code)
      * ------------------------------------------------------------*/
     t_auth_serv *auth_server = get_auth_server();
     if (NULL == auth_server) {
-        debug(LOG_DEBUG, "<HTTPD_404>!! Without AuthSvr, Drop %s's request.", r->clientAddr);
+        debug(LOG_WARNING, "<HTTPD_404>!! Without AuthSvr, Drop %s:%s's request.", p_client->ip, p_client->mac);
         okos_send_http_page(r, "Login", "Uh oh! Internet access unavailable! Take it easy.");
         goto cb_404_without_auth_server;
     }
     char *s_url = httpdUrlEncode(a_tmp_url);
     char *s_info = okos_http_assemble_INFO(p_client);
     char *s_urlFragment;
-    debug(LOG_DEBUG, "<HTTPD_404> <info>=[%s]", s_info);
-    debug(LOG_DEBUG, "<HTTPD_404> <originalurl>=[%s]", s_url);
+    debug(LOG_DEBUG, "<HTTPD_404> <%s's info>=[%s]", p_client->mac, s_info);
+    debug(LOG_INFO, "<HTTPD_404> <%s's originalurl>=[%s]", p_client->mac, s_url);
     safe_asprintf(&s_urlFragment, "%sinfo=%s&originalurl=%s",
             auth_server->authserv_login_script_path_fragment, s_info, s_url);
 
@@ -569,12 +569,12 @@ okos_http_cb_qrcode(httpd *webserver, request *r)
         okos_send_http_page(r, "Auth qrcode", "Do not support anonymous yet");
         goto cb_qrcode_cant_get_local_info;
     }
-    debug(LOG_DEBUG, "<HTTPD_qrcode> Client {%s, %s, %s}",
+    debug(LOG_NOTICE, "<HTTPD_qrcode> Client {%s, %s, %s}",
             p_client->ip, p_client->mac, p_client->if_name);
 
     t_auth_serv *auth_server = get_auth_server();
     if (NULL == auth_server) {
-        debug(LOG_DEBUG, "<HTTP_qrcode>!! AuthSvr is invalid.");
+        debug(LOG_WARNING, "<HTTP_qrcode>!! %s:%s's AuthSvr is invalid.", p_client->ip, p_client->mac);
         okos_send_http_page(r, "Auth qrcode", "Uh oh! Internet access unavailable! Take it easy.");
         goto cb_qrcode_not_auth_server;
     }
@@ -597,7 +597,7 @@ okos_http_cb_qrcode(httpd *webserver, request *r)
     safe_asprintf(&s_urlFragment, "%ssource=%s%s",
             auth_server->authserv_login_script_path_fragment, s_source, s_variables);
 
-    debug(LOG_DEBUG, "<HTTPD_qrcode> Authenticator {%s, %s, %s}"
+    debug(LOG_NOTICE, "<HTTPD_qrcode> Authenticator {%s, %s, %s}"
             "requesting [%s] and re-directed.",
             p_client->ip, p_client->mac, p_client->if_name, s_urlFragment);
     http_send_redirect_to_auth(r, s_urlFragment, "Redirect to qrcode page", auth_server, "/qrcode");
@@ -632,7 +632,7 @@ okos_http_cb_allow(httpd *webserver, request *r)
     if (NULL == time) {
         okos_send_http_page(r, "Auth Allowed",
                 "I'd like to let you go, but I don't know how long.");
-        debug(LOG_INFO, "<HTTPD_allow>!! Receive code 'allow' without 'time'.");
+        debug(LOG_WARNING, "<HTTPD_allow>!! Receive code 'allow' for %s without 'time'.", r->clientAddr);
         return;
     }
     
@@ -646,7 +646,7 @@ okos_http_cb_allow(httpd *webserver, request *r)
     okos_close_stainfo_db(stainfo_db);
     if (NULL == client) {
         okos_send_http_page(r, "Auth Allowed", "Don't give up! To be strong.");
-        debug(LOG_INFO, "<HTTPD_allow>!! Cant create new client for allow code.");
+        debug(LOG_WARNING, "<HTTPD_allow>!! Cant create new client %s for allow code.", r->clientAddr);
         return;
     }
     /*-----------------------------------------------------
@@ -656,11 +656,11 @@ okos_http_cb_allow(httpd *webserver, request *r)
     okos_client_update_allow_time(&client, time->value);
     if (NULL == client) {
         okos_send_http_page(r, "Auth Allowed", "Can't let you go.");
-        debug(LOG_WARNING, "<HTTPD_allow> We can't add a new validation correctly.");
+        debug(LOG_WARNING, "<HTTPD_allow> We can't add a new validation correctly for %s:%s.", client->ip, client->mac);
         return;
     }
 
-    debug(LOG_INFO, "<HTTPD_allow> Client {%s, %s, %s} VALIDATED!",
+    debug(LOG_NOTICE, "<HTTPD_allow> Client {%s, %s, %s} VALIDATED!",
             client->ip, client->mac, client->if_name);
     okos_add_validation_client(&client);
 
@@ -672,7 +672,7 @@ okos_http_cb_allow(httpd *webserver, request *r)
 
 void okos_http_cb_auth(httpd *webserver, request *r)
 {
-    debug(LOG_DEBUG, "<HTTPD_auth> Calling http_callback_auth.");
+    debug(LOG_DEBUG, "<HTTPD_auth> %s Calling http_callback_auth.", r->clientAddr);
     httpVar *auth = httpdGetVariableByName(r, "auth");
 	if (NULL == auth) {
         okos_send_http_page(r, "Auth Confirm", "Invalid Auth Parameter");
@@ -682,12 +682,12 @@ void okos_http_cb_auth(httpd *webserver, request *r)
     }
 
     t_client *client = okos_client_get_new(r->clientAddr);
-    debug(LOG_DEBUG, "<HTTPD_auth> Start to parse AUTH parameter.");
+    debug(LOG_DEBUG, "<HTTPD_auth> Start to parse %s's AUTH parameter.", r->clientAddr);
     int parseFailed = okos_http_parse_AUTH(auth->value, client);
     if (parseFailed) {
         okos_send_http_page(r, "Auth Confirm", "Uncompleted auth parameter");
-        debug(LOG_WARNING, "<HTTPD_auth>!! Can't parse AUTH correctly."
-                "code: %d", parseFailed);
+        debug(LOG_WARNING, "<HTTPD_auth>!! Can't parse %s's AUTH correctly."
+                "code: %d", r->clientAddr, parseFailed);
         goto cb_auth_parse_variable_failed;
     }
     sqlite3 *stainfo_db = okos_open_stainfo_db();
@@ -722,7 +722,7 @@ void okos_http_cb_auth(httpd *webserver, request *r)
         donot_redirect = 1;
 
     if (!donot_redirect) {
-        debug(LOG_DEBUG, "<HTTPD_auth> Redirect client to the assigned web page.");
+        debug(LOG_DEBUG, "<HTTPD_auth> Redirect client %s:%s to the assigned web page.", client->ip, client->mac);
         char *url= NULL;
         safe_asprintf(&url, "%s", redirecturl->value);
         http_send_redirect(r, url, "Redirect to portal");
