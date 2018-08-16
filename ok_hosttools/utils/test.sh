@@ -2,6 +2,8 @@
 
 ip=$1
 
+./deploysshkey.sh $ip
+
 function test_capwapc_and_libs()
 {
     scp -r /home/llwang/repos/master_for_AA-12.09/osdk_repos/bin/ar71xx/packages/libservices_1.0-0_ar71xx.ipk root@$1:/tmp/

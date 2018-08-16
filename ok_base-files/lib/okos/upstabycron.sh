@@ -41,6 +41,8 @@ sqlite3 $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(MAC T
 
 . /lib/functions/network.sh
 
+apstats_log=$(apstats -a -R 2>/dev/null)
+
 
 # active missed client
 for client in $(sqlite3 /tmp/stationinfo.db "SELECT * FROM STAINFO" 2>/dev/null)
@@ -77,7 +79,8 @@ do
     _smode=`echo $_smode|tr [A-Z] [a-z]`
     
     # all traffic
-    _stats=`apstats -s -i $_ath -m $_mac 2>/dev/null | awk -F'=' '/Tx Data Bytes|Rx Data Bytes|Average Tx Rate|Average Rx Rate|Tx failures|Rx errors/{print $2}'`
+    _tmpstats=$(echo "$apstats_log" | awk '/'${_mac}'/{getline;i=0;while(i++<18){print $0;getline;}exit;}')
+    _stats=`echo "$_tmpstats" | awk -F'=' '/Tx Data Bytes|Rx Data Bytes|Average Tx Rate|Average Rx Rate|Tx failures|Rx errors/{print $2}'`
     [ -z "$_stats" ] && {
         upsta_err_log "missed _mac:$_mac _ath:$_ath apstats -s"
         continue

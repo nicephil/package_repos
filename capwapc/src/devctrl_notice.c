@@ -365,7 +365,7 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
         struct wlan_sta_stat **stas;
     };
 
-    int ret = system("/lib/okos/upstabycron.sh");
+    int ret = system("nice -n -20 /lib/okos/upstabycron.sh");
     if (ret == -1 || (ret != -1 && WEXITSTATUS(ret))) {
         CWLog("database is updating");
         *stas = NULL;
@@ -687,7 +687,7 @@ static void dc_sta_notice_timer_handler(void *arg)
     char *payload = NULL, *data = NULL;
     int count = 0, paylength = 0, totalsize = 0; 
 
-    CWLog("-->sta notice handler In1:%d, cout:%d", clock(), count);
+    CWDebugLog_F("-->sta notice handler In1:%d, cout:%d", clock(), count);
     count = dc_get_wlan_sta_stats(&stas,1);
     if (stas != NULL && count > 0) { 
 
@@ -744,7 +744,7 @@ static void dc_sta_notice_timer_handler(void *arg)
         }
     }
 
-    CWLog("-->sta notice handler In2:%d, count:%d", clock(), count);
+    CWDebugLog_F("-->sta notice handler In2:%d, count:%d", clock(), count);
     /* radio status */
     count = dc_get_wlan_radio_stats(&radio_stats);
     if (radio_stats != NULL && count > 0) { 
@@ -780,7 +780,7 @@ static void dc_sta_notice_timer_handler(void *arg)
         }
     }
 
-    CWLog("-->sta notice handler In3:%d, count:%d", clock(), count);
+    CWDebugLog_F("-->sta notice handler In3:%d, count:%d", clock(), count);
 
     if (payload != NULL && totalsize > 0) {
         memset(&dc_resp, 0, sizeof(dc_resp));
@@ -798,7 +798,7 @@ static void dc_sta_notice_timer_handler(void *arg)
         CW_FREE_OBJECT(payload);
     }
 
-    CWLog("-->sta notice handler In4:%d", clock());
+    CWDebugLog_F("-->sta notice handler In4:%d", clock());
 
 RESTART_TIMER:
     if (payload) {

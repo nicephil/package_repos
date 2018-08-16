@@ -26,6 +26,8 @@ sync;echo 3 > /proc/sys/vm/drop_caches
 /etc/init.d/arpwatch restart
 /etc/init.d/apfw.dyn restart
 
+sleep 5
+
 
 rm -rf $lockfile
 if [ ! -f "/tmp/firstboot_report" ]

@@ -22,14 +22,6 @@ qos_run ()
     [ -z "$debug" ] && eval "$cmd"
 }
 
-qos_trap ()
-{
-    qos_log $LOG_DEBUG "QoS Trapped."
-    lock -u /var/run/qos.lock
-}
-trap 'qos_trap; exit' INT TERM ABRT QUIT ALRM
-
-
 #debug=True
 QDISC="htb"
 
@@ -61,6 +53,7 @@ qos_htb_add_classes ()
         if [ "$_iface" != "$iface" ]
         then
             qos_run "tc class add dev $_iface $param $lan_tx"
+            qos_run "tc qdisc add dev $_iface parent 1:$id_tmp sfq perturb 10"
         fi
     done
 
@@ -68,6 +61,7 @@ qos_htb_add_classes ()
     local id_tmp=$(printf "%x" $((id+split_id)))
     local param="parent 1:1 classid 1:${id_tmp} htb burst 15k rate $((${wt}*12))kbit ceil"
     qos_run "tc class add dev $iface $param $lan_rx"
+    qos_run "tc qdisc add dev $iface parent 1:$id_tmp sfq perturb 10"
 }
 
 qos_add_filters ()
@@ -78,11 +72,21 @@ qos_add_filters ()
 
     # uplink
     local uplink_id_tmp=$(printf "%x" ${id})
-    qos_run "iptables -t mangle -A TC_USER -m mark --mark 0x${uplink_id_tmp}/0xFF00 -j CLASSIFY --set-class 1:${uplink_id_tmp}"
+    local uplink_fwid_tmp=$(printf "%x" $((id<<16)))
+    #qos_run "iptables -t mangle -A TC_USER -m mark --mark 0x${uplink_fwid_tmp}/0xFFFF0000 -j CLASSIFY --set-class 1:${uplink_id_tmp}"
+    for _iface in ${ifaces}
+    do
+        if [ "$_iface" != "$iface" ]
+        then
+            qos_run "tc filter add dev $_iface protocol ip parent 1:0 prio 1 handle 0x${uplink_fwid_tmp} fw flowid 1:${uplink_id_tmp}"
+        fi
+    done
 
     # downlink
     local downlink_id_tmp=$(printf "%x" $((id+split_id)))
-    qos_run "iptables -t mangle -A TC_USER -m mark --mark 0x${downlink_id_tmp}/0xFF00 -j CLASSIFY --set-class 1:${downlink_id_tmp}"
+    local downlink_fwid_tmp=$(printf "%x" $(((id+split_id)<<16)))
+    #qos_run "iptables -t mangle -A TC_USER -m mark --mark 0x${downlink_fwid_tmp}/0xFFFF0000 -j CLASSIFY --set-class 1:${downlink_id_tmp}"
+    qos_run "tc filter add dev $iface protocol ip parent 1:0 prio 1 handle 0x${downlink_fwid_tmp} fw flowid 1:${downlink_id_tmp}"
 }
 
 qos_add ()
@@ -108,19 +112,14 @@ qos_add ()
     lan_rx="${lan_rx}kbit"
     local ifname=$7
 
-    local rc
     local id
 
     qos_log $LOG_INFO "Add client [${mac}] on <${ifname}> with priority $pri and limitation WAN TX/RX [${tx}/${rx}] LAN TX/RX [${lan_tx}/${lan_rx}]."
 
     qos_log $LOG_DEBUG "Del client by ${mac}."
-    qos_del $mac
+    qos_del $mac $ifname
 
-    rc2=$(qos_get_id $mac)
-    if [ ! -z "$rc2" ]; then
-        OIFS=$IFS;IFS=' ';set -- $rc2;_=$1;ifname=$2;id=$3;IFS=$OIFS
-        qos_log $LOG_DEBUG "Del(): get_id( $mac ) => IFNAME:$ifname ID:$id."
-    fi
+    id=$(qos_get_id $mac)
     [ -z "$id" ] && { qos_log $LOG_DEBUG "no valid id for $mac"; return 1;}
     qos_log $LOG_DEBUG "Get ID:${id} for client [${ifname}/${mac}]."
     qos_${QDISC}_add_classes $ifname $id $pri $tx $rx $lan_tx $lan_rx
@@ -137,9 +136,18 @@ del_tc_by_id_ifname ()
 
     qos_log $LOG_DEBUG "Delete filter to class ${id}."
     local uplink_id_tmp=$(printf "%x" ${id})
+    local uplink_fwid_tmp=$(printf "%x" $((id<<16)))
+    #qos_run "iptables -t mangle -D TC_USER -m mark --mark 0x${downlink_fwid_tmp}/0xFFFF0000  -j CLASSIFY --set-class 1:${downlink_id_tmp}"
+    for _iface in ${ifaces}; do
+        if [ "$_iface" !=  "$ifname" ]
+        then
+            qos_run "tc filter del dev $_iface protocol ip parent 1:0 prio 1 handle 0x${uplink_fwid_tmp} fw flowid 1:${uplink_id_tmp}"
+        fi
+    done
     local downlink_id_tmp=$(printf "%x" $((id+split_id)))
-    qos_run "iptables -t mangle -D TC_USER -m mark --mark 0x${downlink_id_tmp}/0xFF00  -j CLASSIFY --set-class 1:${downlink_id_tmp}"
-    qos_run "iptables -t mangle -D TC_USER -m mark --mark 0x${uplink_id_tmp}/0xFF00 -j CLASSIFY --set-class 1:${uplink_id_tmp}"
+    local downlink_fwid_tmp=$(printf "%x" $(((id+split_id)<<16)))
+    #qos_run "iptables -t mangle -D TC_USER -m mark --mark 0x${uplink_fwid_tmp}/0xFFFF0000 -j CLASSIFY --set-class 1:${uplink_id_tmp}"
+    qos_run "tc filter del dev $ifname protocol ip parent 1:0 prio 1 handle 0x${downlink_fwid_tmp} fw flowid 1:${downlink_id_tmp}"
 
     qos_log $LOG_DEBUG "Delete class for client [${id}]."
     for _iface in ${ifaces}; do
@@ -162,21 +170,9 @@ qos_del ()
     local ifname=$2
     qos_log $LOG_DEBUG "Del: $@ ."
 
-    local rc2
-    local ifname2
     local id2
-
-    rc2=$(qos_get_id $mac)
-    if [ ! -z "$rc2" ]; then
-        OIFS=$IFS;IFS=' ';set -- $rc2;_=$1;ifname2=$2;id2=$3;IFS=$OIFS
-        qos_log $LOG_DEBUG "Del(): get_id( $mac ) => IFNAME:$ifname2 ID:$id2 ."
-    fi
-
-    if [ -z "$rc2" ]; then
-        qos_log $LOG_DEBUG "Don't know how to delete $mac on interface $ifname2. "
-    else
-        del_tc_by_id_ifname $id2 $ifname2
-    fi
+    id2=$(qos_get_id $mac)
+    del_tc_by_id_ifname $id2 $ifname
 
     qos_log $LOG_DEBUG "Del(): done."
 }

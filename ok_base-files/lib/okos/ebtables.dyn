@@ -2,8 +2,6 @@
 
 ebtables_CMD="ebtables"
 
-. /lib/okos/qos_id.sh
-
 ebtables_clean_traf_statistics()
 {
     $ebtables_CMD -Z total_uplink_traf
@@ -18,7 +16,6 @@ ebtables_clean_traf_statistics()
     $ebtables_CMD -F ath_total_downlink_traf
     $ebtables_CMD -F ath_total_wan_downlink_traf
     $ebtables_CMD -F ath_total_wan_uplink_traf
-    qos_del_all_ids
 }
 
 ebtables_setup_ath_statistics()

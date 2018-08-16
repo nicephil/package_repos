@@ -1,0 +1,11 @@
+--- a/setup.py
++++ b/setup.py
+@@ -2,7 +2,7 @@ import os
+ import io
+ import re
+ import sys
+-from setuptools import setup
++from distutils.core import setup
+ 
+ 
+ # https://packaging.python.org/guides/single-sourcing-package-version/
