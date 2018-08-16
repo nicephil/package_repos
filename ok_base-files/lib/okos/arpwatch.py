@@ -7,8 +7,9 @@ import binascii
 import syslog
 import sqlite3
 import gc
+import subprocess
 
-debug_mode = True
+debug_mode = False
 
 def debug(s):
     global debug_mode
@@ -79,7 +80,8 @@ class Arpwatch(Thread):
             #print "Dest MAC:        ", binascii.hexlify(arp_detailed[7])
             #print "Dest IP:         ", socket.inet_ntoa(arp_detailed[8])
             #print "*************************************************\n"
-            mac = binascii.hexlify(arp_detailed[5])
+            mac_h = binascii.hexlify(arp_detailed[5])
+            mac = ':'.join(mac_h[i:i+2] for i in range(0,12,2))
             ip = socket.inet_ntoa(arp_detailed[6])
             self.arp_watch(mac, ip)
             self.i_count = self.i_count + 1
