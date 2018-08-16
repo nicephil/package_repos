@@ -24,13 +24,13 @@ define Package/python-memoryprofiler
   SUBMENU:=Python
   SECTION:=lang
   CATEGORY:=Languages
-  TITLE:=Universal Encoding Detector
-  URL:=http://memoryprofiler.feedparser.org/
-  DEPENDS:=+python +python-memoryprofiler
+  TITLE:=memory profiler
+  URL:=http://memoryprofiler.feedparser.org
+  DEPENDS:=+python +python-memoryprofiler +python-psutil
 endef
 
 define Package/python-memoryprofiler/description
-  Character encoding auto-detection in Python.
+  Memory profiler in Python.
 endef
 
 define Build/Compile
