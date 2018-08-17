@@ -35,7 +35,7 @@ def error(s):
 
 
 class Arpwatch(Thread):
-    __slots__ = ('rawSocket')
+    __slots__ = ('rawSocket', 'i_count')
 
     def __init__(self):
         Thread.__init__(self)
@@ -137,6 +137,8 @@ class Arpwatch(Thread):
         return res and res.split(' ')[-1][:-2] or ''
 
 class DB(object):
+    __slots__ = ('db_file', 'tname', 'cache', 'conn', 'cur')
+
     def __init__(self, db_file='/tmp/arptables.db', table_name='br-lan', cache=False):
         self.db_file = db_file
         self.tname = table_name
