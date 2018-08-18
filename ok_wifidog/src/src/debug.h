@@ -46,4 +46,7 @@ extern debugconf_t debugconf;
 /** @internal */
 void _debug(const char *, int, int, const char *, ...);
 
+
+void okos_sta_log(int, const char *, ...);
+
 #endif /* _DEBUG_H_ */

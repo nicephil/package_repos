@@ -85,3 +85,17 @@ _debug(const char *filename, int line, int level, const char *format, ...)
         sigprocmask(SIG_UNBLOCK, &block_chld, NULL);
     }
 }
+
+
+void okos_sta_log(int level, const char *format, ...)
+{
+    va_list args;
+
+    openlog("200-STA", LOG_NDELAY, LOG_USER);
+    va_start(args, format);
+    vsyslog(level, format, args);
+    va_end(args);
+    closelog();
+
+    //openlog("wifidog", LOG_PID, debugconf.syslog_facility);
+}

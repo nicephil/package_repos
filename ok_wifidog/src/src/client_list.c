@@ -783,7 +783,7 @@ char *
 okos_delete_clients_by_scheme(const char *mac, const char *scheme, int *num)
 {
     return okos_polling_list_by("OFFLINE", mac, scheme, "scheme",
-            client_list_find_by_scheme, logout_client, num);
+            client_list_find_by_scheme, kickoff_client, num);
 }
 
 char *

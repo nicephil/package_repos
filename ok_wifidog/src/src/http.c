@@ -517,6 +517,7 @@ okos_http_cb_404(httpd *webserver, request *r, int error_code)
             auth_server->authserv_login_script_path_fragment, s_info, s_url);
 
     http_send_redirect_to_auth(r, s_urlFragment, "Redirect to login page", auth_server, "");
+    okos_sta_log(LOG_INFO, "{'sta_mac':'%s','logmsg':'Client requests portal page on %s for [%s]'}", p_client->mac, p_client->ssid->ssid, a_tmp_url);
 
 cb_404_final_clean_up:
     free(s_urlFragment);
@@ -662,6 +663,7 @@ okos_http_cb_allow(httpd *webserver, request *r)
 
     debug(LOG_NOTICE, "<HTTPD_allow> Client {%s, %s, %s} VALIDATED!",
             client->ip, client->mac, client->if_name);
+    okos_sta_log(LOG_INFO, "{'sta_mac':'%s','logmsg':'Network access allowed temporarily on %s.'}", client->mac, client->ssid->ssid);
     okos_add_validation_client(&client);
 
     okos_send_simple_reply(r, "Auth Allowed", "Move on!");
@@ -700,6 +702,7 @@ void okos_http_cb_auth(httpd *webserver, request *r)
         okos_close_stainfo_db(stainfo_db);
         debug(LOG_NOTICE, "<HTTPD_auth> Client{%s, %s, %s} PASSED!",
                 client->ip, client->mac, client->ssid->ssid);
+        okos_sta_log(LOG_INFO, "{'sta_mac':'%s','logmsg':'Authentication passed on %s.'}", client->mac, client->ssid->ssid);
         okos_try_to_add_client_into_list(&client);
     } else {
         okos_close_stainfo_db(stainfo_db);

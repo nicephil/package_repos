@@ -357,7 +357,8 @@ fw_sync_with_authserver(void)
             LOCK_CLIENT_LIST();
             original = client_list_find_by_client(p1);
             if (NULL != original) {
-                logout_client(original);
+                kickoff_client(original);
+                //logout_client(original);
             } else { //client is gone already.
                 debug(LOG_DEBUG, "<ClientTimeout>: "
                         "Client {%s, %s, %s} was already removed. Not logging out.",

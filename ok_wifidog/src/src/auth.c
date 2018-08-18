@@ -122,19 +122,27 @@ peer_ifname(const char* ori, char* peer)
 }
 
 void
-logout_client(t_client * client)
+kickoff_client(t_client * client)
 {
     if (NULL == client) {
-        debug(LOG_DEBUG, "!!!!Who are trying to logout NULL client");
+        debug(LOG_DEBUG, "!!!!Who are trying to kickoff NULL client");
     }
-    fw_deny(client);
     _do_command("iwpriv %s kickmac %s", client->if_name, client->mac);
     /*
     char peer[16];
     if (peer_ifname(client->if_name, peer)) {
         _do_command("iwpriv %s kickmac %s", peer, client->mac);
     }*/
+    logout_client(client);
+}
 
+void
+logout_client(t_client * client)
+{
+    if (NULL == client) {
+        debug(LOG_DEBUG, "!!!!Who are trying to logout NULL client");
+    }
+    fw_deny(client);
     client_list_remove(client);
     client_free_node(client);
 }

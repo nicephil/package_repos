@@ -58,6 +58,7 @@ typedef struct _t_authresponse {
 
 /** @brief Logout a client and report to auth server. */
 void logout_client(t_client *);
+void kickoff_client(t_client *);
 
 /** @brief Authenticate a single client against the central server */
 void authenticate_client(request *);
