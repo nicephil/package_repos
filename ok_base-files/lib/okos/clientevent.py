@@ -124,7 +124,7 @@ class Client(Thread):
         # 1.2 set_whitelist
         if self.last_acl_type == 1:
             self.set_whitelist(0, 1)
-            okos_sta_log_info("{'sta_mac':'%s','logmsg':'network access is allowed'}" % self.mac)
+            okos_sta_log_info("{'sta_mac':'%s','logmsg':'network access is allowed, as in whitelist'}" % self.mac)
         # 1.3 set_blacklist
         elif self.last_acl_type == 3:
             self.set_blacklist(120, 1, self.last_ath)
@@ -137,11 +137,11 @@ class Client(Thread):
                     self.set_whitelist(0, 1, mode=1)
                 else:
                     self.set_whitelist(0,1)
-                    okos_sta_log_info(r"{'sta_mac':'%s','logmsg':'network access is allowed'}" % self.mac)
+                    okos_sta_log_info(r"{'sta_mac':'%s','logmsg':'network access is allowed, as no portal'}" % self.mac)
             else:
                 self.set_whitelist(0, 1)
                 self.notify_wifidog(self.mac, self.last_remain_time)
-                okos_sta_log_info(r"{'sta_mac':'%s','logmsg':'network access is allowed'}" % self.mac)
+                okos_sta_log_info(r"{'sta_mac':'%s','logmsg':'network access is allowed, as still have time'}" % self.mac)
 
         # 1.5 set client trac
         self.set_client_track(1)

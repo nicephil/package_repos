@@ -1,0 +1,38 @@
+#!/bin/sh /etc/rc.common
+
+START=95
+
+LIST_SEP="
+"
+MYAPP_COMMAND=/usr/bin/bandwidth
+
+
+section_enabled() {
+	config_get_bool enabled "$1" 'enabled' 0
+	[ $enabled -gt 0 ]
+}
+
+start_instance() {
+	local s="$1"
+
+	section_enabled "$s" || return 1
+
+	eval service_start "'$MYAPP_COMMAND'"
+}
+
+stop_instance() {
+	local s="$1"
+	#service_stop "$MYAPP_COMMAND"
+	pid=`pgrep $MYAPP_COMMAND`
+	kill -9 $pid
+}
+
+start() {
+	config_load 'bandwidth'
+	config_foreach start_instance 'bandwidth'
+}
+
+stop() {
+	config_load 'bandwidth'
+	config_foreach stop_instance 'bandwidth'
+}
