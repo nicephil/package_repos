@@ -47,3 +47,6 @@ do
     }
 done
 
+# sync to other servers
+ssh image "./rsync_image.sh"
+

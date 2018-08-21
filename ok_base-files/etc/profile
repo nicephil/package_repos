@@ -18,5 +18,5 @@ export PS1='\[\033[35;1m\]\u\[\033[0m\]@\[\033[31;1m\]\h \[\033[32;1m\]$PWD\[\03
 alias iwsta='iwconfig 2>/dev/null | awk '"'"'/ath/{print $1;system("wlanconfig "$1" list");}'"'"
 alias iwap='iwconfig 2>/dev/null | awk '"'"'/ath/{print $1;system("wlanconfig "$1" list ap");}'"'"
 alias showlog="uci set system.@system[0].conloglevel='8';uci set system.@system[0].klogconloglevel='8';uci set system.@system[0].cronloglevel='8';uci commit system;/etc/init.d/boot restart;logread -f"
-alias stoplog="uci set system.@system[0].conloglevel='3';uci set system.@system[0].klogconloglevel='3';uci set system.@system[0].cronloglevel='3';uci commit system;/etc/init.d/boot restart;"
+alias stoplog="uci set system.@system[0].conloglevel='7';uci set system.@system[0].klogconloglevel='7';uci set system.@system[0].cronloglevel='7';uci commit system;/etc/init.d/boot restart;"
 alias showsta="/lib/okos/list_client.sh;echo 'xxxxx';sqlite3 /tmp/stationinfo.db 'select * from stainfo';echo 'xxxxxxxx';sqlite3 /tmp/statsinfo.db 'select * from statsinfo';iptables -S WhiteList;iptables -t nat -S GotoPortal;iptables -t mangle -S"

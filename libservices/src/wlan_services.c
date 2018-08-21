@@ -1390,15 +1390,20 @@ int wlan_set_bind(int radio_id, int stid)
             cfg_get_option_value(tuple, buf, sizeof(buf));
             if (!strlen(buf)) {
                 syslog(LOG_ERR, "no valid ppsk_keys_url\n");
+                okos_system_log(LOG_ERR, "configuration loaded failed, err:no valid ppsk_key_url");
+                return -1;
+            }
+            sprintf(tuple, "wget -q -T %d -O /var/run/wpa_psk_file-stid%d %s", 60, stid, buf);
+            ret = system(tuple);
+            if (ret == -1) {
+                syslog(LOG_ERR, "ppsk_keys_url:%s download failed\n", buf);
+                okos_system_log(LOG_ERR, "configuration loaded failed, err:ppsk_keys_url:%s download failed\n", buf);
+                return ret;
             } else {
-                sprintf(tuple, "wget -q -T %d -O /var/run/wpa_psk_file-stid%d %s", 60, stid, buf);
-                ret = system(tuple);
-                if (ret == -1) {
+                if(WEXITSTATUS(ret)) {
                     syslog(LOG_ERR, "ppsk_keys_url:%s download failed\n", buf);
-                } else {
-                    if(WEXITSTATUS(ret)) {
-                        syslog(LOG_ERR, "ppsk_keys_url:%s download failed\n", buf);
-                    }
+                    okos_system_log(LOG_ERR, "configuration loaded failed, err:ppsk_keys_url:%s download failed\n", buf);
+                    return WEXITSTATUS(ret);
                 }
             }
 
@@ -1433,24 +1438,25 @@ int wlan_set_bind(int radio_id, int stid)
             cfg_get_option_value(tuple, buf, sizeof(buf));
             if (!strlen(buf)) {
                 syslog(LOG_ERR, "no valid radius_scheme\n");
-            } else {
-                strcpy(radius_scheme_name, buf);
-                //radius_scheme.aaaa.primary_authentication_ip="1.1.1.1" <-> wireless.ath10.server="1.1.1.1"
-                sprintf(tuple, "radius_scheme.%s.primary_authentication_ip", radius_scheme_name);
-                cfg_get_option_value(tuple, buf, sizeof(buf));
-                sprintf(tuple, "wireless.ath%d%d.server", radio_id, stid);
-                cfg_set_option_value(tuple, buf);
-                //radius_scheme.aaaa.primary_authentication_port="1812" <-> wireless.ath10.port="1812"
-                sprintf(tuple, "radius_scheme.%s.primary_authentication_port", radius_scheme_name);
-                cfg_get_option_value(tuple, buf, sizeof(buf));
-                sprintf(tuple, "wireless.ath%d%d.port", radio_id, stid);
-                cfg_set_option_value(tuple, buf);
-                //radius_scheme.aaaa.primary_authentication_key="12345" <-> wireless.ath10.key="12345"
-                sprintf(tuple, "radius_scheme.%s.primary_authentication_key", radius_scheme_name);
-                cfg_get_option_value(tuple, buf, sizeof(buf));
-                sprintf(tuple, "wireless.ath%d%d.key", radio_id, stid);
-                cfg_set_option_value(tuple, buf);
+                okos_system_log(LOG_ERR, "configuration loaded failed, err:no valid radius_scheme\n");
+                return -1;
             }
+            strcpy(radius_scheme_name, buf);
+            //radius_scheme.aaaa.primary_authentication_ip="1.1.1.1" <-> wireless.ath10.server="1.1.1.1"
+            sprintf(tuple, "radius_scheme.%s.primary_authentication_ip", radius_scheme_name);
+            cfg_get_option_value(tuple, buf, sizeof(buf));
+            sprintf(tuple, "wireless.ath%d%d.server", radio_id, stid);
+            cfg_set_option_value(tuple, buf);
+            //radius_scheme.aaaa.primary_authentication_port="1812" <-> wireless.ath10.port="1812"
+            sprintf(tuple, "radius_scheme.%s.primary_authentication_port", radius_scheme_name);
+            cfg_get_option_value(tuple, buf, sizeof(buf));
+            sprintf(tuple, "wireless.ath%d%d.port", radio_id, stid);
+            cfg_set_option_value(tuple, buf);
+            //radius_scheme.aaaa.primary_authentication_key="12345" <-> wireless.ath10.key="12345"
+            sprintf(tuple, "radius_scheme.%s.primary_authentication_key", radius_scheme_name);
+            cfg_get_option_value(tuple, buf, sizeof(buf));
+            sprintf(tuple, "wireless.ath%d%d.key", radio_id, stid);
+            cfg_set_option_value(tuple, buf);
         } else {
             sprintf(tuple, "wireless.ath%d%d.encryption", radio_id, stid);
             cfg_set_option_value(tuple, "psk-mixed+tkip+ccmp");

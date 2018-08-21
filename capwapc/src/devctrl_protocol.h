@@ -154,7 +154,7 @@ typedef struct devctrl_fraglist {
     CWList list;
 } devctrl_fraglist_s;
 
-#define UPDATEINFO_FIX_LEN     15  
+#define UPDATEINFO_FIX_LEN     19 
 struct device_update_info {
     char iptype;
     int  ip;
@@ -163,6 +163,7 @@ struct device_update_info {
     char len;
     char hostname[HOST_NAME_MAX + 1];
     char wds_mode;
+    int cfg_version;
 };
 
 struct device_interface_info {

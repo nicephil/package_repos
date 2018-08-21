@@ -798,6 +798,7 @@ static void dc_sta_notice_timer_handler(void *arg)
         CW_FREE_OBJECT(payload);
     }
 
+    dc_dev_update_notice();
     CWDebugLog_F("-->sta notice handler In4:%d", clock());
 
 RESTART_TIMER:

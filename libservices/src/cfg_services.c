@@ -619,6 +619,10 @@ int cfg_get_version(void)
 {
     char value[33] = {0};
 
+    if (!g_cfg_version.ifnotify) {
+        return 0;
+    }
+
     if (g_cfg_init) {
         return g_cfg_version.version;
     }

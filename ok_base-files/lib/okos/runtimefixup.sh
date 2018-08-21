@@ -27,7 +27,6 @@ runtimefixup_trap () {
 
 trap 'runtimefixup_trap; exit 1' INT TERM ABRT QUIT ALRM
 
-
 touch /tmp/runtimefixup.lock
 
 all_db=$(sqlite3 /tmp/stationinfo.db 'select * from stainfo' 2>/dev/null;sqlite3 /tmp/statsinfo.db 'select * from statsinfo' | awk -F'|' '!a[$1]++' 2>/dev/null)
@@ -45,14 +44,14 @@ do
     # no find mac really
     if [ -z "$__ath" ]
     then
-        runtimefixup_err_log "missed xxclient:$_mac xx_ath:$_ath disconnected event"
+        echo "{'sta_mac':'${_mac}','logmsg':'missed disconnected event on $_ath'}" | logger -p 6 -t "200-STA"
         /lib/okos/wifievent.sh $_ath AP-STA-DISCONNECTED $_mac ""
 		continue
     fi
     __iptables_check=`echo "$all_iptables_log" | grep -i $_mac`
     if [ -z "$__iptables_check" ]
     then
-        runtimefixup_err_log "missed _ath:$__ath client:$_mac connected event"
+        echo "{'sta_mac':'${_mac}','logmsg':'missed proper iptables rules on $__ath'}" | logger -p 6 -t "200-STA"
         /lib/okos/wifievent.sh $__ath AP-STA-CONNECTED $_mac ""
         continue
     fi
@@ -79,7 +78,7 @@ do
             continue
         # in db, but disconnected, send disconn event to clear
         else
-            runtimefixup_err_log "missed client:$client _ath:$_ath disconnected event"
+            echo "{'sta_mac':'${client}','logmsg':'missed disconnected event on $_ath'}" | logger -p 6 -t "200-STA"
             /lib/okos/wifievent.sh $_ath AP-STA-DISCONNECTED $client ""
             continue
         fi
@@ -88,13 +87,13 @@ do
         # no in db, kickmac again
         if [ -z "$_ath" ]
         then
-            runtimefixup_err_log "missed __ath:$__ath client:$client connected event"
+            echo "{'sta_mac':'${client}','logmsg':'missed disconnected event on $__ath'}" | logger -p 6 -t "200-STA"
             iwpriv $__ath kickmac $client
             continue
         # in db, but different ath
         elif [ "$__ath" != "$_ath" ]
         then
-            runtimefixup_err_log "missed __ath:$__ath client:$client connected event"
+            echo "{'sta_mac':'${client}','logmsg':'missed disconnected event on $__ath'}" | logger -p 6 -t "200-STA"
             iwpriv $__ath kickmac $client
             continue
         fi

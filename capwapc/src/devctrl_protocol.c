@@ -149,7 +149,7 @@ struct device_update_info* chk_dev_updateinfo(void)
         info.gateway = ntohl(inet_addr(gateway));
     }
 
-    if (g_dev_updateinfo.iptype != info.iptype
+    if (1 || g_dev_updateinfo.iptype != info.iptype
             || g_dev_updateinfo.ip != info.ip
             || g_dev_updateinfo.netmask != info.netmask
             || strcmp(g_dev_updateinfo.hostname, info.hostname)
@@ -162,6 +162,7 @@ struct device_update_info* chk_dev_updateinfo(void)
         strcpy(g_dev_updateinfo.hostname, info.hostname);
         g_dev_updateinfo.len = strlen(g_dev_updateinfo.hostname);
         g_dev_updateinfo.wds_mode = info.wds_mode;
+        g_dev_updateinfo.cfg_version = cfg_get_version();
 
         return &g_dev_updateinfo;
     }
@@ -195,6 +196,7 @@ CWBool assemble_dev_updateinfo(char **info, int *len)
     CWProtocolStore8(&msg, update->len);
     CWProtocolStoreRawBytes(&msg, update->hostname, update->len);
     CWProtocolStore8(&msg, update->wds_mode);
+    CWProtocolStore32(&msg, update->cfg_version);
     
     *info = msg.msg;
     *len = size;
