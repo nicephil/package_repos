@@ -701,6 +701,8 @@ void okos_http_cb_auth(httpd *webserver, request *r)
     }
     okos_fill_local_info_by_stainfo(&client, stainfo_db);
     if (client) {
+        char mac[18] = '\0';
+        strncpy(mac, client->mac, 18);
         okos_update_station_info_v1(stainfo_db, client);
         okos_close_stainfo_db(stainfo_db);
         debug(LOG_NOTICE, "<HTTPD_auth> Client{%s, %s, %s} PASSED!",
@@ -732,6 +734,7 @@ void okos_http_cb_auth(httpd *webserver, request *r)
 
     if (!donot_redirect) {
         debug(LOG_DEBUG, "<HTTPD_auth> Redirect client %s to the assigned web page.", r->clientAddr);
+        okos_sta_log(LOG_INFO, "{'sta_mac':'%s', 'logmsg':'Redirect %s to  %s.'}", mac, r->clientAddr, redirecturl->value);
         char *url= NULL;
         safe_asprintf(&url, "%s", redirecturl->value);
         http_send_redirect(r, url, "Redirect to portal");
