@@ -664,6 +664,9 @@ okos_http_cb_allow(httpd *webserver, request *r)
     debug(LOG_NOTICE, "<HTTPD_allow> Client {%s, %s, %s} VALIDATED!",
             client->ip, client->mac, client->if_name);
     okos_sta_log(LOG_INFO, "{'sta_mac':'%s','logmsg':'Network access allowed temporarily on %s.'}", client->mac, client->ssid->ssid);
+    /*-----------------------------------------------------
+     * pointer client is NULL after here.
+     * --------------------------------------------------*/
     okos_add_validation_client(&client);
 
     okos_send_simple_reply(r, "Auth Allowed", "Move on!");
@@ -703,6 +706,9 @@ void okos_http_cb_auth(httpd *webserver, request *r)
         debug(LOG_NOTICE, "<HTTPD_auth> Client{%s, %s, %s} PASSED!",
                 client->ip, client->mac, client->ssid->ssid);
         okos_sta_log(LOG_INFO, "{'sta_mac':'%s','logmsg':'Authentication passed on %s.'}", client->mac, client->ssid->ssid);
+        /*-----------------------------------------------------
+        * pointer client is NULL after here.
+        * --------------------------------------------------*/
         okos_try_to_add_client_into_list(&client);
     } else {
         okos_close_stainfo_db(stainfo_db);
@@ -725,7 +731,7 @@ void okos_http_cb_auth(httpd *webserver, request *r)
         donot_redirect = 1;
 
     if (!donot_redirect) {
-        debug(LOG_DEBUG, "<HTTPD_auth> Redirect client %s:%s to the assigned web page.", client->ip, client->mac);
+        debug(LOG_DEBUG, "<HTTPD_auth> Redirect client %s to the assigned web page.", r->clientAddr);
         char *url= NULL;
         safe_asprintf(&url, "%s", redirecturl->value);
         http_send_redirect(r, url, "Redirect to portal");
