@@ -3,11 +3,22 @@
 #include <syslog.h>
 #include <arpa/inet.h>
 #include <sys/wait.h>
+#include <stdarg.h>
 
 #include "services/cfg_services.h"
 #include "services/wlan_services.h"
 
 #define DEBUG(...)
+
+__inline__ void okos_service_system_log(int log_level, const char *format, ...) {
+    openlog("01-SYSTEM-LOG", LOG_NDELAY, LOG_USER);
+	va_list args;
+    va_start(args, format);
+    vsyslog(log_level, format, args);
+    va_end(args);
+    closelog();
+    openlog("capwapc", LOG_NDELAY, LOG_USER);
+}
 
 int wlan_get_radio_count (int *count)
 {
@@ -1390,19 +1401,19 @@ int wlan_set_bind(int radio_id, int stid)
             cfg_get_option_value(tuple, buf, sizeof(buf));
             if (!strlen(buf)) {
                 syslog(LOG_ERR, "no valid ppsk_keys_url\n");
-                okos_system_log(LOG_ERR, "configuration loaded failed, err:no valid ppsk_key_url");
+                okos_service_system_log(LOG_ERR, "configuration loaded failed, err:no valid ppsk_key_url");
                 return -1;
             }
             sprintf(tuple, "wget -q -T %d -O /var/run/wpa_psk_file-stid%d %s", 60, stid, buf);
             ret = system(tuple);
             if (ret == -1) {
                 syslog(LOG_ERR, "ppsk_keys_url:%s download failed\n", buf);
-                okos_system_log(LOG_ERR, "configuration loaded failed, err:ppsk_keys_url:%s download failed\n", buf);
+                okos_service_system_log(LOG_ERR, "configuration loaded failed, err:ppsk_keys_url:%s download failed\n", buf);
                 return ret;
             } else {
                 if(WEXITSTATUS(ret)) {
                     syslog(LOG_ERR, "ppsk_keys_url:%s download failed\n", buf);
-                    okos_system_log(LOG_ERR, "configuration loaded failed, err:ppsk_keys_url:%s download failed\n", buf);
+                    okos_service_system_log(LOG_ERR, "configuration loaded failed, err:ppsk_keys_url:%s download failed\n", buf);
                     return WEXITSTATUS(ret);
                 }
             }
@@ -1438,7 +1449,7 @@ int wlan_set_bind(int radio_id, int stid)
             cfg_get_option_value(tuple, buf, sizeof(buf));
             if (!strlen(buf)) {
                 syslog(LOG_ERR, "no valid radius_scheme\n");
-                okos_system_log(LOG_ERR, "configuration loaded failed, err:no valid radius_scheme\n");
+                okos_service_system_log(LOG_ERR, "configuration loaded failed, err:no valid radius_scheme\n");
                 return -1;
             }
             strcpy(radius_scheme_name, buf);
