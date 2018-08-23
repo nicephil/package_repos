@@ -8,8 +8,12 @@ import syslog
 import sqlite3
 import gc
 import subprocess
+import os
 
 debug_mode = False
+
+# From asm/socket.h
+SO_ATTACH_FILTER = 26
 
 def debug(s):
     global debug_mode
@@ -42,11 +46,39 @@ class Arpwatch(Thread):
         self.rawSocket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0003))
         self.name = "Arpwatch"
         self.i_count = 0
+        self.attach_filter(self.rawSocket)
 
-    def __del__(self):
-        super.__del__()
-        self.rawSocket.close()
-        self.arp_db.close()
+	def __del__(self):
+		super.__del__()
+		self.rawSocket.close()
+		self.arp_db.close()
+
+    def attach_filter(self, s):
+        # XXX We generate the filter on the interface conf.iface
+        # because tcpdump open the "any" interface and ppp interfaces
+        # in cooked mode. As we use them in raw mode, the filter will not
+        # work... one solution could be to use "any" interface and translate
+        # the filter from cooked mode to raw mode
+        try:
+            f = os.popen("tcpdump -i br-lan1 -ddd -s 1600 'arp'")
+        except OSError,msg:
+            warning("Failed to execute tcpdump: (%s)" % msg)
+            return
+        lines = f.readlines()
+        if f.close():
+            raise Exception("Filter parse error")
+        nb = int(lines[0])
+        bpf = ""
+        for l in lines[1:]:
+            bpf += struct.pack("HBBI",*map(long,l.split()))
+        # XXX. Argl! We need to give the kernel a pointer on the BPF,
+        # python object header seems to be 20 bytes. 36 bytes for x86 64bits arch.
+        #if scapy.arch.X86_64 or scapy.arch.ARM_64:
+        #    bpfh = struct.pack("HL", nb, id(bpf)+36)
+        #else:
+        #    bpfh = struct.pack("HI", nb, id(bpf)+20)
+        bpfh = struct.pack("HI", nb, id(bpf)+20)
+        s.setsockopt(socket.SOL_SOCKET, SO_ATTACH_FILTER, bpfh)
 
     def run(self):
         self.arp_db = DB('/tmp/stationinfo.db', 'STAINFO')
