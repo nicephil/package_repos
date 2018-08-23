@@ -700,9 +700,9 @@ void okos_http_cb_auth(httpd *webserver, request *r)
         goto cb_auth_open_db_failed;
     }
     okos_fill_local_info_by_stainfo(&client, stainfo_db);
-    char mac[18] = '\0';
-    strncpy(mac, client->mac, 18);
+    char mac[18] = "\0";
     if (client) {
+        strncpy(mac, client->mac, 18);
         okos_update_station_info_v1(stainfo_db, client);
         okos_close_stainfo_db(stainfo_db);
         debug(LOG_NOTICE, "<HTTPD_auth> Client{%s, %s, %s} PASSED!",
