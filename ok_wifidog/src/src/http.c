@@ -469,6 +469,9 @@ okos_http_cb_404(httpd *webserver, request *r, int error_code)
         okos_send_http_page(r, "Login", "Do not support anonymous yet");
         goto cb_404_cannt_get_new_client;
     }
+    char mac[18] = "\0";
+    strncpy(mac, p_client->mac, 18);
+
     if (!okos_conf_ssid_is_portal(p_client->ssid)) {
         debug(LOG_DEBUG, "<HTTPD_404> Client {%s} request from invalid ssid", r->clientAddr);
         goto cb_404_ssid_not_support_portal;
@@ -517,7 +520,7 @@ okos_http_cb_404(httpd *webserver, request *r, int error_code)
             auth_server->authserv_login_script_path_fragment, s_info, s_url);
 
     http_send_redirect_to_auth(r, s_urlFragment, "Redirect to login page", auth_server, "");
-    okos_sta_log(LOG_INFO, "{'sta_mac':'%s','logmsg':'Client requests portal page on %s for [%s]'}", p_client->mac, p_client->ssid->ssid, a_tmp_url);
+    okos_sta_log(LOG_INFO, "{'sta_mac':'%s','logmsg':'Client requests portal page from %s on %s for [%s]'}", p_client->mac, p_client->ip, p_client->ssid->ssid, a_tmp_url);
 
 cb_404_final_clean_up:
     free(s_urlFragment);
@@ -663,7 +666,7 @@ okos_http_cb_allow(httpd *webserver, request *r)
 
     debug(LOG_NOTICE, "<HTTPD_allow> Client {%s, %s, %s} VALIDATED!",
             client->ip, client->mac, client->if_name);
-    okos_sta_log(LOG_INFO, "{'sta_mac':'%s','logmsg':'Network access allowed temporarily on %s.'}", client->mac, client->ssid->ssid);
+    okos_sta_log(LOG_INFO, "{'sta_mac':'%s','logmsg':'Network access allowed temporarily for %s on %s.'}", client->mac, client->ip, client->ssid->ssid);
     /*-----------------------------------------------------
      * pointer client is NULL after here.
      * --------------------------------------------------*/
@@ -707,7 +710,7 @@ void okos_http_cb_auth(httpd *webserver, request *r)
         okos_close_stainfo_db(stainfo_db);
         debug(LOG_NOTICE, "<HTTPD_auth> Client{%s, %s, %s} PASSED!",
                 client->ip, client->mac, client->ssid->ssid);
-        okos_sta_log(LOG_INFO, "{'sta_mac':'%s','logmsg':'Authentication passed on %s.'}", client->mac, client->ssid->ssid);
+        okos_sta_log(LOG_INFO, "{'sta_mac':'%s','logmsg':'Authentication for %s passed on %s.'}", client->mac, client->ip, client->ssid->ssid);
         /*-----------------------------------------------------
         * pointer client is NULL after here.
         * --------------------------------------------------*/
