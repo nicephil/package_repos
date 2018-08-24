@@ -56,9 +56,10 @@ do
             then
                 wifi_index="1"
             fi
-            ulimit -c unlimited;nice -n -20 hostapd_cli -P /var/run/hostapd_cli-${ath}.pid -p /var/run/hostapd-wifi${wifi_index} -i $ath -a /lib/okos/wifievent.sh  2>&1 | logger -t 'hostapd_cli' &
+            ulimit -c unlimited;nice -n -20 hostapd_cli -P /var/run/hostapd_cli-${ath}.pid -p /var/run/hostapd-wifi${wifi_index} -i $ath -a /lib/okos/wifievent.sh  2>&1 &
         }
     done
+    echo 3 > /proc/sys/vm/drop_caches
     top -n1 -d1 -b | logger -t supervisor -p 7
     ls -la /tmp | logger -t supervisor -p 7
     df -h | logger -t supervisor -p 7
