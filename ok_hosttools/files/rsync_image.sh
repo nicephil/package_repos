@@ -45,7 +45,7 @@ do
     fi
     for dir in $rsync_dirs
     do
-        rsync -ravz --delete --progress $lbase_dir/$dir $server:$rbase_dir/$dir &
+        rsync -ravz --delete --progress $lbase_dir/$dir/ $server:$rbase_dir/$dir &
     done
 done
 
