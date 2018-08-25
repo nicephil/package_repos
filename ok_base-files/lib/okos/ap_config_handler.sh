@@ -56,7 +56,7 @@ else
     ret=1
 fi
 
-[ "$ret" != "0" ] && wifi down
+[ -f "/tmp/firstboot_report" -a "$ret" != "0" ] && wifi down
 
 mv $new_file $old_file
 
