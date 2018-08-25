@@ -33,16 +33,20 @@ do
 
     [ -n "$swversion" ] && {
         mv ${bin_file} ${swversion}_${bin_file}
-        md5sum ${swversion}_${bin_file} | awk '{print $1}' > ${swversion}_${bin_file}.md5sum
+        md5sum -b ${swversion}_${bin_file} | awk '{print $1}' > ${swversion}_${bin_file}.md5sum
         # upload
         scp ${swversion}_${bin_file} ${swversion}_${bin_file}.md5sum image@${server}:/var/www/html/images/ap/${rdir}/okos/.
         ssh image@${server} "cd /var/www/html/images/ap/${rdir}/okos;
         ln -sf ${swversion}_${bin_file} latest-okos.gz;
         ln -sf ${swversion}_${bin_file}.md5sum latest-okos.gz.md5sum"
+        # add new release
+        if [ $rdir = "ubnterx" ]
+        then
+            add_new_release ${swversion}_${bin_file} $(cat ${swversion}_${bin_file}.md5sum)
+        fi
     }
-
-    if [ $rdir = "ubnterx" ]
-    then
-        add_new_release ${swversion}_${bin_file} $(cat ${swversion}_${bin_file}.md5sum)
-    fi
 done
+
+# sync to other servers
+# ssh image "./rsync_image.sh"
+
