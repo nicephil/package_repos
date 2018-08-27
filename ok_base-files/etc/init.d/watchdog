@@ -6,9 +6,8 @@ START=40
 start() {
 	[ -c /dev/watchdog ] || return 1
 	[ -x /sbin/watchdog ] || return 1
-	service_start /sbin/watchdog -T 120 -t 5 /dev/watchdog
+	service_start /bin/nice -n 20 /sbin/watchdog -T 120 -t 5 /dev/watchdog
     wdt_pid=$(pgrep watchdog)
-    renice -n -20 ${wdt_pid}
 	echo -1000 > /proc/${wdt_pid}/oom_score_adj
 }
 stop() {

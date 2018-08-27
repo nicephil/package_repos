@@ -32,33 +32,24 @@ do
         logger -t supervisor -p 3 "CLIENTEVENT ($clientevent_pid) is exit abnormally, restart it !!!"
         killall -9 clientevent.py
         killall -9 wifievent.sh
-        rm -rf /tmp/wifievent.pipe;ulimit -c unlimited;nice -n -20 /lib/okos/clientevent.py
+        rm -rf /tmp/wifievent.pipe;ulimit -c unlimited;nice -n -15 /lib/okos/clientevent.py
     }
 
-    for ath in `ls /var/run/hostapd-wifi0 2>/dev/null` `ls /var/run/hostapd-wifi1 2>/dev/null`
-    do
-        hostapd_cli_pid=`pgrep -f "hostapd_cli.*${ath}.*"`
-        hostapd_cli_count=$(echo $hostapd_cli_pid | awk '{print NF}')
-        [ -z "$hostapd_cli_pid" -o "$hostapd_cli_count" -gt "1" ] && {
-            if [ -n "$hostapd_cli_pid" ]
-            then
-                for _pid in $hostapd_cli_pid
-                do
-                    kill -9 $_pid
-                done
-            fi
-            logger -t supervisor -p 3 "HOSTAPD_CLI ($hostapd_cli_pid) is exit abnormally, restart it !!!"
-            wifi_index=${ath:3:1}
-            if [ "${wifi_index}" = "5" ]
-            then
-                wifi_index="0"
-            elif [ "${wifi_index}" = "6" ]
-            then
-                wifi_index="1"
-            fi
-            ulimit -c unlimited;nice -n -20 hostapd_cli -P /var/run/hostapd_cli-${ath}.pid -p /var/run/hostapd-wifi${wifi_index} -i $ath -a /lib/okos/wifievent.sh  2>&1 &
-        }
-    done
+    hostapd_pid=$(pgrep -f "hostapd -g /var/run/hostapd/global")
+    hostapd_count=$(echo $hostapd_pid | awk '{print NF}')
+    [ -z "$hostapd_pid" -o "$hostapd_count" -gt "1" ] && {
+        logger -t supervisor -p 3 "hostapd ($hostapd_pid) is exit abnormally, restart it !!!"
+        [ -n "$hostapd_pid" ] && kill -9  $hostapd_pid
+	    ulimit -c unlimited;nice -n -15 hostapd -g /var/run/hostapd/global -B -P /var/run/hostapd-global.pid
+    }
+    hostapd_cli_pid=$(pgrep -f "hostapd_cli -B")
+    hostapd_cli_count=$(echo $hostapd_cli_pid | awk '{print NF}')
+    [ -z "$hostapd_cli_pid" -o "$hostapd_cli_count" -gt "1" ] && {
+        logger -t supervisor -p 3 "hostapd_cli ($hostapd_cli_pid) is exit abnormally, restart it !!!"
+        [ -n "$hostapd_cli_pid" ] && kill -9  $hostapd_cli_pid
+	    ulimit -c unlimited;nice -n -15 hostapd_cli -B -a /lib/okos/wifievent.sh
+    }
+
     echo 3 > /proc/sys/vm/drop_caches
     top -n1 -d1 -b | logger -t supervisor -p 7
     ls -la /tmp | logger -t supervisor -p 7
