@@ -5,7 +5,6 @@ from cfgobjects import CfgCapwap, CfgLogServer, CfgNtp, CfgSystem, CfgNetwork, C
 
 class OakmgrCfg(object):
     Templates = [
-            CfgVersion(),
             CfgCapwap(),
             CfgLogServer(),
             CfgSystem(),
@@ -18,6 +17,7 @@ class OakmgrCfg(object):
             CfgPortal(),
             CfgRadius(),
             CfgDomainNameSet(),
+            CfgVersion(),
             ]
     def __init__(self, f=''):
         super(OakmgrCfg, self).__init__()
