@@ -16,7 +16,6 @@ nms2.oakridge.io
 "
 other_image_servers="
 alpha1.oakridge.io
-beta2.oakridge.vip
 beta2.oakridge.io
 nms1.oakridge.vip
 nms1.oakridge.io
