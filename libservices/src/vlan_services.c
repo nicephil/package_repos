@@ -70,8 +70,8 @@ int vlan_create(int vlanid, int endid)
         sprintf(tuple, "network.lan%d.vlan_description", i);
         cfg_set_option_value(tuple, buf);
 
-        // w282 and ubnt_lite_lr no need setup switch
-        if (cfg_is_w282() || cfg_is_ubnt_lite()) {
+        // w282, A750 and ubnt_lite_lr no need setup switch
+        if (cfg_is_w282() || cfg_is_a750() || cfg_is_ubnt_lite()) {
             return 0;
         }
 
@@ -116,7 +116,7 @@ int vlan_destroy(int vlanid, int endid)
         sprintf(tuple, "network.lan%d=interface", vlanid);
         cfg_del_section(tuple);
 
-        if (cfg_is_w282() || cfg_is_ubnt_lite())  {
+        if (cfg_is_w282() || cfg_is_a750() || cfg_is_ubnt_lite())  {
             return 0;
         }
         //network.vlan1=switch_vlan

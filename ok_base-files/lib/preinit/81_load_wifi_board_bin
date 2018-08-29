@@ -41,7 +41,7 @@ do_load_ath10k_board_bin() {
             fi
             ;;
         ap147 | ap151 | ap135 | ap137)
-            if [ "$model" = "W282" ]
+            if [ "$model" = "W282" -o "$model" = "A750" ]
             then
                 size=2116
                 mkdir -p ${cal_data_path}

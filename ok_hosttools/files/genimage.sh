@@ -11,7 +11,7 @@ function add_new_release()
 
     img_url="http://image.oakridge.vip:8000/images/ap/ap152/okos/${img_name}"
 
-    all_types="A820 A822 A920 A923 W282 WL8200-I2 AC-PRO AC-LITE AC-LR ubntlr ubntlite ubntpro SEAP-380"
+    all_types="A820 A822 A920 A923 W282 WL8200-I2 AC-PRO AC-LITE AC-LR ubntlr ubntlite ubntpro SEAP-380 A750"
     url="api.oakridge.io"
     echo "new release:$img_md5 ${img_url}"
 
