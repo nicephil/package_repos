@@ -13,6 +13,7 @@ start() {
 		echo '/tmp/%e.%p.%s.%t.core' > /proc/sys/kernel/core_pattern
 	}
 	service_start /sbin/netifd
+    /usr/bin/renice -n -18 `pgrep -f "/sbin/netifd"`
 
 	setup_switch() { return 0; }
 
@@ -21,8 +22,8 @@ start() {
 
 	sleep 1
 
-	/sbin/wifi down
-    /sbin/wifi up
+	/bin/nice -n -15 /sbin/wifi down
+    /bin/nice -n -15 /sbin/wifi up
 
 }
 
@@ -44,6 +45,6 @@ stop() {
 reload() {
 	ubus call network reload
     sleep 1
-	/sbin/wifi down
-	/sbin/wifi up
+	/bin/nice -n -15 /sbin/wifi down
+	/bin/nice -n -15 /sbin/wifi up
 }

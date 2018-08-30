@@ -24,6 +24,6 @@ boot() {
 		rm /var/run/hostapd-global.pid &> /dev/null
 	fi
     ulimit -c unlimited;
-	nice -n -15 hostapd -g /var/run/hostapd/global -B -P /var/run/hostapd-global.pid
-    nice -n -15 hostapd_cli -B -a /lib/okos/wifievent.sh
+	/bin/nice -n -15 hostapd -g /var/run/hostapd/global -B -P /var/run/hostapd-global.pid
+    /bin/nice -n -15 hostapd_cli -B -a /lib/okos/wifievent.sh
 }

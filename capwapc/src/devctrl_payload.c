@@ -436,7 +436,7 @@ static int dc_image_upgrade_handler(devctrl_block_s *dc_block, struct tlv *paylo
     ret = system(cmd);
     if (ret == -1 || (ret != -1 && WEXITSTATUS(ret))) {
         CWDebugLog("Running cmd %s failed.", cmd);
-        okos_system_log(LOG_WARNING, "download firmware failed, err:%d", ret);
+        okos_system_log(LOG_WARNING, "download firmware from %s failed, err:%d", json_cfg.src, ret);
         okos_system_log(LOG_WARNING, "reboot now");
         ret = dc_error_imgdown_failed;
         system("sleep 10;reboot -f");
