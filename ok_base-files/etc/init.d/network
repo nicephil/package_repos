@@ -28,7 +28,7 @@ start() {
 }
 
 restart() {
-	ifdown -a
+	#ifdown -a
 	start
 }
 
