@@ -1320,7 +1320,7 @@ static int dc_portal_ssh_tunnel_handler(devctrl_block_s *dc_block, struct tlv *p
             }
             break;
         case 1: /* open */
-            sprintf(cmdline, "nice -n -15 ssh -i /etc/id_rsa -K 200 -p %d -y -g -f -N -T -R %d:localhost:22 %s@%s", 
+            sprintf(cmdline, "/bin/nice -n -15 ssh -i /etc/id_rsa -K 200 -p %d -y -g -f -N -T -R %d:localhost:22 %s@%s", 
                     json_cfg.local_port, json_cfg.remote_port, json_cfg.user, json_cfg.server);
             CWLog("-------->%s", cmdline);
             ret = system(cmdline);

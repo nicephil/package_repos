@@ -365,7 +365,7 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
         struct wlan_sta_stat **stas;
     };
 
-    int ret = system("nice -n -18 /lib/okos/upstabycron.sh");
+    int ret = system("/bin/nice -n -18 /lib/okos/upstabycron.sh");
     if (ret == -1 || (ret != -1 && WEXITSTATUS(ret))) {
         CWLog("database is updating");
         *stas = NULL;
