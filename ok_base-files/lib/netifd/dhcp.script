@@ -44,6 +44,7 @@ setup_interface () {
 		proto_add_dns_search "$domain"
 	done
 	proto_send_update "$INTERFACE"
+    echo "ifname:$IFNAME, interface:$INTERFACE, ip:$ip, subnet:$subnet, dns:$dns, domain:$domain" | logger
 
 # add option43 servers into capwapc config file
     echo "==>option43 $acaddr" | logger
