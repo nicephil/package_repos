@@ -28,23 +28,6 @@ fi
 case "$event" in
     "AP-STA-CONNECTED")
         
-        # add new record
-        CMD="REPLACE INTO ${tablename} (MAC,IFNAME,RADIOID) VALUES('$mac','$ath','${ath:3:1}')"
-        echo $CMD | logger -t 'clienteventdb'
-        i=0
-        while [ $i -lt 3 ]
-        do
-            i=$(($i+1))
-            sqlite3 $dbfile "BEGIN TRANSACTION;${CMD};COMMIT;"
-            ret="$?"
-            if [ "$ret" = "0" ]
-            then
-                break
-            fi
-            sleep 2
-            echo "$ret, $i, $CMD"
-        done
-
         bssid=`ifconfig $ath | awk '$1 ~ /ath/{print $5;exit}'`
         
         . /lib/functions.sh
@@ -57,7 +40,7 @@ case "$event" in
         config_get _vlan $ath network
 
         # add new record
-        CMD="UPDATE ${tablename} SET BSSID = '$bssid', AUTHENTICATION = '$_auth', PORTAL_SCHEME = '$_ps', SSID = '$_ssid', VLAN = '${_vlan:3}', PPSK_KEY = '${ppsk_key}' WHERE MAC = '$mac'"
+        CMD="REPLACE INTO ${tablename} (MAC,IFNAME,RADIOID,BSSID,AUTHENTICATION,PORTAL_SCHEME,SSID,VLAN,PPSK_KEY) VALUES('$mac','$ath','${ath:3:1}','$bssid','$_auth','$_ps','$_ssid','${_vlan:3}','${ppsk_key}')"
         echo ${CMD} | logger -t 'clienteventdb'
         i=0
         while [ $i -lt 3 ]
