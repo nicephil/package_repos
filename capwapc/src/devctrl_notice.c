@@ -5,12 +5,13 @@
 #include "devctrl_payload.h"
 #include "devctrl_notice.h"
 #include <sys/wait.h>
+#include <unistd.h>
 
 #include "services/cfg_services.h"
 #include "services/wlan_services.h"
 #include "sqlite3.h"
 
-#define WLAN_STA_STAUS_TIMER   10
+#define WLAN_STA_STAUS_TIMER   15
 
 
 static inline rssi_level_e dc_rssi2level(int rssi) 
@@ -364,6 +365,12 @@ static int wlan_get_sta_info(struct wlan_sta_stat **stas)
         int count;
         struct wlan_sta_stat **stas;
     };
+
+    if (!access("/tmp/upstabycron.lock", F_OK)) {
+        CWLog("database is updating");
+        *stas = NULL;
+        return -1;
+    }
 
     int ret = system("/bin/nice -n -18 /lib/okos/upstabycron.sh");
     if (ret == -1 || (ret != -1 && WEXITSTATUS(ret))) {
