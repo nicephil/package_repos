@@ -11,8 +11,6 @@ then
     return 1
 fi
 
-. /lib/okos/trafstats.sh
-
 upsta_debug_log () {
     echo "$@" | logger -p 7 -t upstabycron
 }
@@ -42,6 +40,48 @@ sqlite3 $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(MAC T
 . /lib/functions/network.sh
 
 apstats_log=$(apstats -a -R 2>/dev/null)
+all_uplink=$(ebtables -L client_wan_uplink_traf --Lc --Lmac2)
+all_downlink=$(ebtables -L client_wan_downlink_traf --Lc --Lmac2)
+all_total_uplink=$(ebtables -L client_total_uplink_traf --Lc --Lmac2)
+all_total_downlink=$(ebtables -L client_total_downlink_traf --Lc --Lmac2)
+
+# $1 - client mac
+# $2 - uplink var
+# $3 - downlink var
+# $4 - total uplink var
+# $5 - total downlink var
+# ret - 0 - success, 1 - failure
+local_fetch_client_stats ()
+{
+    local mac="$1"
+    local uplink_var="$2"
+    local downlink_var="$3"
+    local total_uplink_var="$4"
+    local total_downlink_var="$5"
+
+    unset "${uplink_var}"
+    unset "${downlink_var}"
+    unset "${total_uplink_var}"
+    unset "${total_downlink_var}"
+
+    local _uplink=$(echo "$all_uplink" | awk '/'"${mac}"'/{print $NF;exit}')
+    local _downlink=$(echo "$all_downlink" | awk '/'"${mac}"'/{print $NF;exit}')
+    local _total_uplink=$(echo "$all_total_uplink" | awk '/'"${mac}"'/{print $NF;exit}')
+    local _total_downlink=$(echo "$all_total_downlink" | awk '/'"${mac}"'/{print $NF;exit}')
+
+    [ -z "$_uplink" ] && _uplink=0
+    [ -z "$_downlink" ] && _downlink=0
+    [ -z "$_total_uplink" ] && _total_uplink=0
+    [ -z "$_total_downlink" ] && _total_downlink=0
+
+    export "${uplink_var}=$_uplink"
+    export "${downlink_var}=$_downlink"
+    export "${total_uplink_var}=$_total_uplink"
+    export "${total_downlink_var}=$_total_downlink"
+
+    return 0
+}
+
 
 
 # active missed client
@@ -91,7 +131,7 @@ do
     _wan_rxB=""
     _txB=""
     _rxB=""
-    fetch_client_stats $_mac _wan_txB _wan_rxB _txB _rxB
+    local_fetch_client_stats $_mac _wan_txB _wan_rxB _txB _rxB
     # echo "_mac:$_mac,_txB:$_txB,_rxB:$_rxB,_wan_txB:$_wan_txB,_wan_rxB:$_wan_rxB" | logger -t getstainfo
     [ -z "$_wan_txB" ] && _wan_txB="0"
     [ -z "$_wan_rxB" ] && _wan_rxB="0"
