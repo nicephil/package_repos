@@ -190,7 +190,10 @@ CWStateTransition CWWTPEnterRun() {
         }
         CWLog("Create sta notice task success.");
     }
-    
+
+    CWUseSockNtop(&(gACInfoPtr->preferredAddress),
+            {okos_system_log(LOG_INFO, "connected to oakmgr @%s", str);});
+
 	CW_REPEAT_FOREVER
 	{
 		struct timespec timenow;

@@ -210,12 +210,12 @@ SLEEP_AGAIN:
 	if (gACInfoPtr->name != NULL) {		
 		CWUseSockNtop(&(gACInfoPtr->preferredAddress),
     			{CWLog("Preferred server: \"%s\", at address: %s", gACInfoPtr->name, str);
-			CWDebugLog_F("Preferred server: \"%s\", at address: %s", gACInfoPtr->name, str);okos_system_log(LOG_INFO, "connected to oakmgr @%s", str);});
+			CWDebugLog_F("Preferred server: \"%s\", at address: %s", gACInfoPtr->name, str);okos_system_log(LOG_INFO, "connecting to oakmgr @%s", str);});
 	}
 	else {
 		CWUseSockNtop(&(gACInfoPtr->preferredAddress),
 			{CWLog("Preferred server address: %s", str); 
-			CWDebugLog_F("Preferred server address: %s", str);okos_system_log(LOG_INFO, "connected to oakmgr @%s", str);});
+			CWDebugLog_F("Preferred server address: %s", str);okos_system_log(LOG_INFO, "connecting to oakmgr @%s", str);});
 	}
 	
 	return CW_ENTER_JOIN;

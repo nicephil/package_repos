@@ -174,7 +174,10 @@ CWStateTransition CWWTPEnterJoin() {
 		CWSecurityDestroyContext(gWTPSecurityContext);
 		gWTPSecurityContext = NULL;
 		gWTPSession = NULL;
-		return CW_ENTER_DISCOVERY;
+        if (thread_receiveFrame != -1) {
+            CWDestroyThread(thread_receiveFrame);
+        }
+        return CW_ENTER_DISCOVERY;
 	}
 #endif
 
@@ -200,7 +203,10 @@ cw_join_err:
 		gWTPSecurityContext = NULL;
 		gWTPSession = NULL;
 #endif
-		return CW_ENTER_DISCOVERY;
+        if (thread_receiveFrame != -1) {
+            CWDestroyThread(thread_receiveFrame);
+        }
+        return CW_ENTER_DISCOVERY;
 	}
 	
 	timer_rem(waitJoinTimer, NULL);
