@@ -60,6 +60,8 @@ do
     json_get_var _oakmgr_pub_name "oakmgr_pub_name"
     json_get_var _oakmgr_pub_port "oakmgr_pub_port"
 
+    # force renew used to recover network if the dhcp server is reconfigured
+    kill -USR1 $(pgrep -f "udhcpc -p /var/run/udhcpc")
     if [ -z "$_oakmgr_pub_name" ]
     then
         #echo "no valid oakmgr_pub_name, so query agian" | logger -p user.info -t '01-SYSTEM-LOG'
