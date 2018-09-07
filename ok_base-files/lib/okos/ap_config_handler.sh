@@ -56,11 +56,6 @@ else
     ret=1
 fi
 
-network_run=`pgrep -f "/etc/init.d/network"`
-[ -n "$network_run"  ] && sleep 10
-
-[ -f "/tmp/firstboot_report" -a "$ret" != "0" ] && wifi down
-
 mv $new_file $old_file
 
 return $ret 

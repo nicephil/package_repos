@@ -15,17 +15,33 @@ fi
 
 touch $lockfile
 
+# stop upstabycron
+kill -9 $(pgrep -f '/lib/okos/upstabycron.sh')
+rm -rf /tmp/upstabycron.lock
+# stop apstats
+kill -9 $(pgrep -f '/lib/okos/apstats.sh')
+rm -rf /tmp/apstats.lock
+# stop runtimefixup
+kill -9 $(pgrep -f '/lib/okos/runtimefixup.sh')
+rm -rf /tmp/runtimefixup.lock
+# stop setgre
+kill -9 $(pgrep -f '/lib/okos/setgre.sh')
+rm -rf /tmp/setgre.lock
+# stop wlanconfig apstats iwconfig
+killall -9 wlanconfig
+killall -9 apstats
+killall -9 iwconfig
+
+sleep 5
 
 /etc/init.d/network restart
 
-sleep 20
+sleep 15
 
 sync;echo 3 > /proc/sys/vm/drop_caches
 /etc/init.d/wifidog restart
 /etc/init.d/qos restart
 /etc/init.d/apfw.dyn restart
-
-sleep 5
 
 
 rm -rf $lockfile
