@@ -170,6 +170,9 @@ static int wlan_radio_list(struct uci_package *p, void *arg)
                 }else if(!strcmp(o->e.name,"disabled"))
                 {
                     info->radioinfo[num].enable = atoi(o->v.string)?0:1;
+                }else if (!strcmp(o->e.name,"dfs_toggle"))
+                {
+                    info->radioinfo[num].radio.dfs_toggle = atoi(o->v.string);
                 }
             }else
             {
@@ -1322,6 +1325,14 @@ int wlan_set_radio_client_max(int radio_id, int max)
     char tuple[128];
     sprintf(tuple, "wireless.wifi%d.client_max", radio_id);
     cfg_set_option_value_int(tuple, max);
+}
+
+int wlan_set_radio_dfs_toggle(int radio_id, int enabled)
+{
+    //wireless.wifi1.dfs_toggle='1'
+    char tuple[128];
+    sprintf(tuple, "wireless.wifi%d.dfs_toggle", radio_id);
+    cfg_set_option_value_int(tuple, enabled);
 }
 
 int wlan_set_bcast_ratelimit_enable(int radio_id, int value)

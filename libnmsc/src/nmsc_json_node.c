@@ -131,6 +131,7 @@ struct radio_json {
     char air_scan[33];
 #if OK_PATCH
     int client_max;
+    int dfs_toggle;
 #endif
 };
 
@@ -2381,6 +2382,30 @@ static int dc_parse_node_client_isolation(struct json_object *obj,
     return 0;
 }
 
+static int dc_parse_node_dfs_toggle(struct json_object *obj, 
+    void *jsoncfg)
+{
+    int *dfs_toggle = (int *)jsoncfg, ret, node = dc_node_dfs_toggle;
+    struct node_pair_save pair = {
+        .key   = "dfs_toggle",
+        .type  = json_type_int,
+        .value = dfs_toggle,
+        .size  = sizeof(*dfs_toggle),
+    };
+    
+    if (json_object_get_type(obj) != json_type_int) {
+        return dc_error_code(dc_error_obj_type, node, 0);
+    }
+
+    if ((ret = dc_hdl_node_default(obj, &pair, 1)) != 0) {
+        return dc_error_code(ret, node, 0);
+    }
+
+    log_node_pair(pair);
+
+    return 0;
+}
+
 static int dc_parse_node_acl_scheme(struct json_object *obj, void *jsoncfg)
 {
     struct wlan_acl_schemes *acl_schemes = (struct wlan_acl_schemes *)jsoncfg;
@@ -3945,6 +3970,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
     struct dns_set_schemes ds_json_cfg;
 
     int ci_json_cfg = 0;
+    int dfst_json_cfg = 1;
     struct wlan_acl_schemes as_json_cfg;
     struct wlan_rrm rrm_json_cfg;
     struct time_limit_schemes tl_json_cfg;
@@ -4034,6 +4060,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
         .air_time_fairness = 0,
 #if OK_PATCH
         .client_max = 127,
+        .dfs_toggle = 1,
 #endif
     };
 
@@ -4062,6 +4089,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
         .air_time_fairness = 0,
 #if OK_PATCH
         .client_max = 127,
+        .dfs_toggle = 1,
 #endif
     };
     
@@ -4072,6 +4100,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
     };
 
     struct subnode_parser system_subnodes[] = {
+        {"dfs_toggle",          dc_parse_node_dfs_toggle,        &dfst_json_cfg},
         {"ssids",               dc_parse_node_service_template,  &st_json_cfg},
         {"radios",              dc_parse_node_radio,             &rd_json_cfg},
         {"portal_schemes",      dc_parse_node_portal_scheme,     &ps_json_cfg},
@@ -4126,6 +4155,10 @@ int dc_hdl_node_wlan(struct json_object *obj)
             // ret = dc_error_code(dc_error_save_obj, node, 0); 
             // goto ERROR_OUT;
         }
+    }
+    /* set global dfs_toggle to each radio */
+    for (j = 0; j < rd_json_cfg.num; j++) {
+        rd_json_cfg.config[j].dfs_toggle = dfst_json_cfg;
     }
 
 
@@ -4742,6 +4775,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
         CHECK_DEFAULT_INTEGER_CONFIG(rd_json->air_time_fairness, rd_def->air_time_fairness);
 #if OK_PATCH
         CHECK_DEFAULT_INTEGER_CONFIG(rd_json->client_max, rd_def->client_max);
+        CHECK_DEFAULT_INTEGER_CONFIG(rd_json->dfs_toggle, rd_def->dfs_toggle);
 #endif
         
         if (rd_cur->enable) {
@@ -5003,6 +5037,16 @@ int dc_hdl_node_wlan(struct json_object *obj)
             if (ret) {
                 nmsc_log("Set radio %d client_max %d failed for %d.", 
                     rd_json->id, rd_json->client_max, ret);   
+                ret = dc_error_code(dc_error_commit_failed, node, ret);
+                goto ERROR_OUT;
+            }
+        }
+
+        if (rd_cur->radio.dfs_toggle != rd_json->dfs_toggle) {
+            ret = wlan_set_radio_dfs_toggle(rd_json->id, rd_json->dfs_toggle);
+            if (ret) {
+                nmsc_log("Set radio %d dfs_toggle %d failed for %d.", 
+                    rd_json->id, rd_json->dfs_toggle, ret);   
                 ret = dc_error_code(dc_error_commit_failed, node, ret);
                 goto ERROR_OUT;
             }

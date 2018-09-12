@@ -11,3 +11,4 @@ from cfg_portal import CfgPortal
 from cfg_radius import CfgRadius
 from cfg_dns import CfgDomainNameSet
 from cfg_version import CfgVersion
+from cfg_dfstoggle import CfgDFSToggle

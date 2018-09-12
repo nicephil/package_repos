@@ -1269,8 +1269,18 @@ enable_qcawifi() {
 		[ -n "$chanbw" ] && iwpriv "$ifname" chanbw "$chanbw"
 
         config_get maxsta "$device" client_max 127
-		[ -z "$maxsta" ] && config_get maxsta "$vif" maxsta 127
 		[ -n "$maxsta" ] && iwpriv "$ifname" maxsta "$maxsta"
+
+        #OK_PATCH
+        [ "$ifname" = "wifi1" ] && {
+            config_get dfst "$device" dfs_toggle 1
+            if [ "$dfst" = 1 ]
+            then
+                radartool -i $ifname enable
+            else
+                radartool -i $ifname disable
+            fi
+        }
 
 		config_get sko_max_xretries "$vif" sko_max_xretries
 		[ -n "$sko_max_xretries" ] && iwpriv "$ifname" sko "$sko_max_xretries"
@@ -2001,6 +2011,7 @@ config wifi-device  wifi$devidx
     option frag 2346
     option distance 1
     option enable_ol_stats 1
+    option dfs_toggle 1
 
 EOF
 	devidx=$(($devidx - 1))
