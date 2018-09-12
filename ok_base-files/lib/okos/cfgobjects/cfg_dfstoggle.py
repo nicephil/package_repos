@@ -10,11 +10,11 @@ class CfgDFSToggle(CfgObj):
     def parse(self, j):
         res = [CfgDFSToggle(), ]
         d = res[0].data
-        d['dfs_toggle'] = j['dfs_toggle'] if 'dfs_toggle' in j else 1
+        d['dfs_toggle'] = j['wlan']['dfs_toggle'] if 'dfs_toggle' in j['wlan'] else 1
         return res
     def change(self):
         enable_str = "enable" if self.data['dfs_toggle'] else "disable"
-        cmd = 'radratool -i wifi1 ' + enable_str + ';' +'uci set wireless.wifi0.dfs_toggle="' + str(self.data['dfs_toggle']) + '";' + \
+        cmd = 'radartool -i wifi1 ' + enable_str + ';' +'uci set wireless.wifi0.dfs_toggle="' + str(self.data['dfs_toggle']) + '";' + \
             'uci set wireless.wifi1.dfs_toggle="' + str(self.data['dfs_toggle']) + '";' + \
             'uci commit wireless;'
         ret = subprocess.call(cmd, shell=True)
