@@ -370,6 +370,7 @@ extern int wlan_set_rssi_threshold(int radio_id, int value);
 extern int wlan_set_rssi(int radio_id, int enable);
 extern int wlan_set_radio_client_max(int radio_id, int max);
 extern int wlan_set_radio_dfs_toggle(int radio_id, int dfs_toggle);
+extern int wlan_set_qcawifi_atf_mode(int dfs_toggle);
 extern int wlan_set_bind(int radio_id, int stid);
 extern int wlan_set_bcast_ratelimit_enable(int radio_id, int value);
 extern int wlan_set_cipher(int stid, int cipher);

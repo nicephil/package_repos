@@ -80,6 +80,7 @@ typedef enum dc_node {
     dc_node_wlan_scan,
     dc_node_zone,
     dc_node_dfs_toggle,    /* 50 */
+    dc_node_atf_mode,
 } dc_node;
 
 struct node_pair_save {

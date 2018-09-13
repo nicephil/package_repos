@@ -2406,6 +2406,31 @@ static int dc_parse_node_dfs_toggle(struct json_object *obj,
     return 0;
 }
 
+static int dc_parse_node_atf_mode(struct json_object *obj, 
+    void *jsoncfg)
+{
+    int *atf_mode = (int *)jsoncfg, ret, node = dc_node_atf_mode;
+    struct node_pair_save pair = {
+        .key   = "atf_mode",
+        .type  = json_type_int,
+        .value = atf_mode,
+        .size  = sizeof(*atf_mode),
+    };
+    
+    if (json_object_get_type(obj) != json_type_int) {
+        return dc_error_code(dc_error_obj_type, node, 0);
+    }
+
+    if ((ret = dc_hdl_node_default(obj, &pair, 1)) != 0) {
+        return dc_error_code(ret, node, 0);
+    }
+
+    log_node_pair(pair);
+
+    return 0;
+}
+
+
 static int dc_parse_node_acl_scheme(struct json_object *obj, void *jsoncfg)
 {
     struct wlan_acl_schemes *acl_schemes = (struct wlan_acl_schemes *)jsoncfg;
@@ -3971,6 +3996,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
 
     int ci_json_cfg = 0;
     int dfst_json_cfg = 1;
+    int atfm_json_cfg = 1;
     struct wlan_acl_schemes as_json_cfg;
     struct wlan_rrm rrm_json_cfg;
     struct time_limit_schemes tl_json_cfg;
@@ -4101,6 +4127,7 @@ int dc_hdl_node_wlan(struct json_object *obj)
 
     struct subnode_parser system_subnodes[] = {
         {"dfs_toggle",          dc_parse_node_dfs_toggle,        &dfst_json_cfg},
+        {"atf_mode",            dc_parse_node_atf_mode,          &atfm_json_cfg},
         {"ssids",               dc_parse_node_service_template,  &st_json_cfg},
         {"radios",              dc_parse_node_radio,             &rd_json_cfg},
         {"portal_schemes",      dc_parse_node_portal_scheme,     &ps_json_cfg},
@@ -4162,7 +4189,8 @@ int dc_hdl_node_wlan(struct json_object *obj)
     }
 
 
-
+    /*atf_mode*/
+    wlan_set_qcawifi_atf_mode(atfm_json_cfg);
 
 
     st_cur_cfg = (struct service_template *)malloc(sizeof(struct service_template));

@@ -258,7 +258,7 @@ load_qcawifi() {
 	[ -n "$intval" ] && append umac_args "intval=$intval"
 
     #OK_PATCH
-	config_get atf_mode qcawifi atf_mode "1"
+	config_get atf_mode qcawifi atf_mode 1
 	[ -n "$atf_mode" ] && append umac_args "atf_mode=$atf_mode"
 
         config_get atf_msdu_desc qcawifi atf_msdu_desc
@@ -360,6 +360,7 @@ load_qcawifi() {
 		case ${mod} in
 			umac) [ -d /sys/module/${mod} ] || { \
 
+                echo "========================> insmod ${mod} ${umac_args}" > /dev/console
 				insmod ${mod} ${umac_args} || { \
 					lock -u /var/run/wifilock
 					unload_qcawifi
@@ -428,7 +429,10 @@ unload_qcawifi() {
         case ${mod} in
             mem_manager) continue;
             esac
-		[ -d /sys/module/${mod} ] && rmmod ${mod}
+		[ -d /sys/module/${mod} ] && {
+            rmmod ${mod}
+            echo "xxxxxxxxxxxxxxxxxxx> rmmod ${mod}" > /dev/console
+        }
 	done
 	lock -u /var/run/wifilock
 }
@@ -2022,6 +2026,9 @@ EOF
     ssid_tmp=`echo ${base_mac}|sed 's/://g'`
     ssid_tmp=${ssid_tmp:8:12}
     cat <<EOF
+config qcawifi 'qcawifi'
+    option atf_mode 1
+
 config wifi-iface ath60
     option device wifi1
     option ifname ath60

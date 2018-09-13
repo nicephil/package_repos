@@ -1335,6 +1335,13 @@ int wlan_set_radio_dfs_toggle(int radio_id, int enabled)
     cfg_set_option_value_int(tuple, enabled);
 }
 
+int wlan_set_qcawifi_atf_mode(int enabled)
+{
+    //wireless.qcawifi.atf_mode='1'
+    char *tuple = "wireless.qcawifi.atf_mode";
+    cfg_set_option_value_int(tuple, enabled);
+}
+
 int wlan_set_bcast_ratelimit_enable(int radio_id, int value)
 {
     return 0;
