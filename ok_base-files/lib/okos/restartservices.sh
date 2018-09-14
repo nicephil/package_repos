@@ -36,7 +36,7 @@ sleep 5
 
 /etc/init.d/network restart
 
-sleep 15
+sleep 10
 
 sync;echo 3 > /proc/sys/vm/drop_caches
 /etc/init.d/wifidog restart

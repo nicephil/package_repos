@@ -4,6 +4,7 @@
 . /lib/functions.sh
 . /usr/share/libubox/jshn.sh
 . /lib/ar71xx.sh
+. /lib/functions/network.sh
 
 # 2. fetch device info
 config_load "productinfo"
@@ -28,6 +29,7 @@ PORT="80"
 ADDR="api.oakridge.io"
 OAKMGR_PUB=""
 FIRSTBOOT="1"
+GW_OK="1"
 
 # 5. setup the new oakmgr
 setup_capwapc ()
@@ -46,6 +48,21 @@ do
     echo "aa>" "$json_data" $URL |  logger -t 'handle_cloud'
     response=$(curl -q -m 10 -s -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "$json_data" $URL 2>/dev/ttyS0)
     echo "----->$response" | logger -t 'handle_cloud'
+
+    # renew if gw is unreachable
+    [ "$GW_OK" = "0" ]  && {
+        ubus call network.interface notify_proto '{"action": 2, "interface": "lan1", "signal": 16}'
+        sleep 3
+        GW_OK="1"
+    }
+    network_get_gateway __aa lan1;
+    if [ "$__aa" = "0.0.0.0" ]
+    then
+        GW_OK="0"
+    else
+        ping -w 3 -c 3 "$__aa" > /dev/null 2>&1
+        [ "$?" != "0" ] && GW_OK="0"
+    fi
 
     if [ -z "$response" ]
     then
