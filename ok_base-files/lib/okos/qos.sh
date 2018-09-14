@@ -187,11 +187,43 @@ qos_htb_start_iface ()
     qos_run "tc qdisc add dev $_iface_ parent 1:30 handle 30: sfq perturb 10"
 }
 
+qos_gothrough_wifi()
+{
+    local section="$1"
+    local var="$2"
+
+    config_get _type "$section" "type"
+    config_get _ssid "$section" "ssid"
+    _ifname="ath50"
+    [ "${section:3:1}" = "1" ] && _ifname="ath60"
+    if [ -n "$_type" -a "$_type" = "2" ]
+    then
+        wlanconfig "$_ifname" addatfgroup public "$_ssid"
+        wlanconfig "$_ifname" configatfgroup public 20
+    else
+        wlanconfig "$_ifname" addatfgroup private "$_ssid"
+        wlanconfig "$_ifname" configatfgroup private 80
+    fi
+    wlanconfig "$_ifname" commitatf 1
+}
+
+qos_atf_init()
+{
+    has_guest=$(uci show wireless | grep ".type='2'")
+    [ -z "$has_guest" ] && return 0
+
+    . /lib/functions.sh
+    config_load wireless
+    config_foreach qos_gothrough_wifi "wifi-iface"
+}
+
 qos_start ()
 {
     qos_log $LOG_INFO "Kickoff QoS service now."
     qos_log $LOG_DEBUG "Touch $id_file for restoring client ID infor."
     touch $id_file
+
+    qos_atf_init
 
     qos_log $LOG_DEBUG "Install $QDISC qdisc and root class."
     local full_speed
@@ -214,9 +246,20 @@ qos_start ()
 }
 
 
+qos_atf_deinit()
+{
+    wlanconfig "ath50" delatfgroup public > /dev/null 2>&1
+    wlanconfig "ath50" delatfgroup private > /dev/null 2>&1
+    wlanconfig "ath60" delatfgroup public > /dev/null 2>&1
+    wlanconfig "ath60" delatfgroup private > /dev/null 2>&1
+}
+
+
 qos_stop ()
 {
     qos_log $LOG_INFO "Stop QoS service now."
+
+    qos_atf_deinit
 
     qos_log $LOG_INFO "Remove root."
     for iface in $ifaces; do
@@ -226,8 +269,28 @@ qos_stop ()
     qos_log $LOG_INFO "QoS service finished."
 }
 
+qos_atf_show()
+{
+    echo "------- [wifi0] -------"
+    echo wlanconfig "ath50" showatfgroup
+    wlanconfig "ath50" showatfgroup
+    echo wlanconfig "ath50" showatftable
+    wlanconfig "ath50" showatftable
+    echo wlanconfig "ath50" showairtime
+    wlanconfig "ath50" showairtime
+    echo "------- [wifi1] -------"
+    echo wlanconfig "ath60" showatfgroup
+    wlanconfig "ath60" showatfgroup
+    echo wlanconfig "ath60" showatftable
+    wlanconfig "ath60" showatftable
+    echo wlanconfig "ath60" showairtime
+    wlanconfig "ath60" showairtime
+}
+
 qos_show ()
 {
+    qos_atf_show
+
     for iface in $ifaces; do
         echo "------ [$iface] ------"
         echo "--qdisc--"

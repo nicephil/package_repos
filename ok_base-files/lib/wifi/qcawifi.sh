@@ -360,7 +360,6 @@ load_qcawifi() {
 		case ${mod} in
 			umac) [ -d /sys/module/${mod} ] || { \
 
-                echo "========================> insmod ${mod} ${umac_args}" > /dev/console
 				insmod ${mod} ${umac_args} || { \
 					lock -u /var/run/wifilock
 					unload_qcawifi
@@ -431,7 +430,6 @@ unload_qcawifi() {
             esac
 		[ -d /sys/module/${mod} ] && {
             rmmod ${mod}
-            echo "xxxxxxxxxxxxxxxxxxx> rmmod ${mod}" > /dev/console
         }
 	done
 	lock -u /var/run/wifilock
@@ -713,6 +711,15 @@ enable_qcawifi() {
     config_get rssi_access_threshold "$device" rssi_access_thresold -92            
     iwpriv "$phy" set_min_snr $((rssi_access_threshold+97))  
     iwpriv "$phy" chutil_enab 1
+    [ "$phy" = "wifi1" ] && {
+            config_get dfst "$phy" dfs_toggle 1
+            if [ "$dfst" = "1" ]
+            then
+                radartool -i "$phy" enable
+            else
+                radartool -i "$phy" disable
+            fi
+        }
     # end of OK_PATCH
 
 	config_get_bool enable_ol_stats "$device" enable_ol_stats
@@ -1275,17 +1282,6 @@ enable_qcawifi() {
         config_get maxsta "$device" client_max 127
 		[ -n "$maxsta" ] && iwpriv "$ifname" maxsta "$maxsta"
 
-        #OK_PATCH
-        [ "$ifname" = "wifi1" ] && {
-            config_get dfst "$device" dfs_toggle 1
-            if [ "$dfst" = 1 ]
-            then
-                radartool -i $ifname enable
-            else
-                radartool -i $ifname disable
-            fi
-        }
-
 		config_get sko_max_xretries "$vif" sko_max_xretries
 		[ -n "$sko_max_xretries" ] && iwpriv "$ifname" sko "$sko_max_xretries"
 
@@ -1306,6 +1302,7 @@ enable_qcawifi() {
         iwpriv "$ifname" txrx_fw_stats 1
         iwpriv "$ifname" txrx_fw_mstats 1
         iwpriv "$ifname" rxdropstats 1
+        iwpriv "$ifname" atfssidgroup 1
         #endof OK_PATCH
 
 		config_get enablertscts "$vif" enablertscts
@@ -2013,7 +2010,6 @@ config wifi-device  wifi$devidx
     option dtim_period 1
     option rts 2347
     option frag 2346
-    option distance 1
     option enable_ol_stats 1
     option dfs_toggle 1
 
