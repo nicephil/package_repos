@@ -469,6 +469,7 @@ int main (int argc, const char * argv[])
         CWDebugLog_F("Switch next state: %s.", state_name[(nextState - CW_ENTER_SULKING) % (CW_QUIT - CW_ENTER_SULKING + 1)]);
 		switch(nextState) {
 			case CW_ENTER_DISCOVERY:
+                system("rm -rf /tmp/capwapc_run");
 				nextState = CWWTPEnterDiscovery();
 				break;
 			case CW_ENTER_SULKING:
@@ -484,6 +485,7 @@ int main (int argc, const char * argv[])
 				nextState = CWWTPEnterDataCheck();
 				break;	
             case CW_ENTER_RUN:
+                system("touch /tmp/capwapc_run");
                 nextState = CWWTPEnterRun();
                 break;
             case CW_ENTER_RESET:

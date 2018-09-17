@@ -30,6 +30,7 @@ ADDR="api.oakridge.io"
 OAKMGR_PUB=""
 FIRSTBOOT="1"
 GW_OK="1"
+CAPWAP_FAILURE_COUNT=0
 
 # 5. setup the new oakmgr
 setup_capwapc ()
@@ -51,6 +52,7 @@ do
 
     # renew if gw is unreachable
     [ "$GW_OK" = "0" ]  && {
+        echo "----->looks gateway is unreachable, renew ip now" | logger -t 'handle_cloud'
         ubus call network.interface notify_proto '{"action": 2, "interface": "lan1", "signal": 16}'
         sleep 3
         GW_OK="1"
@@ -62,6 +64,19 @@ do
     else
         ping -w 3 -c 3 "$__aa" > /dev/null 2>&1
         [ "$?" != "0" ] && GW_OK="0"
+    fi
+
+    if [ -f "/tmp/capwapc_run" ]
+    then
+        CAPWAP_FAILURE_COUNT=0
+    else
+        CAPWAP_FAILURE_COUNT=$((CAPWAP_FAILURE_COUNT+1))
+        if [ $CAPWAP_FAILURE_COUNT -gt 7 ]
+        then
+            echo "----->capwapc long time no connected, try to restart it now" | logger -t 'handle_cloud'
+            /etc/init.d/capwapc restart
+            CAPWAP_FAILURE_COUNT=0
+        fi
     fi
 
     if [ -z "$response" ]
