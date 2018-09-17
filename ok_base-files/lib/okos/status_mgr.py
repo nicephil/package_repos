@@ -161,7 +161,6 @@ class StatusMgr(threading.Thread):
         self.if_status_timer.name = 'IF_Status'
         self.if_status_timer.start()
         return info_msg
-        pass
 
     def run(self):
         self.process_data()

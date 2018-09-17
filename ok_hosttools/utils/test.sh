@@ -10,8 +10,13 @@ function test_upgrade_sysloader()
     scp -P22001 -r /home/llwang/repos/x86/osdk_repos_sysloader/bin/targets/x86/generic/lede-x86-generic-combined-squashfs.img root@$1:/tmp/
     ssh -p22001 root@$1 "sysupgrade -n /tmp/lede-x86-generic-combined-squashfs.img;"
 }
+function test_rpcd_scripts()
+{
+    scp -P22001 -r /home/llwang/repos/x86/osdk_repos/package_repos/ok_base-files/usr/libexec/rpcd/* root@$1:/usr/libexec/rpcd/.
+}
 function test_okos_scripts()
 {
+    test_rpcd_scripts $1
     test_okos_config $1
     scp -P22001 -r /home/llwang/repos/x86/osdk_repos/package_repos/ok_base-files/lib/okos/* root@$1:/lib/okos/.
 }
