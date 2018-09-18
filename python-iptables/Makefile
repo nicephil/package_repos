@@ -26,7 +26,7 @@ define Package/python-iptables
   CATEGORY:=Languages
   TITLE:=python-iptables
   URL:=https://bitbucket.org/al45tair/iptables
-  DEPENDS:=+python
+  DEPENDS:=+python +python-setuptools
 endef
 
 define Package/python-iptables/description

@@ -30,7 +30,7 @@ define Package/python-idna
 	SUBMENU:=Python
 	TITLE:=python-idna
 	URL:=https://github.com/kjd/idna
-	DEPENDS:=+python-light
+	DEPENDS:=+python-light +python-setuptools
 endef
 
 define Package/python-idna/description

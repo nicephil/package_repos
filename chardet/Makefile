@@ -27,7 +27,7 @@ define Package/chardet
   MAINTAINER:=Gergely Kiss <mail.gery@gmail.com>
   TITLE:=Universal encoding detector for Python 2 and 3
   URL:=https://github.com/chardet/chardet
-  DEPENDS:=+python
+  DEPENDS:=+python +python-setuptools
 endef
 
 define Package/chardet/description

@@ -19,7 +19,7 @@ define Package/python-certifi
   CATEGORY:=Languages
   TITLE:=python-certifi
   URL:=http://code.google.com/p/certifi/
-  DEPENDS:=+python
+  DEPENDS:=+python +python-setuptools
 endef
 
 define Package/python-certifi/description
