@@ -136,7 +136,7 @@ class StatusMgr(threading.Thread):
                                 ddnss_info = []
                                 ipinfo['ddnss'] = ddnss_info
                                 for k2,v2 in ddns_conf[0]['values'].items():
-                                    if v2['enabled'] != '1':
+                                    if 'enabled' not in v2 or v2['enabled'] != '1':
                                         continue
                                     ddns = {}
                                     ddnss_info.append(ddns)
@@ -176,8 +176,9 @@ class StatusMgr(threading.Thread):
         data_json['boot_version'] = productinfo_data['bootversion']
         data_json['cpu'] = productinfo_data['cpu']
         data_json['memory'] = productinfo_data['mem']
-        data_json['device_name'] = socket.gethostname()
         data_json['eth_port'] = productinfo_data['eth_port']
+        data_json['sn'] = productinfo_data['serial']
+        data_json['product_name'] = productinfo_data['model']
         data_json['port_status'] = productinfo_data['port_status']
         data_json['uptime'] = int(round(time.time() - psutil.BOOT_TIME))
         data_json['internal_ip'] = ni.ifaddresses(productinfo_data['eth_port'])[ni.AF_INET][0]['addr']
