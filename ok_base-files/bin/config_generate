@@ -442,15 +442,16 @@ fi
             set network.wan1.ifname='eth1'
             set network.wan1.proto='none'
 
-            set network.lan.ifname='eth2'
+            set network.wan2=interface
+            set network.wan2.ifname='eth2'
+            set network.wan2.proto='none'
+
+            set network.lan.ifname='eth3'
             set network.lan.ipaddr='172.16.254.254'
             delete network.lan.type
             delete network.lan.ip6assign
-            rename network.lan='lan4052'
+            rename network.lan='lan4053'
 
-            set network.lan4053=interface
-            set network.lan4053.ifname='eth3'
-            set network.lan4053.proto='none'
 EOF
 #end of OK_PATCH
 
