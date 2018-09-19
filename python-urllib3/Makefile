@@ -28,7 +28,7 @@ define Package/python-urllib3
   MAINTAINER:=Gergely Kiss <mail.gery@gmail.com>
   TITLE:=HTTP library with thread-safe connection pooling, file post, and more.
   URL:=https://urllib3.readthedocs.io/
-  DEPENDS:=+python
+  DEPENDS:=+python +python-setuptools
 endef
 
 define Package/python-urllib3/description

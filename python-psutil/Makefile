@@ -19,7 +19,7 @@ define Package/python-psutil
   CATEGORY:=Languages
   TITLE:=python-psutil
   URL:=http://code.google.com/p/psutil/
-  DEPENDS:=+python
+  DEPENDS:=+python +python-setuptools
 endef
 
 define Package/python-psutil/description

@@ -25,7 +25,7 @@ define Package/python-requests
 	SUBMENU:=Python
 	TITLE:=python-requests
 	URL:=https://pypi.python.org/pypi/requests
-	DEPENDS:=+python chardet python-idna python-urllib3 python-certifi
+	DEPENDS:=+python +python-setuptools chardet python-idna python-urllib3 python-certifi
 endef
 
 define Package/python-requests/description

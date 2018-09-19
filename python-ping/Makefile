@@ -30,7 +30,7 @@ define Package/python-ping
 	SUBMENU:=Python
 	TITLE:=python-ping
 	URL:=https://github.com/kjd/ping
-	DEPENDS:=+python-light
+	DEPENDS:=+python-light +python-setuptools
 endef
 
 define Package/python-ping/description

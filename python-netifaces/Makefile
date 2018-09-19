@@ -27,7 +27,7 @@ define Package/python-netifaces
   CATEGORY:=Languages
   TITLE:=python-netifaces
   URL:=https://bitbucket.org/al45tair/netifaces
-  DEPENDS:=+python
+  DEPENDS:=+python +python-setuptools
 endef
 
 define Package/python-netifaces/description
