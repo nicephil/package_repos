@@ -67,8 +67,8 @@ class StatusMgr(threading.Thread):
         # We could make a node on ubus to record all these mapping infor.
         # From port name to interface type.
         #   0: wan; 1: lan; 2: bridge; 3: none; 4: gre;
-        port_mapping = {'eth0': {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan', 'alias': 'e0'}, 
-                        'eth1': {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan1', 'alias': 'e1'}, 
+        port_mapping = {'eth0': {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan', 'alias': 'e0'},
+                        'eth1': {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan1', 'alias': 'e1'},
                         'eth2': {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan2', 'alias': 'e2'},
                         'eth3': {'type': const.DEV_CONF_PORT_TYPE['lan'], 'ifname': 'lan4053', 'alias': 'e3'},
         }
@@ -83,7 +83,7 @@ class StatusMgr(threading.Thread):
             ddns_conf = ubus.call('uci', 'get', {'config':'ddns'})[0]['values']
         except Exception, e:
             log_warning("if_status: ubus call gets failed:{}".format(e))
-        
+
         ### interface status info
         #   |Name|Type|Description|
         #   |:--|:--|:--|
@@ -138,15 +138,15 @@ class StatusMgr(threading.Thread):
                         'netmask': ipv4_addr['mask'],
                     } for ipv4_addr in data['ipv4-address']
                 ],
-            } or {} 
+            } or {}
             for ifname, data in network_interface_status.iteritems()
         })
         gateways = {ifname:[r['nexthop'] for r in data['route'] if r['target'] == '0.0.0.0'] for ifname, data in network_interface_status.iteritems()}
         update_ifs_state({ifname: (ifs_state[ifname]['status'] and data) and { 'gateway': data[0]} or {}
             for ifname, data in gateways.iteritems()
         })
-        update_ifs_state({ifname: (ifs_state[ifname]['status'] and 
-                                    ifs_state[ifname]['type'] == const.DEV_CONF_PORT_TYPE['wan'] and 
+        update_ifs_state({ifname: (ifs_state[ifname]['status'] and
+                                    ifs_state[ifname]['type'] == const.DEV_CONF_PORT_TYPE['wan'] and
                                     ifs_state[ifname]['proto'] == 'pppoe')and {
                 'pppoe_username': network_conf[data['ifname']]['username'],
                 'pppoe_password': network_conf[data['ifname']]['password'],
@@ -155,8 +155,8 @@ class StatusMgr(threading.Thread):
         })
         update_ifs_state({ifname: (ifs_state[ifname]['status'] and
                                     ifs_state[ifname]['type'] == const.DEV_CONF_PORT_TYPE['lan']) and {
-                'dhcp_start': dhcp_conf[data['ifname']]['dhcp_start'],
-                'dhcp_limit': dhcp_conf[data['ifname']]['dhcp_limit'],
+                'dhcp_start': dhcp_conf[data['ifname']]['start'],
+                'dhcp_limit': dhcp_conf[data['ifname']]['limit'],
             } or {}
             for ifname, data in port_mapping.iteritems()
         })
