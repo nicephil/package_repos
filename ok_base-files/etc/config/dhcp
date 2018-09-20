@@ -17,7 +17,7 @@ config dnsmasq
 	#list server		'/mycompany.local/1.2.3.4'
 	#option nonwildcard	1
 	#list interface		br-lan
-	list notinterface	'wan wan0 wan1'
+	list notinterface	'wan wan1 wan2'
 	#list bogusnxdomain     '64.94.110.11'
 	option localservice	1  # disable to allow DNS requests from non-local subnets
     list address '/router.oakridge.vip/172.16.254.254'
