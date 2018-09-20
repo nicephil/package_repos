@@ -58,12 +58,18 @@ class StatusMgr(threading.Thread):
         self.cpu_mem_timer.name = 'CPU_MEM_Status'
         self.cpu_mem_timer.start()
 
-    def if_status_timer_func(self):
+    def if_status_timer_func_old(self):
+        '''
+        This timer will be self-kicked off for every 60 seconds.
+        '''
         info_msg = {}
         network_device_status = {}
         network_interface_status = {}
+        ##
+        # We could make a node on ubus to record all these mapping infor.
+        # From port name to interface type.
         type_mapping = {'eth0':0, 'eth1':3, 'eth2':1, 'eth3':3}
-        ifname_mapping = {'eth0':'wan', 'eth1':'wan1', 'eth2':'lan4052', 'eth3':'lan4053'}
+        ifname_mapping = {'eth0':'wan', 'eth1':'wan1', 'eth2':'wan2', 'eth3':'lan4053'}
         network_conf = {}
         dhcp_conf = {}
         ddns_conf = {}
@@ -157,6 +163,117 @@ class StatusMgr(threading.Thread):
                                 ipinfo['dhcp_limit'] = ifs_dhcp_conf['limit']
 
         info_msg['data'] = json.dumps(data_json)
+        self.if_status_timer = threading.Timer(60, self.if_status_timer_func)
+        self.if_status_timer.name = 'IF_Status'
+        self.if_status_timer.start()
+        return info_msg
+
+    def if_status_timer_func(self):
+        '''
+        This timer will be self-kicked off for every 60 seconds.
+        '''
+
+        ##
+        # We could make a node on ubus to record all these mapping infor.
+        # From port name to interface type.
+        #   0: wan; 1: lan; 2: bridge; 3: none; 4: gre;
+        port_mapping = {'eth0': {'type': 0, 'ifname': 'wan', 'alias': 'e0'}, 
+                        'eth1': {'type': 3, 'ifname': 'wan1', 'alias': 'e1'}, 
+                        'eth2': {'type': 1, 'ifname': 'wan2', 'alias': 'e2'},
+                        'eth3': {'type': 3, 'ifname': 'lan4053', 'alias': 'e3'},
+        }
+        #type_mapping = {'eth0':0, 'eth1':3, 'eth2':1, 'eth3':3}
+        #ifname_mapping = {'eth0':'wan', 'eth1':'wan1', 'eth2':'wan2', 'eth3':'lan4053'}
+        try:
+            # {'eth0':...}
+            network_device_status = ubus.call('network.device','status', {})[0]
+            network_interface_status = {p: ubus.call('network.interface.' + port_mapping[p]['ifname'], 'status', {})[0] for p in port_mapping}
+            network_conf = ubus.call('uci', 'get', {'config':'network'})[0]['values']
+            dhcp_conf = ubus.call('uci', 'get', {'config':'dhcp'})[0]['values']
+            ddns_conf = ubus.call('uci', 'get', {'config':'ddns'})[0]['values']
+        except Exception, e:
+            log_warning("if_status: ubus call gets failed:{}".format(e))
+        
+        ### interface status info
+        #   |Name|Type|Description|
+        #   |:--|:--|:--|
+        #   |name|String||
+        #   |ifname|String||
+        #   |type|int|0 : WAN<br>1 : LAN<br>|
+        #   |state_config|byte|0 : disabled<br>1 : enabled| ?
+        #   |state|byte|0 : disconnected<br>1 : connected|
+        #   |physical_state|byte|0 : down<br>1 : up|
+        #   |bandwidth_config|int|0 : auto<br>10, 100, 1000| ?
+        #   |duplex_config|byte|0 : auto<br>1 : full<br>2 : half| ?
+        #   |bandwidth|int|10, 100, 1000(Mbps)|
+        #   |duplex|byte|1 : full<br>2 : half|
+        #   |ip_type|byte|0 : dhcp<br>1 : static<br>2 : pppoe|
+        #   |ips|List|ip info|
+        #   |gateway|String||
+        #   |pppoe_username|String||
+        #   |pppoe_password|String||
+        #   |manual_dns|byte|0 : auto<br>1 : manual|?
+        #   |dnss|String|such as "8.8.8.8,9.9.9.9"|
+        network_device_status = {k:v for k,v in network_device_status.iteritems() if k.startswith('eth')}
+        ifs_state = {ifname: {
+                'ifname': ifname,
+                'name': port_mapping[ifname]['alias'],
+                'state': data['up'] and 1 or 0,
+                'physical_state': data['up'] and 1 or 0,
+                #'mac': data['macaddr'],
+            } for ifname, data in network_device_status.iteritems()
+        }
+        def update_ifs_state(ifs_next):
+            for ifname, ifx in ifs_state.iteritems():
+                ifx.update(ifs_next[ifname])
+
+        update_ifs_state({ifname: {
+                'type': data['proto'] == 'none' and 3 or port_mapping[ifname]['type'],
+                'ip_type': data['proto'],
+                'proto': data['proto'],
+            } for ifname, data in network_interface_status.iteritems()
+        })
+        update_ifs_state({ifname: ifs_state[ifname]['state'] and {
+                'bandwidth': data['speed'][:-2],
+                'duplex': data['speed'][-1] == 'F' and 1 or 2,
+            } or {} for ifname, data in network_device_status.iteritems()
+        })
+        update_ifs_state({ifname: ifs_state[ifname]['type'] != 3 and {
+                'uptime': data['uptime'],
+                'dnss': [dns for dns in data['dns-server']],
+                'ips': [
+                        {'ip': ipv4_addr['address'],
+                        'netmask': ipv4_addr['mask'],
+                    } for ipv4_addr in data['ipv4-address']
+                ],
+            } or {} 
+            for ifname, data in network_interface_status.iteritems()
+        })
+        gateways = {ifname:[r['nexthop'] for r in data['route'] if r['target'] == '0.0.0.0'] for ifname, data in network_interface_status.iteritems()}
+        update_ifs_state({ifname: data and { 'gateway': data[0]} or {}
+            for ifname, data in gateways.iteritems()
+        })
+        update_ifs_state({ifname: (ifs_state[ifname]['type'] == 0 and ifs_state[ifname]['proto'] == 'pppoe')and {
+                'pppoe_username': network_conf[data['ifname']]['username'],
+                'pppoe_password': network_conf[data['ifname']]['password'],
+            } or {}
+            for ifname, data in port_mapping.iteritems()
+        })
+        update_ifs_state({ifname: ifs_state[ifname]['type'] == 1 and {
+                'dhcp_start': dhcp_conf[data['ifname']]['dhcp_start'],
+                'dhcp_limit': dhcp_conf[data['ifname']]['dhcp_limit'],
+            } or {}
+            for ifname, data in port_mapping.iteritems()
+        })
+        info_msg = {
+            'operate_type': const.DEV_IF_STATUS_RESP_OPT_TYPE,
+            'timestamp': int(time.time()),
+            'cookie_id': 0,
+            'data': json.dumps({'list':[v for k,v in ifs_state.iteritems()]}),
+        }
+
+        self.mailbox.pub(const.STATUS_Q, (1, info_msg), timeout=0)
+
         self.if_status_timer = threading.Timer(60, self.if_status_timer_func)
         self.if_status_timer.name = 'IF_Status'
         self.if_status_timer.start()
