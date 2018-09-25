@@ -24,8 +24,10 @@ function index()
     entry({"okos", "haspasscode"}, call("action_haspasscode"), _("CheckHasPasscode"))
     entry({"okos", "login"}, call("action_login"), _("Login)"))
     entry({"okos", "internetstatus"}, call("action_internetstatus"), _("InternetStatus"))
+    entry({"okos", "configname"}, call("action_configname"), _("ConfigNAME"))
     entry({"okos", "queryifs"}, call("action_queryifs"), _("QueryInterfaces"))
     entry({"okos", "configwan"}, call("action_configwan"), _("ConfigWAN"))
+    entry({"okos", "configlan"}, call("action_configlan"), _("ConfigLAN"))
     entry({"okos", "renewip"}, call("action_renewip"), _("RenewIP"))
     entry({"okos", "diag"}, call("action_diag"), _("Diag"))
     entry({"okos", "querydiag"}, call("action_querydiag"), _("QueryDiag"))
@@ -186,6 +188,45 @@ function action_internetstatus()
     response_json(response)
 end
 
+-- config device name
+function action_configname()
+    -- sanity check --
+    if not sanity_check_json() then
+        return
+    end
+    
+    -- parse json
+    local hc = http.content()
+    local input, rc, err = json.decode(hc)
+    --[[
+    input = {
+        name="okos_gw"
+    }
+    ]]--
+    if input.name == nil then
+        http.status(400, "Bad Request");
+        http.close()
+        return
+    end
+    
+    -- process --
+    local response = {}
+    --[[
+    response = {
+        errcode = 0
+    }
+    ]]--
+    response.errcode = 0
+
+    uci:set("system", "@system[0]", "device_name", input.name)
+    uci:commit("system")
+    
+    -- response --
+    response_json(response)
+end
+
+
+
 local p2l_names = { }                                             
 p2l_names['eth0'] = 'e0'                            
 p2l_names['eth1'] = 'e1'
@@ -255,37 +296,35 @@ function action_queryifs()
                 if np:proto() == "pppoe" then
                     ifname = np:get("ifname")
                 end
-                if ifname == "eth0" then
-                    local lifname = p2l_names[ifname]
-                    response[#response+1] = { }
-                    local res = response[#response]
-                    res.lname = lifname
-                    res.ifname = ifname
-                    res.mac = npdev:mac()
-                    res.up = npdev:is_up()
-                    res.sid = nt.sid
-                    res.mtu = npdev:_ubus("mtu")
-                    if res.mtu == nil then
-                        res.mtu = np:get("mtu")
+                local lifname = p2l_names[ifname]
+                response[#response+1] = { }
+                local res = response[#response]
+                res.lname = lifname
+                res.ifname = ifname
+                res.mac = npdev:mac()
+                res.up = npdev:is_up()
+                res.sid = nt.sid
+                res.mtu = npdev:_ubus("mtu")
+                if res.mtu == nil then
+                    res.mtu = np:get("mtu")
+                end
+                res.proto = np:proto()
+                if res.up then
+                    res.ipaddr = np:ipaddr()            
+                    res.netmask = np:netmask()        
+                    res.gateway = np:gwaddr()
+                    res.dns = np:dnsaddrs()                                
+                else
+                    -- not up, should get static from config
+                    if res.proto == "static" then
+                        res.ipaddr = np:get("ipaddr")
+                        res.netmask = np:get("netmask")
+                        res.gateway = np:get("gateway")
+                        res.dns = np:get("dns")
                     end
-                    res.proto = np:proto()
-                    if res.up then
-                        res.ipaddr = np:ipaddr()            
-                        res.netmask = np:netmask()        
-                        res.gateway = np:gwaddr()
-                        res.dns = np:dnsaddrs()                                
-                    else
-                        -- not up, should get static from config
-                        if res.proto == "static" then
-                            res.ipaddr = np:get("ipaddr")
-                            res.netmask = np:get("netmask")
-                            res.gateway = np:get("gateway")
-                            res.dns = np:get("dns")
-                        end
-                    end
-                    res.username = np:get("username")                                                    
-                    res.password = np:get("password")              
-                end                   
+                end
+                res.username = np:get("username")                                                    
+                res.password = np:get("password")              
             end
         end
     end      
@@ -294,6 +333,86 @@ function action_queryifs()
     response_json(response)
     
 end
+
+-- config lan
+function action_configlan()
+    -- sanity check --
+    if not sanity_check_json() then
+        return
+    end
+    
+    -- parse json
+    local hc = http.content()
+    local input, rc, err = json.decode(hc)
+    --[[
+    input = {
+        proto = "static",
+        lname = "e3",
+        ifname = "eth3",
+        ipaddr = "192.168.1.1",
+        netmask = "255.255.255.0",
+        dhcp_start = "1",
+        dhcp_limit = "200", 
+        dhcp_leasetime = "12h"
+    }
+    ]]--
+    if input.proto == nil or input.ifname == nil or input.proto ~= "static" or input.ifname ~= "eth3" then
+        http.status(400, "Bad Request");
+        http.close()
+        return
+    end
+    
+    -- process --
+    local response = {}
+    --[[
+    response = {
+        errcode = 0
+    }
+    ]]--
+    response.errcode = 0
+
+    -- del existing ifname network
+    local ifn = nw:get_interface(input.ifname)
+    if ifn == nil then
+        -- no such interface
+        response.errcode = 1
+        response_json(response)
+        return
+    else
+        local n = ifn:get_network() 
+        nw:del_network(n.sid)
+    end
+    -- del existing lan network
+    local np = nw:get_protocol("static", "lan4053")            
+    local wifname = np:ifname()
+    nw:del_network("lan4053")
+    -- setup new lan network
+    local net = nw:add_network("lan4053", {proto=input.proto, ipaddr=input.ipaddr, netmask=input.netmask})
+    if net then
+        net:add_interface(input.ifname)
+        nw:commit("network")
+        if input.dhcp_start == nil then
+            nodhcp_list={"wan", "wan1", "wan2", "lan4053"}
+            uci:set_list("dhcp", "@dnsmasq[0]", "notinterface", nodhcp_list)
+            uci:set("dhcp", "lan4053", "ignore", 1)
+            uci:commit("dhcp")
+        else
+            nodhcp_list={"wan", "wan1", "wan2"}
+            uci:set_list("dhcp", "@dnsmasq[0]", "notinterface", nodhcp_list)
+            uci:set("dhcp", "lan4053", "start", input.dhcp_start)
+            uci:set("dhcp", "lan4053", "limit", input.dhcp_limit)
+            uci:set("dhcp", "lan4053", "leasetime", input.dhcp_leasetime)
+            uci:set("dhcp", "lan4053", "ignore", 0)
+            uci:commit("dhcp")
+        end
+    else
+        response.errcode = 1
+    end
+    
+    -- response --
+    response_json(response)
+end
+
 
 -- config wan 
 function action_configwan()
@@ -319,7 +438,7 @@ function action_configwan()
         mtu = "1500"
     }
     ]]--
-    if input.proto == nil or input.ifname == nil or input.ifname == "br-lan4000" then
+    if input.proto == nil or input.ifname == nil or input.ifname ~= "eth0" then
         http.status(400, "Bad Request");
         http.close()
         return
