@@ -25,6 +25,7 @@ function index()
     entry({"okos", "login"}, call("action_login"), _("Login)"))
     entry({"okos", "internetstatus"}, call("action_internetstatus"), _("InternetStatus"))
     entry({"okos", "configname"}, call("action_configname"), _("ConfigNAME"))
+    entry({"okos", "queryname"}, call("action_queryname"), _("QueryNAME"))
     entry({"okos", "queryifs"}, call("action_queryifs"), _("QueryInterfaces"))
     entry({"okos", "configwan"}, call("action_configwan"), _("ConfigWAN"))
     entry({"okos", "configlan"}, call("action_configlan"), _("ConfigLAN"))
@@ -189,6 +190,30 @@ function action_internetstatus()
 end
 
 -- config device name
+function action_queryname()
+     -- sanity check --
+    if not sanity_check_get() then
+        return
+    end
+
+    -- process --
+    local response = { }
+    --[[
+    response = {
+        name = "okos_gw", 
+        errcode = 0
+    }
+    ]]--
+    response.errcode = 0
+
+    response.name = uci:get("system", "@system[0]", "device_name")
+
+    -- response --
+    response_json(response)
+
+end
+
+-- config device name
 function action_configname()
     -- sanity check --
     if not sanity_check_json() then
@@ -323,8 +348,13 @@ function action_queryifs()
                         res.dns = np:get("dns")
                     end
                 end
-                res.username = np:get("username")                                                    
-                res.password = np:get("password")              
+                res.username = np:get("username")
+                res.password = np:get("password")
+                if res.ifname == "eth3" then
+                    res.dhcp_start = uci:get("dhcp", "lan4053", "start")
+                    res.dhcp_limit = uci:get("dhcp", "lan4053", "limit")
+                    res.dhcp_leasetime = uci:get("dhcp", "lan4053", "leasetime")
+                end
             end
         end
     end      
