@@ -245,46 +245,48 @@ function action_queryifs()
     }
     ]]--
                                                            
-   for _,nt in pairs(nw:get_networks()) do
+    for _,nt in pairs(nw:get_networks()) do
         if nt.sid ~= "loopback" and not (nt.sid):match("gre") then
             local tp = nw:get_protocol("static", nt.sid)
             local np = nw:get_protocol(tp:get("proto"), nt.sid)            
             if np ~= nil then
-            local npdev = np:get_interface()
-            local ifname = np:ifname()
-            if np:proto() == "pppoe" then
-                ifname = np:get("ifname")
-            end
-            local lifname = p2l_names[ifname]
-            response[#response+1] = { }
-            local res = response[#response]
-            res.lname = lifname
-            res.ifname = ifname
-            res.mac = npdev:mac()
-            res.up = npdev:is_up()
-            res.sid = nt.sid
-            res.mtu = npdev:_ubus("mtu")
-            if res.mtu == nil then
-                res.mtu = np:get("mtu")
-            end
-            res.proto = np:proto()
-            if res.up then
-                res.ipaddr = np:ipaddr()            
-                res.netmask = np:netmask()        
-                res.gateway = np:gwaddr()
-                res.dns = np:dnsaddrs()                                
-            else
-                -- not up, should get static from config
-                if res.proto == "static" then
-                    res.ipaddr = np:get("ipaddr")
-                    res.netmask = np:get("netmask")
-                    res.gateway = np:get("gateway")
-                    res.dns = np:get("dns")
+                local npdev = np:get_interface()
+                local ifname = np:ifname()
+                if np:proto() == "pppoe" then
+                    ifname = np:get("ifname")
                 end
+                if ifname == "eth0" then
+                    local lifname = p2l_names[ifname]
+                    response[#response+1] = { }
+                    local res = response[#response]
+                    res.lname = lifname
+                    res.ifname = ifname
+                    res.mac = npdev:mac()
+                    res.up = npdev:is_up()
+                    res.sid = nt.sid
+                    res.mtu = npdev:_ubus("mtu")
+                    if res.mtu == nil then
+                        res.mtu = np:get("mtu")
+                    end
+                    res.proto = np:proto()
+                    if res.up then
+                        res.ipaddr = np:ipaddr()            
+                        res.netmask = np:netmask()        
+                        res.gateway = np:gwaddr()
+                        res.dns = np:dnsaddrs()                                
+                    else
+                        -- not up, should get static from config
+                        if res.proto == "static" then
+                            res.ipaddr = np:get("ipaddr")
+                            res.netmask = np:get("netmask")
+                            res.gateway = np:get("gateway")
+                            res.dns = np:get("dns")
+                        end
+                    end
+                    res.username = np:get("username")                                                    
+                    res.password = np:get("password")              
+                end                   
             end
-            res.username = np:get("username")                                                    
-            res.password = np:get("password")              
-            end                   
         end
     end      
 
