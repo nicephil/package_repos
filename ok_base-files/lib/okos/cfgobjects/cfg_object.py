@@ -25,9 +25,10 @@ class CfgObj(object):
         self.action = 'REMOVE'
         self.run = self.remove
         return self
-    def change_op(self):
+    def change_op(self, old=None):
         self.action = 'CHANGE'
         self.run = self.change
+        self._old = old
         return self
     def no_op(self):
         self.action = 'NULL'
@@ -66,7 +67,7 @@ class CfgObj(object):
             #change = [n.change_op() for c in news & olds for n in new if c == n.data[differ]]
             add = [n.add_op() for c in news - olds for n in new if c == n.data[differ]]
             remove = [n.remove_op() for c in olds - news for n in old if c == n.data[differ]]
-            change = [n.data == o.data and n.no_op() or n.change_op()
+            change = [n.data == o.data and n.no_op() or n.change_op(o)
                     for n in new for o in old if n.data[differ] == o.data[differ]]
             return remove + add + change
 

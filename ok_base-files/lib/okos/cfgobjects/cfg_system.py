@@ -43,7 +43,7 @@ class CfgSystem(CfgObj):
 
     def remove(self):
         log_debug("remove")
-        return True;
+        return True
 
     def change(self):
         log_debug("change")

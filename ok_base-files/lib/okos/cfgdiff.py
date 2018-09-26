@@ -9,6 +9,7 @@ import ubus
 class OakmgrCfg(object):
     Templates = [
             CfgSystem(),
+            CfgInterface(),
             CfgDDNS(),
             ]
     def __init__(self, f=''):
