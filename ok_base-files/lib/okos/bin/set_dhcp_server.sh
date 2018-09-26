@@ -19,4 +19,3 @@ uci commit dhcp
 
 /etc/init.d/dnsmasq restart
 
-exit 0

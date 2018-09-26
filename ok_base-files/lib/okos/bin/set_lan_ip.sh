@@ -16,6 +16,5 @@ uci set network.lan4053.ipaddr="${ipaddr}"
 uci set network.lan4053.netmask="${netmask}"
 uci commit network
 
-ifconfig eth3 $ipaddr netmask $nemask
+ifconfig eth3 $ipaddr netmask $netmask
 
-exit 0

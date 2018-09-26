@@ -15,7 +15,7 @@ uci commit network
 
 
 /etc/init.d/dnsmasq restart
+/etc/init.d/network reload
 
 
-exit 0
 

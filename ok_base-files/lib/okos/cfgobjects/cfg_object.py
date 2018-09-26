@@ -60,7 +60,7 @@ class CfgObj(object):
     def diff(self, new, old):
         differ = self.differ
         if not differ:
-            return [n.data == old[i].data and n.no_op() or n for i,n in enumerate(new)]
+            return [n.data == old[i].data and n.no_op() or n.change_op(old[i]) for i,n in enumerate(new)]
         else:
             news = {n.data[differ] for n in new}
             olds = {o.data[differ] for o in old}

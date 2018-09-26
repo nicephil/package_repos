@@ -18,4 +18,3 @@ uci commit network
 
 ifconfig eth3 $ipaddr netmask $nemask
 
-exit 0
