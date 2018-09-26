@@ -18,3 +18,5 @@ uci commit network
 
 ifconfig eth3 $ipaddr netmask $netmask
 
+/etc/init.d/network reload
+
