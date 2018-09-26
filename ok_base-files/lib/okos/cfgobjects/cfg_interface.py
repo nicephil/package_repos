@@ -45,14 +45,34 @@ class CfgInterface(CfgObj):
         if old['ips'] != new['ips']:
             try:
                 ipaddr, netmask = new['ips'][0]['ip'], new['ips'][0]['netmask']
-                subprocess.checkcall(['/lib/okos/bin/set_lan_interface.sh', ipaddr, netmask], shell=True)
+                subprocess.check_call(['/lib/okos/bin/set_lan_ip.sh', ipaddr, netmask], shell=True)
             except subprocess.CalledProcessError as _:
                 pass
             except Exception as _:
                 pass
             pass
-        if old['dhcp_server_enable'] != new['dhcp_server_enable']:
+        if new['dhcp_server_enable']:
+            dhcps_n = {
+                    'start': new['dhcp_start'],
+                    'limit': new['dhcp_stop'],
+                    'leasetime': new['dhcp_lease_time'],
+                    }
+            try:
+                subprocess.check_call(['/lib/okos/bin/set_dhcp_server.sh', dhcps_n['start'], dhcps_n['limit'], dhcps_n['leasetime']], shell=True)
+            except subprocess.CalledProcessError as _:
+                pass
+            except Exception as _:
+                pass
             pass
+        else:
+            try:
+                subprocess.check_call(['/lib/okos/bin/disable_dhcp_server.sh'], shell=True)
+            except subprocess.CalledProcessError as _:
+                pass
+            except Exception as _:
+                pass
+            pass
+
         return True
     def change_wan(self):
         return True
