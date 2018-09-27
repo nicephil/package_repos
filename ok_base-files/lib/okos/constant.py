@@ -66,3 +66,5 @@ const.DEV_REBOOT_OPT_TYPE = 2007
 const.DEV_CONF_PORT_TYPE = {'none':-1, 'wan':0, 'lan':1, 'bridge':2, }
 const.DEV_CONF_PORT_MODE = {'full':1, 'half':2}
 const.DEV_CONF_PORT_STATE = {'up':1, 'down':0}
+
+const.CONFIG_BIN_DIR = '/lib/okos/bin/'

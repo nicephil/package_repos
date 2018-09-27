@@ -2,15 +2,16 @@
 
 import argparse, os, subprocess, re, json
 from cfg_object import CfgObj
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit
+from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logit
 import ubus
+from constant import const
 
 class CfgInterface(CfgObj):
     def __init__(self):
         super(CfgInterface, self).__init__()
 
+    @logit
     def parse(self, j):
-        log_info('Start to parse interfaces config')
         eths = ('e0','e1','e2','e3')
         res = [CfgInterface() for eth in eths]
         for i, eth in enumerate(eths):
@@ -21,60 +22,46 @@ class CfgInterface(CfgObj):
                 res[i].data['status'] = 'disabled'
         return res
 
+    @logit
     def add(self):
-        log_debug("add")
         return True
+
+    @logit
     def remove(self):
-        log_debug("remove")
         return True
 
+    @logit
     def change(self):
-        log_debug("change")
+        log_debug("Start to change interface [%s] config." % (self.data['logic_ifname']))
         change_hooks = {
-                'e0': self.change_wan,
-                'e1': self.change_wan,
-                'e2': self.change_wan,
-                'e3': self.change_lan,
+                'e0': self.change_wan_config,
+                'e1': self.change_wan_config,
+                'e2': self.change_wan_config,
+                'e3': self.change_lan_config,
                 }
-        return change_hooks[self.data['logic_ifname']]()
+        res = change_hooks[self.data['logic_ifname']]()
+        log_debug("Change interface [%s] config return (%s)." % (self.data['logic_ifname'], str(res)))
+        return res
 
-    def change_lan(self):
+    def change_lan_config(self):
         log_info('Execute LAN port config.')
         old = self._old.data
         new = self.data
         if new['ips']:
-            try:
-                ipaddr, netmask = new['ips'][0]['ip'], new['ips'][0]['netmask']
-                log_info('Change IP address of LAN port %s/%s'%(ipaddr, netmask))
-                subprocess.check_call(['/lib/okos/bin/set_lan_ip.sh %s %s' % (ipaddr, netmask)], shell=True)
-            except subprocess.CalledProcessError as e:
-                log_warning("Execute %s failed!" % (e.cmd))
-            except Exception as _:
-                pass
-            pass
+            ipaddr, netmask = new['ips'][0]['ip'], new['ips'][0]['netmask']
+            log_info('Change IP address of LAN port %s/%s' % (ipaddr, netmask))
+            self.doit([const.CONFIG_BIN_DIR+'set_lan_ip.sh', ipaddr, netmask])
         if new['dhcp_server_enable']:
             dhcps_n = {
-                    'start': new['dhcp_start'].split('.')[3],
-                    'limit': new['dhcp_limit'],
-                    'leasetime': new['dhcp_lease_time'],
+                    'start': str(new['dhcp_start']),
+                    'limit': str(new['dhcp_limit']),
+                    'leasetime': str(new['dhcp_lease_time']),
                     }
             log_info("Change DHCP configuration %s" % (dhcps_n))
-            try:
-                subprocess.check_call(['/lib/okos/bin/set_dhcp_server.sh %s %d %d' % (dhcps_n['start'], dhcps_n['limit'], dhcps_n['leasetime'])], shell=True)
-            except subprocess.CalledProcessError as _:
-                log_warning("Execute %s failed!" % (e.cmd))
-            except Exception as _:
-                pass
-            pass
+            self.doit([const.CONFIG_BIN_DIR+'set_dhcp_server.sh', dhcps_n['start'], dhcps_n['limit'], dhcps_n['leasetime']])
         else:
-            try:
-                subprocess.check_call(['/lib/okos/bin/disable_dhcp_server.sh'], shell=True)
-            except subprocess.CalledProcessError as _:
-                log_warning("Execute %s failed!" % (e.cmd))
-            except Exception as _:
-                pass
-            pass
-
+            self.doit([const.CONFIG_BIN_DIR+'disable_dhcp_server.sh',])
         return True
-    def change_wan(self):
+
+    def change_wan_config(self):
         return True

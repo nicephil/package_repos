@@ -119,13 +119,13 @@ class StatusMgr(threading.Thread):
             for ifname, ifx in ifs_state.iteritems():
                 ifx.update(ifs_next[ifname])
 
-        update_ifs_state({ifname: {
+        update_ifs_state({(True) and {
                 'status': data['proto'] != 'none' and 1 or 0,
                 'ip_type': ip_types.setdefault(data['proto'], -1),
                 'proto': data['proto'],
-            } for ifname, data in network_interface_status.iteritems()
+            } or {} for ifname, data in network_interface_status.iteritems()
         })
-        update_ifs_state({ifname: ifs_state[ifname]['status'] and {
+        update_ifs_state({ifname: (ifs_state[ifname]['status'] and ifs_state[ifname]['state']) and {
                 'bandwidth': data['speed'][:-2],
                 'duplex': data['speed'][-1] == 'F' and const.DEV_CONF_PORT_MODE['full'] or const.DEV_CONF_PORT_MODE['half'],
             } or {} for ifname, data in network_device_status.iteritems()
@@ -141,7 +141,10 @@ class StatusMgr(threading.Thread):
             } or {}
             for ifname, data in network_interface_status.iteritems()
         })
-        gateways = {ifname:[r['nexthop'] for r in data['route'] if r['target'] == '0.0.0.0'] for ifname, data in network_interface_status.iteritems()}
+        gateways = {ifname:(ifs_state[ifname]['state']) and
+                [r['nexthop'] for r in data['route'] if r['target'] == '0.0.0.0'] or
+                [] for ifname, data in network_interface_status.iteritems()
+                }
         update_ifs_state({ifname: (ifs_state[ifname]['status'] and data) and { 'gateway': data[0]} or {}
             for ifname, data in gateways.iteritems()
         })

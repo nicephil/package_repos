@@ -1,11 +1,17 @@
 import fcntl
 from subprocess import Popen, PIPE
 import logging
+import logging.handlers
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     filemode='w',
     format='[%(threadName)s-%(thread)d]: %(message)s',
 )
+MyLogger = logging.getLogger('MyLogger')
+_h = logging.handlers.SysLogHandler('/dev/log')
+MyLogger.addHandler(_h)
+MyLogger.propagate = False
+
 import requests
 import json
 import os
@@ -32,19 +38,28 @@ def okos_system_log_err(msg):
 	syslog.closelog()
 
 def log_debug(msg):
-    logging.debug(msg)
+    MyLogger.debug(msg)
 
 def log_info(msg):
-    logging.info(msg)
+    MyLogger.info(msg)
 
 def log_warning(msg):
-    logging.warning(msg)
+    MyLogger.warning(msg)
 
 def log_err(msg):
-    logging.error(msg)
+    MyLogger.error(msg)
 
 def log_crit(msg):
-    logging.critical(msg)
+    MyLogger.critical(msg)
+
+def logit(func):
+    def wrapper(*args, **kwargs):
+        log_debug("Start to <%s:%s>:" % (args[0].__class__.__name__, func.__name__))
+        res = func(*args, **kwargs)
+        log_debug("<%s:%s> is done." % (args[0].__class__.__name__, func.__name__))
+        #log_debug("<%s> is done." % func.__name__)
+        return res
+    return wrapper
 
 config_conf_file = ''.join([const.CONFIG_DIR, const.CONFIG_CONF_FILE])
 

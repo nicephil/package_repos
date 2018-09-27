@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import argparse, os, subprocess, re, json
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit
+from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logit
+from constant import const
 
 class CfgObj(object):
     def __init__(self, differ=None):
@@ -34,33 +35,61 @@ class CfgObj(object):
         self.action = 'NULL'
         self.run = self.noop
         return self
+
+    @logit
     def parse(self, j):
-        log_debug(self.name + ' Parser interface called.')
+        pass
+
+    @logit
     def add(self):
-        log_debug(self.name + ' add interface called.')
         log_debug(self.data)
         #return True
+
+    @logit
     def remove(self):
-        log_debug(self.name + ' remove interface called.')
         log_debug(self.data)
         #return True
+
+    @logit
     def change(self):
-        log_debug(self.name + ' change interface called.')
         log_debug(self.data)
         #return True
+
+    @logit
     def noop(self):
-        log_debug(self.name + ' noop interface called.')
         return True
+
+    @logit
     def pre_run(self):
-        log_debug(self.name + ' pre-run interface called.')
         return True
+
+    @logit
     def post_run(self):
-        log_debug(self.name + ' post-run interface called.')
         return True
+
+    def doit(self, cmd):
+        '''
+        cmd = ['/lib/okos/bin/set_..._.sh', '33', '201'] ; shell = False
+        cmd = ['/lib/okos/bin/set_..._.sh 33 201'] ; shell = True
+        '''
+        log_debug("Do - %s - " % (cmd))
+        try:
+            res = subprocess.check_call(cmd)
+        except subprocess.CalledProcessError as e:
+            log_warning("Execute %s failed!" % (e.cmd))
+        except Exception as e:
+            log_warning("Execute %s failed with %s!" % (cmd, type(e).__name__))
+        log_debug("Do - %s - return %d" % (cmd, res))
+
+    @logit
     def diff(self, new, old):
         differ = self.differ
         if not differ:
-            return [n.data == old[i].data and n.no_op() or n.change_op(old[i]) for i,n in enumerate(new)]
+            add = [i.add_op() for i in new[len(old):]]
+            remove = [i.remove_op() for i in old[len(new):]]
+            change = [n.data == old[i].data and n.no_op() or n.change_op(old[i]) for i,n in enumerate(new[:len(old)])]
+            return remove + add + change
+            #return [n.data == old[i].data and n.no_op() or n.change_op(old[i]) for i,n in enumerate(new)]
         else:
             news = {n.data[differ] for n in new}
             olds = {o.data[differ] for o in old}
@@ -70,4 +99,5 @@ class CfgObj(object):
             change = [n.data == o.data and n.no_op() or n.change_op(o)
                     for n in new for o in old if n.data[differ] == o.data[differ]]
             return remove + add + change
+
 
