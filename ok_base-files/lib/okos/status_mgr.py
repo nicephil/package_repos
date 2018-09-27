@@ -2,7 +2,7 @@ import Queue
 import threading
 import time
 import okos_utils
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit
+from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logit
 import json
 from constant import const
 import vici
@@ -12,7 +12,7 @@ import socket
 import psutil
 import time
 import fcntl
-import os
+import os, sys
 import sqlite3
 import netifaces as ni
 import ubus
@@ -58,6 +58,7 @@ class StatusMgr(threading.Thread):
         self.cpu_mem_timer.name = 'CPU_MEM_Status'
         self.cpu_mem_timer.start()
 
+    @logit
     def if_status_timer_func(self):
         '''
         This timer will be self-kicked off for every 60 seconds.
@@ -105,64 +106,95 @@ class StatusMgr(threading.Thread):
         #   |manual_dns|byte|0 : auto<br>1 : manual|?
         #   |dnss|String|such as "8.8.8.8,9.9.9.9"|
         ip_types = {'dhcp': 0, 'static':1, 'pppoe': 2}
-        network_device_status = {k:v for k,v in network_device_status.iteritems() if k.startswith('eth')}
-        ifs_state = {ifname: {
-                'ifname': ifname,
-                'name': port_mapping[ifname]['alias'],
-                'type': port_mapping[ifname]['type'],
-                'state': data['up'] and const.DEV_CONF_PORT_STATE['up'] or const.DEV_CONF_PORT_STATE['up'],
-                'physical_state': data['up'] and const.DEV_CONF_PORT_STATE['up'] or const.DEV_CONF_PORT_STATE['up'],
-                #'mac': data['macaddr'],
-            } for ifname, data in network_device_status.iteritems()
-        }
+        try:
+            network_device_status = {k:v for k,v in network_device_status.iteritems() if k.startswith('eth')}
+            ifs_state = {ifname: {
+                    'ifname': ifname,
+                    'name': port_mapping[ifname]['alias'],
+                    'type': port_mapping[ifname]['type'],
+                    #'mac': data['macaddr'],
+                } for ifname, data in network_device_status.iteritems()
+            }
+        except Exception as e:
+            log_warning('Generate Basic interface infor with error: %s' % (type(e).__name__))
+
         def update_ifs_state(ifs_next):
             for ifname, ifx in ifs_state.iteritems():
                 ifx.update(ifs_next[ifname])
 
-        update_ifs_state({(True) and {
-                'status': data['proto'] != 'none' and 1 or 0,
-                'ip_type': ip_types.setdefault(data['proto'], -1),
-                'proto': data['proto'],
-            } or {} for ifname, data in network_interface_status.iteritems()
-        })
-        update_ifs_state({ifname: (ifs_state[ifname]['status'] and ifs_state[ifname]['state']) and {
-                'bandwidth': data['speed'][:-2],
-                'duplex': data['speed'][-1] == 'F' and const.DEV_CONF_PORT_MODE['full'] or const.DEV_CONF_PORT_MODE['half'],
-            } or {} for ifname, data in network_device_status.iteritems()
-        })
-        update_ifs_state({ifname: ifs_state[ifname]['status'] and {
-                'uptime': data['uptime'],
-                'dnss': ','.join([dns for dns in data['dns-server']]),
-                'ips': [
-                        {'ip': ipv4_addr['address'],
-                        'netmask': ipv4_addr['mask'],
-                    } for ipv4_addr in data['ipv4-address']
-                ],
-            } or {}
-            for ifname, data in network_interface_status.iteritems()
-        })
-        gateways = {ifname:(ifs_state[ifname]['state']) and
-                [r['nexthop'] for r in data['route'] if r['target'] == '0.0.0.0'] or
-                [] for ifname, data in network_interface_status.iteritems()
-                }
-        update_ifs_state({ifname: (ifs_state[ifname]['status'] and data) and { 'gateway': data[0]} or {}
-            for ifname, data in gateways.iteritems()
-        })
-        update_ifs_state({ifname: (ifs_state[ifname]['status'] and
-                                    ifs_state[ifname]['type'] == const.DEV_CONF_PORT_TYPE['wan'] and
-                                    ifs_state[ifname]['proto'] == 'pppoe')and {
-                'pppoe_username': network_conf[data['ifname']]['username'],
-                'pppoe_password': network_conf[data['ifname']]['password'],
-            } or {}
-            for ifname, data in port_mapping.iteritems()
-        })
-        update_ifs_state({ifname: (ifs_state[ifname]['status'] and
-                                    ifs_state[ifname]['type'] == const.DEV_CONF_PORT_TYPE['lan']) and {
-                'dhcp_start': dhcp_conf[data['ifname']]['start'],
-                'dhcp_limit': dhcp_conf[data['ifname']]['limit'],
-            } or {}
-            for ifname, data in port_mapping.iteritems()
-        })
+        try:
+            update_ifs_state({ifname: (True) and {
+                'state': data['up'] and const.DEV_CONF_PORT_STATE['up'] or const.DEV_CONF_PORT_STATE['up'],
+                'physical_state': data['up'] and const.DEV_CONF_PORT_STATE['up'] or const.DEV_CONF_PORT_STATE['up'],
+                } or {} for ifname, data in network_interface_status.iteritems()
+            })
+        except Exception as e:
+            log_warning('Generate interface link status with error: %s' % (type(e).__name__))
+ 
+        try:
+            update_ifs_state({ifname: {
+                    'status': data['proto'] != 'none' and 1 or 0,
+                    'ip_type': ip_types.setdefault(data['proto'], -1),
+                    'proto': data['proto'],
+                } for ifname, data in network_interface_status.iteritems()
+            })
+        except Exception as e:
+            log_warning('Generate interface protocol infor with error: %s,%s' % (type(e).__name__,e))
+        try:
+            update_ifs_state({ifname: (ifs_state[ifname]['status'] and ifs_state[ifname]['state']) and {
+                    'bandwidth': data['speed'][:-2],
+                    'duplex': data['speed'][-1] == 'F' and const.DEV_CONF_PORT_MODE['full'] or const.DEV_CONF_PORT_MODE['half'],
+                } or {} for ifname, data in network_device_status.iteritems()
+            })
+        except Exception as e:
+            log_warning('Generate interface speed infor with error: %s,%s' % (type(e).__name__,e))
+
+        try:
+            update_ifs_state({ifname: ifs_state[ifname]['status'] and {
+                    'uptime': data['uptime'],
+                    'dnss': ','.join([dns for dns in data['dns-server']]),
+                    'ips': [
+                            {'ip': ipv4_addr['address'],
+                            'netmask': ipv4_addr['mask'],
+                        } for ipv4_addr in data['ipv4-address']
+                    ],
+                } or {}
+                for ifname, data in network_interface_status.iteritems()
+            })
+        except Exception as e:
+            log_warning('Generate interface ip infor with error: %s,%s' % (type(e).__name__,e))
+        try:
+            gateways = {ifname: ifs_state[ifname]['state'] and
+                    [r['nexthop'] for r in data['route'] if r['target'] == '0.0.0.0'] or
+                    [] for ifname, data in network_interface_status.iteritems()
+                    }
+            update_ifs_state({ifname: (ifs_state[ifname]['status'] and data) and { 'gateway': data[0]} or {}
+                for ifname, data in gateways.iteritems()
+            })
+        except Exception as e:
+            log_warning('Generate interface gateway infor with error: %s,%s' % (type(e).__name__,e))
+        try:
+            update_ifs_state({ifname: (ifs_state[ifname]['status'] and
+                                        ifs_state[ifname]['type'] == const.DEV_CONF_PORT_TYPE['wan'] and
+                                        ifs_state[ifname]['proto'] == 'pppoe')and {
+                    'pppoe_username': network_conf[data['ifname']]['username'],
+                    'pppoe_password': network_conf[data['ifname']]['password'],
+                } or {}
+                for ifname, data in port_mapping.iteritems()
+            }) 
+        except Exception as e:
+            log_warning('Generate interface pppoe infor with error: %s,%s' % (type(e).__name__,e))
+        try:
+            update_ifs_state({ifname: (ifs_state[ifname]['status'] and
+                                        ifs_state[ifname]['type'] == const.DEV_CONF_PORT_TYPE['lan']) and {
+                    'dhcp_start': dhcp_conf[data['ifname']]['start'],
+                    'dhcp_limit': dhcp_conf[data['ifname']]['limit'],
+                } or {}
+                for ifname, data in port_mapping.iteritems()
+            })
+        except Exception as e:
+            log_warning('Generate interface dhcp infor with error: %s,%s' % (type(e).__name__, sys.exc_info()[0]))
+        
         info_msg = {
             'operate_type': const.DEV_IF_STATUS_RESP_OPT_TYPE,
             'timestamp': int(time.time()),
@@ -170,9 +202,9 @@ class StatusMgr(threading.Thread):
             'data': json.dumps({'list':[v for k,v in ifs_state.iteritems()]}),
         }
 
-        self.mailbox.pub(const.STATUS_Q, (200, info_msg), timeout=0)
+        self.mailbox.pub(const.STATUS_Q, (1, info_msg), timeout=0)
 
-        self.if_status_timer = threading.Timer(60, self.if_status_timer_func)
+        self.if_status_timer = threading.Timer(10, self.if_status_timer_func)
         self.if_status_timer.name = 'IF_Status'
         self.if_status_timer.start()
         return info_msg

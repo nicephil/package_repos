@@ -24,6 +24,7 @@ class CfgInterface(CfgObj):
 
     @logit
     def add(self):
+        self.change()
         return True
 
     @logit
@@ -45,8 +46,10 @@ class CfgInterface(CfgObj):
 
     def change_lan_config(self):
         log_info('Execute LAN port config.')
-        old = self._old.data
         new = self.data
+        if new['type'] != const.DEV_CONF_PORT_TYPE['lan']:
+            log_warning('Config LAN port as WAN. <%s>' % (new))
+            return False
         if new['ips']:
             ipaddr, netmask = new['ips'][0]['ip'], new['ips'][0]['netmask']
             log_info('Change IP address of LAN port %s/%s' % (ipaddr, netmask))
@@ -64,4 +67,30 @@ class CfgInterface(CfgObj):
         return True
 
     def change_wan_config(self):
+        log_info('Execute WAN port config.')
+        new = self.data
+        if new['type'] != const.DEV_CONF_PORT_TYPE['wan']:
+            log_warning('Config WAN port as LAN. <%s>' % (new))
+            return False
+        # Enable interface
+        if new['status']:
+            dnss = new['manual_dns'] and new['dnss'] or ''
+            # For DHCP
+            if new['ip_type'] == 0:
+                pass
+            # For static ip
+            if new['ip_type'] == 1:
+                ips = new['ips']
+                pass
+            # For pppoe
+            if new['ip_type'] = 2:
+                pppoe = {'username': new['pppoe_username'],
+                        'password': new['pppoe_password'],
+                        'timeout': new['pppoe_timeout'],
+                        'keepalive': new['pppoe_keep_connected'],
+                        }
+                pass
+        # Disable interface
+        else:
+            pass
         return True
