@@ -62,7 +62,11 @@ const.DEV_DDNS_STATUS_RESP_OPT_TYPE = 2006
 
 const.DEV_REBOOT_OPT_TYPE = 2007
 
-# 
+# WebUI conf query
+const.DEV_WEBUI_CONF_REQ_OPT_TYPE = 2009
+const.DEV_WEBUI_CONF_RESP_OPT_TYPE = 2010
+
+#
 const.DEV_CONF_PORT_TYPE = {'none':-1, 'wan':0, 'lan':1, 'bridge':2, }
 const.DEV_CONF_PORT_MODE = {'full':1, 'half':2}
 const.DEV_CONF_PORT_STATE = {'up':1, 'down':0}

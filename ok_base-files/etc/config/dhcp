@@ -26,4 +26,5 @@ config dhcp lan4053
 	option interface	lan4053
 	option start 	1
 	option limit	200
-	option leasetime	12h
+	option leasetime 43200
+    option ignore 0

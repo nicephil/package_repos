@@ -194,11 +194,16 @@ class StatusMgr(threading.Thread):
         data_json['eth_port'] = productinfo_data['eth_port']
         data_json['sn'] = productinfo_data['serial']
         data_json['product_name'] = productinfo_data['model']
-        data_json['port_status'] = productinfo_data['port_status']
+        if 'port_status' in productinfo_data:
+            data_json['port_status'] = productinfo_data['port_status']
         data_json['uptime'] = int(round(time.time() - psutil.BOOT_TIME))
         data_json['internal_ip'] = ni.ifaddresses(productinfo_data['eth_port'])[ni.AF_INET][0]['addr']
         confinfo_data = self.conf_mgr.get_confinfo_data()
         data_json['config_version'] = confinfo_data['config_version']
+        try:
+            data_json['config_version_webui'] = ubus.call('uci', 'get', {"config":"system", "section":"@system[0]", "option":"config_version_webui"})[0]["value"]
+        except Exception, e:
+            log_err("config_version_webui not found {}".format(e))
         info_msg['data'] = json.dumps(data_json)
         return info_msg
 
