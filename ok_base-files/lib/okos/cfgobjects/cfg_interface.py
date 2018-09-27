@@ -83,7 +83,7 @@ class CfgInterface(CfgObj):
                 ips = new['ips']
                 pass
             # For pppoe
-            if new['ip_type'] = 2:
+            if new['ip_type'] == 2:
                 pppoe = {'username': new['pppoe_username'],
                         'password': new['pppoe_password'],
                         'timeout': new['pppoe_timeout'],

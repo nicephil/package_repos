@@ -112,6 +112,7 @@ class StatusMgr(threading.Thread):
                     'ifname': ifname,
                     'name': port_mapping[ifname]['alias'],
                     'type': port_mapping[ifname]['type'],
+                    'physical_state': data['carrier'] and 1 or 0,
                     #'mac': data['macaddr'],
                 } for ifname, data in network_device_status.iteritems()
             }
@@ -124,12 +125,11 @@ class StatusMgr(threading.Thread):
 
         try:
             update_ifs_state({ifname: (True) and {
-                'state': data['up'] and const.DEV_CONF_PORT_STATE['up'] or const.DEV_CONF_PORT_STATE['up'],
-                'physical_state': data['up'] and const.DEV_CONF_PORT_STATE['up'] or const.DEV_CONF_PORT_STATE['up'],
+                'state': data['up'] and 1 or 0,
                 } or {} for ifname, data in network_interface_status.iteritems()
             })
         except Exception as e:
-            log_warning('Generate interface link status with error: %s' % (type(e).__name__))
+            log_warning('Generate interface link status with error: %s,%s' % (type(e).__name__,e))
  
         try:
             update_ifs_state({ifname: {
@@ -141,11 +141,18 @@ class StatusMgr(threading.Thread):
         except Exception as e:
             log_warning('Generate interface protocol infor with error: %s,%s' % (type(e).__name__,e))
         try:
-            update_ifs_state({ifname: (ifs_state[ifname]['status'] and ifs_state[ifname]['state']) and {
+            speed = {ifname: (ifs_state[ifname]['status'] and ifs_state[ifname]['state']) and {
                     'bandwidth': data['speed'][:-2],
                     'duplex': data['speed'][-1] == 'F' and const.DEV_CONF_PORT_MODE['full'] or const.DEV_CONF_PORT_MODE['half'],
                 } or {} for ifname, data in network_device_status.iteritems()
-            })
+            }
+            for _,s in speed.iteritems():
+                if 'bandwidth' in s:
+                    try:
+                        s['bandwidth'] = int(s['bandwidth'])
+                    except ValueError as e:
+                        s['bandwidth'] = 10
+            update_ifs_state(speed)
         except Exception as e:
             log_warning('Generate interface speed infor with error: %s,%s' % (type(e).__name__,e))
 
