@@ -9,6 +9,7 @@ local json = require "luci.json"
 local nw = require "luci.model.network".init()
 local string = require "string"
 local uci = require "luci.model.uci".cursor()
+local math = math
 
 module("luci.controller.okos.index", package.seeall)
 
@@ -35,6 +36,13 @@ function index()
     entry({"okos", "devumac"}, call("action_devumac"), _("DeviceUniqueMAC"))
     entry({"okos", "regdev"}, call("action_regdev"), _("RegDev"))
     entry({"okos", "setgre"}, call("action_setgre"), _("SetGRE"))
+end
+
+function update_conf_version()
+    math.randomseed(tostring(os.time()):reverse():sub(1,6))
+    local version = math.random(268435455)
+    uci:set("system", "@system[0]", "config_version_webui", version)
+    uci:commit("system")
 end
 
 function dumptable(t)
@@ -245,6 +253,9 @@ function action_configname()
 
     uci:set("system", "@system[0]", "device_name", input.name)
     uci:commit("system")
+
+    -- updte version --
+    update_conf_version()
     
     -- response --
     response_json(response)
@@ -351,9 +362,12 @@ function action_queryifs()
                 res.username = np:get("username")
                 res.password = np:get("password")
                 if res.ifname == "eth3" then
-                    res.dhcp_start = uci:get("dhcp", "lan4053", "start")
-                    res.dhcp_limit = uci:get("dhcp", "lan4053", "limit")
-                    res.dhcp_leasetime = uci:get("dhcp", "lan4053", "leasetime")
+                    res.ipaddr = uci:get("webui_config", "lan4053", "ipaddr")
+                    res.netmask = uci:get("webui_config", "lan4053", "netmask")
+                    res.dhcp_start = uci:get("webui_config", "lan4053", "dhcp_start")
+                    res.dhcp_limit = uci:get("webui_config", "lan4053", "dhcp_limit")
+                    res.dhcp_leasetime = uci:get("webui_config", "lan4053", "dhcp_leasetime")
+                    res.dhcp_server_enable = uci:get("webui_config", "lan4053", "dhcp_server_enable")
                 end
             end
         end
@@ -381,9 +395,61 @@ function action_configlan()
         ifname = "eth3",
         ipaddr = "192.168.1.1",
         netmask = "255.255.255.0",
+        dhcp_server_enable = 0,
         dhcp_start = "1",
         dhcp_limit = "200", 
-        dhcp_leasetime = "12h"
+        dhcp_leasetime = "1200" # seconds
+    }
+    ]]--
+    if input.proto == nil or input.ifname == nil or input.proto ~= "static" or input.ifname ~= "eth3" then
+        http.status(400, "Bad Request");
+        http.close()
+        return
+    end
+    
+    -- process --
+    local response = {}
+    --[[
+    response = {
+        errcode = 0
+    }
+    ]]--
+    response.errcode = 0
+
+    uci:set("webui_config", "lan4053", "ipaddr", input.ipaddr)
+    uci:set("webui_config", "lan4053", "netmask", input.netmask)
+    uci:set("webui_config", "lan4053", "dhcp_server_enable", input.dhcp_server_enable)
+    uci:set("webui_config", "lan4053", "dhcp_start", input.dhcp_start)
+    uci:set("webui_config", "lan4053", "dhcp_limit", input.dhcp_limit)
+    uci:set("webui_config", "lan4053", "dhcp_leasetime", input.dhcp_leasetime)
+    uci:commit("webui_config")
+
+    -- response --
+    response_json(response)
+end
+
+
+-- config lan
+function action_old_configlan()
+    -- sanity check --
+    if not sanity_check_json() then
+        return
+    end
+    
+    -- parse json
+    local hc = http.content()
+    local input, rc, err = json.decode(hc)
+    --[[
+    input = {
+        proto = "static",
+        lname = "e3",
+        ifname = "eth3",
+        ipaddr = "192.168.1.1",
+        netmask = "255.255.255.0",
+        dhcp_server_enable = 0,
+        dhcp_start = "1",
+        dhcp_limit = "200", 
+        dhcp_leasetime = "1200" # seconds
     }
     ]]--
     if input.proto == nil or input.ifname == nil or input.proto ~= "static" or input.ifname ~= "eth3" then
@@ -421,21 +487,28 @@ function action_configlan()
     if net then
         net:add_interface(input.ifname)
         nw:commit("network")
-        if input.dhcp_start == nil then
+        if input.dhcp_server_enable == 0 then
             nodhcp_list={"wan", "wan1", "wan2", "lan4053"}
             uci:set_list("dhcp", "@dnsmasq[0]", "notinterface", nodhcp_list)
             uci:set("dhcp", "lan4053", "ignore", 1)
-            uci:commit("dhcp")
         else
             nodhcp_list={"wan", "wan1", "wan2"}
             uci:set_list("dhcp", "@dnsmasq[0]", "notinterface", nodhcp_list)
-            uci:set("dhcp", "lan4053", "start", input.dhcp_start)
-            uci:set("dhcp", "lan4053", "limit", input.dhcp_limit)
-            uci:set("dhcp", "lan4053", "leasetime", input.dhcp_leasetime)
             uci:set("dhcp", "lan4053", "ignore", 0)
-            uci:commit("dhcp")
         end
+        uci:set("dhcp", "lan4053", "start", input.dhcp_start)
+        uci:set("dhcp", "lan4053", "limit", input.dhcp_limit)
+        uci:set("dhcp", "lan4053", "leasetime", input.dhcp_leasetime)
+        uci:commit("dhcp")
+        uci:set("firewall", "@redirect[0]", "dest_ip", input.ipaddr)
+        uci:commit("firewall")
+        sys:call("/etc/init.d/network reload;/etc/init.d/dnsmasq reload;/etc/init.d/firewall reload")
+
+        -- updte version --
+        update_conf_version()
     else
+        nw:revert("network")
+        uci:revert("dhcp")
         response.errcode = 1
     end
     
@@ -524,7 +597,10 @@ function action_configwan()
     if net then
         net:add_interface(input.ifname)
         nw:commit("network")
+        -- updte version --
+        update_conf_version()
     else
+        nw:revert("network")
         response.errcode = 1
     end
     
