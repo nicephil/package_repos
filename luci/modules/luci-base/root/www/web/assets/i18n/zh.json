@@ -10,7 +10,20 @@
         "EN": "English",
         "ZH": "中文"
     },
+    "PUBLIC":{
+      "ENABLE":  "启用",
+      "DISABLE":  "禁用",
+      "SECONDS": "秒",
+      "MINUTES": "分"
+    },
     "CONFIG":{
+        "BASIC": "基本信息",
+        "DEVICE_INFO": "设备信息",
+        "DEVICE_NAME": "设备名称",
+        "IP_SETTING": "IP 设置",
+        "DHCP_SERVER": "DHCP 服务器",
+        "SETTINGS_NETWORK": "网络配置",
+        "LAN": "LAN口配置",
         "WAN": "WAN口配置",
         "ETH": "物理端口",
         "ETH_AVAILABLE": "可用的Ethernet口",
@@ -30,7 +43,12 @@
         "NOT_LEGAL_MASK": "请填写合法的掩码",        
         "NOT_LEGAL_GATEWAY": "请填写合法的网关",
         "NOT_LEGAL_DNS": "请填写合法的DNS",
+        "NOT_LEGAL_LEASETIME": "请填写合法的租约时间",
+        "NOT_LEGAL_IP_RANGE": "IP地址范围必须为：[{{startip}} - {{endip}}]",
+        "NOT_LEGAL_IP_END": "结束地址不能比开始地址小",
         "NEXT": "下一步",
+        "SKIP": "跳过",
+        "PREVIOUS": "上一步",
         "NOT_NULL": "不可为空",
         "ETH_NORMAL": "链路正常",
         "ETH_DISCONNECT": "链路断开",
@@ -38,7 +56,15 @@
         "RENEW_FAIL": "重新获取DHCP地址失败，请重试！",
         "WAN_RESTART_FAIL": "WAN口配置后重启服务失败，请重试！",
         "WAN_CONFIG_FAIL": "WAN口配置失败，请检查配置后后重试！",
-        "PROTO_WARNING": "请选择一种协议来配置WAN口"
+        "PROTO_WARNING": "请选择一种协议来配置WAN口",
+        "LAN_SETTINGS":{
+          "IP_ADDR": "IP 地址",        
+          "MODE": "模式",
+          "MASK": "掩码",
+          "START_ADDRESS": "开始地址",
+          "END_ADDRESS": "结束地址",
+          "LEASE_TIME": "租约时间"          
+        }
 
     },
     "DIAG":{

@@ -10,7 +10,20 @@
         "EN": "English",
         "ZH": "中文"
     },
+    "PUBLIC":{
+      "ENABLE":  "Enable",
+      "DISABLE":  "Disable",
+      "SECONDS": "Seconds",
+      "MINUTES": "Minutes"
+    },
     "CONFIG":{
+        "BASIC": "Basic Config",
+        "DEVICE_INFO": "Device Information",
+        "DEVICE_NAME": "Device Name",
+        "IP_SETTING": "IP Settings",
+        "DHCP_SERVER": "DHCP Server",       
+        "SETTINGS_NETWORK": "Network Settings",
+        "LAN": "LAN Config",
         "WAN": "WAN Config",
         "ETH": "Physical port",
         "ETH_AVAILABLE": "Available Ethernet",
@@ -30,7 +43,12 @@
         "NOT_LEGAL_MASK": "Please input legal netmask",        
         "NOT_LEGAL_GATEWAY": "Please input legal gateway",
         "NOT_LEGAL_DNS": "Please input legal DNS",
+        "NOT_LEGAL_LEASETIME": "Please input legal lease time",
+        "NOT_LEGAL_IP_RANGE": "The IP address range must be: [{{startip}} - {{endip}}]",   
+        "NOT_LEGAL_IP_END": "End address should not smaller than start address",     
         "NEXT": "Next",
+        "SKIP": "Skip",
+        "PREVIOUS": "Previous",
         "NOT_NULL": " Can not be null",
         "ETH_NORMAL": "Connected",
         "ETH_DISCONNECT": "Disconnected",
@@ -38,7 +56,15 @@
         "RENEW_FAIL": "Fail to renew the DHCP, please try again!",
         "WAN_RESTART_FAIL": "WAN restart failed, please try again!",
         "WAN_CONFIG_FAIL": "Wrong WAN configuration, please check and try again!",
-        "PROTO_WARNING": "Please select one of the protocal to configurate the WAN port"
+        "PROTO_WARNING": "Please select one of the protocal to configurate the WAN port",
+        "LAN_SETTINGS":{
+          "IP_ADDR": "IP Address",
+          "MASK": "Mask",
+          "MODE": "Mode",
+          "START_ADDRESS": "Start Address",
+          "END_ADDRESS": "End Address",
+          "LEASE_TIME": "Lease Time"
+        }
     },
     "DIAG":{
         "DIAG_PAGE": "Diagnose",
