@@ -202,9 +202,9 @@ class StatusMgr(threading.Thread):
             'data': json.dumps({'list':[v for k,v in ifs_state.iteritems()]}),
         }
 
-        self.mailbox.pub(const.STATUS_Q, (1, info_msg), timeout=0)
+        self.mailbox.pub(const.STATUS_Q, (200, info_msg), timeout=0)
 
-        self.if_status_timer = threading.Timer(10, self.if_status_timer_func)
+        self.if_status_timer = threading.Timer(60, self.if_status_timer_func)
         self.if_status_timer.name = 'IF_Status'
         self.if_status_timer.start()
         return info_msg
