@@ -15,6 +15,16 @@ netmask="$2"
 uci set network.lan4053.ipaddr="${ipaddr}"
 uci set network.lan4053.netmask="${netmask}"
 uci commit network
+# need to adjust router.oakridge.vip --> lanip mapping
+# dhcp.@dnsmasq[0].address='/router.oakridge.vip/172.16.254.254'
+uci set dhcp.@dnsmasq[0].address="/router.oakridge.vip/${ipaddr}"
+uci commit dhcp
+# need to adjust firewall 80 mapping
+# firewall.@redirect[0].dest_ip='172.16.254.254'
+uci set firewall.@redirect[0].dest_ip="${ipaddr}"
+uci commit firewall
+
+
 
 ifconfig eth3 $ipaddr netmask $nemask
 
