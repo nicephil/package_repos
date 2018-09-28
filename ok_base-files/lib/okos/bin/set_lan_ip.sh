@@ -23,6 +23,10 @@ uci commit dhcp
 # firewall.@redirect[0].dest_ip='172.16.254.254'
 uci set firewall.@redirect[0].dest_ip="${ipaddr}"
 uci commit firewall
+# need to update webuiconfig file also
+uci set webui_config.lan4053.ipaddr="${ipaddr}"
+uci set webui_config.lan4053.netmask="${netmask}"
+uci commit webui_config
 
 ifconfig eth3 $ipaddr netmask $netmask
 

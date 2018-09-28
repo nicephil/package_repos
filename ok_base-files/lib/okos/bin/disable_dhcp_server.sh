@@ -5,13 +5,13 @@ if [ $# -ne 0 ]; then
     exit 1
 fi
 
-uci delete dhcp.lan4053
-uci delete dhcp.lan4053.interface
-uci delete dhcp.lan4053.start
-uci delete dhcp.lan4053.limit
-uci delete dhcp.lan4053.leasetime
+uci set dhcp.lan4053.ignore="1"
+uci set dhcp.@dnsmasq[0].notinterface="wan wan1 wan2 lan4053"
+uci commit dhcp
 
-uci commit network
+# need to update webui_config
+uci set webui_config.lan4053.dhcp_server_enable="0"
+uci commit webui_config
 
 
 /etc/init.d/dnsmasq restart
