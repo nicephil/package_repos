@@ -93,8 +93,12 @@ class ConfMgr(threading.Thread):
             if 'gateway' in network_conf[sid]:
                 e_data['gateway'] = network_conf[sid]['gateway']
             if 'dns' in network_conf[sid]:
+                e_data['dnss'] = ""
                 for _dns in network_conf[sid]['dns']:
-                    e_data['dnss'] = e_data['dnss'] + _dns
+                    if not e_data['dnss']:
+                        e_data['dnss'] = _dns
+                    else:
+                        e_data['dnss'] = e_data['dnss'] + "," + _dns
             if sid == 'lan4053':
                 e_data['type'] = 1
                 e_data['ips'][0]['ip'] = webui_conf[sid]['ipaddr']
