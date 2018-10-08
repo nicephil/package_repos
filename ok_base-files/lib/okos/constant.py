@@ -74,9 +74,9 @@ const.DEV_CONF_PORT_STATE = {'up':1, 'down':0}
 const.CONFIG_BIN_DIR = '/lib/okos/bin/'
 const.PORT_MAPPING = [
         {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan', 'logic': 'e0', 'phy': 'eth0'},
-        {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan1', 'logic': 'e1', 'phy': 'eth0'},
-        {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan2', 'logic': 'e2', 'phy': 'eth0'},
-        {'type': const.DEV_CONF_PORT_TYPE['lan'], 'ifname': 'lan4053', 'logic': 'e3', 'phy': 'eth0'},
+        {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan1', 'logic': 'e1', 'phy': 'eth1'},
+        {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan2', 'logic': 'e2', 'phy': 'eth2'},
+        {'type': const.DEV_CONF_PORT_TYPE['lan'], 'ifname': 'lan4053', 'logic': 'e3', 'phy': 'eth3'},
         ]
 
 const.PORT_MAPPING_PHY = {ifx['phy']:ifx for ifx in const.PORT_MAPPING}
