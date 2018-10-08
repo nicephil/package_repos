@@ -34,6 +34,16 @@ class CfgInterface(CfgObj):
     @logcfg
     def change(self):
         log_debug("[Config] Start to change interface [%s] config." % (self.data['logic_ifname']))
+        new = self.data
+        if new.setdefault('type', -1) == -1:
+            log_warning('[Config] Config port TYPE as nothing <%s>' % (new))
+            return False
+        if new.setdefault('status', -1) == -1:
+            log_warning('[Config] Config port MODE as nothing <%s>' % (new))
+            return False
+        if new.setdefault('ip_type', -1) == -1:
+            log_warning('[Config] Config port IP TYPE as nothing <%s>' % (new))
+            return False
         change_hooks = {
                 'e0': self.change_wan_config,
                 'e1': self.change_wan_config,
@@ -81,9 +91,8 @@ class CfgInterface(CfgObj):
             # For DHCP
             if new['ip_type'] == 0:
                 log_debug('[Config] Set DHCP on WAN port %s' % (logic_name))
-                #new['manual_dns'] = 1
                 try:
-                    dnss = (new['manual_dns'] and new['dnss']) and new['dnss'] or ''
+                    dnss = (new.setdefault('manual_dns',0) and new.setdefault('dnss','')) and new['dnss'] or ''
                 except Exception as e:
                     log_warning('[Config] Acquire parameter failed with error %s' % (str(e)))
                     log_debug('[Config] configuration:\n%s\n' % (new))
