@@ -52,6 +52,15 @@ def log_err(msg):
 def log_crit(msg):
     MyLogger.critical(msg)
 
+def logcfg(func):
+    def wrapper(*args, **kwargs):
+        log_debug("[Config] Start to <%s:%s>:" % (args[0].__class__.__name__, func.__name__))
+        res = func(*args, **kwargs)
+        log_debug("[Config] <%s:%s> is done." % (args[0].__class__.__name__, func.__name__))
+        #log_debug("<%s> is done." % func.__name__)
+        return res
+    return wrapper
+
 def logit(func):
     def wrapper(*args, **kwargs):
         log_debug("Start to <%s:%s>:" % (args[0].__class__.__name__, func.__name__))

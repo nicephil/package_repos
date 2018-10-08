@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse, os, subprocess, re, json
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logit
+from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logcfg
 from constant import const
 
 class CfgObj(object):
@@ -36,34 +36,34 @@ class CfgObj(object):
         self.run = self.noop
         return self
 
-    @logit
+    @logcfg
     def parse(self, j):
         pass
 
-    @logit
+    @logcfg
     def add(self):
         log_debug(self.data)
         #return True
 
-    @logit
+    @logcfg
     def remove(self):
         log_debug(self.data)
         #return True
 
-    @logit
+    @logcfg
     def change(self):
         log_debug(self.data)
         #return True
 
-    @logit
+    @logcfg
     def noop(self):
         return True
 
-    @logit
+    @logcfg
     def pre_run(self):
         return True
 
-    @logit
+    @logcfg
     def post_run(self):
         return True
 
@@ -72,16 +72,18 @@ class CfgObj(object):
         cmd = ['/lib/okos/bin/set_..._.sh', '33', '201'] ; shell = False
         cmd = ['/lib/okos/bin/set_..._.sh 33 201'] ; shell = True
         '''
-        log_debug("Do - %s - " % (cmd))
+        log_debug("[Config] Do - %s - " % (cmd))
         try:
             res = subprocess.check_call(cmd)
         except subprocess.CalledProcessError as e:
             log_warning("Execute %s failed!" % (e.cmd))
+            return False
         except Exception as e:
             log_warning("Execute %s failed with %s!" % (cmd, type(e).__name__))
-        log_debug("Do - %s - return %d" % (cmd, res))
+            return False
+        log_debug("[Config] Do - %s - return %d" % (cmd, res))
 
-    @logit
+    @logcfg
     def diff(self, new, old):
         differ = self.differ
         if not differ:

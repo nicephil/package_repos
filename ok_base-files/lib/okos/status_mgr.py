@@ -68,11 +68,12 @@ class StatusMgr(threading.Thread):
         # We could make a node on ubus to record all these mapping infor.
         # From port name to interface type.
         #   0: wan; 1: lan; 2: bridge; 3: none; 4: gre;
-        port_mapping = {'eth0': {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan', 'alias': 'e0'},
-                        'eth1': {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan1', 'alias': 'e1'},
-                        'eth2': {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan2', 'alias': 'e2'},
-                        'eth3': {'type': const.DEV_CONF_PORT_TYPE['lan'], 'ifname': 'lan4053', 'alias': 'e3'},
-        }
+        #port_mapping = {'eth0': {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan', 'logic': 'e0'},
+                        #'eth1': {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan1', 'logic': 'e1'},
+                        #'eth2': {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan2', 'logic': 'e2'},
+                        #'eth3': {'type': const.DEV_CONF_PORT_TYPE['lan'], 'ifname': 'lan4053', 'logic': 'e3'},
+        #}
+        port_mapping = const.PORT_MAPPING_PHY
         #type_mapping = {'eth0':0, 'eth1':3, 'eth2':1, 'eth3':3}
         #ifname_mapping = {'eth0':'wan', 'eth1':'wan1', 'eth2':'wan2', 'eth3':'lan4053'}
         try:
@@ -110,7 +111,7 @@ class StatusMgr(threading.Thread):
             network_device_status = {k:v for k,v in network_device_status.iteritems() if k.startswith('eth')}
             ifs_state = {ifname: {
                     'ifname': ifname,
-                    'name': port_mapping[ifname]['alias'],
+                    'name': port_mapping[ifname]['logic'],
                     'type': port_mapping[ifname]['type'],
                     'physical_state': data['carrier'] and 1 or 0,
                     #'mac': data['macaddr'],
