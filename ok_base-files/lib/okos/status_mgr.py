@@ -25,7 +25,10 @@ class StatusMgr(threading.Thread):
         self.term = False
         self.conf_mgr = conf_mgr
         self.mailbox = mailbox
-        self.vs = vici.Session()
+        try:
+            self.sv = vici.Session()
+        except Exception,e:
+            log_warning("vici session init failed, {}".format(e))
         self.prev_conn_list = []
         self.cpu_mem_timer = threading.Timer(1, self.cpu_mem_timer_func)
         self.cpu_mem_timer.name = 'CPU_MEM_Status'
@@ -131,7 +134,7 @@ class StatusMgr(threading.Thread):
             })
         except Exception as e:
             log_warning('Generate interface link status with error: %s,%s' % (type(e).__name__,e))
- 
+
         try:
             update_ifs_state({ifname: {
                     'status': data['proto'] != 'none' and 1 or 0,
@@ -189,7 +192,7 @@ class StatusMgr(threading.Thread):
                     'pppoe_password': network_conf[data['ifname']]['password'],
                 } or {}
                 for ifname, data in port_mapping.iteritems()
-            }) 
+            })
         except Exception as e:
             log_warning('Generate interface pppoe infor with error: %s,%s' % (type(e).__name__,e))
         try:
@@ -202,7 +205,7 @@ class StatusMgr(threading.Thread):
             })
         except Exception as e:
             log_warning('Generate interface dhcp infor with error: %s,%s' % (type(e).__name__, sys.exc_info()[0]))
-        
+
         info_msg = {
             'operate_type': const.DEV_IF_STATUS_RESP_OPT_TYPE,
             'timestamp': int(time.time()),
@@ -237,7 +240,11 @@ class StatusMgr(threading.Thread):
         if 'port_status' in productinfo_data:
             data_json['port_status'] = productinfo_data['port_status']
         data_json['uptime'] = int(round(time.time() - psutil.BOOT_TIME))
-        data_json['internal_ip'] = ni.ifaddresses(productinfo_data['eth_port'])[ni.AF_INET][0]['addr']
+        try:
+            data_json['internal_ip'] = ni.ifaddresses(productinfo_data['eth_port'])[ni.AF_INET][0]['addr']
+        except:
+            data_json['internal_ip'] = ni.ifaddresses('pppoe-wan')[ni.AF_INET][0]['addr']
+
         confinfo_data = self.conf_mgr.get_confinfo_data()
         data_json['config_version'] = confinfo_data['config_version']
         try:
