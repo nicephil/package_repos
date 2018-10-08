@@ -15,7 +15,10 @@ class ConfMgr(threading.Thread):
         self.name = 'ConfMgr'
         self.mailbox = mailbox
         self.term = False
-        self.sv = vici.Session()
+        try:
+            self.sv = vici.Session()
+        except Exception,e:
+            log_warning("vici session init failed, {}".format(e))
         self.productinfo_data = okos_utils.get_productinfo()
         self.confinfo_data = okos_utils.get_whole_confinfo()
         self.capwapc_data = okos_utils.get_capwapc()
