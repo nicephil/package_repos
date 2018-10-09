@@ -66,6 +66,10 @@ const.DEV_REBOOT_OPT_TYPE = 2007
 const.DEV_WEBUI_CONF_REQ_OPT_TYPE = 2009
 const.DEV_WEBUI_CONF_RESP_OPT_TYPE = 2010
 
+# diag request
+const.DEV_DIAG_REQ_OPT_TYPE = 2011
+const.DEV_DIAG_RESP_OPT_TYPE = 2012
+
 #
 const.DEV_CONF_PORT_TYPE = {'none':-1, 'wan':0, 'lan':1, 'bridge':2, }
 const.DEV_CONF_PORT_MODE = {'full':1, 'half':2}

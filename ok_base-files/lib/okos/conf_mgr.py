@@ -31,11 +31,18 @@ class ConfMgr(threading.Thread):
         self.handlers[const.DEV_CONF_OPT_TYPE]['request_handler'] = self.handle_conf
         self.handlers[const.DEV_CONF_OPT_TYPE]['response_handler'] = self.conf_response
         self.handlers[const.DEV_CONF_OPT_TYPE]['response_id'] = const.DEV_CONF_RESP_OPT_TYPE
+
         # webui conf_query
         self.handlers[const.DEV_WEBUI_CONF_REQ_OPT_TYPE] = {}
         self.handlers[const.DEV_WEBUI_CONF_REQ_OPT_TYPE]['request_handler'] = self.handle_webuiconf_query
         self.handlers[const.DEV_WEBUI_CONF_REQ_OPT_TYPE]['response_handler'] = self.webuiconf_query_response
         self.handlers[const.DEV_WEBUI_CONF_REQ_OPT_TYPE]['response_id'] = const.DEV_WEBUI_CONF_RESP_OPT_TYPE
+
+        # diag request
+        self.handlers[const.DEV_DIAG_REQ_OPT_TYPE] = {}
+        self.handlers[const.DEV_DIAG_REQ_OPT_TYPE]['request_handler'] = self.handle_diag_request
+        self.handlers[const.DEV_DIAG_REQ_OPT_TYPE]['response_handler'] = self.diag_request_response
+        self.handlers[const.DEV_DIAG_REQ_OPT_TYPE]['response_id'] = const.DEV_DIAG_RESP_OPT_TYPE
 
         # reboot_request
         self.handlers[const.DEV_REBOOT_OPT_TYPE]  = {}
@@ -66,6 +73,73 @@ class ConfMgr(threading.Thread):
 
     def get_capwapc(self):
         return self.capwapc_data
+
+    def handle_diag_request(self, request):
+        '''
+        name: e0
+        ip_type: 0 - dhcp, 2 - pppoe
+        pppoe_username:
+        pppoe_password:
+        dnss
+        '''
+        data = json.loads(request['data'], encoding='utf-8')
+        log_err("+++++++++>{}".format(data))
+        ret = 0
+        if data['ip_type'] == 0:
+            # set config
+            name = data['name']
+            if name == 'e0':
+                lname = "wan"
+            elif name == 'e1':
+                lname = "wan1"
+            elif name == 'e2':
+                lname = "wan2"
+            else:
+                log_warning('{} is not a wan'.format(name))
+            try:
+                ubus.call('uci', 'set', {'config':'network', 'section':lname, 'proto':'dhcp'})
+                ubus.call('uci', 'apply', {})
+                # reload network
+                ubus.call('network', 'reload', {})
+                # get if status
+                if_status = ubus.call('network.interface.{}'.format(lname), 'status', {})
+                # revert config
+                ubus.call('uci', 'revert', {'config':'network'})
+                ubus.call('network', 'reload', {})
+                log_err("------>{}".format(if_status))
+            except Exception, e:
+                log_warning("name:{} diag failure, e:{}".format(name, e))
+                ret = 1
+            pass
+        elif data['ip_type'] == 2:
+            pass
+        else:
+            log_warning("ip_type:{} is not supported for diag".format(data['ip_type']))
+        return ret
+
+    def diag_request_response(self, ret, request, response_id):
+        '''
+        name:
+        result_code: 0 - success, 1 - failure
+        ip:
+        netmask:
+        gateway:
+        dnss:
+        '''
+        json_data = {}
+        json_data['name'] = 'e1'
+        json_data['ip'] = '192.168.254.68'
+        json_data['netmask'] = '255.255.255.0'
+        json_data['gateway'] = '192.168.254.254'
+        json_data['dnss'] = '8.8.8.8,192.168.254.254'
+        json_data['result_code'] = ret
+        msg = {}
+        msg['operate_type'] = response_id
+        msg['cookie_id'] = request['cookie_id']
+        msg['timestamp'] = int(time.time())
+        msg['data'] = json.dumps(json_data)
+        self.mailbox.pub(const.STATUS_Q, (1, msg), timeout=0)
+        return
 
     def handle_webuiconf_query(self, request):
         ret = 0

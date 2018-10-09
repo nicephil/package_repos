@@ -13,7 +13,7 @@ class MailBox(object):
         ret = 0
         log_debug("IN:publish msgid: '{msgid}', msgbody: {msgbody}".format(msgid=msgid, msgbody=msgbody))
         if not msgbody or (isinstance(msgbody, tuple) and not msgbody[1]):
-            log_debug("OUT:publish msgid: '{msgid}', msgbody: {msgbody}".format(msgid=msgid, msgbody=msgbody))
+            #log_debug("OUT:publish msgid: '{msgid}', msgbody: {msgbody}".format(msgid=msgid, msgbody=msgbody))
             return ret
         try:
             queue = self.queues[msgid]
@@ -21,7 +21,7 @@ class MailBox(object):
         except Exception , e:
             log_warning("OUT:publish msgid: '{msgid}' queue put error:{e}".format(msgid=msgid, e=repr(e)))
             ret = -1
-        log_debug("OUT:publish msgid: '{msgid}', msgbody: {msgbody}".format(msgid=msgid, msgbody=msgbody))
+        #log_debug("OUT:publish msgid: '{msgid}', msgbody: {msgbody}".format(msgid=msgid, msgbody=msgbody))
         return ret
 
     def sub(self, msgid, timeout=None):
@@ -33,7 +33,7 @@ class MailBox(object):
         except Exception, e:
             log_warning("OUT:subscrib msgid: '{msgid}' queue get error:{e}".format(msgid=msgid, e=repr(e)))
             msgbody = None
-        log_debug("OUT:subcribe msgid: '{msgid}', msgbody: {msgbody}".format(msgid=msgid, msgbody=msgbody))
+        #log_debug("OUT:subcribe msgid: '{msgid}', msgbody: {msgbody}".format(msgid=msgid, msgbody=msgbody))
         return msgbody
 
     def get_all(self, msgid):
@@ -44,5 +44,5 @@ class MailBox(object):
             msgbody.append(q.get_nowait())
         if len(msgbody) == 0:
             msgbody = None
-        log_debug("OUT:get_all msgid: '{msgid}', msgbody: {msgbody}".format(msgid=msgid, msgbody=msgbody))
+        #log_debug("OUT:get_all msgid: '{msgid}', msgbody: {msgbody}".format(msgid=msgid, msgbody=msgbody))
         return msgbody

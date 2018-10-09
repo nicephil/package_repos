@@ -30,6 +30,11 @@ class OKOSMgr(object):
     def create_pipe(self, pipe_name):
         pipe_f = None
         try:
+            os.remove(self.pipe_name)
+        except Exception, e:
+            pass
+
+        try:
             os.mkfifo(pipe_name)
             pipe_f = os.open(self.pipe_name, os.O_SYNC |os.O_CREAT | os.O_RDWR|os.O_NONBLOCK)
         except Exception, e:
