@@ -86,7 +86,7 @@ class CfgInterface(CfgObj):
             log_warning('[Config] Config WAN port as LAN. <%s>' % (new))
             return False
         # Enable interface
-        port_mapping = const.PORT_MAPPING_LOGIC
+        port_mapping = {ifx:c['ifname'] for ifx, c in const.PORT_MAPPING_LOGIC.iteritems()}
         if new['status']:
             # For DHCP
             if new['ip_type'] == 0:
@@ -97,7 +97,8 @@ class CfgInterface(CfgObj):
                     log_warning('[Config] Acquire parameter failed with error %s' % (str(e)))
                     log_debug('[Config] configuration:\n%s\n' % (new))
                     return False
-                self.doit([const.CONFIG_BIN_DIR+'set_wan_dhcp.sh', port_mapping[logic_name]['ifname'], dnss])
+                self.doit([const.CONFIG_BIN_DIR+'set_wan_dhcp.sh', port_mapping[logic_name],
+                    '-d', dnss, ])
                 return True
             # For static ip
             if new['ip_type'] == 1:
@@ -117,18 +118,28 @@ class CfgInterface(CfgObj):
                 log_info("[Config] Set Static IP on WAN port <%s>" % (logic_name))
                 ips_str = ','.join(['%s/%s' % (ip['ip'], ip['netmask']) for ip in ips])
                 log_debug('[Config] ip list %s' % (ips_str))
-                self.doit([const.CONFIG_BIN_DIR+'set_wan_static_ip.sh', port_mapping[logic_name]['ifname'], gateway, ips_str, dnss])
+                self.doit([const.CONFIG_BIN_DIR+'set_wan_static_ip.sh',
+                    port_mapping[logic_name], gateway, ips_str, dnss])
                 return True
             # For pppoe
             if new['ip_type'] == 2:
-                pppoe = {'username': new['pppoe_username'],
-                        'password': new['pppoe_password'],
-                        'timeout': new['pppoe_timeout'],
-                        'keepalive': new['pppoe_keep_connected'],
-                        }
-                pass
+                log_debug('[Config] Set PPPOE on WAN port %s' % (logic_name))
+                try:
+                    pppoe = {'username': new['pppoe_username'],
+                            'password': new['pppoe_password'],
+                            'keepalive': int(new.setdefault('pppoe_timeout', 30))/5,
+                            'keepconnected': new.setdefault('pppoe_keep_connected', 1),
+                            }
+                except Exception as e:
+                    log_warning('[Config] Acquire parameter failed with error %s' % (str(e)))
+                    log_debug('[Config] configuration:\n%s\n' % (new))
+                    return False
+                self.doit([const.CONFIG_BIN_DIR+'set_wan_pppoe.sh',
+                    port_mapping[logic_name], pppoe['username'], pppoe['password'],
+                    '-k', pppoe['keepalive'], ])
+                return True
         # Disable interface
         else:
-            self.doit([const.CONFIG_BIN_DIR+'disable_wan_port.sh', logic_name])
+            self.doit([const.CONFIG_BIN_DIR+'disable_port.sh', port_mapping[logic_name]])
         return True
 
