@@ -44,18 +44,20 @@ class CfgInterface(CfgObj):
         if new.setdefault('ip_type', -1) == -1:
             log_warning('[Config] Config port IP TYPE as nothing <%s>' % (new))
             return False
+        port_mapping = {ifx:c['ifname'] for ifx, c in const.PORT_MAPPING_LOGIC.iteritems()}
+        config_name = port_mapping[new['logic_name']]
         change_hooks = {
                 'e0': self.change_wan_config,
                 'e1': self.change_wan_config,
                 'e2': self.change_wan_config,
                 'e3': self.change_lan_config,
                 }
-        res = change_hooks[self.data['logic_ifname']]()
+        res = change_hooks[self.data['logic_ifname']](config_name)
         log_debug("[Config] Change interface [%s] config return (%s)." % (self.data['logic_ifname'], str(res)))
         return res
 
     @logcfg
-    def change_lan_config(self):
+    def change_lan_config(self, config_name):
         log_info('[Config] Execute LAN port config.')
         new = self.data
         if new['type'] != const.DEV_CONF_PORT_TYPE['lan']:
@@ -64,7 +66,7 @@ class CfgInterface(CfgObj):
         if new['ips']:
             ipaddr, netmask = new['ips'][0]['ip'], new['ips'][0]['netmask']
             log_info('[Config] Change IP address of LAN port %s/%s' % (ipaddr, netmask))
-            self.doit([const.CONFIG_BIN_DIR+'set_lan_ip.sh', ipaddr, netmask])
+            self.doit([const.CONFIG_BIN_DIR+'set_lan_ip.sh', config_name, ipaddr, netmask])
         if new['dhcp_server_enable']:
             dhcps_n = {
                     'start': str(new['dhcp_start']),
@@ -72,37 +74,37 @@ class CfgInterface(CfgObj):
                     'leasetime': str(new['dhcp_lease_time']),
                     }
             log_info("[Config] Change DHCP configuration %s" % (dhcps_n))
-            self.doit([const.CONFIG_BIN_DIR+'set_dhcp_server.sh', dhcps_n['start'], dhcps_n['limit'], dhcps_n['leasetime']])
+            self.doit([const.CONFIG_BIN_DIR+'set_dhcp_server.sh', config_name,
+                dhcps_n['start'], dhcps_n['limit'],
+                '-l', dhcps_n['leasetime'], ])
         else:
             log_info("[Config] DHCP Server is disabled")
-            self.doit([const.CONFIG_BIN_DIR+'disable_dhcp_server.sh',])
+            self.doit([const.CONFIG_BIN_DIR+'disable_dhcp_server.sh', config_name, ])
         return True
 
     @logcfg
-    def change_wan_config(self):
+    def change_wan_config(self, config_name):
         new = self.data
-        logic_name = new['logic_ifname']
         if new['type'] != const.DEV_CONF_PORT_TYPE['wan']:
             log_warning('[Config] Config WAN port as LAN. <%s>' % (new))
             return False
         # Enable interface
-        port_mapping = {ifx:c['ifname'] for ifx, c in const.PORT_MAPPING_LOGIC.iteritems()}
         if new['status']:
             # For DHCP
             if new['ip_type'] == 0:
-                log_debug('[Config] Set DHCP on WAN port %s' % (logic_name))
+                log_debug('[Config] Set DHCP on WAN port %s' % (config_name))
                 try:
                     dnss = (new.setdefault('manual_dns',0) and new.setdefault('dnss','')) and new['dnss'] or ''
                 except Exception as e:
                     log_warning('[Config] Acquire parameter failed with error %s' % (str(e)))
                     log_debug('[Config] configuration:\n%s\n' % (new))
                     return False
-                self.doit([const.CONFIG_BIN_DIR+'set_wan_dhcp.sh', port_mapping[logic_name],
+                self.doit([const.CONFIG_BIN_DIR+'set_wan_dhcp.sh', config_name,
                     '-d', dnss, ])
                 return True
             # For static ip
             if new['ip_type'] == 1:
-                log_debug('[Config] Set static ip on WAN port %s' % (logic_name))
+                log_debug('[Config] Set static ip on WAN port %s' % (config_name))
                 try:
                     ips = new['ips']
                     dnss = new['dnss']
@@ -113,17 +115,17 @@ class CfgInterface(CfgObj):
                     return False
 
                 if not dnss:
-                    log_warning('[Config] Set Static IP on WAN port <%s> without DNSs' % (logic_name))
+                    log_warning('[Config] Set Static IP on WAN port <%s> without DNSs' % (config_name))
                     return False
-                log_info("[Config] Set Static IP on WAN port <%s>" % (logic_name))
+                log_info("[Config] Set Static IP on WAN port <%s>" % (config_name))
                 ips_str = ','.join(['%s/%s' % (ip['ip'], ip['netmask']) for ip in ips])
                 log_debug('[Config] ip list %s' % (ips_str))
                 self.doit([const.CONFIG_BIN_DIR+'set_wan_static_ip.sh',
-                    port_mapping[logic_name], gateway, ips_str, dnss])
+                    config_name, gateway, ips_str, dnss])
                 return True
             # For pppoe
             if new['ip_type'] == 2:
-                log_debug('[Config] Set PPPOE on WAN port %s' % (logic_name))
+                log_debug('[Config] Set PPPOE on WAN port %s' % (config_name))
                 try:
                     pppoe = {'username': new['pppoe_username'],
                             'password': new['pppoe_password'],
@@ -135,11 +137,11 @@ class CfgInterface(CfgObj):
                     log_debug('[Config] configuration:\n%s\n' % (new))
                     return False
                 self.doit([const.CONFIG_BIN_DIR+'set_wan_pppoe.sh',
-                    port_mapping[logic_name], pppoe['username'], pppoe['password'],
+                    config_name, pppoe['username'], pppoe['password'],
                     '-k', pppoe['keepalive'], ])
                 return True
         # Disable interface
         else:
-            self.doit([const.CONFIG_BIN_DIR+'disable_port.sh', port_mapping[logic_name]])
+            self.doit([const.CONFIG_BIN_DIR+'disable_port.sh', config_name, ])
         return True
 
