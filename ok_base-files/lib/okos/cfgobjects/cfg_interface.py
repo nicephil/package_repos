@@ -44,15 +44,21 @@ class CfgInterface(CfgObj):
         if new.setdefault('ip_type', -1) == -1:
             log_warning('[Config] Config port IP TYPE as nothing <%s>' % (new))
             return False
-        port_mapping = {ifx:c['ifname'] for ifx, c in const.PORT_MAPPING_LOGIC.iteritems()}
-        config_name = port_mapping[new['logic_name']]
+        port_mapping = const.PORT_MAPPING_LOGIC
+        config_name = port_mapping[new['logic_ifname']]['ifname']
+        log_debug('[Config] config name of %s is %s' % (self.data['logic_ifname'], config_name))
         change_hooks = {
                 'e0': self.change_wan_config,
                 'e1': self.change_wan_config,
                 'e2': self.change_wan_config,
                 'e3': self.change_lan_config,
                 }
-        res = change_hooks[self.data['logic_ifname']](config_name)
+        try:
+            res = change_hooks[self.data['logic_ifname']](config_name)
+        except Exception as e:
+            log_warning('[Config] change_hooks() failed with error %s' % (str(e)))
+            log_debug('[Config] configuration:\n%s\n' % (new))
+            return False
         log_debug("[Config] Change interface [%s] config return (%s)." % (self.data['logic_ifname'], str(res)))
         return res
 
@@ -95,12 +101,15 @@ class CfgInterface(CfgObj):
                 log_debug('[Config] Set DHCP on WAN port %s' % (config_name))
                 try:
                     dnss = (new.setdefault('manual_dns',0) and new.setdefault('dnss','')) and new['dnss'] or ''
+                    default_route_enable = new.setdefault('default_route_enable', 0)
                 except Exception as e:
                     log_warning('[Config] Acquire parameter failed with error %s' % (str(e)))
                     log_debug('[Config] configuration:\n%s\n' % (new))
                     return False
-                self.doit([const.CONFIG_BIN_DIR+'set_wan_dhcp.sh', config_name,
-                    '-d', dnss, ])
+                cmd = [const.CONFIG_BIN_DIR+'set_wan_dhcp.sh', config_name]
+                cmd += dnss and ['-d', dnss] or []
+                cmd += default_route_enable and ['-r',] or ['-R',]
+                self.doit(cmd)
                 return True
             # For static ip
             if new['ip_type'] == 1:
@@ -109,6 +118,8 @@ class CfgInterface(CfgObj):
                     ips = new['ips']
                     dnss = new['dnss']
                     gateway = new['gateway']
+                    default_route_enable = new.setdefault('default_route_enable', 0)
+                    default_route_ip = default_route_enable and new['default_route_ip'] or ''
                 except Exception as e:
                     log_warning('[Config] Acquire parameter failed with error %s' % (str(e)))
                     log_debug('[Config] configuration:\n%s\n' % (new))
@@ -120,8 +131,9 @@ class CfgInterface(CfgObj):
                 log_info("[Config] Set Static IP on WAN port <%s>" % (config_name))
                 ips_str = ','.join(['%s/%s' % (ip['ip'], ip['netmask']) for ip in ips])
                 log_debug('[Config] ip list %s' % (ips_str))
-                self.doit([const.CONFIG_BIN_DIR+'set_wan_static_ip.sh',
-                    config_name, gateway, ips_str, dnss])
+                cmd = [const.CONFIG_BIN_DIR+'set_wan_static_ip.sh', config_name, gateway, ips_str, dnss]
+                cmd += default_route_ip and ['-r', default_route_ip] or ['-R',]
+                self.doit(cmd)
                 return True
             # For pppoe
             if new['ip_type'] == 2:
@@ -132,13 +144,14 @@ class CfgInterface(CfgObj):
                             'keepalive': int(new.setdefault('pppoe_timeout', 30))/5,
                             'keepconnected': new.setdefault('pppoe_keep_connected', 1),
                             }
+                    default_route_enable = new.setdefault('default_route_enable', 0)
                 except Exception as e:
                     log_warning('[Config] Acquire parameter failed with error %s' % (str(e)))
                     log_debug('[Config] configuration:\n%s\n' % (new))
                     return False
-                self.doit([const.CONFIG_BIN_DIR+'set_wan_pppoe.sh',
-                    config_name, pppoe['username'], pppoe['password'],
-                    '-k', pppoe['keepalive'], ])
+                cmd = [const.CONFIG_BIN_DIR+'set_wan_pppoe.sh', config_name, pppoe['username'], pppoe['password'], '-k', pppoe['keepalive'], ]
+                cmd += default_route_enable and ['-r',] or ['-R',]
+                self.doit(cmd)
                 return True
         # Disable interface
         else:

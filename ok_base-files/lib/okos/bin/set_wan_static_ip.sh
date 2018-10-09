@@ -7,8 +7,8 @@ Setup WAN port on static ip mode.
 Usage: $0 [wan|wan1|wan2] GATEWAY IPADDR/NETMASK[,IPADDR/NETMASK] DNS[,DNS]
         [-R] [-r IPADDRx]
 
-        -g # Add default route on this WAN port
-        -G # Don't add default route on this WAN port
+        -r # Add default route on this WAN port
+        -R # Don't add default route on this WAN port
 Example:
     $0 wan 192.168.254.254 192.168.254.101/255.255.255.0,192.168.254.102/255.255.255.0,192.168.254.103/255.255.255.0 8.8.8.8,9.9.9.9 # set wan port with 3 ip addresses
     $0 wan1 172.16.139.254 172.16.139.250/255.255.255.0 8.8.8.8 -R # Set wan1 as static ip without default route.
