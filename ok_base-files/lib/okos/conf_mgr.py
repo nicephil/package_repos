@@ -8,6 +8,9 @@ from constant import const
 import vici
 import os
 import ubus
+import subprocess
+from datetime import datetime
+from signal import SIGTERM
 
 class ConfMgr(threading.Thread):
     def __init__(self, mailbox):
@@ -95,7 +98,7 @@ class ConfMgr(threading.Thread):
             lname = "wan2"
         else:
             log_warning('{} is not a wan'.format(name))
-            ret['result_code'] = 1
+            ret['error_code'] = 1
             return ret
 
         if data['ip_type'] == 0: # dhcp
@@ -108,37 +111,67 @@ class ConfMgr(threading.Thread):
                 time.sleep(5)
             except Exception, e:
                 log_warning("name:{} diag failure, {}".format(name, e))
-                ret['result_code'] = 1
+                ret['error_code'] = const.COMMON_FAILURE
                 return ret
 
         elif data['ip_type'] == 2: # pppoe
             try:
                 param = {'config':'network', 'section':lname, 'values':{'proto':'pppoe', 'username':data['pppoe_username'], 'password':data['pppoe_password']}}
                 ubus.call('uci', 'set', param)
-                ubus.call('uci', 'apply', {})
-                # open scan log
-                ps = subprocess.Popen('logread -f', stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True)
+                ubus.call('uci', 'commit', {'config':'network'})
+                # monitor log
+                ps = subprocess.Popen('logread -f|grep "pppd"', stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True,cwd='/tmp',preexec_fn=os.setsid)
+                ubus.call('network', 'reload', {})
+                old = datetime.now()
+                ret['error_code'] = const.PPPOE_CAN_NOT_CONNECTED
                 while True:
+                    if (datetime.now() - old).seconds >= 60:
+                        os.killpg(os.getpgid(ps.pid), SIGTERM)
+                        ret['error_code'] = const.PPPOE_CAN_NOT_CONNECTED # no timeout
+                        break
                     data = ps.stdout.readline()
                     if data == b'':
-                        if not ps.poll():
+                        if ps.poll() is not None:
                             break
-                ubus.call('network', 'reload', {})
+                    elif data.find('Unable to complete PPPoE Discovery'):
+                        ret['error_code'] = const.PPPOE_DISCOVERY_ERROR # discovery error
+                        os.killpg(os.getpgid(ps.pid), SIGTERM)
+                        print "waaaaaaaaaaaaaaaaaaaaaaaaaaaaa:{}".format(ret)
+                        break
+                    elif data.find('Serial link appears to be disconnected'):
+                        ret['error_code'] = const.PPPOE_AUTH_ERR # LCP error
+                        os.killpg(os.getpgid(ps.pid), SIGTERM)
+                        print "yaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:{}".format(ret)
+                        break
+                    elif data.find('CHAP authentication failed: Access denied'):
+                        ret['error_code'] = const.PPPOE_AUTH_ERR # authentication error
+                        os.killpg(os.getpgid(ps.pid), SIGTERM)
+                        print "yaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:{}".format(ret)
+                        break
+                    elif data.find('Interface \'{}\' is now up'.format(lname)):
+                        ret['error_code'] = const.COMMON_SUCCESS # authentication error
+                        print "xaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:{}".format(ret)
+                        os.killpg(os.getpgid(ps.pid), SIGTERM)
+                        break
+                    print "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:{}".format(ret)
+                if ret['error_code'] != const.COMMON_SUCCESS:
+                    return ret
+
             except Exception, e:
                 log_warning("name:{} diag failure, {}".format(name, e))
-                ret['result_code'] = 1
+                ret['error_code'] = const.PPPOE_CAN_NOT_CONNECTED
                 return ret
 
         else: # other not support
             log_warning("ip_type:{} is not supported for diag".format(data['ip_type']))
-            ret['result_code'] = 1
+            ret['error_code'] = const.COMMON_FAILURE
             return ret
 
         try:
             # get if status
             if_status = ubus.call('network.interface.{}'.format(lname), 'status', {})[0]
             # init ret
-            ret['result_code'] = 0
+            ret['error_code'] = const.COMMON_SUCCESS
             ret['ip'] = if_status['ipv4-address'][0]['address']
             ret['netmask'] = "255.255.255.0"
             ret['gateway'] = if_status['route'][0]['target']
@@ -149,11 +182,11 @@ class ConfMgr(threading.Thread):
                 else:
                     ret['dnss'] = ret['dnss'] + ',' + dns
             # revert config
-            ubus.call('uci', 'revert', {'config':'network'})
-            ubus.call('network', 'reload', {})
+            #ubus.call('uci', 'revert', {'config':'network'})
+            #ubus.call('network', 'reload', {})
         except Exception, e:
             log_warning("name:{} diag failure, {}".format(name, e))
-            ret['result_code'] = 1
+            ret['error_code'] = const.CAN_NOT_GET_IP
             return ret
 
         return ret
@@ -161,7 +194,7 @@ class ConfMgr(threading.Thread):
     def diag_request_response(self, ret, request, response_id):
         '''
         name:
-        result_code: 0 - success, 1 - failure
+        error_code: 0 - success, 1 - failure
         ip:
         netmask:
         gateway:

@@ -86,3 +86,22 @@ const.PORT_MAPPING = [
 const.PORT_MAPPING_PHY = {ifx['phy']:ifx for ifx in const.PORT_MAPPING}
 const.PORT_MAPPING_LOGIC = {ifx['logic']:ifx for ifx in const.PORT_MAPPING}
 const.PORT_MAPPING_CONFIG = {ifx['ifname']:ifx for ifx in const.PORT_MAPPING}
+
+
+
+
+############### Error Code to Oakmgr #####################
+# 1 - 9999 common error code
+const.COMMON_SUCCESS = 0
+const.COMMON_FAILURE = 1
+
+# 10000 - 19999 config error code
+
+# 20000 - 29999 monitor error code
+const.PPPOE_DISCOVERY_ERROR = 20001
+const.PPPOE_AUTH_ERR = 20002
+const.PPPOE_CAN_NOT_CONNECTED = 20003
+const.CAN_NOT_GET_IP = 20004
+
+
+##########################################################
