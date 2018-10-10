@@ -82,6 +82,7 @@ class CfgObj(object):
             log_warning("Execute %s failed with %s!" % (cmd, type(e).__name__))
             return False
         log_debug("[Config] Do - %s - return %d" % (cmd, res))
+        return res == 0 and True or False
 
     @logcfg
     def diff(self, new, old):

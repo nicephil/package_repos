@@ -5,10 +5,11 @@ help()
     cat <<_HELP_
 Setup WAN port on static ip mode.
 Usage: $0 [wan|wan1|wan2] GATEWAY IPADDR/NETMASK[,IPADDR/NETMASK] DNS[,DNS]
-        [-R] [-r IPADDRx]
+        [-R] [-r IPADDRx] [-m MTU]
 
-        -r # Add default route on this WAN port
+        -r IPADDR # Add default route on this WAN port, and set IPADDR as primary IP.
         -R # Don't add default route on this WAN port
+        -m MTU # Set MTU on this interface
 Example:
     $0 wan 192.168.254.254 192.168.254.101/255.255.255.0,192.168.254.102/255.255.255.0,192.168.254.103/255.255.255.0 8.8.8.8,9.9.9.9 # set wan port with 3 ip addresses
     $0 wan1 172.16.139.254 172.16.139.250/255.255.255.0 8.8.8.8 -R # Set wan1 as static ip without default route.
@@ -33,9 +34,14 @@ ips="$3"
 dnss="$4"
 shift 4
 
-defaultroute='1'
+defaultroute='0'
+src_ip=''
+mtu=''
 while [ -n "$1" ]; do
     case $1 in
+        -r) defaultroute='1';src_ip="$2";shift 2;;
+        -R) defaultroute='0';shift;;
+        -m) mtu="$2";shift 2;;
         --) shift;break;;
         -*) help;exit 1;;
         *) break;;
@@ -48,13 +54,24 @@ uci set network.${ifx}='interface'
 uci set network.${ifx}.ifname=$ifname
 uci set network.${ifx}.proto='static'
 uci set network.${ifx}.gateway=$gateway
+uci set network.${ifx}.metric='100'
+
+if [ -n "$mtu" ]; then
+    uci set network.${ifx}.mtu=$mtu
+fi
 
 netmask=''
 #uci delete network.${ifx}.ipaddr
+#if [ $defaultroute = '1' ]; then
+if [ -n "$src_ip" ]; then
+    uci add_list network.${ifx}.ipaddr=$src_ip
+fi
 for ip in ${ips//,/ }; do
     OIFS=$IFS;IFS='/';set -- $ip;ipaddr=$1;netmask=$2;IFS=$OIFS
     #echo $ipaddr $netmask
-    uci add_list network.${ifx}.ipaddr=$ipaddr
+    if [ "$ipaddr" != "$src_ip" ]; then
+        uci add_list network.${ifx}.ipaddr=$ipaddr
+    fi
 done
 uci set network.${ifx}.netmask=$netmask
 
@@ -65,6 +82,10 @@ done
 
 uci commit network
 /etc/init.d/network reload
+
+#if [ $defaultroute = '1' ]; then
+#    ip r add default dev $ifname via $gateway metric 1
+#fi
 
 exit 0
 
