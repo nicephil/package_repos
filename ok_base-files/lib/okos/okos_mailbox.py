@@ -11,7 +11,7 @@ class MailBox(object):
 
     def pub(self, msgid, msgbody, timeout=None):
         ret = 0
-        log_debug("IN:publish msgid: '{msgid}', msgbody: {msgbody}".format(msgid=msgid, msgbody=msgbody))
+        #log_debug("IN:publish msgid: '{msgid}', msgbody: {msgbody}".format(msgid=msgid, msgbody=msgbody))
         if not msgbody or (isinstance(msgbody, tuple) and not msgbody[1]):
             #log_debug("OUT:publish msgid: '{msgid}', msgbody: {msgbody}".format(msgid=msgid, msgbody=msgbody))
             return ret
@@ -26,7 +26,7 @@ class MailBox(object):
 
     def sub(self, msgid, timeout=None):
         msgbody = None
-        log_debug("IN:subcribe msgid: '{msgid}'".format(msgid=msgid))
+        #log_debug("IN:subcribe msgid: '{msgid}'".format(msgid=msgid))
         try:
             queue = self.queues[msgid]
             msgbody = queue.get(timeout=timeout)
@@ -38,7 +38,7 @@ class MailBox(object):
 
     def get_all(self, msgid):
         msgbody = []
-        log_debug("IN:get_all msgid: '{msgid}'".format(msgid=msgid))
+        #log_debug("IN:get_all msgid: '{msgid}'".format(msgid=msgid))
         q = self.queues[msgid]
         while not q.empty():
             msgbody.append(q.get_nowait())

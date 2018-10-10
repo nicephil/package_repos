@@ -84,37 +84,78 @@ class ConfMgr(threading.Thread):
         '''
         data = json.loads(request['data'], encoding='utf-8')
         log_err("+++++++++>{}".format(data))
-        ret = 0
-        if data['ip_type'] == 0:
-            # set config
-            name = data['name']
-            if name == 'e0':
-                lname = "wan"
-            elif name == 'e1':
-                lname = "wan1"
-            elif name == 'e2':
-                lname = "wan2"
-            else:
-                log_warning('{} is not a wan'.format(name))
+        ret = {}
+        name = data['name']
+        ret['name'] = name
+        if name == 'e0':
+            lname = "wan"
+        elif name == 'e1':
+            lname = "wan1"
+        elif name == 'e2':
+            lname = "wan2"
+        else:
+            log_warning('{} is not a wan'.format(name))
+            ret['result_code'] = 1
+            return ret
+
+        if data['ip_type'] == 0: # dhcp
             try:
-                ubus.call('uci', 'set', {'config':'network', 'section':lname, 'proto':'dhcp'})
-                ubus.call('uci', 'apply', {})
+                param = {'config':'network', 'section':lname, 'values':{'proto':'dhcp', 'defaultroute':0}}
+                ubus.call('uci', 'set', param)
+                ubus.call('uci', 'commit', {'config':'network'})
                 # reload network
                 ubus.call('network', 'reload', {})
-                # get if status
-                if_status = ubus.call('network.interface.{}'.format(lname), 'status', {})
-                # revert config
-                ubus.call('uci', 'revert', {'config':'network'})
-                ubus.call('network', 'reload', {})
-                log_err("------>{}".format(if_status))
+                time.sleep(5)
             except Exception, e:
-                log_warning("name:{} diag failure, e:{}".format(name, e))
-                ret = 1
-            pass
-        elif data['ip_type'] == 2:
-            pass
-        else:
+                log_warning("name:{} diag failure, {}".format(name, e))
+                ret['result_code'] = 1
+                return ret
+
+        elif data['ip_type'] == 2: # pppoe
+            try:
+                param = {'config':'network', 'section':lname, 'values':{'proto':'pppoe', 'username':data['pppoe_username'], 'password':data['pppoe_password']}}
+                ubus.call('uci', 'set', param)
+                ubus.call('uci', 'apply', {})
+                # open scan log
+                ps = subprocess.Popen('logread -f', stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True)
+                while True:
+                    data = ps.stdout.readline()
+                    if data == b'':
+                        if not ps.poll():
+                            break
+                ubus.call('network', 'reload', {})
+            except Exception, e:
+                log_warning("name:{} diag failure, {}".format(name, e))
+                ret['result_code'] = 1
+                return ret
+
+        else: # other not support
             log_warning("ip_type:{} is not supported for diag".format(data['ip_type']))
+            ret['result_code'] = 1
+            return ret
+
+        try:
+            # get if status
+            if_status = ubus.call('network.interface.{}'.format(lname), 'status', {})[0]
+            # init ret
+            ret['result_code'] = 0
+            ret['ip'] = if_status['ipv4-address'][0]['address']
+            ret['netmask'] = "255.255.255.0"
+            ret['gateway'] = if_status['route'][0]['target']
+            ret['dnss'] = ""
+            for dns in if_status['dns-server']:
+                if not ret['dnss']:
+                    ret['dnss'] = dns
+                else:
+                    ret['dnss'] = ret['dnss'] + ',' + dns
+            # revert config
+            ubus.call('uci', 'revert', {'config':'network'})
+            ubus.call('network', 'reload', {})
+        except Exception, e:
+            log_warning("name:{} diag failure, {}".format(name, e))
+            ret['result_code'] = 1
+            return ret
+
         return ret
 
     def diag_request_response(self, ret, request, response_id):
@@ -126,13 +167,7 @@ class ConfMgr(threading.Thread):
         gateway:
         dnss:
         '''
-        json_data = {}
-        json_data['name'] = 'e1'
-        json_data['ip'] = '192.168.254.68'
-        json_data['netmask'] = '255.255.255.0'
-        json_data['gateway'] = '192.168.254.254'
-        json_data['dnss'] = '8.8.8.8,192.168.254.254'
-        json_data['result_code'] = ret
+        json_data = ret
         msg = {}
         msg['operate_type'] = response_id
         msg['cookie_id'] = request['cookie_id']
@@ -235,7 +270,7 @@ class ConfMgr(threading.Thread):
                 log_debug('request:{request}'.format(request=request))
                 request_id = request['operate_type']
                 if request_id in self.handlers:
-                    ret = 0
+                    ret = None
                     request_handler = self.handlers[request_id]['request_handler']
                     if request_handler:
                         ret = request_handler(request)
