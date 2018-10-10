@@ -8,6 +8,7 @@ Usage: $0 [wan|wan1|wan2] [-d DNS[,DNS]] [-Gg]
         -d DNS[,DNS] # Manually add dns list
         -r # Add default route on this WAN port, It's default behavior.
         -R # Don't add default route on this WAN port
+        -m MTU # Set MTU on this interface
 Example:
     $0 wan # Set port 'wan' as dhcp mode.
     $0 wan1 -d 8.8.8.8,9.9.9.9 # Set port 'wan' as dhcp mode with manual DNS settings.
@@ -31,11 +32,13 @@ shift 1
 
 dnss=""
 defaultroute='1'
+mtu=''
 while [ -n "$1" ]; do
     case $1 in
         -d) dnss="$2";shift 2;;
         -R) defaultroute='0';shift 1;;
         -r) defaultroute='1';shift 1;;
+        -m) mtu="$2";shift 2;;
         --) shift;break;;
         -*) help;exit 1;;
         *) break;;
@@ -48,6 +51,10 @@ uci set network.${ifx}.ifname=$ifname
 uci set network.${ifx}.proto='dhcp'
 uci set network.${ifx}.defaultroute=$defaultroute
 
+if [ -n "$mtu" ]; then
+    uci set network.${ifx}.mtu=$mtu
+fi
+
 #uci delete network.${ifx}.dns
 if [ -n "$dnss" ]; then
     for dns in ${dnss/,/ }; do
@@ -57,6 +64,10 @@ fi
 
 uci commit network
 /etc/init.d/network reload
+
+#if [ $defaultroute = '1' ]; then
+#    ip r add default dev $ifname metric 1
+#fi
 
 exit 0
 

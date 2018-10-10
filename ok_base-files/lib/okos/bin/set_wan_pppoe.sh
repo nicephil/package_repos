@@ -10,6 +10,7 @@ Usage: $0 [wan|wan1|wan2] USERNAME PASSWORD
         -d DNS[,DNS] # Manually add dns list
         -r # Add default route on this WAN port, it's default behavior.
         -R # Don't add default route on this WAN port
+        -m MTU # Set MTU on this interface
 Example:
     $0 wan hzhz804352 oakridge -k 3 -d '8.8.8.8,9.9.9.9'
     $0 wan1 hzhz804352 oakridge -R # Set wan1 as pppoe without default route.
@@ -35,12 +36,14 @@ shift 3
 keepalive=''
 dnss=''
 defaultroute='1'
+mtu=''
 while [ -n "$1" ]; do
     case $1 in
         -k) keepalive="$2";shift 2;;
         -d) dnss="$2";shift 2;;
         -R) defaultroute='0';shift 1;;
         -r) defaultroute='1';shift 1;;
+        -m) mtu="$2";shift 2;;
         --) shift;break;;
         -*) help;exit 1;;
         *) break;;
@@ -53,6 +56,10 @@ uci set network.${ifx}.ifname=$ifname
 uci set network.${ifx}.proto='pppoe'
 uci set network.${ifx}.username=$username
 uci set network.${ifx}.password=$password
+
+if [ -n "$mtu" ]; then
+    uci set network.${ifx}.mtu=$mtu
+fi
 
 if [ -n "$keepalive" ]; then
     uci set network.${ifx}.keepalive=$keepalive
@@ -69,6 +76,10 @@ fi
 
 uci commit network
 /etc/init.d/network reload
+
+#if [ $defaultroute = '1' ]; then
+#    ip r add default dev $ifname metric 1
+#fi
 
 exit 0
 

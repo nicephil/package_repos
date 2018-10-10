@@ -80,12 +80,14 @@ class CfgInterface(CfgObj):
                     'leasetime': str(new['dhcp_lease_time']),
                     }
             log_info("[Config] Change DHCP configuration %s" % (dhcps_n))
-            self.doit([const.CONFIG_BIN_DIR+'set_dhcp_server.sh', config_name,
+            cmd = [const.CONFIG_BIN_DIR+'set_dhcp_server.sh', config_name,
                 dhcps_n['start'], dhcps_n['limit'],
-                '-l', dhcps_n['leasetime'], ])
+                '-l', dhcps_n['leasetime'], ]
+            return self.doit(cmd)
         else:
             log_info("[Config] DHCP Server is disabled")
-            self.doit([const.CONFIG_BIN_DIR+'disable_dhcp_server.sh', config_name, ])
+            cmd = [const.CONFIG_BIN_DIR+'disable_dhcp_server.sh', config_name, ]
+            return self.doit(cmd)
         return True
 
     @logcfg
@@ -102,6 +104,7 @@ class CfgInterface(CfgObj):
                 try:
                     dnss = (new.setdefault('manual_dns',0) and new.setdefault('dnss','')) and new['dnss'] or ''
                     default_route_enable = new.setdefault('default_route_enable', 0)
+                    mtu = new.setdefault('mtu', 0)
                 except Exception as e:
                     log_warning('[Config] Acquire parameter failed with error %s' % (str(e)))
                     log_debug('[Config] configuration:\n%s\n' % (new))
@@ -109,8 +112,8 @@ class CfgInterface(CfgObj):
                 cmd = [const.CONFIG_BIN_DIR+'set_wan_dhcp.sh', config_name]
                 cmd += dnss and ['-d', dnss] or []
                 cmd += default_route_enable and ['-r',] or ['-R',]
-                self.doit(cmd)
-                return True
+                cmd += mtu and ['-m', str(mtu)] or []
+                return self.doit(cmd)
             # For static ip
             if new['ip_type'] == 1:
                 log_debug('[Config] Set static ip on WAN port %s' % (config_name))
@@ -120,6 +123,7 @@ class CfgInterface(CfgObj):
                     gateway = new['gateway']
                     default_route_enable = new.setdefault('default_route_enable', 0)
                     default_route_ip = default_route_enable and new['default_route_ip'] or ''
+                    mtu = new.setdefault('mtu', 0)
                 except Exception as e:
                     log_warning('[Config] Acquire parameter failed with error %s' % (str(e)))
                     log_debug('[Config] configuration:\n%s\n' % (new))
@@ -133,8 +137,8 @@ class CfgInterface(CfgObj):
                 log_debug('[Config] ip list %s' % (ips_str))
                 cmd = [const.CONFIG_BIN_DIR+'set_wan_static_ip.sh', config_name, gateway, ips_str, dnss]
                 cmd += default_route_ip and ['-r', default_route_ip] or ['-R',]
-                self.doit(cmd)
-                return True
+                cmd += mtu and ['-m', str(mtu)] or []
+                return self.doit(cmd)
             # For pppoe
             if new['ip_type'] == 2:
                 log_debug('[Config] Set PPPOE on WAN port %s' % (config_name))
@@ -145,16 +149,18 @@ class CfgInterface(CfgObj):
                             'keepconnected': new.setdefault('pppoe_keep_connected', 1),
                             }
                     default_route_enable = new.setdefault('default_route_enable', 0)
+                    mtu = new.setdefault('mtu', 0)
                 except Exception as e:
                     log_warning('[Config] Acquire parameter failed with error %s' % (str(e)))
                     log_debug('[Config] configuration:\n%s\n' % (new))
                     return False
                 cmd = [const.CONFIG_BIN_DIR+'set_wan_pppoe.sh', config_name, pppoe['username'], pppoe['password'], '-k', pppoe['keepalive'], ]
                 cmd += default_route_enable and ['-r',] or ['-R',]
-                self.doit(cmd)
-                return True
+                cmd += mtu and ['-m', str(mtu)] or []
+                return self.doit(cmd)
         # Disable interface
         else:
-            self.doit([const.CONFIG_BIN_DIR+'disable_port.sh', config_name, ])
+            cmd = [const.CONFIG_BIN_DIR+'disable_port.sh', config_name, ]
+            return self.doit(cmd)
         return True
 

@@ -5,6 +5,7 @@ help()
     cat <<_HELP_
 Setup LAN port on static ip mode.
 Usage: $0 [lan4053] IPADDR NETMASK
+        -m MTU # Set MTU on this interface
 Example:
     $0 lan4053 192.168.254.254 255.255.255.0 # set lan port with static ip addresses
 _HELP_
@@ -24,8 +25,10 @@ ipaddr="$2"
 netmask="$3"
 shift 3
 
+mtu=''
 while [ -n "$1" ]; do
     case $1 in
+        -m) mtu="$2";shift 2;;
         --) shift;break;;
         -*) help;exit 1;;
         *) break;;
@@ -38,6 +41,11 @@ uci set network.${ifx}.ifname=${ifname}
 uci set network.${ifx}.proto='static'
 uci set network.${ifx}.ipaddr="${ipaddr}"
 uci set network.${ifx}.netmask="${netmask}"
+
+if [ -n "$mtu" ]; then
+    uci set network.${ifx}.mtu=$mtu
+fi
+
 uci commit network
 
 # need to adjust router.oakridge.vip --> lanip mapping
