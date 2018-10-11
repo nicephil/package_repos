@@ -4,6 +4,11 @@ while :
 do
     sleep 30
 
+    echo 3 > /proc/sys/vm/drop_caches
+    top -n1 -d1 -b | logger -t supervisor -p 7
+    ls -la /tmp | logger -t supervisor -p 7
+    df -h | logger -t supervisor -p 7
+    ps w | logger -t supervisor -p 7
 
     capwap_pid=$(pgrep -f "/usr/sbin/ok_capwapc")
     capwap_count=$(echo $capwap_pid | awk '{print NF}')
@@ -50,9 +55,5 @@ do
 	    ulimit -c unlimited;nice -n -15 hostapd_cli -B -a /lib/okos/wifievent.sh
     }
 
-    echo 3 > /proc/sys/vm/drop_caches
-    top -n1 -d1 -b | logger -t supervisor -p 7
-    ls -la /tmp | logger -t supervisor -p 7
-    df -h | logger -t supervisor -p 7
 done
 
