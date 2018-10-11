@@ -10,7 +10,7 @@ import os
 import ubus
 import subprocess
 from datetime import datetime
-from signal import SIGTERM
+from signal import SIGKILL
 
 class ConfMgr(threading.Thread):
     def __init__(self, mailbox):
@@ -116,46 +116,41 @@ class ConfMgr(threading.Thread):
 
         elif data['ip_type'] == 2: # pppoe
             try:
-                param = {'config':'network', 'section':lname, 'values':{'proto':'pppoe', 'username':data['pppoe_username'], 'password':data['pppoe_password']}}
+                param = {'config':'network', 'section':lname, 'values':{'proto':'pppoe', 'username':data['pppoe_username'], 'password':data['pppoe_password'], 'defaultroute':0}}
                 ubus.call('uci', 'set', param)
                 ubus.call('uci', 'commit', {'config':'network'})
                 # monitor log
-                ps = subprocess.Popen('logread -f|grep "pppd"', stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True,cwd='/tmp',preexec_fn=os.setsid)
+                ps = subprocess.Popen('logread -f', stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True,cwd='/tmp',preexec_fn=os.setsid)
                 ubus.call('network', 'reload', {})
-                old = datetime.now()
                 ret['error_code'] = const.PPPOE_CAN_NOT_CONNECTED
+                old = datetime.now()
                 while True:
                     if (datetime.now() - old).seconds >= 60:
-                        os.killpg(os.getpgid(ps.pid), SIGTERM)
-                        ret['error_code'] = const.PPPOE_CAN_NOT_CONNECTED # no timeout
+                        os.killpg(os.getpgid(ps.pid), SIGKILL)
+                        ret['error_code'] = const.PPPOE_CAN_NOT_CONNECTED # timeout
                         break
                     data = ps.stdout.readline()
+                    # print "xxx>:{}:<xxx".format(data)
                     if data == b'':
                         if ps.poll() is not None:
                             break
-                    elif data.find('Unable to complete PPPoE Discovery'):
+                    elif data.find('Unable to complete PPPoE Discovery') != -1:
                         ret['error_code'] = const.PPPOE_DISCOVERY_ERROR # discovery error
-                        os.killpg(os.getpgid(ps.pid), SIGTERM)
-                        print "waaaaaaaaaaaaaaaaaaaaaaaaaaaaa:{}".format(ret)
+                        os.killpg(os.getpgid(ps.pid), SIGKILL)
                         break
-                    elif data.find('Serial link appears to be disconnected'):
+                    elif data.find('Serial link appears to be disconnected') != -1:
                         ret['error_code'] = const.PPPOE_AUTH_ERR # LCP error
-                        os.killpg(os.getpgid(ps.pid), SIGTERM)
-                        print "yaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:{}".format(ret)
+                        os.killpg(os.getpgid(ps.pid), SIGKILL)
                         break
-                    elif data.find('CHAP authentication failed: Access denied'):
+                    elif data.find('CHAP authentication failed: Access denied') != -1:
                         ret['error_code'] = const.PPPOE_AUTH_ERR # authentication error
-                        os.killpg(os.getpgid(ps.pid), SIGTERM)
-                        print "yaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:{}".format(ret)
+                        os.killpg(os.getpgid(ps.pid), SIGKILL)
                         break
-                    elif data.find('Interface \'{}\' is now up'.format(lname)):
+                    elif data.find('Received bad configure-ack') != -1:
                         ret['error_code'] = const.COMMON_SUCCESS # authentication error
-                        print "xaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:{}".format(ret)
-                        os.killpg(os.getpgid(ps.pid), SIGTERM)
+                        os.killpg(os.getpgid(ps.pid), SIGKILL)
                         break
-                    print "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:{}".format(ret)
-                if ret['error_code'] != const.COMMON_SUCCESS:
-                    return ret
+                return ret
 
             except Exception, e:
                 log_warning("name:{} diag failure, {}".format(name, e))
