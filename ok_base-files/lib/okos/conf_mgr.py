@@ -168,7 +168,8 @@ class ConfMgr(threading.Thread):
             # init ret
             ret['error_code'] = const.COMMON_SUCCESS
             ret['ip'] = if_status['ipv4-address'][0]['address']
-            ret['netmask'] = "255.255.255.0"
+            ns_int = if_status['ipv4-address'][0]['mask']
+            ret['netmask'] =  socket.inet_ntoa(struct.pack('!I', (1<<32)-(1<<(32-ns_int))))
             ret['gateway'] = if_status['route'][0]['target']
             ret['dnss'] = ""
             for dns in if_status['dns-server']:

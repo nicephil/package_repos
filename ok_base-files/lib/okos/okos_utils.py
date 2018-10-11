@@ -255,4 +255,7 @@ def daemonlize(pid_file):
                                              e.strerror))
         sys.exit(1)
 
+def netmask_int_to_a(v):
+    netmask = socket.inet_ntoa(struct.pack('!I', (1<<32)-(1<<(32-v))))
+    return netmask
 

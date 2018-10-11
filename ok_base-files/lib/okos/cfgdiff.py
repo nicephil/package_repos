@@ -95,7 +95,7 @@ class Ubus(object):
 def main(args):
     log_debug(args)
 
-    with Ubus()
+    with Ubus():
         cur = OakmgrCfg(args.target)
         if not cur.parse():
             log_debug('current configuration parse failed.')
@@ -109,7 +109,7 @@ def main(args):
         if not diff.run():
             return 3
         return 0
-        
+
 def main_v1(args):
     log_debug(args)
 
