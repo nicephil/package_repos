@@ -1,16 +1,6 @@
 import fcntl
 from subprocess import Popen, PIPE
-import logging
-import logging.handlers
-logging.basicConfig(
-    level=logging.DEBUG,
-    filemode='w',
-    format='[%(threadName)s-%(thread)d]: %(message)s',
-)
-MyLogger = logging.getLogger('MyLogger')
-_h = logging.handlers.SysLogHandler('/dev/log')
-MyLogger.addHandler(_h)
-MyLogger.propagate = False
+import threading
 
 import requests
 import json
@@ -38,19 +28,19 @@ def okos_system_log_err(msg):
 	syslog.closelog()
 
 def log_debug(msg):
-    MyLogger.debug(msg)
+    syslog.syslog(syslog.LOG_DEBUG, "[{threadName}-{threadId}]:{msg}".format(threadName=threading.currentThread().getName(), threadId=threading.currentThread().ident, msg=msg))
 
 def log_info(msg):
-    MyLogger.info(msg)
+    syslog.syslog(syslog.LOG_INFO, "[{threadName}-{threadId}]:{msg}".format(threadName=threading.currentThread().getName(), threadId=threading.currentThread().ident, msg=msg))
 
 def log_warning(msg):
-    MyLogger.warning(msg)
+    syslog.syslog(syslog.LOG_WARNING, "[{threadName}-{threadId}]:{msg}".format(threadName=threading.currentThread().getName(), threadId=threading.currentThread().ident, msg=msg))
 
 def log_err(msg):
-    MyLogger.error(msg)
+    syslog.syslog(syslog.LOG_ERR, "[{threadName}-{threadId}]:{msg}".format(threadName=threading.currentThread().getName(), threadId=threading.currentThread().ident, msg=msg))
 
 def log_crit(msg):
-    MyLogger.critical(msg)
+    syslog.syslog(syslog.LOG_CRIT, "[{threadName}-{threadId}]:{msg}".format(threadName=threading.currentThread().getName(), threadId=threading.currentThread().ident, msg=msg))
 
 LOGGER = {
         'debug': log_debug,
@@ -266,4 +256,7 @@ def daemonlize(pid_file):
                                              e.strerror))
         sys.exit(1)
 
+def netmask_int_to_a(v):
+    netmask = socket.inet_ntoa(struct.pack('!I', (1<<32)-(1<<(32-v))))
+    return netmask
 

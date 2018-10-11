@@ -102,42 +102,16 @@ def config_exec(args):
             return 21
         diff = cur - ori
         diff.dump()
-        if not diff.run():
-            return 3
-        return 0
-
+        return not diff.run() and 3 or 0
 
 def main(args):
     log_debug(args)
-
     try:
         return config_exec(args)
     except Exception as _:
         return 1
 
-def main_v1(args):
-    log_debug(args)
 
-    ubus_connect()
-
-    cur = OakmgrCfg(args.target)
-    if not cur.parse():
-        log_debug('current configuration parse failed.')
-        ubus_disconnect()
-        return 1
-    ori = OakmgrCfg(args.original)
-    if not ori.parse():
-        log_debug('original configuration parse failed.')
-        ubus_disconnect()
-        return 2
-    diff = cur - ori
-    diff.dump()
-    if not diff.run():
-        ubus_disconnect()
-        return 3
-    else:
-        ubus_disconnect()
-        return 0
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create diff from current config to original one.')

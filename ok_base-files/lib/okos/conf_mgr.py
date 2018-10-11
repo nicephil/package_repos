@@ -168,7 +168,8 @@ class ConfMgr(threading.Thread):
             # init ret
             ret['error_code'] = const.COMMON_SUCCESS
             ret['ip'] = if_status['ipv4-address'][0]['address']
-            ret['netmask'] = "255.255.255.0"
+            ns_int = if_status['ipv4-address'][0]['mask']
+            ret['netmask'] =  socket.inet_ntoa(struct.pack('!I', (1<<32)-(1<<(32-ns_int))))
             ret['gateway'] = if_status['route'][0]['target']
             ret['dnss'] = ""
             for dns in if_status['dns-server']:
@@ -270,11 +271,14 @@ class ConfMgr(threading.Thread):
 
     def handle_conf(self, request):
         self.confinfo_data = okos_utils.set_whole_confinfo(request['data'])
+        okos_system_log_info("configuration data obtained")
         time.sleep(3)
         ret = os.system("{} -o {} {}".format(const.OKOS_CFGDIFF_SCRIPT, okos_utils.get_whole_conf_bak_path(), okos_utils.get_whole_conf_path()))
         if ret != 0:
-            log_err("conf failed")
+            okos_system_log_err("configuration loaded failed")
             self.confinfo_data = okos_utils.rollback_whole_confinfo()
+        else:
+            okos_system_log_info("configuration loaded successfully")
         return ret
 
     def conf_response(self, ret, request, response_id):
@@ -290,6 +294,7 @@ class ConfMgr(threading.Thread):
 
     def handle_reboot(self, request):
         ret = os.system('reboot')
+        okos_system_log_info("device is reset from nms request")
 
     def process_data(self):
         while not self.term:
@@ -307,10 +312,7 @@ class ConfMgr(threading.Thread):
                     if response_handler and response_id is not None:
                         response_handler(ret, request, response_id)
                 else:
-                    log_warning("no register handler for {}".format(request_id))
+                    log_warning("no register handler for {}".format(request))
             except Exception,e:
-                log_warning("process_data:{}, {}".format(e, request_id))
-                raise
-
-
+                log_warning("process_data:{}, {}".format(request, e))
 

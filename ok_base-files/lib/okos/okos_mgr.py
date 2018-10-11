@@ -114,9 +114,8 @@ class OKOSMgr(object):
             except Exception, e:
                 log_warning("no list key in list_data:%s".format(str(e)))
                 list_data = {}
-            log_debug("xxxxxxxxxxxxxxxxx{}xxxxxxxxxxxx".format(list_data))
+            log_debug("xxxxxxxxxx>{}<xxxxxxxxx".format(list_data))
             for i,v in enumerate(list_data):
-                log_debug("xxxxxxxxxx{}xxxxxxxxx".format(v))
                 self.mailbox.pub(const.CONF_REQUEST_Q, v, timeout=0)
 
     def process_heartbeat(self):
@@ -143,9 +142,9 @@ class OKOSMgr(object):
             self.first_access_nms = False
             okos_system_log_info("connected to oakmgr @{}".format(socket.gethostbyname(server)))
         if request_data and 'error_code' in request_data and request_data['error_code'] == 1002:
-            log_warning("===========>restart device as nms reject access<============")
+            okos_system_log_info("device is reset as nms reject access")
             time.sleep(5)
-            os.system("reboot")
+            os.system("reboot -f")
         tmp = self.access_fifo()
         if tmp:
             request_data = tmp

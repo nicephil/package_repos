@@ -14,19 +14,18 @@ class CfgSystem(CfgObj):
         d = res.data
         system = j['mgmt']['system']
         d['hostname'] = system['hostname'] if 'hostname' in system else ''
+        d['domain_id'] = system['domain_id'] if 'domain_id' in system else ''
         return [res,]
 
     def add(self):
-        log_debug("add")
-
-        if not self.data['hostname']:
+        if not self.data['hostname'] or not self.data['domain_id']:
             return True
 
         signa = {
             'config':'system',
             'type':'system',
             'values':{
-                'hostname':self.data['hostname']
+                'hostname':'{}_{}'.format(self.data['hostname'], self.data['domain_id'])
             }
         }
         try:
@@ -34,7 +33,7 @@ class CfgSystem(CfgObj):
         except Exception, e:
             log_err("ubus uci gets failed, {}".format(e))
             return False
-        cmd = "hostname {}".format(self.data['hostname'])
+        cmd = "hostname {}_{}".format(self.data['hostname'], self.data['domain_id'])
         ret = subprocess.call(cmd, shell=True)
         if ret == 0:
             return True
@@ -42,11 +41,9 @@ class CfgSystem(CfgObj):
             return False
 
     def remove(self):
-        log_debug("remove")
         return True
 
     def change(self):
-        log_debug("change")
         self.remove()
         self.add()
         return True

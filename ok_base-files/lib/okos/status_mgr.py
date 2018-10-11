@@ -313,7 +313,7 @@ class StatusMgr(threading.Thread):
             cur = sconn.cursor()
             cur.execute("select * from STAINFO")
             cur_list = cur.fetchall()
-            log_debug("cu.featchall:{}".format(cur_list))
+            #log_debug("cu.featchall:{}".format(cur_list))
             for v in cur_list:
                 conns = dict()
                 conns['state'] = 1
@@ -346,7 +346,7 @@ class StatusMgr(threading.Thread):
             except Exception,e:
                 log_warning("cannot recover vici")
             return None
-        log_debug("sas_list:")
+        #log_debug("sas_list:")
         conn_list = []
         for k in sas_list:
             conns = dict()
@@ -391,8 +391,8 @@ class StatusMgr(threading.Thread):
         cl2 = self.collect_conninfo_from_l2tp()
         if cl2:
             conn_list.extend(cl2)
-        for i in conn_list:
-            log_debug("conn_list:{}".format(i))
+        #for i in conn_list:
+            #log_debug("conn_list:{}".format(i))
         msg['data'] = json.dumps(data_json)
 
         self.collect_total_bytes(conn_list)
