@@ -291,6 +291,7 @@ class ConfMgr(threading.Thread):
 
     def handle_reboot(self, request):
         ret = os.system('reboot')
+        okos_system_log_info("device is reset from nms request")
 
     def process_data(self):
         while not self.term:
@@ -308,10 +309,7 @@ class ConfMgr(threading.Thread):
                     if response_handler and response_id is not None:
                         response_handler(ret, request, response_id)
                 else:
-                    log_warning("no register handler for {}".format(request_id))
+                    log_warning("no register handler for {}".format(request))
             except Exception,e:
-                log_warning("process_data:{}, {}".format(e, request_id))
-                raise
-
-
+                log_warning("process_data:{}, {}".format(request, e))
 
