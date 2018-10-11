@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse, os, subprocess, re, json
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logcfg
+from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logcfg, logger
 from constant import const
 
 class CfgObj(object):
@@ -36,8 +36,18 @@ class CfgObj(object):
         self.run = self.noop
         return self
 
-    def log(self, level, *args, **kwargs):
-        pass
+    def log(self, level, msg):
+        logger(level, '[Config] ' + msg)
+    def log_debug(self, msg):
+        log_debug('[Config] ' + msg)
+    def log_info(self, msg):
+        log_info('[Config] ' + msg)
+    def log_warning(self, msg):
+        log_warning('[Config] ' + msg)
+    def log_crit(self, msg):
+        log_crit('[Config] ' + msg)
+    def log_err(self, msg):
+        log_err('[Config] ' + msg)
 
     @logcfg
     def parse(self, j):
@@ -70,21 +80,24 @@ class CfgObj(object):
     def post_run(self):
         return True
 
-    def doit(self, cmd):
+    def doit(self, cmd, comment=''):
         '''
         cmd = ['/lib/okos/bin/set_..._.sh', '33', '201'] ; shell = False
         cmd = ['/lib/okos/bin/set_..._.sh 33 201'] ; shell = True
         '''
-        log_debug("[Config] Do - %s - " % (cmd))
+        if comment:
+            self.log_debug(comment)
+        self.log_debug("Do - %s - " % (cmd))
         try:
+            cmd = [str(c) for c in cmd]
             res = subprocess.check_call(cmd)
         except subprocess.CalledProcessError as e:
-            log_warning("Execute %s failed!" % (e.cmd))
+            self.log_warning("Execute %s failed!" % (e.cmd))
             return False
         except Exception as e:
-            log_warning("Execute %s failed with %s!" % (cmd, type(e).__name__))
+            self.log_warning("Execute %s failed with %s!" % (cmd, type(e).__name__))
             return False
-        log_debug("[Config] Do - %s - return %d" % (cmd, res))
+        self.log_debug("Do - %s - return %d" % (cmd, res))
         return res == 0 and True or False
 
     @logcfg
@@ -106,4 +119,25 @@ class CfgObj(object):
                     for n in new for o in old if n.data[differ] == o.data[differ]]
             return remove + add + change
 
+class ConfigExecEnv(object):
+    def __init__(self, cfg, prefix, desc=''):
+        super(ConfigExecEnv, self).__init__()
+        self.desc = desc
+        self.cfg = cfg
+        self.prefix = prefix
+    def __enter__(self):
+        log_debug('[%s] %s - start -' % (self.prefix, self.desc))
+        return self
+    def __exit__(self, exception_type, value, traceback):
+        if exception_type:
+            log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, traceback.format_exc()))
+            log_debug('[%s] context:\n%s\n' % (self.prefix, self.cfg))
+            log_err('[%s] %s - failed -' % (self.prefix, self.desc))
+            return False
+        log_debug('[%s] %s - done -' % (self.prefix, self.desc))
+        return True
+
+class ConfigInputEnv(ConfigExecEnv):
+    def __init__(self, cfg, desc=''):
+        super(ConfigInputEnv, self).__init__(cfg, 'Config Input', desc)
 

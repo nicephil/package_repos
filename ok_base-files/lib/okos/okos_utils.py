@@ -52,6 +52,17 @@ def log_err(msg):
 def log_crit(msg):
     MyLogger.critical(msg)
 
+LOGGER = {
+        'debug': log_debug,
+        'info': log_info,
+        'warning': log_warning,
+        'err': log_err,
+        'crit': log_crit,
+        }
+def logger(level, msg):
+    if level in LOGGER:
+        LOGGER[level](msg)
+
 def logcfg(func):
     def wrapper(*args, **kwargs):
         log_debug("[Config] Start to <%s:%s>:" % (args[0].__class__.__name__, func.__name__))
