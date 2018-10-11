@@ -154,7 +154,7 @@ class CfgInterface(CfgObj):
                     log_warning('[Config] Acquire parameter failed with error %s' % (str(e)))
                     log_debug('[Config] configuration:\n%s\n' % (new))
                     return False
-                cmd = [const.CONFIG_BIN_DIR+'set_wan_pppoe.sh', config_name, pppoe['username'], pppoe['password'], '-k', pppoe['keepalive'], ]
+                cmd = [const.CONFIG_BIN_DIR+'set_wan_pppoe.sh', config_name, pppoe['username'], pppoe['password'], '-k', str(pppoe['keepalive']), ]
                 cmd += default_route_enable and ['-r',] or ['-R',]
                 cmd += mtu and ['-m', str(mtu)] or []
                 return self.doit(cmd)

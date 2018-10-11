@@ -36,6 +36,9 @@ class CfgObj(object):
         self.run = self.noop
         return self
 
+    def log(self, level, *args, **kwargs):
+        pass
+
     @logcfg
     def parse(self, j):
         pass
