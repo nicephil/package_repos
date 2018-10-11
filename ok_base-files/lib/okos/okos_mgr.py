@@ -17,6 +17,7 @@ from constant import const
 class OKOSMgr(object):
     def __init__(self):
         self.productinfo_data = okos_utils.get_productinfo()
+        okos_system_log_info("oakos is up, version:{}".format(self.productinfo_data['swversion']))
         self.process_heartbeat_thread = None
         self.collect_status_thread = None
         self.process_request_term = False

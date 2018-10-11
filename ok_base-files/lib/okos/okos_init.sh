@@ -22,4 +22,3 @@ sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(PPPD
 
 # 4. dup log to console also
 logread -f > /dev/console&
-echo "oakos is up, version:$(uci get productinfo.productinfo.swversion)" | logger -t 01-SYSTEM-LOG -p 7

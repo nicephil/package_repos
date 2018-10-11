@@ -271,11 +271,14 @@ class ConfMgr(threading.Thread):
 
     def handle_conf(self, request):
         self.confinfo_data = okos_utils.set_whole_confinfo(request['data'])
+        okos_system_log_info("configuration data obtained")
         time.sleep(3)
         ret = os.system("{} -o {} {}".format(const.OKOS_CFGDIFF_SCRIPT, okos_utils.get_whole_conf_bak_path(), okos_utils.get_whole_conf_path()))
         if ret != 0:
-            log_err("conf failed")
+            okos_system_log_err("configuration loaded failed")
             self.confinfo_data = okos_utils.rollback_whole_confinfo()
+        else:
+            okos_system_log_info("configuration loaded successfully")
         return ret
 
     def conf_response(self, ret, request, response_id):
