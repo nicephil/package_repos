@@ -2,7 +2,7 @@ import Queue
 import threading
 import time
 import okos_utils
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logit
+from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logit, ExecEnv
 import json
 from constant import const
 import vici
@@ -17,6 +17,11 @@ import sqlite3
 import netifaces as ni
 import ubus
 import ping_mgr
+
+class IfStateEnv(ExecEnv):
+    def __init__(self, desc):
+        super(IfStateEnv, self).__init__('Interface State', desc=desc, raiseup=False)
+
 
 class StatusMgr(threading.Thread):
     def __init__(self, mailbox, conf_mgr):
@@ -67,17 +72,20 @@ class StatusMgr(threading.Thread):
         This timer will be self-kicked off for every 60 seconds.
         '''
         phy_ifnames = const.PORT_MAPPING_PHY
+        cfg_ifnames = const.PORT_MAPPING_CONFIG
 
-        try:
+        with IfStateEnv('Aquire State and Config from ubus'):
             # {'eth0':...}
-            network_device_status = ubus.call('network.device','status', {})[0]
-            #network_device_status = {k:v for k,v in network_device_status.iteritems() if k.startswith('eth')}
-            network_device_status = {k:v for k,v in network_device_status.iteritems() if k in phy_ifnames}
-            network_interface_status = {p: ubus.call('network.interface.' + phy_ifnames[p]['ifname'], 'status', {})[0] for p in phy_ifnames}
+            devices = ubus.call('network.device','status', {})[0]
+            #devices = {k:v for k,v in devices.iteritems() if k.startswith('eth')}
+            devices = {k:v for k,v in devices.iteritems() if k in phy_ifnames}
+            interfaces = {d: ubus.call('network.interface.' + phy_ifnames[d]['ifname'], 'status', {})[0] for d in devices}
+            for ifx,c in interfaces.iteritems():
+                c.update(devices[ifx])
             network_conf = ubus.call('uci', 'get', {'config':'network'})[0]['values']
+            network_conf = {cfg_ifnames[k]['phy']:v for k,v in network_conf.iteritems() if k in cfg_ifnames}
             dhcp_conf = ubus.call('uci', 'get', {'config':'dhcp'})[0]['values']
-        except Exception, e:
-            log_warning("if_status: ubus call gets failed:{}".format(e))
+            dhcp_conf = {cfg_ifnames[k]['phy']:v for k,v in dhcp_conf.iteritems() if k in cfg_ifnames}
 
         ### interface status info
         #   |Name|Type|Description|
@@ -100,44 +108,42 @@ class StatusMgr(threading.Thread):
         #   |manual_dns|byte|0 : auto<br>1 : manual|?
         #   |dnss|String|such as "8.8.8.8,9.9.9.9"|
         ip_types = {'dhcp': 0, 'static':1, 'pppoe': 2}
-        try:
+        with IfStateEnv('Create Basic interfaces infor'):
             ifs_state = {ifname: {
                     'ifname': ifname,
                     'name': phy_ifnames[ifname]['logic'],
                     'type': phy_ifnames[ifname]['type'],
-                    'physical_state': network_device_status[ifname].setdefault('carrier', 0),
                     #'mac': data['macaddr'],
                 } for ifname in phy_ifnames
             }
-        except Exception as e:
-            log_warning('Generate Basic interface infor with error: %s' % (type(e).__name__,))
+
+        with open('/tmp/interfaces.tmp', 'w+') as f:
+            json.dump(dhcp_conf,f)
 
         def update_ifs_state(ifs_next):
             for ifname, ifx in ifs_state.iteritems():
-                ifx.update(ifs_next[ifname])
+                if ifname in ifs_next:
+                    ifx.update(ifs_next[ifname])
 
-        try:
-            update_ifs_state({ifname: (True) and {
+        with IfStateEnv('Link Statue'):
+            update_ifs_state({ifname: {
                 'state': data['up'] and 1 or 0,
-                } or {} for ifname, data in network_interface_status.iteritems()
+                'physical_state': data.setdefault('carrier', 0),
+                'proto': data.setdefault('proto','none'),
+                } for ifname, data in interfaces.iteritems()
             })
-        except Exception as e:
-            log_warning('Generate interface link status with error: %s,%s' % (type(e).__name__,e))
 
-        try:
+        with IfStateEnv('IP protocol'):
             update_ifs_state({ifname: {
                     'status': data['proto'] != 'none' and 1 or 0,
                     'ip_type': ip_types.setdefault(data['proto'], -1),
-                    'proto': data['proto'],
-                } for ifname, data in network_interface_status.iteritems()
+                } for ifname, data in interfaces.iteritems()
             })
-        except Exception as e:
-            log_warning('Generate interface protocol infor with error: %s,%s' % (type(e).__name__,e))
-        try:
-            speed = {ifname: (ifs_state[ifname]['status'] and ifs_state[ifname]['state']) and {
+        with IfStateEnv('Interface speed'):
+            speed = {ifname: ('speed' in data) and {
                     'bandwidth': data['speed'][:-2],
                     'duplex': data['speed'][-1] == 'F' and const.DEV_CONF_PORT_MODE['full'] or const.DEV_CONF_PORT_MODE['half'],
-                } or {} for ifname, data in network_device_status.iteritems()
+                } or {} for ifname, data in interfaces.iteritems()
             }
             for _,s in speed.iteritems():
                 if 'bandwidth' in s:
@@ -146,11 +152,9 @@ class StatusMgr(threading.Thread):
                     except ValueError as e:
                         s['bandwidth'] = 10
             update_ifs_state(speed)
-        except Exception as e:
-            log_warning('Generate interface speed infor with error: %s,%s' % (type(e).__name__,e))
 
-        try:
-            update_ifs_state({ifname: ifs_state[ifname]['status'] and {
+        with IfStateEnv('IP address'):
+            update_ifs_state({ifname: {
                     'uptime': data['uptime'],
                     'dnss': ','.join([dns for dns in data['dns-server']]),
                     'ips': [
@@ -158,42 +162,36 @@ class StatusMgr(threading.Thread):
                             'netmask': ipv4_addr['mask'],
                         } for ipv4_addr in data['ipv4-address']
                     ],
-                } or {}
-                for ifname, data in network_interface_status.iteritems()
+                } for ifname, data in interfaces.iteritems()
+                    if ifs_state[ifname]['status']
             })
-        except Exception as e:
-            log_warning('Generate interface ip infor with error: %s,%s' % (type(e).__name__,e))
-        try:
-            gateways = {ifname: ifs_state[ifname]['state'] and
-                    [r['nexthop'] for r in data['route'] if r['target'] == '0.0.0.0'] or
-                    [] for ifname, data in network_interface_status.iteritems()
+        with IfStateEnv('Gateway'):
+            gateways = {ifname: [r['nexthop'] for r in data['route'] if r['target'] == '0.0.0.0']
+                        for ifname, data in interfaces.iteritems()
+                            if ifs_state[ifx]['state'] and
+                                ifs_state[ifx]['type'] == const.DEV_CONF_PORT_TYPE['wan']
                     }
-            update_ifs_state({ifname: (ifs_state[ifname]['status'] and data) and { 'gateway': data[0]} or {}
-                for ifname, data in gateways.iteritems()
+            update_ifs_state({ifname: { 'gateway': data[0]}
+                for ifname, data in gateways.iteritems() if data
             })
-        except Exception as e:
-            log_warning('Generate interface gateway infor with error: %s,%s' % (type(e).__name__,e))
-        try:
-            update_ifs_state({ifname: (ifs_state[ifname]['status'] and
-                                        ifs_state[ifname]['type'] == const.DEV_CONF_PORT_TYPE['wan'] and
-                                        ifs_state[ifname]['proto'] == 'pppoe')and {
-                    'pppoe_username': network_conf[data['ifname']]['username'],
-                    'pppoe_password': network_conf[data['ifname']]['password'],
-                } or {}
-                for ifname, data in phy_ifnames.iteritems()
+
+        with IfStateEnv('pppoe'):
+            update_ifs_state({ifx: {
+                    'pppoe_username': network_conf[ifs_state[ifx]['ifname']]['username'],
+                    'pppoe_password': network_conf[ifs_state[ifx]['ifname']]['password'],
+                } for ifx, v in interfaces.iteritems()
+                    if ifs_state[ifx]['type'] == const.DEV_CONF_PORT_TYPE['wan'] and
+                        ifs_state[ifx]['proto'] == 'pppoe' and
+                        ifs_state[ifx]['status']
             })
-        except Exception as e:
-            log_warning('Generate interface pppoe infor with error: %s,%s' % (type(e).__name__,e))
-        try:
-            update_ifs_state({ifname: (ifs_state[ifname]['status'] and
-                                        ifs_state[ifname]['type'] == const.DEV_CONF_PORT_TYPE['lan']) and {
-                    'dhcp_start': dhcp_conf[data['ifname']]['start'],
-                    'dhcp_limit': dhcp_conf[data['ifname']]['limit'],
-                } or {}
-                for ifname, data in phy_ifnames.iteritems()
+        with IfStateEnv('DHCP server'):
+            update_ifs_state({ifx: {
+                    'dhcp_start': dhcp_conf[ifx]['start'],
+                    'dhcp_limit': dhcp_conf[ifx]['limit'],
+                } for ifx, v in interfaces.iteritems()
+                    if ifs_state[ifx]['status'] and
+                        ifs_state[ifx]['type'] == const.DEV_CONF_PORT_TYPE['lan']
             })
-        except Exception as e:
-            log_warning('Generate interface dhcp infor with error: %s,%s' % (type(e).__name__, sys.exc_info()[0]))
 
         info_msg = {
             'operate_type': const.DEV_IF_STATUS_RESP_OPT_TYPE,
@@ -201,8 +199,10 @@ class StatusMgr(threading.Thread):
             'cookie_id': 0,
             'data': json.dumps({'list':[v for k,v in ifs_state.iteritems()]}),
         }
+        with open('/tmp/if_state.tmp','w+') as f:
+            json.dump(info_msg,f)
 
-        self.mailbox.pub(const.STATUS_Q, (200, info_msg), timeout=0)
+        self.mailbox.pub(const.STATUS_Q, (1, info_msg), timeout=0)
 
         self.if_status_timer = threading.Timer(60, self.if_status_timer_func)
         self.if_status_timer.name = 'IF_Status'

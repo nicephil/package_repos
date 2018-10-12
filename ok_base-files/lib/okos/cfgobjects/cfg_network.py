@@ -41,7 +41,7 @@ class CfgNetwork(CfgObj):
                 dhcp_pool = dhcp_server_enabled and {
                     'start': str(new['dhcp_start']),
                     'limit': str(new['dhcp_limit']),
-                    'leasetime': str(new['dhcp_lease_time']),} or {}
+                    'leasetime': str(new.setdefault('dhcp_lease_time', 38400)),} or {}
                 ifname = const.PORT_MAPPING_LOGIC[new['ifname']]['ifname']
         cmd = [const.CONFIG_BIN_DIR+'set_lan_ip.sh', ifname, ipaddr, netmask]
         cmd_vlan = not untagged and ['-v', str(vid),] or []

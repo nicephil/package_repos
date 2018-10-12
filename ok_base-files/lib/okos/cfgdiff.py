@@ -84,7 +84,7 @@ class ConfigEnv(object):
             log_err("main ubus disconnect failed, {}".format(e))
 
         if exception_type:
-            log_err('configure failed with error <%s> %s :\n%s' % (exception_type, value, dir(traceback)))
+            log_err('configure failed with error %s :> %s <%s:%s>' % (exception_type, value, traceback.tb_frame.f_code.co_filename, traceback.tb_lineno))
             return False
         
         log_debug('>>>>>>>>>>>>>>  Configuration Ended <<<<<<<<<<<<<<<<\n\n\n\n')
@@ -108,7 +108,8 @@ def main(args):
     log_debug(args)
     try:
         return config_exec(args)
-    except Exception as _:
+    except Exception as e:
+        log_err('Loading config with err %s' % (e))
         return 1
 
 

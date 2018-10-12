@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from cfg_object import CfgObj, ConfigInputEnv
+from cfg_object import CfgObj, ConfigInputEnv, ConfigParseEnv
 from okos_utils import logcfg
 #import ubus
 from constant import const
@@ -9,16 +9,17 @@ class CfgInterface(CfgObj):
     def __init__(self):
         super(CfgInterface, self).__init__()
 
+    def _consume(self, ifname, ifx):
+        self.data['logic_ifname'] = ifname
+        self.data.update(ifx)
+        return self
+
     @logcfg
     def parse(self, j):
-        eths = ('e0','e1','e2','e3')
-        res = [CfgInterface() for eth in eths]
-        for i, eth in enumerate(eths):
-            res[i].data['logic_ifname'] = eth
-            try:
-                res[i].data.update(j['interfaces'][eth])
-            except KeyError as _:
-                res[i].data['status'] = 'disabled'
+        ifs = j.setdefault('interfaces', {})
+        with ConfigParseEnv(ifs, 'Interfaces configuration'):
+            res = [CfgInterface()._consume(ifname,ifx) for ifname,ifx in ifs.iteritems()]
+
         return res
 
     @logcfg
@@ -33,12 +34,11 @@ class CfgInterface(CfgObj):
     @logcfg
     def change(self):
         new = self.data
-        with ConfigInputEnv(new, "Start to change interface [%s] config (type,status,iptype)." % (new['logic_ifname'])):
+        with ConfigInputEnv(new, "Change interface [%s] config (type,status,iptype)." % (new['logic_ifname'])):
             if_type = new['type']
             if_status = new['status']
             if_mode = new['ip_type']
-        port_mapping = const.PORT_MAPPING_LOGIC
-        config_name = port_mapping[new['logic_ifname']]['ifname']
+        config_name = const.PORT_MAPPING_LOGIC[new['logic_ifname']]['ifname']
         change_hooks = {
                 'e0': self.change_wan_config,
                 'e1': self.change_wan_config,
@@ -56,23 +56,7 @@ class CfgInterface(CfgObj):
         if new['type'] != const.DEV_CONF_PORT_TYPE['lan']:
             self.log_warning('Config LAN port as WAN. <%s>' % (new))
             return False
-        if new['ips']:
-            ipaddr, netmask = new['ips'][0]['ip'], new['ips'][0]['netmask']
-            cmd = [const.CONFIG_BIN_DIR+'set_lan_ip.sh', config_name, ipaddr, netmask]
-            self.doit(cmd, 'Change IP address of LAN port')
-        if new.setdefault('dhcp_server_enable', 0):
-            dhcps_n = {
-                    'start': str(new['dhcp_start']),
-                    'limit': str(new['dhcp_limit']),
-                    'leasetime': str(new['dhcp_lease_time']),
-                    }
-            cmd = [const.CONFIG_BIN_DIR+'set_dhcp_server.sh', config_name,
-                dhcps_n['start'], dhcps_n['limit'],
-                '-l', dhcps_n['leasetime'], ]
-            return self.doit(cmd, "Change DHCP configuration")
-        else:
-            cmd = [const.CONFIG_BIN_DIR+'disable_dhcp_server.sh', config_name, ]
-            return self.doit(cmd, "DHCP Server is disabled")
+
         return True
 
     @logcfg

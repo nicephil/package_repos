@@ -260,3 +260,25 @@ def netmask_int_to_a(v):
     netmask = socket.inet_ntoa(struct.pack('!I', (1<<32)-(1<<(32-v))))
     return netmask
 
+class ExecEnv(object):
+    def __init__(self, prefix, cxt='', desc='', raiseup=True):
+        super(ExecEnv, self).__init__()
+        self.desc = desc
+        self.cxt = cxt
+        self.prefix = prefix
+        self.raiseup = raiseup
+    def __enter__(self):
+        log_debug('[%s] %s - start -' % (self.prefix, self.desc))
+        if self.cxt:
+            log_debug('[%s] context:\n%s\n' % (self.prefix, self.cxt))
+        return self
+    def __exit__(self, exception_type, value, traceback):
+        #log_debug('[%s] %s - exit with %s:%s:%s -' % (self.prefix, self.desc, exception_type, value, type(traceback)))
+        if exception_type:
+            #log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, traceback.format_exc()))
+            #log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, str(traceback)))
+            log_err('[%s] exception :> %s >< %s <%s:%s>' % (self.prefix, exception_type, value, traceback.tb_frame.f_code.co_filename, traceback.tb_lineno))
+            log_err('[%s] %s - failed -' % (self.prefix, self.desc))
+            return not self.raiseup
+        log_debug('[%s] %s - done -' % (self.prefix, self.desc))
+        return True

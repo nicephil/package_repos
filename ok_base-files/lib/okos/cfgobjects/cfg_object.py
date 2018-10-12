@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse, os, subprocess, re, json
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logcfg, logger
+from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logcfg, logger, ExecEnv
 from constant import const
 
 class CfgObj(object):
@@ -127,23 +127,24 @@ class ConfigExecEnv(object):
         self.prefix = prefix
     def __enter__(self):
         log_debug('[%s] %s - start -' % (self.prefix, self.desc))
+        log_debug('[%s] context:\n%s\n' % (self.prefix, self.cfg))
         return self
     def __exit__(self, exception_type, value, traceback):
         #log_debug('[%s] %s - exit with %s:%s:%s -' % (self.prefix, self.desc, exception_type, value, type(traceback)))
         if exception_type:
             #log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, traceback.format_exc()))
-            log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, type(traceback)))
-            log_debug('[%s] context:\n%s\n' % (self.prefix, self.cfg))
+            #log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, str(traceback)))
+            log_err('[%s] exception :> %s >< %s <%s:%s>' % (self.prefix, exception_type, value, traceback.tb_frame.f_code.co_filename, traceback.tb_lineno))
             log_err('[%s] %s - failed -' % (self.prefix, self.desc))
             return False
         log_debug('[%s] %s - done -' % (self.prefix, self.desc))
         return True
 
-class ConfigInputEnv(ConfigExecEnv):
+class ConfigInputEnv(ExecEnv):
     def __init__(self, cfg, desc=''):
-        super(ConfigInputEnv, self).__init__(cfg, 'Config Input', desc)
+        super(ConfigInputEnv, self).__init__('Config Input', cfg, desc)
 
-class ConfigParseEnv(ConfigExecEnv):
+class ConfigParseEnv(ExecEnv):
     def __init__(self, json, desc=''):
-        super(ConfigParseEnv, self).__init__(json, 'Config Parse', desc)
+        super(ConfigParseEnv, self).__init__('Config Parse', json, desc)
 
