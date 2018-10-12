@@ -60,7 +60,7 @@ class CfgInterface(CfgObj):
             ipaddr, netmask = new['ips'][0]['ip'], new['ips'][0]['netmask']
             cmd = [const.CONFIG_BIN_DIR+'set_lan_ip.sh', config_name, ipaddr, netmask]
             self.doit(cmd, 'Change IP address of LAN port')
-        if new['dhcp_server_enable']:
+        if new.setdefault('dhcp_server_enable', 0):
             dhcps_n = {
                     'start': str(new['dhcp_start']),
                     'limit': str(new['dhcp_limit']),

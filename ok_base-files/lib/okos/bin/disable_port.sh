@@ -20,10 +20,17 @@ case $1 in
     wan) ifx="$1";ifname="eth0";;
     wan1) ifx="$1";ifname="eth1";;
     wan2) ifx="$1";ifname="eth2";;
-    lan) ifx="$1";ifname="eth3";;
+    lan4053) ifx="$1";ifname="eth3";;
     *) help; exit 1;;
 esac
 shift 1
+while [ -n "$1" ]; do
+    case $1 in
+        --) shift;break;;
+        -*) help;exit 1;;
+        *) break;;
+    esac
+done
 
 uci delete network.${ifx}
 uci set network.${ifx}='interface'

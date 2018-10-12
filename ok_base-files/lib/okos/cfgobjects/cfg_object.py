@@ -129,8 +129,10 @@ class ConfigExecEnv(object):
         log_debug('[%s] %s - start -' % (self.prefix, self.desc))
         return self
     def __exit__(self, exception_type, value, traceback):
+        #log_debug('[%s] %s - exit with %s:%s:%s -' % (self.prefix, self.desc, exception_type, value, type(traceback)))
         if exception_type:
-            log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, traceback.format_exc()))
+            #log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, traceback.format_exc()))
+            log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, type(traceback)))
             log_debug('[%s] context:\n%s\n' % (self.prefix, self.cfg))
             log_err('[%s] %s - failed -' % (self.prefix, self.desc))
             return False

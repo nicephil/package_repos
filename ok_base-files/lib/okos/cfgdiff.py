@@ -84,7 +84,7 @@ class ConfigEnv(object):
             log_err("main ubus disconnect failed, {}".format(e))
 
         if exception_type:
-            log_err('configure failed with error <%s> %s :\n%s' % (exception_type, value, traceback.format_exc()))
+            log_err('configure failed with error <%s> %s :\n%s' % (exception_type, value, dir(traceback)))
             return False
         
         log_debug('>>>>>>>>>>>>>>  Configuration Ended <<<<<<<<<<<<<<<<\n\n\n\n')

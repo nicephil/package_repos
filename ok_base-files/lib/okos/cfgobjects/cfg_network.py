@@ -12,19 +12,20 @@ class CfgNetwork(CfgObj):
     def _consume(self, vlan, ifs):
         self.data.update(vlan)
         for ifname,ifx in ifs.iteritems():
-            native_vlan = ifx.setdefault('native_vlan', 1)
-            if vlan['id'] in ifx['local_network_ids']:
-                self.data['ifname'] = ifname
-                self.data['untagged'] = bool(native_vlan == vlan['vlan'])
+            if ifx['type'] == const.DEV_CONF_PORT_TYPE['lan']:
+                native_vlan = ifx.setdefault('native_vlan', 1)
+                if vlan['id'] in ifx['local_network_ids']:
+                    self.data['ifname'] = ifname
+                    self.data['untagged'] = bool(native_vlan == vlan['vlan'])
         return self
 
     @logcfg
     def parse(self, j):
         vlans = j['network'].setdefault('local_networks',[])
         with ConfigParseEnv(vlans, 'VLAN configuration'):
-            res = [CfgNetwork()._consume(vlan, j['interfaces']) for vlan in vlans]
-
-        self.log_debug('config data: %s' % (self.data))
+            res = [CfgNetwork() for vlan in vlans]
+            for i, vlan in enumerate(vlans):
+                res[i]._consume(vlan, j['interfaces'])
         return res
 
     @logcfg
@@ -42,16 +43,47 @@ class CfgNetwork(CfgObj):
                     'limit': str(new['dhcp_limit']),
                     'leasetime': str(new['dhcp_lease_time']),} or {}
                 ifname = const.PORT_MAPPING_LOGIC[new['ifname']]['ifname']
-            if untagged:
-                cmd = [const.CONFIG_BIN_DIR+'set_lan_ip.sh', ifname, ipaddr, netmask]
-                self.doit(cmd, 'Change IP address of LAN port')
-        return True
+        cmd = [const.CONFIG_BIN_DIR+'set_lan_ip.sh', ifname, ipaddr, netmask]
+        cmd_vlan = not untagged and ['-v', str(vid),] or []
+        cmd += cmd_vlan
+        res = self.doit(cmd, 'Change IP address of LAN interface')
+        if dhcp_server_enabled:
+            cmd = [const.CONFIG_BIN_DIR+'set_dhcp_server.sh', ifname, 
+                dhcp_pool['start'], dhcp_pool['limit'], '-l', dhcp_pool['leasetime'],
+            ]
+        else:
+            cmd = [const.CONFIG_BIN_DIR+'disable_dhcp_server.sh', ifname, ]
+        cmd += cmd_vlan
+        res &= self.doit(cmd)
+        return res
 
     @logcfg
     def remove(self):
-        return True
+        old = self.data
+        with ConfigInputEnv(old, 'VLAN configuration'):
+            if 'ifname' not in old:
+                self.log_warning('unbinded VLAN %s is removed' % (old['id']))
+                return True
+            else:
+                ipaddr, netmask, vid, untagged = old['gateway'], old['netmask'], old['vlan'], old['untagged']
+                dhcp_server_enabled = old.setdefault('dhcp_server_enable', 0)
+                dhcp_pool = dhcp_server_enabled and {
+                    'start': str(old['dhcp_start']),
+                    'limit': str(old['dhcp_limit']),
+                    'leasetime': str(old['dhcp_lease_time']),} or {}
+                ifname = const.PORT_MAPPING_LOGIC[old['ifname']]['ifname']
+        res = True
+        if not untagged:
+            cmd = [const.CONFIG_BIN_DIR+'disable_vlan.sh', ifname, vid, ]
+            res &= self.doit(cmd, 'Disable VLAN interface')
+        if dhcp_server_enabled:
+            cmd = [const.CONFIG_BIN_DIR+'disable_dhcp_server.sh', ifname, ]
+            cmd += not untagged and ['-v', str(vid)] or []
+            res &= self.doit(cmd, "Disable DHCP Server")
+        return res
 
     @logcfg
     def change(self):
+        self.add()
         return True
 

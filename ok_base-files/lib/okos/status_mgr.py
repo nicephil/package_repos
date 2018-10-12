@@ -66,26 +66,16 @@ class StatusMgr(threading.Thread):
         '''
         This timer will be self-kicked off for every 60 seconds.
         '''
+        phy_ifnames = const.PORT_MAPPING_PHY
 
-        ##
-        # We could make a node on ubus to record all these mapping infor.
-        # From port name to interface type.
-        #   0: wan; 1: lan; 2: bridge; 3: none; 4: gre;
-        #port_mapping = {'eth0': {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan', 'logic': 'e0'},
-                        #'eth1': {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan1', 'logic': 'e1'},
-                        #'eth2': {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan2', 'logic': 'e2'},
-                        #'eth3': {'type': const.DEV_CONF_PORT_TYPE['lan'], 'ifname': 'lan4053', 'logic': 'e3'},
-        #}
-        port_mapping = const.PORT_MAPPING_PHY
-        #type_mapping = {'eth0':0, 'eth1':3, 'eth2':1, 'eth3':3}
-        #ifname_mapping = {'eth0':'wan', 'eth1':'wan1', 'eth2':'wan2', 'eth3':'lan4053'}
         try:
             # {'eth0':...}
             network_device_status = ubus.call('network.device','status', {})[0]
-            network_interface_status = {p: ubus.call('network.interface.' + port_mapping[p]['ifname'], 'status', {})[0] for p in port_mapping}
+            #network_device_status = {k:v for k,v in network_device_status.iteritems() if k.startswith('eth')}
+            network_device_status = {k:v for k,v in network_device_status.iteritems() if k in phy_ifnames}
+            network_interface_status = {p: ubus.call('network.interface.' + phy_ifnames[p]['ifname'], 'status', {})[0] for p in phy_ifnames}
             network_conf = ubus.call('uci', 'get', {'config':'network'})[0]['values']
             dhcp_conf = ubus.call('uci', 'get', {'config':'dhcp'})[0]['values']
-            ddns_conf = ubus.call('uci', 'get', {'config':'ddns'})[0]['values']
         except Exception, e:
             log_warning("if_status: ubus call gets failed:{}".format(e))
 
@@ -111,17 +101,16 @@ class StatusMgr(threading.Thread):
         #   |dnss|String|such as "8.8.8.8,9.9.9.9"|
         ip_types = {'dhcp': 0, 'static':1, 'pppoe': 2}
         try:
-            network_device_status = {k:v for k,v in network_device_status.iteritems() if k.startswith('eth')}
             ifs_state = {ifname: {
                     'ifname': ifname,
-                    'name': port_mapping[ifname]['logic'],
-                    'type': port_mapping[ifname]['type'],
-                    'physical_state': data['carrier'] and 1 or 0,
+                    'name': phy_ifnames[ifname]['logic'],
+                    'type': phy_ifnames[ifname]['type'],
+                    'physical_state': network_device_status[ifname].setdefault('carrier', 0),
                     #'mac': data['macaddr'],
-                } for ifname, data in network_device_status.iteritems()
+                } for ifname in phy_ifnames
             }
         except Exception as e:
-            log_warning('Generate Basic interface infor with error: %s' % (type(e).__name__))
+            log_warning('Generate Basic interface infor with error: %s' % (type(e).__name__,))
 
         def update_ifs_state(ifs_next):
             for ifname, ifx in ifs_state.iteritems():
@@ -191,7 +180,7 @@ class StatusMgr(threading.Thread):
                     'pppoe_username': network_conf[data['ifname']]['username'],
                     'pppoe_password': network_conf[data['ifname']]['password'],
                 } or {}
-                for ifname, data in port_mapping.iteritems()
+                for ifname, data in phy_ifnames.iteritems()
             })
         except Exception as e:
             log_warning('Generate interface pppoe infor with error: %s,%s' % (type(e).__name__,e))
@@ -201,7 +190,7 @@ class StatusMgr(threading.Thread):
                     'dhcp_start': dhcp_conf[data['ifname']]['start'],
                     'dhcp_limit': dhcp_conf[data['ifname']]['limit'],
                 } or {}
-                for ifname, data in port_mapping.iteritems()
+                for ifname, data in phy_ifnames.iteritems()
             })
         except Exception as e:
             log_warning('Generate interface dhcp infor with error: %s,%s' % (type(e).__name__, sys.exc_info()[0]))
