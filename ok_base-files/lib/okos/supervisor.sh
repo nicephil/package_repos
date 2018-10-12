@@ -10,12 +10,9 @@ do
     df -h | logger -t supervisor -p 7
     ps w | logger -t supervisor -p 7
 
-    capwap_pid=$(pgrep -f "/usr/sbin/ok_capwapc")
+    capwap_pid=$(ps w | grep '/usr/sbin/ok_capwapc' | awk '$0 !~ /grep/{print $1}')
     capwap_count=$(echo $capwap_pid | awk '{print NF}')
     [ -z "$capwap_pid" -o "$capwap_count" -gt "1" ] && {
-        [ "$capwap_count" -eq "2" ] && {
-            kill -9 $(pgrep -n -f "/usr/sbin/ok_capwapc")
-        }
         logger -t supervisor -p 3 "CAPWAP ($capwap_pid) is exit abnormally, restart it !!!"
         /etc/init.d/capwapc restart
     }
