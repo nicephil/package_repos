@@ -141,3 +141,7 @@ class ConfigInputEnv(ConfigExecEnv):
     def __init__(self, cfg, desc=''):
         super(ConfigInputEnv, self).__init__(cfg, 'Config Input', desc)
 
+class ConfigParseEnv(ConfigExecEnv):
+    def __init__(self, json, desc=''):
+        super(ConfigParseEnv, self).__init__(json, 'Config Parse', desc)
+

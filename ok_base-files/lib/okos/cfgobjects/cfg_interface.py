@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-import argparse, os, subprocess, re, json
 from cfg_object import CfgObj, ConfigInputEnv
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logcfg
+from okos_utils import logcfg
 #import ubus
 from constant import const
 
@@ -40,7 +39,6 @@ class CfgInterface(CfgObj):
             if_mode = new['ip_type']
         port_mapping = const.PORT_MAPPING_LOGIC
         config_name = port_mapping[new['logic_ifname']]['ifname']
-        self.log_debug('config name of %s is %s' % (self.data['logic_ifname'], config_name))
         change_hooks = {
                 'e0': self.change_wan_config,
                 'e1': self.change_wan_config,
@@ -53,15 +51,15 @@ class CfgInterface(CfgObj):
 
     @logcfg
     def change_lan_config(self, config_name):
-        log_info('[Config] Execute LAN port config.')
+        self.log_info('Execute LAN port config.')
         new = self.data
         if new['type'] != const.DEV_CONF_PORT_TYPE['lan']:
-            log_warning('[Config] Config LAN port as WAN. <%s>' % (new))
+            self.log_warning('Config LAN port as WAN. <%s>' % (new))
             return False
         if new['ips']:
             ipaddr, netmask = new['ips'][0]['ip'], new['ips'][0]['netmask']
             cmd = [const.CONFIG_BIN_DIR+'set_lan_ip.sh', config_name, ipaddr, netmask]
-            self.doit(cmd, 'Change IP address of LAN port %s/%s' % (ipaddr, netmask))
+            self.doit(cmd, 'Change IP address of LAN port')
         if new['dhcp_server_enable']:
             dhcps_n = {
                     'start': str(new['dhcp_start']),
@@ -71,7 +69,7 @@ class CfgInterface(CfgObj):
             cmd = [const.CONFIG_BIN_DIR+'set_dhcp_server.sh', config_name,
                 dhcps_n['start'], dhcps_n['limit'],
                 '-l', dhcps_n['leasetime'], ]
-            return self.doit(cmd, "Change DHCP configuration %s" % (dhcps_n))
+            return self.doit(cmd, "Change DHCP configuration")
         else:
             cmd = [const.CONFIG_BIN_DIR+'disable_dhcp_server.sh', config_name, ]
             return self.doit(cmd, "DHCP Server is disabled")

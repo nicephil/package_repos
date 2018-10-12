@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-import argparse, os, subprocess, re, json
-from cfg_object import CfgObj
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logcfg
+from cfg_object import CfgObj, ConfigInputEnv, ConfigParseEnv
+from okos_utils import logcfg
 #import ubus
 from constant import const
 
@@ -21,16 +20,31 @@ class CfgNetwork(CfgObj):
 
     @logcfg
     def parse(self, j):
-        try:
-            res = [CfgNetwork()._consume(vlan, j['interfaces']) for vlan in j['network'].setdefault('local_networks',[])]
-        except Exception as e:
-            self.log_warning('Load VLAN configuration failed.')
-            raise e
+        vlans = j['network'].setdefault('local_networks',[])
+        with ConfigParseEnv(vlans, 'VLAN configuration'):
+            res = [CfgNetwork()._consume(vlan, j['interfaces']) for vlan in vlans]
+
+        self.log_debug('config data: %s' % (self.data))
         return res
 
     @logcfg
     def add(self):
-        self.change()
+        new = self.data
+        with ConfigInputEnv(new, 'VLAN configuration'):
+            if 'ifname' not in new:
+                self.log_warning('VLAN %s is not bound to any interface' % (new['id']))
+                return True
+            else:
+                ipaddr, netmask, vid, untagged = new['gateway'], new['netmask'], new['vlan'], new['untagged']
+                dhcp_server_enabled = new.setdefault('dhcp_server_enable', 0)
+                dhcp_pool = dhcp_server_enabled and {
+                    'start': str(new['dhcp_start']),
+                    'limit': str(new['dhcp_limit']),
+                    'leasetime': str(new['dhcp_lease_time']),} or {}
+                ifname = const.PORT_MAPPING_LOGIC[new['ifname']]['ifname']
+            if untagged:
+                cmd = [const.CONFIG_BIN_DIR+'set_lan_ip.sh', ifname, ipaddr, netmask]
+                self.doit(cmd, 'Change IP address of LAN port')
         return True
 
     @logcfg
