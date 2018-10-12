@@ -28,19 +28,19 @@ def okos_system_log_err(msg):
 	syslog.closelog()
 
 def log_debug(msg):
-    syslog.syslog(syslog.LOG_DEBUG, "[{threadName}-{threadId}]:{msg}".format(threadName=threading.currentThread().getName(), threadId=threading.currentThread().ident, msg=msg))
+    syslog.syslog(syslog.LOG_DEBUG, "[{threadName}]:{msg}".format(threadName=threading.currentThread().getName(), msg=msg))
 
 def log_info(msg):
-    syslog.syslog(syslog.LOG_INFO, "[{threadName}-{threadId}]:{msg}".format(threadName=threading.currentThread().getName(), threadId=threading.currentThread().ident, msg=msg))
+    syslog.syslog(syslog.LOG_INFO, "[{threadName}]:{msg}".format(threadName=threading.currentThread().getName(), msg=msg))
 
 def log_warning(msg):
-    syslog.syslog(syslog.LOG_WARNING, "[{threadName}-{threadId}]:{msg}".format(threadName=threading.currentThread().getName(), threadId=threading.currentThread().ident, msg=msg))
+    syslog.syslog(syslog.LOG_WARNING, "[{threadName}]:{msg}".format(threadName=threading.currentThread().getName(), msg=msg))
 
 def log_err(msg):
-    syslog.syslog(syslog.LOG_ERR, "[{threadName}-{threadId}]:{msg}".format(threadName=threading.currentThread().getName(), threadId=threading.currentThread().ident, msg=msg))
+    syslog.syslog(syslog.LOG_ERR, "[{threadName}]:{msg}".format(threadName=threading.currentThread().getName(), msg=msg))
 
 def log_crit(msg):
-    syslog.syslog(syslog.LOG_CRIT, "[{threadName}-{threadId}]:{msg}".format(threadName=threading.currentThread().getName(), threadId=threading.currentThread().ident, msg=msg))
+    syslog.syslog(syslog.LOG_CRIT, "[{threadName}]:{msg}".format(threadName=threading.currentThread().getName(), msg=msg))
 
 LOGGER = {
         'debug': log_debug,

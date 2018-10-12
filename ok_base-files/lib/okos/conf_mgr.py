@@ -1,7 +1,7 @@
 import Queue
 import threading
 import time
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit
+from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, okos_system_log_info, okos_system_log_err
 import okos_utils
 import json
 from constant import const
@@ -315,4 +315,5 @@ class ConfMgr(threading.Thread):
                     log_warning("no register handler for {}".format(request))
             except Exception,e:
                 log_warning("process_data:{}, {}".format(request, e))
+                raise
 
