@@ -2,6 +2,7 @@
 
 from subprocess import Popen, PIPE
 import syslog
+from socket import *
 
 
 def get_mac(iface):
@@ -123,10 +124,32 @@ def okos_sta_log_warn(msg):
     syslog.closelog()
     syslog.openlog("clientevent", syslog.LOG_NDELAY, syslog.LOG_USER)
 
+def sendeth(src, dst, eth_type, payload, interface = "eth0"):
+    """Send raw Ethernet packet on interface."""
 
+    assert(len(src) == len(dst) == 6) # 48-bit ethernet addresses
+    assert(len(eth_type) == 2) # 16-bit ethernet type
+
+    s = socket(AF_PACKET, SOCK_RAW)
+
+    # From the docs: "For raw packet
+    # sockets the address is a tuple (ifname, proto [,pkttype [,hatype]])"
+    s.bind((interface, 0))
+    ret = s.send(src + dst + eth_type + payload)
+    s.close()
+    return ret
+
+def sendether(src):
+    src = src.replace(':','').decode('hex')
+    dst="\xFF\xFF\xFF\xFF\xFF\xFF"
+    eth_type="\x7A\x05"
+    payload="hello"
+    return sendeth(dst, src, eth_type, payload)
 
 if __name__ == '__main__':
     print get_mac("br-lan1")
     print get_mac("ath10")
     print get_ssid("ath00")
     print get_portalscheme("ath10")
+    print("Sent %d-byte Ethernet packet on eth0" %
+          sendether("FA:ED:FA:CE:BE:EF"))

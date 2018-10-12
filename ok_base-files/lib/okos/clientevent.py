@@ -14,7 +14,7 @@ from threading import Thread
 import Queue as qq
 from Queue import Queue
 from okos_utils import get_auth_url, mac_to_byte, get_mac, get_portalscheme, \
-    get_ssid, get_domain, okos_sta_log_info
+    get_ssid, get_domain, okos_sta_log_info, sendether
 from syslog import syslog, LOG_INFO, LOG_WARNING, LOG_ERR, LOG_DEBUG
 from agent import Agent
 from arpwatch import Arpwatch
@@ -152,6 +152,8 @@ class Client(Thread):
                            self.last_rx_rate_limit_local,
                            self.last_ath,
                            1)
+        # 1.7 send fake ether packet with client mac to refresh the upstream switch
+        sendether(self.mac)
 
     # handle AP-STA-DISCONNECTED event
     def handle_disconnected_event(self, clientevent):
