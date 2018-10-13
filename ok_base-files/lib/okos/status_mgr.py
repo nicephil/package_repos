@@ -117,13 +117,6 @@ class StatusMgr(threading.Thread):
                 } for ifname in phy_ifnames
             }
 
-        with open('/tmp/interfaces.tmp', 'w+') as f:
-            json.dump(interfaces,f)
-        with open('/tmp/network_conf.tmp', 'w+') as f:
-            json.dump(network_conf,f)
-        with open('/tmp/dhcp_conf.tmp', 'w+') as f:
-            json.dump(dhcp_conf,f)
-
         def update_ifs_state(ifs_next):
             for ifname, ifx in ifs_state.iteritems():
                 if ifname in ifs_next:
@@ -132,7 +125,7 @@ class StatusMgr(threading.Thread):
         with IfStateEnv('Link Statue'):
             update_ifs_state({ifname: {
                 'state': data['up'] and 1 or 0,
-                'physical_state': data.setdefault('carrier', 0),
+                'physical_state': data.setdefault('carrier', False) and 1 or 0,
                 'proto': data.setdefault('proto','none'),
                 } for ifname, data in interfaces.iteritems()
             })
