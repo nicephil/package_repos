@@ -118,6 +118,10 @@ class StatusMgr(threading.Thread):
             }
 
         with open('/tmp/interfaces.tmp', 'w+') as f:
+            json.dump(interfaces,f)
+        with open('/tmp/network_conf.tmp', 'w+') as f:
+            json.dump(network_conf,f)
+        with open('/tmp/dhcp_conf.tmp', 'w+') as f:
             json.dump(dhcp_conf,f)
 
         def update_ifs_state(ifs_next):
@@ -200,7 +204,7 @@ class StatusMgr(threading.Thread):
             'data': json.dumps({'list':[v for k,v in ifs_state.iteritems()]}),
         }
         with open('/tmp/if_state.tmp','w+') as f:
-            json.dump(info_msg,f)
+            json.dump(ifs_state,f)
 
         self.mailbox.pub(const.STATUS_Q, (1, info_msg), timeout=0)
 
