@@ -28,18 +28,8 @@ KEY="$(echo -n "${SALT}${_mac}" | md5sum | awk '{print $1}')"
 PORT="80"
 ADDR="api.oakridge.io"
 OAKMGR_PUB=""
-FIRSTBOOT="1"
 GW_OK="1"
 CAPWAP_FAILURE_COUNT=0
-
-# 5. setup the new oakmgr
-setup_capwapc ()
-{
-    echo "====> set new oakmgr: $OAKMGR_PUB" | logger -t 'handle_cloud'
-    uci set capwapc.server.mas_server="$OAKMGR_PUB"; uci commit capwapc;
-    cp /etc/capwapc/capwapc /etc/init.d/capwapc
-    /etc/init.d/capwapc restart
-}
 
 (sleep 20;echo "oakos is up, version:${_swversion}" | logger -p user.info -t '01-SYSTEM-LOG')&
 
@@ -94,30 +84,20 @@ do
 
     if [ -z "$_oakmgr_pub_name" ]
     then
-        #echo "no valid oakmgr_pub_name, so query agian" | logger -p user.info -t '01-SYSTEM-LOG'
+        echo "no valid oakmgr_pub_name, so query agian" | logger -p user.info -t 'handle_cloud'
         sleep 5
         continue
     elif [ "$_oakmgr_pub_name" = "$(uci get capwapc.server.mas_server 2>/dev/null)" ]
     then
-        FIRSTBOOT="0"
-        #echo "existing oakmgr_pub_name:$_oakmgr_pub_name is the same as quried, so no action" | logger -p user.info -t '01-SYSTEM-LOG'
+        echo "existing oakmgr_pub_name:$_oakmgr_pub_name is the same as quried, so no action" | logger -p user.info -t 'handle_cloud'
         sleep 120
         continue
     fi
 
-    if [ "$FIRSTBOOT" = "1" ]
-    then
-        OAKMGR_PUB="$_oakmgr_pub_name"
-        echo "setup capwapc during firstboot" | logger -t 'handle_cloud'
-        setup_capwapc
-        FIRSTBOOT="0"
-    else
-        echo "_oakmgr_pub_name:$_oakmgr_pub_name, capwapc.mas_server=$(uci get capwapc.server.mas_server 2>/dev/null)" | logger -t 'handle_cloud'
-        #echo "reboot by handle_cloud!!" | logger -p user.info -t '01-SYSTEM-LOG'
-        sleep 60
-        reboot -f
-    fi
-
+    echo "_oakmgr_pub_name:$_oakmgr_pub_name, capwapc.mas_server=$(uci get capwapc.server.mas_server 2>/dev/null)" | logger -t 'handle_cloud'
+    echo "reboot by handle_cloud, as oakmgr changed!!" | logger -p user.info -t '01-SYSTEM-LOG'
+    sleep 60
+    reboot -f
 done
 
 

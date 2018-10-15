@@ -77,6 +77,11 @@ config_cb() {
             esac
                 
         }
+    else
+        option_cb() {
+            local name="$1"
+            local value="$2"
+        }
     fi
 }
 

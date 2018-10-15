@@ -8,9 +8,15 @@ initramfs_test() {
 	boot_run_hook initramfs
 	preinit_ip_deconfig
     # OK_PATCH
+    # 1. load caldata
     do_load_ath10k_board_bin
+    # 2. mount overlay
     mount "$(find_mtd_part rootfs_data)" /overlay -t jffs2
     mtd -qq unlock rootfs_data
+    # 3. bind capwapc
+    mount --bind /overlay/etc/config/capwapc /etc/config/capwapc
+    mount --bind /overlay/etc/config/system /etc/config/system
+    mount --bind /overlay/root /root
     # end of OK_PATCH
 	break
     fi

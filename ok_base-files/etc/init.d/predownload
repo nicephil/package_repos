@@ -14,7 +14,7 @@ start ()
 {
     [ -f "/overlay/root/imgurl" ] && { 
         imgurl="`cat /overlay/root/imgurl`"
-        dd if=/dev/zero of=/overlay/root/dump count=128 bs=1k conv=fsync
+        dd if=/dev/zero of=/overlay/root/dump count=1 bs=1M conv=fsync
         if [ "$?" = "0" ]
         then
             (sleep 600;wget -c "$imgurl" -O "/overlay/root/${imgurl##*/}" 2>&1 | logger -t 'predownload') & 
