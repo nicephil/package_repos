@@ -462,6 +462,10 @@ network_get_bmembers()
     return 0
 }
 
+# determine the metric of the given logical interface
+# 1: destination variable
+# 2: interface
+network_get_metric() { __network_ifstatus "$1" "$2" ".metric"; }
 
 # flush the internal value cache to force re-reading values from ubus
 network_flush_cache() { unset __NETWORK_CACHE; unset __DEVICE_CACHE; }
