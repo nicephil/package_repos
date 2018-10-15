@@ -6,6 +6,7 @@ help()
 Disable DHCP server on LAN port.
 Usage: $0 [lan4053]
         -v VLANID # vlan id [1~4093] on the target interface
+        -S # don't restart service
 Example:
     $0 lan4053 -v 100 # disable dhcp server on vlan 100
 _HELP_
@@ -25,6 +26,7 @@ shift 1
 while [ -n "$1" ]; do
     case $1 in
         -v) vid="$2";shift 2;;
+        -S) no_restart='1'; shift 1;;
         --) shift;break;;
         -*) help;exit 1;;
         *) break;;
@@ -55,8 +57,10 @@ if [ -z "$vid" ]; then
     uci commit webui_config
 fi
 
-/etc/init.d/dnsmasq restart
-/etc/init.d/network reload
+if [ -z "$no_restart" ]; then
+    /etc/init.d/network reload
+    /etc/init.d/dnsmasq restart
+fi
 
 exit 0
 

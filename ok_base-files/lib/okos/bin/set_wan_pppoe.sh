@@ -11,6 +11,7 @@ Usage: $0 [wan|wan1|wan2] USERNAME PASSWORD
         -r # Add default route on this WAN port, it's default behavior.
         -R # Don't add default route on this WAN port
         -m MTU # Set MTU on this interface
+        -S # don't restart service
 Example:
     $0 wan hzhz804352 oakridge -k 3 -d '8.8.8.8,9.9.9.9'
     $0 wan1 hzhz804352 oakridge -R # Set wan1 as pppoe without default route.
@@ -44,6 +45,7 @@ while [ -n "$1" ]; do
         -R) defaultroute='0';shift 1;;
         -r) defaultroute='1';shift 1;;
         -m) mtu="$2";shift 2;;
+        -S) no_restart='1';shift 1;;
         --) shift;break;;
         -*) help;exit 1;;
         *) break;;
@@ -75,7 +77,10 @@ if [ -n "$dnss" ]; then
 fi
 
 uci commit network
-/etc/init.d/network reload
+
+if [ -z "$no_restart" ]; then
+    /etc/init.d/network reload
+fi
 
 #if [ $defaultroute = '1' ]; then
 #    ip r add default dev $ifname metric 1

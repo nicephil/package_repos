@@ -5,27 +5,3 @@
 # Internal uci firewall chains are flushed and recreated on reload, so
 # put custom rules into the root chains e.g. INPUT or FORWARD or into the
 # special user chains, e.g. input_wan_rule or postrouting_lan_rule.
-
-iptables -N forward_uplink_stats_rule
-iptables -N forward_downlink_stats_rule
-iptables -N wan_uplink_stats_rule
-iptables -N wan_downlink_stats_rule
-iptables -N iface_uplink_stats_rule
-iptables -N iface_downlink_stats_rule
-
-iptables -I forwarding_rule -m comment --comment "forward uplink statistics" -j forward_uplink_stats_rule
-iptables -I forwarding_rule -m comment --comment "forward downlink statistics" -j forward_downlink_stats_rule
-
-
-iptables -I forwarding_rule -m comment --comment "wan uplink statistics" -j wan_uplink_stats_rule
-iptables -I forwarding_rule -m comment --comment "wan downlink statistics" -j wan_downlink_stats_rule
-
-
-iptables -I forwarding_rule -m comment --comment "forward interface uplink statistics" -j iface_uplink_stats_rule
-iptables -I forwarding_rule -m comment --comment "forward interface downlink statistics" -j iface_downlink_stats_rule
-
-
-iptables -t nat -A PREROUTING -p tcp -m set --match-set gfwlist dst -j REDIRECT --to-port 1080
-iptables -t nat -A OUTPUT -p tcp -m set --match-set gfwlist dst -j REDIRECT --to-port 1080
-iptables -t filter -A INPUT -p tcp -m tcp --dport 1080 -j ACCEPT
-

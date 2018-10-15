@@ -5,7 +5,7 @@ help()
     cat <<_HELP_
 Disable an interface.
 Usage: $0 [wan|wan1|wan2|lan]
-
+        -S # don't restart service
 Example:
     $0 wan # disable wan port
 _HELP_
@@ -26,6 +26,7 @@ esac
 shift 1
 while [ -n "$1" ]; do
     case $1 in
+        -S) no_restart='1'; shift 1;;
         --) shift;break;;
         -*) help;exit 1;;
         *) break;;
@@ -37,7 +38,10 @@ uci set network.${ifx}='interface'
 uci set network.${ifx}.ifname=$ifname
 uci set network.${ifx}.proto='none'
 uci commit network
-/etc/init.d/network reload
+
+if [ -z "$no_restart" ]; then
+    /etc/init.d/network reload
+fi
 
 echo "Port $1 is disabled."
 exit 0

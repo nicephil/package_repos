@@ -6,6 +6,7 @@ help()
 Setup DHCP server on LAN port.
 Usage: $0 [lan4053] START LIMIT [-l LEASE]
         -v VLANID # vlan id [1~4093] on the target interface
+        -S # don't restart service
 Example:
     $0 lan4053 1 200 -l 83400 
 _HELP_
@@ -29,6 +30,7 @@ while [ -n "$1" ]; do
     case $1 in
         -v) vid="$2";shift 2;;
         -l) leasetime="$2";shift 2;;
+        -S) no_restart='1';shift 1;;
         --) shift;break;;
         -*) help;exit 1;;
         *) break;;
@@ -64,7 +66,10 @@ if [ -z "$vid" ]; then
     uci commit webui_config
 fi
 
-/etc/init.d/dnsmasq restart
+if [ -z "$no_restart" ]; then
+    /etc/init.d/dnsmasq restart
+fi
+
 exit 0
 
 

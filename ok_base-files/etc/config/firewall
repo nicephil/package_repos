@@ -7,32 +7,46 @@ config defaults
 	option disable_ipv6	1
 
 config zone
-	option name		TRUST
-	list   network		'lan4053'
+	option name		TRUSTED
+	#list network		'lan4053'
 	option input		ACCEPT
 	option output		ACCEPT
 	option forward		ACCEPT
 
 config zone
-    option name		UNTRUST
-    list   network		'wan'
-    list   network		'wan1'
-    list   network      'wan2'
+    option name		UNTRUSTED
+    list network		'wan'
+    list network		'wan1'
+    list network      'wan2'
 	option input		REJECT
 	option output		ACCEPT
 	option forward		REJECT
 	option masq		1
 	option mtu_fix		1
 
+config zone
+	option name		DMZ
+	#list network		'lan4053'
+	option input		ACCEPT
+	option output		ACCEPT
+	option forward		REJECT
+
+config zone
+	option name		GUEST
+	#list network		'lan4053'
+	option input		REJECT
+	option output		ACCEPT
+	option forward		REJECT
+
 config forwarding
-	option src		TRUST
-	option dest		UNTRUST
+	option src		TRUSTED
+	option dest		UNTRUSTED
 
 # We need to accept udp packets on port 68,
 # see https://dev.openwrt.org/ticket/4108
 config rule
 	option name		Allow-DHCP-Renew
-	option src		UNTRUST
+	option src		UNTRUSTED
 	option proto		udp
 	option dest_port	68
 	option target		ACCEPT
@@ -41,7 +55,7 @@ config rule
 # Allow IPv4 ping
 config rule
 	option name		Allow-Ping
-	option src		UNTRUST
+	option src		UNTRUSTED
 	option proto		icmp
 	option icmp_type	echo-request
 	option family		ipv4
@@ -55,12 +69,14 @@ config include
 ### EXAMPLE CONFIG SECTIONS
 
 
-# port redirect of remapped ssh port (22001) on UNTRUST
+# port redirect of remapped ssh port (22001) on UNTRUSTED
 config redirect
-	option src		UNTRUST
+    option name     'SSH-to-GW'
+	option src		UNTRUSTED
 	option src_dport	22001
-	option dest		TRUST
+    option dest     TRUSTED
 	option dest_port	22
 	option proto		tcp
+    option target       'DNAT'
 
 
