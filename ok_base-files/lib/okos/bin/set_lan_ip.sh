@@ -80,7 +80,8 @@ fi
 
 uci commit network
 
-uci get firewall.@zone[${zone_id}].network | grep -e "\<${ifx}\>"
+#uci get firewall.@zone[${zone_id}].network | grep -e "\<${ifx}\>"
+uci get firewall.${zone}.network | grep -e "\<${ifx}\>"
 if [ "$?" != 0 ]; then
     uci add_list firewall.@zone[${zone_id}].network="${ifx}"
 fi 

@@ -60,7 +60,8 @@ echo $ifx $ifname
 uci delete network.${ifx}
 uci commit network
 
-uci del_list firewall.@zone[${zone_id}].network="${ifx}"
+#uci del_list firewall.@zone[${zone_id}].network="${ifx}"
+uci del_list firewall.${zone}.network="${ifx}"
 uci commit firewall
 
 if [ -z "$no_restart" ]; then

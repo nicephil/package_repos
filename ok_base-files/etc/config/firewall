@@ -6,14 +6,14 @@ config defaults
 # Uncomment this line to disable ipv6 rules
 	option disable_ipv6	1
 
-config zone
+config zone 'TRUSTED'
 	option name		TRUSTED
 	#list network		'lan4053'
 	option input		ACCEPT
 	option output		ACCEPT
 	option forward		ACCEPT
 
-config zone
+config zone 'UNTRUSTED'
     option name		UNTRUSTED
     list network		'wan'
     list network		'wan1'
@@ -24,28 +24,28 @@ config zone
 	option masq		1
 	option mtu_fix		1
 
-config zone
+config zone 'DMZ'
 	option name		DMZ
 	#list network		'lan4053'
 	option input		ACCEPT
 	option output		ACCEPT
 	option forward		REJECT
 
-config zone
+config zone 'GUEST'
 	option name		GUEST
 	#list network		'lan4053'
 	option input		REJECT
 	option output		ACCEPT
 	option forward		REJECT
 
-config forwarding
+config forwarding 'TRUSTED_to_UNTRUSTED'
 	option src		TRUSTED
 	option dest		UNTRUSTED
 
 # We need to accept udp packets on port 68,
 # see https://dev.openwrt.org/ticket/4108
-config rule
-	option name		Allow-DHCP-Renew
+config rule 'Allow_DHCP_Renew'
+	option name		Allow_DHCP_Renew
 	option src		UNTRUSTED
 	option proto		udp
 	option dest_port	68
@@ -53,8 +53,8 @@ config rule
 	option family		ipv4
 
 # Allow IPv4 ping
-config rule
-	option name		Allow-Ping
+config rule 'Allow_Ping'
+	option name		Allow_Ping
 	option src		UNTRUSTED
 	option proto		icmp
 	option icmp_type	echo-request
@@ -62,7 +62,7 @@ config rule
 	option target		ACCEPT
 
 # include a file with users custom iptables rules
-config include
+config include USER
 	option path /etc/firewall.user
 
 
@@ -70,8 +70,8 @@ config include
 
 
 # port redirect of remapped ssh port (22001) on UNTRUSTED
-config redirect
-    option name     'SSH-to-GW'
+config redirect 'SSH_to_GW'
+    option name     'SSH_to_GW'
 	option src		UNTRUSTED
 	option src_dport	22001
     option dest     TRUSTED
