@@ -1983,7 +1983,7 @@ detect_qcawifi() {
         machex=$(echo "$base_mac" | tr -d ':') # to remove colons
         macdec=$(printf "%d" "0x"$machex) # to convert to decimal
         macdec1=$(($macdec + $((${devidx}*8)))) # to subtract one
-        machex1=$(printf "%02x" $macdec1) # to convert to hex again
+        machex1=$(printf "%012x" $macdec1) # to convert to hex again
         machex2=$(echo $machex1 | sed 's/\(..\)/\1:/g;s/:$//')
         mac=$machex2
 
