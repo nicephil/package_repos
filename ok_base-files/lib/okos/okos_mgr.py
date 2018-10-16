@@ -112,7 +112,7 @@ class OKOSMgr(object):
             try:
                 list_data = request_data['list']
             except Exception, e:
-                log_warning("no list key in list_data:%s".format(str(e)))
+                log_warning("no list key in list_data:%s" % (str(e)))
                 list_data = {}
             log_debug("xxxxxxxxxx>{}<xxxxxxxxx".format(list_data))
             for i,v in enumerate(list_data):
@@ -137,6 +137,8 @@ class OKOSMgr(object):
         capwapc_data = self.conf_mgr.get_capwapc()
         server = capwapc_data['mas_server']
         url = 'http://{server}/nms/api/device/router/info'.format(server=server)
+        #server = '192.168.254.141'
+        #url = 'http://{server}:8080/nms-webapp/api/device/router/info'.format(server=server)
         request_data = okos_utils.post_url(url, json_data=post_data)
         if self.first_access_nms:
             self.first_access_nms = False

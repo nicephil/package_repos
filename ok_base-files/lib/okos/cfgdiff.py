@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse, os, subprocess, re, json, sys
-from cfgobjects import CfgSystem, CfgDDNS, CfgInterface, CfgNetwork
+from cfgobjects import CfgSystem, CfgDDNS, CfgInterface, CfgNetwork, CfgPortForwarding
 from okos_utils import log_crit, log_err, log_warning, log_info, log_debug
 import fcntl
 import ubus
@@ -11,7 +11,8 @@ class OakmgrCfg(object):
             CfgSystem(),
             CfgInterface(),
             CfgNetwork(),
-            CfgDDNS(),
+            CfgPortForwarding(),
+            #CfgDDNS(),
             ]
     def __init__(self, f=''):
         super(OakmgrCfg, self).__init__()
@@ -30,7 +31,8 @@ class OakmgrCfg(object):
 
     def parse(self):
         self.objects = [self._json and t.parse(self._json) or [] for t in self.Templates]
-        return bool(len(self.Templates) == len(self.objects))
+        #return bool(len(self.Templates) == len(self.objects))
+        return self
 
     def __sub__(self, old):
         log_debug('Calculate diff from <{old}> to <{new}>'.format(old=old.source, new=self.source))
@@ -54,18 +56,6 @@ class OakmgrCfg(object):
                 return False
         log_debug('Configuration executed completedly...')
         return True
-
-def ubus_connect():
-    try:
-        ubus.connect()
-    except Exception, e:
-        log_err("main ubus connect failed, {}".format(e))
-
-def ubus_disconnect():
-    try:
-        ubus.disconnect()
-    except Exception, e:
-        log_err("main ubus disconnect failed, {}".format(e))
 
 class ConfigEnv(object):
     def __init__(self):
@@ -92,17 +82,11 @@ class ConfigEnv(object):
 
 def config_exec(args):
     with ConfigEnv():
-        cur = OakmgrCfg(args.target)
-        if not cur.parse():
-            log_debug('current configuration parse failed.')
-            return 20
-        ori = OakmgrCfg(args.original)
-        if not ori.parse():
-            log_debug('original configuration parse failed.')
-            return 21
+        cur = OakmgrCfg(args.target).parse()
+        ori = OakmgrCfg(args.original).parse()
         diff = cur - ori
         diff.dump()
-        return not diff.run() and 3 or 0
+        return not diff.run() and 1 or 0
 
 def main(args):
     log_debug(args)

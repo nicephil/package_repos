@@ -71,6 +71,18 @@ def logit(func):
         return res
     return wrapper
 
+def logchecker(check_name):
+    def logger(func):
+        def wrapper(*args, **kwargs):
+            obj_name = 'obj_name' in kwargs and kwargs['obj_name'] or func.__name__
+            log_debug('[%s Parameter Checking] for [%s]:>' % (check_name, obj_name))
+            res = func(*args, **kwargs)
+            if not res:
+                log_debug('[%s Parameter Checking] %s failed (%s)' % (check_name, obj_name, args))
+            return res
+        return wrapper
+    return logger
+
 config_conf_file = ''.join([const.CONFIG_DIR, const.CONFIG_CONF_FILE])
 
 def get_capwapc():

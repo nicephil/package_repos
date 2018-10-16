@@ -80,6 +80,14 @@ class CfgObj(object):
     def post_run(self):
         return True
 
+    def check_para(self, fmt, entry):
+        for k, func in fmt.iteritems():
+            if callable(func):
+                res = func(entry[k], obj_name=k)
+                if not res:
+                    return False
+        return True
+
     def doit(self, cmd, comment=''):
         '''
         cmd = ['/lib/okos/bin/set_..._.sh', '33', '201'] ; shell = False
@@ -119,6 +127,27 @@ class CfgObj(object):
                     for n in new for o in old if n.data[differ] == o.data[differ]]
             return remove + add + change
 
+class ParameterChecker(object):
+    def __init__(self, src):
+        self.src = src
+        self.fmt = {}
+    def dump(self):
+        for k, entry in self.fmt.iteritems():
+            entry['value'] = self.src[k]
+        for k, entry in self.fmt.iteritems():
+            if callable(entry['checker']):
+                res = entry['checker'](entry['value'], obj_name=k)
+                if not res:
+                    return False
+        return True
+    def __getitem__(self, index):
+        return self.fmt[index]
+    def __setitem__(self, index, checker):
+        if type(checker) != 'function':
+            return False
+        self.fmt[index] = checker
+
+
 class ConfigExecEnv(object):
     def __init__(self, cfg, prefix, desc=''):
         super(ConfigExecEnv, self).__init__()
@@ -148,3 +177,20 @@ class ConfigParseEnv(ExecEnv):
     def __init__(self, json, desc=''):
         super(ConfigParseEnv, self).__init__('Config Parse', json, desc)
 
+class ConfigParaCheckEnv(ExecEnv):
+    def __init__(self, para, desc=''):
+        super(ConfigParaCheckEnv, self).__init__('Config Check', para, desc)
+    def __exit__(self, exception_type, value, traceback):
+        if exception_type == 'ExceptionConfigParaError':
+            log_warning('[%s] %s - faied (%s) -' % (self.prefix, self.desc, value))
+            return True
+        return super(ConfigParaCheckEnv, self).__exit__(exception_type, value, traceback)
+
+
+class ExceptionConfigParaError(Exception):
+    def __init__(self, value='', desc=''):
+        super(ExceptionConfigParaError, self).__init__()
+        self.value = value
+        self.desc = desc
+    def __str__(self):
+        return repr(self.value)

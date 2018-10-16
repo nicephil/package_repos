@@ -1,4 +1,4 @@
-import const
+import const, re
 
 const.BASE_DIR_STR = '/'
 const.CONFIG_DIR_STR = './etc/'
@@ -87,7 +87,12 @@ const.PORT_MAPPING_PHY = {ifx['phy']:ifx for ifx in const.PORT_MAPPING}
 const.PORT_MAPPING_LOGIC = {ifx['logic']:ifx for ifx in const.PORT_MAPPING}
 const.PORT_MAPPING_CONFIG = {ifx['ifname']:ifx for ifx in const.PORT_MAPPING}
 
+const.CONFIG_SECURITY_ZONE = ('TRUSTED', 'UNTRUSTED', 'DMZ', 'GUEST')
 
+const.FMT_PATTERN = {
+        'ipaddr': re.compile(r'^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$'),
+        'port_fwd_id': re.compile(r'^[a-zA-Z0-9]*_[a-zA-Z0-9_]*$'),
+}
 
 
 ############### Error Code to Oakmgr #####################
