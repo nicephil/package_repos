@@ -13,9 +13,32 @@ initramfs_test() {
     # 2. mount overlay
     mount "$(find_mtd_part rootfs_data)" /overlay -t jffs2
     mtd -qq unlock rootfs_data
-    # 3. bind capwapc
+    # 3. bind config
+    #for file in $(ls /etc/config)
+    #do
+    #	[ ! -f "/overlay/etc/config/$file" ] && cp -rvf /etc/config/"$file" /overlay/etc/config/. 2>&1
+    #done
+    #mount --bind /overlay/etc/config /etc/config
+    # workaround
+    [ -z $(uci -c /overlay/etc/config get capwapc.wtp 2>/dev/null) ] && {
+    uci -c /overlay/etc/config -q batch <<-EOF
+    set capwapc.global=capwapc
+    set capwapc.global.enable='1'
+    set capwapc.wtp=capwapc
+    set capwapc.wtp.ctrl_port='5246'
+    set capwapc.wtp.mtu='1300'
+    set capwapc.wtp.disc_intv='20'
+    set capwapc.wtp.maxdisc_intv='5'
+    set capwapc.wtp.echo_intv='30'
+    set capwapc.wtp.retran_intv='3'
+    set capwapc.wtp.silent_intv='30'
+    set capwapc.wtp.join_timeout='60'
+    set capwapc.wtp.max_disces='10'
+    set capwapc.wtp.max_retran='5'
+    commit capwapc
+EOF
+    }
     mount --bind /overlay/etc/config/capwapc /etc/config/capwapc
-    mount --bind /overlay/etc/config/system /etc/config/system
     mount --bind /overlay/root /root
     # end of OK_PATCH
 	break
