@@ -76,10 +76,12 @@ def logchecker(check_name):
         def wrapper(*args, **kwargs):
             obj_name = 'obj_name' in kwargs and kwargs['obj_name'] or func.__name__
             log_debug('[%s Parameter Checking] for [%s]:>' % (check_name, obj_name))
-            res = func(*args, **kwargs)
+            res, value = func(*args, **kwargs)
             if not res:
-                log_debug('[%s Parameter Checking] %s failed (%s)' % (check_name, obj_name, args))
-            return res
+                log_warning('[%s Parameter Checking] %s failed (%s) - %s -' % (check_name, obj_name, args[1], value))
+                return False, None
+            else:
+                return True, value
         return wrapper
     return logger
 

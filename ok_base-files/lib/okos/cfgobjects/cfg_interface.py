@@ -1,25 +1,22 @@
 #!/usr/bin/env python
 
-from cfg_object import CfgObj, ConfigInputEnv, ConfigParseEnv
-from okos_utils import logcfg
+from cfg_object import CfgObj, ConfigInputEnv, ConfigParseEnv, ParameterChecker
+from okos_utils import logcfg, logchecker
 #import ubus
 from constant import const
 
 class CfgInterface(CfgObj):
-    def __init__(self):
+    def __init__(self, ifname='', ifx={}):
         super(CfgInterface, self).__init__()
-
-    def _consume(self, ifname, ifx):
         self.data['logic_ifname'] = ifname
         self.data.update(ifx)
-        return self
+
 
     @logcfg
     def parse(self, j):
         ifs = j.setdefault('interfaces', {})
         with ConfigParseEnv(ifs, 'Interfaces configuration'):
-            res = [CfgInterface()._consume(ifname,ifx) for ifname,ifx in ifs.iteritems()]
-
+            res = [CfgInterface(ifname,ifx) for ifname,ifx in ifs.iteritems()]
         return res
 
     @logcfg
@@ -34,11 +31,15 @@ class CfgInterface(CfgObj):
     @logcfg
     def change(self):
         new = self.data
+        self._checker_ = checker = ParameterChecker(new)
         with ConfigInputEnv(new, "Change interface [%s] config (type,status,iptype)." % (new['logic_ifname'])):
-            if_type = new['type']
-            if_status = new['status']
-            if_mode = new['ip_type']
-        config_name = const.PORT_MAPPING_LOGIC[new['logic_ifname']]['ifname']
+            checker['type'] = (None, None)
+            checker['status'] = (None, None)
+            checker['ip_type'] = (None, None)
+            checker['logic_ifname'] = (None, None)
+            if not checker.dump():
+                return False
+        config_name = const.PORT_MAPPING_LOGIC[checker['logic_ifname']]['ifname']
         change_hooks = {
                 'e0': self.change_wan_config,
                 'e1': self.change_wan_config,
@@ -53,61 +54,81 @@ class CfgInterface(CfgObj):
     def change_lan_config(self, config_name):
         self.log_info('Execute LAN port config.')
         new = self.data
-        if new['type'] != const.DEV_CONF_PORT_TYPE['lan']:
+        if self._checker_['type'] != const.DEV_CONF_PORT_TYPE['lan']:
             self.log_warning('Config LAN port as WAN. <%s>' % (new))
             return False
-
         return True
+
+    @logchecker('Interface')
+    def _check_dnss_(self, input, obj_name=''):
+        if not input:
+            self.log_warning('Set Static IP without DNSs')
+            return False, input
+        return True, input
+    
+    @logchecker('Interface')
+    def _check_pppoe_timeout_(self, input, obj_name=''):
+        input = int(input)/5
+        return True, input
 
     @logcfg
     def change_wan_config(self, config_name):
         new = self.data
-        if new['type'] != const.DEV_CONF_PORT_TYPE['wan']:
+        checker = ParameterChecker(new)
+        if self._checker_['type'] != const.DEV_CONF_PORT_TYPE['wan']:
             self.log_warning('Config WAN port as LAN. <%s>' % (new))
             return False
         # Enable interface
-        if new['status']:
+        if self._checker_['status']:
             # For DHCP
-            if new['ip_type'] == 0:
+            if self._checker_['ip_type'] == 0:
                 with ConfigInputEnv(new, 'Set DHCP on WAN port %s' % (config_name)):
-                    dnss = (new.setdefault('manual_dns',0) and new.setdefault('dnss','')) and new['dnss'] or ''
-                    default_route_enable = new.setdefault('default_route_enable', 0)
-                    mtu = new.setdefault('mtu', 0)
+                    checker['manual_dns'] = (None, 0)
+                    checker['dnss'] = (None, '')
+                    checker['default_route_enable'] = (None, 0)
+                    checker['mtu'] = (None, 0)
+                    if not checker.dump():
+                        return False
                 cmd = [const.CONFIG_BIN_DIR+'set_wan_dhcp.sh', config_name]
-                cmd += dnss and ['-d', dnss] or []
-                cmd += default_route_enable and ['-r',] or ['-R',]
-                cmd += mtu and ['-m', str(mtu)] or []
+                cmd += (checker['manual_dns'] and checker['dnss']) and ['-d', checker['dnss'], ] or []
+                cmd += checker['default_route_enable'] and ['-r',] or ['-R',]
+                cmd += checker['mtu'] and ['-m', checker['mtu']] or []
+                cmd += ['-S',]
                 return self.doit(cmd)
             # For static ip
-            if new['ip_type'] == 1:
+            if self._checker_['ip_type'] == 1:
                 with ConfigInputEnv(new, 'Set static ip on WAN port %s' % (config_name)):
-                    ips = new['ips']
-                    dnss = new['dnss']
-                    gateway = new['gateway']
-                    default_route_enable = new.setdefault('default_route_enable', 0)
-                    default_route_ip = default_route_enable and new['default_route_ip'] or ''
-                    mtu = new.setdefault('mtu', 0)
-                if not dnss:
-                    self.log_warning('Set Static IP on WAN port <%s> without DNSs' % (config_name))
-                    return False
-                ips_str = ','.join(['%s/%s' % (ip['ip'], ip['netmask']) for ip in ips])
-                cmd = [const.CONFIG_BIN_DIR+'set_wan_static_ip.sh', config_name, gateway, ips_str, dnss]
-                cmd += default_route_ip and ['-r', default_route_ip] or ['-R',]
-                cmd += mtu and ['-m', str(mtu)] or []
+                    checker['ips'] = (None, None)
+                    checker['dnss'] = (None, None)
+                    checker['gateway'] = (None, None)
+                    checker['default_route_enable'] = (None, 0)
+                    checker['default_route_ip'] = (None, '')
+                    checker['mtu'] = (None, 0)
+                    if not checker.dump():
+                        return False
+
+                ips_str = ','.join(['%s/%s' % (ip['ip'], ip['netmask']) for ip in checker['ips']])
+                cmd = [const.CONFIG_BIN_DIR+'set_wan_static_ip.sh', config_name, checker['gateway'], ips_str, checker['dnss']]
+                cmd += (checker['default_route_enable'] and checker['default_route_ip']) and ['-r', checker['default_route_ip']] or ['-R',]
+                cmd += checker['mtu'] and ['-m', checker['mtu']] or []
+                cmd += ['-S',]
                 return self.doit(cmd)
             # For pppoe
-            if new['ip_type'] == 2:
+            if self._checker_['ip_type'] == 2:
                 with ConfigInputEnv(new, 'Set PPPOE on WAN port %s' % (config_name)):
-                    pppoe = {'username': new['pppoe_username'],
-                            'password': new['pppoe_password'],
-                            'keepalive': int(new.setdefault('pppoe_timeout', 30))/5,
-                            'keepconnected': new.setdefault('pppoe_keep_connected', 1),
-                            }
-                    default_route_enable = new.setdefault('default_route_enable', 0)
-                    mtu = new.setdefault('mtu', 0)
-                cmd = [const.CONFIG_BIN_DIR+'set_wan_pppoe.sh', config_name, pppoe['username'], pppoe['password'], '-k', str(pppoe['keepalive']), ]
-                cmd += default_route_enable and ['-r',] or ['-R',]
-                cmd += mtu and ['-m', str(mtu)] or []
+                    checker['pppoe_username'] = (None, None)
+                    checker['pppoe_password'] = (None, None)
+                    checker['pppoe_timeout'] = (None, 30)
+                    checker['pppoe_keep_connected'] = (None, 1)
+                    checker['default_route_enable'] = (None, 0)
+                    checker['mtu'] = (None, 0)
+                    if not checker.dump():
+                        return False
+                cmd = [const.CONFIG_BIN_DIR+'set_wan_pppoe.sh', config_name,
+                        checker['pppoe_username'], checker['pppoe_password'], '-k', checker['pppoe_timeout'], ]
+                cmd += checker['default_route_enable'] and ['-r',] or ['-R',]
+                cmd += checker['mtu'] and ['-m', checker['mtu'],] or []
+                cmd += ['-S',]
                 return self.doit(cmd)
         # Disable interface
         else:

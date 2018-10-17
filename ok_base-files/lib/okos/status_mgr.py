@@ -1,6 +1,6 @@
 import Queue
 import threading
-import time
+import time, re
 import okos_utils
 from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logit, ExecEnv
 import json
@@ -136,19 +136,29 @@ class StatusMgr(threading.Thread):
                     'ip_type': ip_types.setdefault(data['proto'], -1),
                 } for ifname, data in interfaces.iteritems()
             })
+            
+        p = re.compile('^([0-9]+)([FH])$')
+        def abstract_speed(ifx_report, ifx_state):
+            if 'speed' in ifx_state and ifx_report['physical_state']:
+                speed = ifx_state['speed']
+                res = p.match(speed)
+                if res:
+                    res = res.groups()
+                    ifx_report['bandwidth'] = res[0]
+                    ifx_report['duplex'] = res[1] == 'F' and 1 or 2
+            return ifx_report
+        map(abstract_speed, ifs_state, interfaces)
+
+
         with IfStateEnv('Interface speed'):
-            speed = {ifname: ('speed' in data) and {
-                    'bandwidth': data['speed'][:-2],
-                    'duplex': data['speed'][-1] == 'F' and const.DEV_CONF_PORT_MODE['full'] or const.DEV_CONF_PORT_MODE['half'],
-                } or {} for ifname, data in interfaces.iteritems()
-            }
-            for _,s in speed.iteritems():
-                if 'bandwidth' in s:
-                    try:
-                        s['bandwidth'] = int(s['bandwidth'])
-                    except ValueError as e:
-                        s['bandwidth'] = 10
-            update_ifs_state(speed)
+            
+            speeds = { ifname: ('speed' in data and ifs_state[ifname]['physical_state']) and data['speed'] or '' for ifname, data in interfaces.iteritems()}
+            report = {}
+            for ifname in interfaces:
+                res = p.match(speeds[ifname])
+                res = res and res.groups()
+                report[ifname] = res and {'bandwidth':res[0], 'duplex':res[1] == 'F' and 1 or 2} or {}
+            update_ifs_state(report)
 
         with IfStateEnv('IP address'):
             update_ifs_state({ifname: {

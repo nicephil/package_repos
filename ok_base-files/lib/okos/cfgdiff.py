@@ -86,7 +86,12 @@ def config_exec(args):
         ori = OakmgrCfg(args.original).parse()
         diff = cur - ori
         diff.dump()
-        return not diff.run() and 1 or 0
+        #return not diff.run() and 1 or 0
+        if diff.run():
+            return 0
+        else:
+            log_debug('>>>>>>>>>>>>>>  Configuration Failed <<<<<<<<<<<<<<<<\n\n\n\n')
+            return 1
 
 def main(args):
     log_debug(args)

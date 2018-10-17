@@ -98,8 +98,9 @@ if [ -z "$remove" ]; then
     [ -n "$src_mac" ] && uci set firewall.${id}.src_mac="${src_mac}"
     [ -n "$proto" ] && uci set firewall.${id}.proto="${proto}"
     [ -n "$target" ] && uci set firewall.${id}.target="${target}"
-    uci commit firewall
 fi
+uci commit firewall
+
 
 if [ -z "$no_restart" ]; then
     /etc/init.d/firewall reload

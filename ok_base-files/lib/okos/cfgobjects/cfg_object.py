@@ -128,24 +128,31 @@ class CfgObj(object):
             return remove + add + change
 
 class ParameterChecker(object):
+    '''
+    {
+        'item1': {'checker': func_check, 'default': None, 'value': xxx },
+    }
+    '''
     def __init__(self, src):
         self.src = src
         self.fmt = {}
     def dump(self):
         for k, entry in self.fmt.iteritems():
-            entry['value'] = self.src[k]
-        for k, entry in self.fmt.iteritems():
             if callable(entry['checker']):
-                res = entry['checker'](entry['value'], obj_name=k)
+                res, entry['value'] = entry['checker'](entry['value'], obj_name=k)
                 if not res:
                     return False
         return True
     def __getitem__(self, index):
-        return self.fmt[index]
+        return self.fmt[index]['value']
     def __setitem__(self, index, checker):
-        if type(checker) != 'function':
-            return False
-        self.fmt[index] = checker
+        func, default = checker[0], checker[1]
+        entry = self.fmt[index] = {'checker': func, 'default': default}
+        if default is None:
+            entry['value'] = self.src[index]
+        else:
+            entry['value'] = self.src.setdefault(index, default)
+            
 
 
 class ConfigExecEnv(object):

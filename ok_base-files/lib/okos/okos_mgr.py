@@ -135,14 +135,13 @@ class OKOSMgr(object):
 
     def access_nms(self, post_data):
         capwapc_data = self.conf_mgr.get_capwapc()
-        server = capwapc_data['mas_server']
-        url = 'http://{server}/nms/api/device/router/info'.format(server=server)
-        #server = '192.168.254.141'
-        #url = 'http://{server}:8080/nms-webapp/api/device/router/info'.format(server=server)
+        server = (capwapc_data['mas_server'], 80, 'nms')
+        #server = ('192.168.254.141', 8080, 'nms-webapp')
+        url = 'http://{server}:{port}/{path}/api/device/router/info'.format(server=server[0], port=server[1], path=server[2])
         request_data = okos_utils.post_url(url, json_data=post_data)
         if self.first_access_nms:
             self.first_access_nms = False
-            okos_system_log_info("connected to oakmgr @{}".format(socket.gethostbyname(server)))
+            okos_system_log_info("connected to oakmgr @{}".format(socket.gethostbyname(server[0])))
         if request_data and 'error_code' in request_data and request_data['error_code'] == 1002:
             okos_system_log_info("device is reset as nms reject access")
             time.sleep(5)
