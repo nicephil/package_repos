@@ -11,6 +11,49 @@ import ubus
 import subprocess
 from datetime import datetime
 from signal import SIGKILL
+import netifaces as ni
+import md5
+
+
+class ToRedirector(threading.Thread):
+    def __init__(self, confmgr):
+        threading.Thread.__init__(self)
+        self.confmgr = confmgr
+        self.name = "ToRedirctor"
+
+    def run(self):
+        while True:
+            # 1. query redirector
+            post_data = {}
+            post_data['version'] = self.confmgr.productinfo_data['swversion']
+            post_data['device'] = self.confmgr.productinfo_data['mac']
+            post_data['device_type'] = self.confmgr.productinfo_data['production']
+            post_data['manufacturer'] = self.confmgr.productinfo_data['model']
+            post_data['sn'] = self.confmgr.productinfo_data['serial']
+            try:
+                post_data['private_ip'] = ni.ifaddresses(self.confmgr.productinfo_data['eth_port'])[ni.AF_INET][0]['addr']
+                post_data['private_mask'] = ni.ifaddresses(self.confmgr.productinfo_data['eth_port'])[ni.AF_INET][0]['netmask']
+            except Exception, e:
+                post_data['private_ip'] = ni.ifaddresses('pppoe-wan')[ni.AF_INET][0]['addr']
+                post_data['private_mask'] = ni.ifaddresses('pppoe-wan')[ni.AF_INET][0]['netmask']
+
+            key = md5.new("{SALT}{_mac}".format(SALT=const.SALT, _mac=post_data['device'])).hexdigest()
+            url="http://{_server_ip}:{PORT}/redirector/v1/device/register/?key={KEY}".format(_server_ip=const.DEFAULT_ADDR,
+                                                                                                PORT=const.DEFAULT_PORT,
+                                                                                                KEY=key)
+            request_data = okos_utils.post_url(url, json_data=post_data)
+            '''
+            print request_data
+            import random
+            if random.randint(1,100) % 2:
+                request_data['oakmgr_pub_name'] = 'xxia.hz.oakridge.io'
+            '''
+            # 2. update the new capwapc fetched from redirector
+            if request_data and 'oakmgr_pub_name' in request_data:
+                if request_data['oakmgr_pub_name'] != self.confmgr.capwapc_data['mas_server']:
+                    okos_utils.set_capwapc(request_data['oakmgr_pub_name'])
+                    self.confmgr.capwapc_data = okos_utils.get_capwapc()
+            time.sleep(120)
 
 class ConfMgr(threading.Thread):
     def __init__(self, mailbox):
@@ -27,6 +70,8 @@ class ConfMgr(threading.Thread):
         self.capwapc_data = okos_utils.get_capwapc()
         self.handlers = {}
         self.register_handlers()
+        self.queryredirector = ToRedirector(self)
+        self.queryredirector.start()
 
     def register_handlers(self):
         # conf_request

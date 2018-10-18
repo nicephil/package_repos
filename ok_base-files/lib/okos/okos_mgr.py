@@ -11,7 +11,7 @@ import socket
 import sys
 import ubus
 
-from okos_utils import log_crit, log_err, log_warning, log_info, log_debug, okos_system_log_info
+from okos_utils import log_crit, log_err, log_warning, log_info, log_debug, okos_system_log_info, okos_system_log_warn
 from constant import const
 
 class OKOSMgr(object):
@@ -143,9 +143,7 @@ class OKOSMgr(object):
             self.first_access_nms = False
             okos_system_log_info("connected to oakmgr @{}".format(socket.gethostbyname(server[0])))
         if request_data and 'error_code' in request_data and request_data['error_code'] == 1002:
-            okos_system_log_info("device is reset as nms reject access")
-            time.sleep(5)
-            os.system("reboot -f")
+            okos_system_log_warn("oakmgr-{} reject access".format(server))
         tmp = self.access_fifo()
         if tmp:
             request_data = tmp

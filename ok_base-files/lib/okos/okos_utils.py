@@ -87,6 +87,16 @@ def logchecker(check_name):
 
 config_conf_file = ''.join([const.CONFIG_DIR, const.CONFIG_CONF_FILE])
 
+def set_capwapc(mas_server):
+    """" set capwapc """
+    try:
+        value=ubus.call("uci", "set", {"config":"capwapc","section":"server", "values":{"mas_server":mas_server}})
+        value=ubus.call("uci", "commit", {"config":"capwapc"})
+    except Exception, e:
+        log_warning('set_capwapc get exception {}'.format(repr(e)))
+        return False
+    return True
+
 def get_capwapc():
     """" get capwapc """
     capwapc_data={}
