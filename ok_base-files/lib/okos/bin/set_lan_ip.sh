@@ -65,7 +65,6 @@ if [ -n "${vid}" ]; then
         ifname="${ifname}.${vid}"
     fi
 fi
-echo $ifx $ifname $ipaddr $netmask
 
 uci delete network.${ifx}
 uci set network.${ifx}=interface
@@ -81,9 +80,10 @@ fi
 uci commit network
 
 #uci get firewall.@zone[${zone_id}].network | grep -e "\<${ifx}\>"
-uci get firewall.${zone}.network | grep -e "\<${ifx}\>"
+uci get firewall.${zone}.network | grep -e "\<${ifx}\>" > /dev/null
 if [ "$?" != 0 ]; then
-    uci add_list firewall.@zone[${zone_id}].network="${ifx}"
+    #uci add_list firewall.@zone[${zone_id}].network="${ifx}"
+    uci add_list firewall.${zone}.network="${ifx}"
 fi 
 uci commit firewall
 
@@ -106,6 +106,8 @@ if [ -z "$no_restart" ]; then
     /etc/init.d/network reload
     /etc/init.d/firewall reload
 fi
+
+echo "Set IP $ipaddr/$netmask on $ifx : $vid"
 
 exit 0
 

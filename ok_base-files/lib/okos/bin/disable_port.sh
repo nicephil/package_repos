@@ -43,6 +43,6 @@ if [ -z "$no_restart" ]; then
     /etc/init.d/network reload
 fi
 
-echo "Port $1 is disabled."
+echo "Port $ifx is disabled."
 exit 0
 

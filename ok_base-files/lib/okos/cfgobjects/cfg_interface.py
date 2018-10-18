@@ -7,7 +7,7 @@ from constant import const
 
 class CfgInterface(CfgObj):
     def __init__(self, ifname='', ifx={}):
-        super(CfgInterface, self).__init__('logic_ifname')
+        super(CfgInterface, self).__init__(differ='logic_ifname')
         self.data.update(ifx)
         if ifname and ifx:
             self.data['logic_ifname'] = const.PORT_MAPPING_LOGIC[ifname]['ifname']
@@ -28,18 +28,15 @@ class CfgInterface(CfgObj):
     def remove(self):
         return True
 
-    @logchecker('Interface')
-    def _check_if_type_(self, input, obj_name=''):
+    def _check_if_type_(self, input):
         if input not in (const.DEV_CONF_PORT_TYPE['wan'], const.DEV_CONF_PORT_TYPE['lan']):
             return False, 'Port type error'
         return True, input
-    @logchecker('Interface')
-    def _check_lan_if_type_(self, input, obj_name=''):
+    def _check_lan_if_type_(self, input):
         if input != const.DEV_CONF_PORT_TYPE['lan']:
             return False, 'Try to config LAN port to other mode'
         return True, input
-    @logchecker('Interface')
-    def _check_wan_if_type_(self, input, obj_name=''):
+    def _check_wan_if_type_(self, input):
         if input != const.DEV_CONF_PORT_TYPE['wan']:
             return False, 'Try to config WAN port to other mode'
         return True, input
@@ -48,7 +45,7 @@ class CfgInterface(CfgObj):
     def change(self):
         new = self.data
         self._checker_ = checker = ParameterChecker(new)
-        with ConfigInputEnv(new, "Change interface [%s] config (type,status,iptype)." % (new['logic_ifname'])):
+        with ConfigInputEnv(new, "Change interface [%s] config" % (new['logic_ifname'])):
             checker['type'] = (self._check_if_type_, None)
             checker['status'] = (None, None)
             checker['ip_type'] = (None, None)
@@ -68,20 +65,20 @@ class CfgInterface(CfgObj):
         self.log_info('Execute LAN port config.')
         new = self.data
         checker = self._checker_
-        with ConfigInputEnv(new, "Change interface [%s] to LAN" % (new['logic_ifname'])):
+        with ConfigInputEnv('', "Change interface [%s] to LAN" % (new['logic_ifname'])):
             checker['type'] = (self._check_lan_if_type_, None)
 
         return True
 
     @logchecker('Interface')
-    def _check_dnss_(self, input, obj_name=''):
+    def _check_dnss_(self, input):
         if not input:
             self.log_warning('Set Static IP without DNSs')
             return False, input
         return True, input
     
     @logchecker('Interface')
-    def _check_pppoe_timeout_(self, input, obj_name=''):
+    def _check_pppoe_timeout_(self, input):
         input = int(input)/5
         return True, input
 
@@ -89,11 +86,13 @@ class CfgInterface(CfgObj):
     def change_wan_config(self):
         new = self.data
         checker = self._checker_
+        with ConfigInputEnv('', "Change interface [%s] to WAN" % (checker['logic_ifname'])):
+            checker['type'] = (self._check_wan_if_type_, None)
         # Enable interface
         if checker['status']:
             # For DHCP
             if checker['ip_type'] == 0:
-                with ConfigInputEnv(new, 'Set DHCP on WAN port %s' % (checker['logic_ifname'])):
+                with ConfigInputEnv('', 'Set DHCP on WAN port %s' % (checker['logic_ifname'])):
                     checker['manual_dns'] = (None, 0)
                     checker['dnss'] = (None, '')
                     checker['default_route_enable'] = (None, 0)

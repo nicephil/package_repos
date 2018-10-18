@@ -23,23 +23,16 @@ class CfgNetwork(CfgObj):
                                                 if ifx['type'] == const.DEV_CONF_PORT_TYPE['lan']
                                                     if vlan['id'] in ifx['local_network_ids'] ]
         return res
-
-    @logchecker('VLAN')
-    def _check_zone_(self, input, obj_name=''):
-        return bool(input in const.CONFIG_SECURITY_ZONE), input
-    @logchecker('VLAN')
-    def _check_(self, input, obj_name=''):
-        return True, input
     
     @logcfg
     def add(self):
         new = self.data
         checker = ParameterChecker(new)
-        with ConfigInputEnv(new, 'VLAN config'):
+        with ConfigInputEnv(new, 'VLAN: %s config' % (new['vlan'])):
             checker = ParameterChecker(new)
             checker['ifname'] = (None, None)
-            checker['gateway'] = (None, None)
-            checker['netmask'] = (None, None)
+            checker['gateway'] = (self._check_ipaddr_, None)
+            checker['netmask'] = (self._check_ipaddr_, None)
             checker['vlan'] = (None, None)
             checker['untagged'] = (None, None)
             checker['security_zone'] = (self._check_zone_, None)
@@ -69,7 +62,7 @@ class CfgNetwork(CfgObj):
     def remove(self):
         old = self.data
         checker = ParameterChecker(old)
-        with ConfigInputEnv(old, 'VLAN remove'):
+        with ConfigInputEnv(old, 'VLAN: %s remove' % (old['vlan'])):
             checker['ifname'] = (None, None)
             checker['vlan'] = (None, None)
             checker['untagged'] = (None, None)
@@ -80,6 +73,7 @@ class CfgNetwork(CfgObj):
         if not checker['untagged']:
             cmd = [const.CONFIG_BIN_DIR+'disable_vlan.sh', ifname, ]
             cmd += ['-z', checker['security_zone'],]
+            cmd += ['-v', checker['vlan'],]
             cmd += ['-S',]
             res &= self.doit(cmd, 'Disable VLAN interface')
         if checker['dhcp_server_enable']:
@@ -97,5 +91,4 @@ class CfgNetwork(CfgObj):
     @logcfg
     def post_run(self):
         self.doit(['/etc/init.d/network', 'reload'], 'Restart network')
-        self.doit(['/etc/init.d/dnsmasq', 'reload'], 'Restart dnsmasq')
         return True

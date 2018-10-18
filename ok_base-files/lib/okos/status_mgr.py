@@ -154,7 +154,7 @@ class StatusMgr(threading.Thread):
                     ifx_output['bandwidth'] = res[0]
                     ifx_output['duplex'] = res[1] == 'F' and 1 or 2
             return ifx_output
-        map(abstract_speed, ifs_state, interfaces)
+        #map(abstract_speed, ifs_state, interfaces)
 
 
         with IfStateEnv('Interface speed'):

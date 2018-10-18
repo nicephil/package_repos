@@ -85,6 +85,6 @@ fi
 #if [ $defaultroute = '1' ]; then
 #    ip r add default dev $ifname metric 1
 #fi
-
+echo "Set WAN port $ifx on pppoe mode"
 exit 0
 

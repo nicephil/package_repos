@@ -62,5 +62,6 @@ if [ -z "$no_restart" ]; then
     /etc/init.d/dnsmasq restart
 fi
 
+echo "Disable DHCP server on $ifx vlan $vid"
 exit 0
 

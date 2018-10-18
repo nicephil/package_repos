@@ -70,6 +70,8 @@ if [ -z "$no_restart" ]; then
     /etc/init.d/dnsmasq restart
 fi
 
+echo "Set DHCP server on $ifx : $vid"
+
 exit 0
 
 

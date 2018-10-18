@@ -70,7 +70,6 @@ if [ -n "$src_ip" ]; then
 fi
 for ip in ${ips//,/ }; do
     OIFS=$IFS;IFS='/';set -- $ip;ipaddr=$1;netmask=$2;IFS=$OIFS
-    #echo $ipaddr $netmask
     if [ "$ipaddr" != "$src_ip" ]; then
         uci add_list network.${ifx}.ipaddr=$ipaddr
     fi
@@ -91,6 +90,6 @@ fi
 #if [ $defaultroute = '1' ]; then
 #    ip r add default dev $ifname via $gateway metric 1
 #fi
-
+echo "Set WAN port $ifx on static ip mode"
 exit 0
 

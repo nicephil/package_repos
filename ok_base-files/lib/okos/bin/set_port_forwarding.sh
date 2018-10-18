@@ -105,3 +105,5 @@ uci commit firewall
 if [ -z "$no_restart" ]; then
     /etc/init.d/firewall reload
 fi
+
+exit 0

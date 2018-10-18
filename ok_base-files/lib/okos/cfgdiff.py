@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse, os, subprocess, re, json, sys
-from cfgobjects import CfgSystem, CfgDDNS, CfgInterface, CfgNetwork, CfgPortForwarding
+from cfgobjects import CfgSystem, CfgDDNS, CfgInterface, CfgNetwork, CfgPortForwarding, CfgMacIpBinding
 from okos_utils import log_crit, log_err, log_warning, log_info, log_debug
 import fcntl
 import ubus
@@ -12,22 +12,22 @@ class OakmgrCfg(object):
             CfgInterface(),
             CfgNetwork(),
             CfgPortForwarding(),
+            CfgMacIpBinding(),
             #CfgDDNS(),
             ]
     def __init__(self, f=''):
         super(OakmgrCfg, self).__init__()
         self.source = f
         self.objects = None
-        if f:
+        try:
             with open(f, 'r') as cfg:
                 fcntl.flock(cfg.fileno(), fcntl.LOCK_SH)
                 j_str = cfg.read()
-                try:
-                    self._json = json.loads(j_str, encoding='utf-8')
-                except Exception as e:
-                    log_info("----->$$$${}".format(j_str))
-        else:
+                self._json = json.loads(j_str, encoding='utf-8')
+        except Exception as e:
+            log_info("import json data failed!")
             self._json = {}
+
 
     def parse(self):
         self.objects = [self._json and t.parse(self._json) or [] for t in self.Templates]

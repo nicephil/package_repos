@@ -56,7 +56,6 @@ case $zone in
     *) help; exit 1;;
 esac
 
-echo $ifx $ifname
 uci delete network.${ifx}
 uci commit network
 

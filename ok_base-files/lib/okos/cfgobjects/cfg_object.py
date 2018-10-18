@@ -126,6 +126,49 @@ class CfgObj(object):
             change = [n.data == o.data and n.no_op() or n.change_op(o)
                     for n in new for o in old if n.data[differ] == o.data[differ]]
             return remove + add + change
+    
+    def _check_ipaddr_(self, input, obj_name=''):
+        p_ipaddr = const.FMT_PATTERN['ipaddr']
+        result = p_ipaddr.match(input)
+        if not result:
+            return False, 'IP address format error'
+        ip = result.groups()
+        ip = map(int, ip)
+        ips = filter(lambda i: bool(i >= 0 and i < 256), ip)
+        if len(ips) != len(ip):
+            return False, 'IP address format error'
+        return True, input
+
+    def _check_zone_(self, input, obj_name=''):
+        return bool(input in const.CONFIG_SECURITY_ZONE), input
+    
+    def _check_entry_id_(self, input, obj_name=''):
+        p_id = const.FMT_PATTERN['entry_id']
+        return p_id.match(input), input
+
+    def _check_sock_port_(self, input):
+        p = const.FMT_PATTERN['socket_port_range']
+        m = p.match(str(input))
+        if not m:
+            return False, 'port range format error'
+        m = m.groups()
+        start, end = int(m[0]), m[2] and int(m[2]) or m[2]
+        if end is not None:
+            if start >= 65536:
+                return False, 'port number error:(0 < port < 65536)'
+            if end <= start:
+                return False, 'port range error:(start < end)'
+        if start == 0:
+            return False, 'port range error:(0 < port < 65536)'
+        return True, end and '%d:%d' % (start, end) or '%d' % (start)
+
+    def _check_mac_(self, input):
+        p = const.FMT_PATTERN['mac']
+        m = p.match(str(input))
+        if not m:
+            return False, 'MAC address format error'
+        mac = ':'.join(m.groups())
+        return True, mac.lower()
 
 class ParameterChecker(object):
     '''
@@ -139,7 +182,7 @@ class ParameterChecker(object):
     def dump(self):
         for k, entry in self.fmt.iteritems():
             if callable(entry['checker']):
-                res, entry['value'] = entry['checker'](entry['value'], obj_name=k)
+                res, entry['value'] = entry['checker'](entry['value'])
                 if not res:
                     return False
         return True
@@ -153,8 +196,10 @@ class ParameterChecker(object):
         else:
             entry['value'] = self.src.setdefault(index, default)
         if callable(entry['checker']):
-            res, data = entry['checker'](entry['value'], obj_name=index)
+            log_debug('[Parameter Checking] for [%s]:>' % (index))
+            res, data = entry['checker'](entry['value'])
             if not res:
+                log_warning('[Parameter Checking] %s failed (%s) - %s -' % (index, entry['value'], data))
                 raise ExceptionConfigError('ParameterChecker', 'check %s failed' % (index), entry['value'])
             else:
                 entry['value'] = data
