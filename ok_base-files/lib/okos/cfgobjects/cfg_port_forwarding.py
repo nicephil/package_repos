@@ -5,9 +5,16 @@ from okos_utils import logcfg, logchecker
 #import ubus
 from constant import const
 
+class ExceptionConfigPortfwdParaError(ExceptionConfigParaError):
+    def __init__(self, param, reason, data=None):
+        super(ExceptionConfigPortfwdParaError, self).__init__('Port Forwarding', param, reason, data)
+class ExceptionConfigPortfwdParaPortError(ExceptionConfigPortfwdParaError):
+    def __init__(self, param, reason, data=None):
+        super(ExceptionConfigPortfwdParaPortError, self).__init__('socket port', reason, data)
+
 class CfgPortForwarding(CfgObj):
     def __init__(self, entry={}):
-        super(CfgPortForwarding, self).__init__()
+        super(CfgPortForwarding, self).__init__('id')
         self.data.update(entry)
     
     @logcfg
@@ -30,19 +37,19 @@ class CfgPortForwarding(CfgObj):
         return input in ('udp', 'tcp', 'tcpudp'), input
     @logchecker('Port Forwarding')
     def _check_port_(self, input, obj_name=''):
-        p = const.FMT_PATTERN['p_socket_port_range']
+        p = const.FMT_PATTERN['socket_port_range']
         m = p.match(str(input))
         if not m:
-            return False, 'Socket port range error'
+            raise ExceptionConfigPortfwdParaPortError('port range format error', input)
         m = m.groups()
         start, end = int(m[0]), m[2] and int(m[2]) or m[2]
         if end is not None:
             if start >= 65536:
-                return False, 'Socket port range error: port number must be less than 65536'
+                raise ExceptionConfigPortfwdParaPortError('port number error:(0 < port < 65536)', input)
             if end <= start:
-                return False, 'Socket port range error: end must be bigger than start'
+                raise ExceptionConfigPortfwdParaPortError('port range error:(start < end)', input)
         if start == 0:
-            return False, 'Socket port range error: port number must be bigger than 0'
+            raise ExceptionConfigPortfwdParaPortError('port range error:(0 < port < 65536)', input)
         return True, end and '%d:%d' % (start, end) or '%d' % (start)
     @logchecker('Port Forwarding')
     def _check_ifname_(self, input, obj_name=''):
@@ -60,8 +67,6 @@ class CfgPortForwarding(CfgObj):
             checker['protocol'] = (self._check_protocol_, None)
             checker['external_port'] = (self._check_port_, None)
             checker['local_port'] = (self._check_port_, None)
-            if not checker.dump():
-                return False
 
         cmd = [const.CONFIG_BIN_DIR+'set_port_forwarding.sh', checker['id'], ]
         cmd += ['--src-zone', 'UNTRUSTED', '--dst-zone', 'TRUSTED', ]
@@ -76,8 +81,6 @@ class CfgPortForwarding(CfgObj):
         checker = ParameterChecker(old)
         with ConfigInputEnv(old, 'Port Forwarding configuration'):
             checker['id'] = (self._check_entry_id_, None)
-            if not checker.dump():
-                return False
         cmd = [const.CONFIG_BIN_DIR+'set_port_forwarding.sh', checker['id'], '-R', '-S']
         res = self.doit(cmd, 'Port Forwarding Entry Removed')                
         return res

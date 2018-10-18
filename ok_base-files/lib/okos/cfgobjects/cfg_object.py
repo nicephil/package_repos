@@ -152,29 +152,14 @@ class ParameterChecker(object):
             entry['value'] = self.src[index]
         else:
             entry['value'] = self.src.setdefault(index, default)
+        if callable(entry['checker']):
+            res, data = entry['checker'](entry['value'], obj_name=index)
+            if not res:
+                raise ExceptionConfigError('ParameterChecker', 'check %s failed' % (index), entry['value'])
+            else:
+                entry['value'] = data
             
 
-
-class ConfigExecEnv(object):
-    def __init__(self, cfg, prefix, desc=''):
-        super(ConfigExecEnv, self).__init__()
-        self.desc = desc
-        self.cfg = cfg
-        self.prefix = prefix
-    def __enter__(self):
-        log_debug('[%s] %s - start -' % (self.prefix, self.desc))
-        log_debug('[%s] context:\n%s\n' % (self.prefix, self.cfg))
-        return self
-    def __exit__(self, exception_type, value, traceback):
-        #log_debug('[%s] %s - exit with %s:%s:%s -' % (self.prefix, self.desc, exception_type, value, type(traceback)))
-        if exception_type:
-            #log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, traceback.format_exc()))
-            #log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, str(traceback)))
-            log_err('[%s] exception :> %s >< %s <%s:%s>' % (self.prefix, exception_type, value, traceback.tb_frame.f_code.co_filename, traceback.tb_lineno))
-            log_err('[%s] %s - failed -' % (self.prefix, self.desc))
-            return False
-        log_debug('[%s] %s - done -' % (self.prefix, self.desc))
-        return True
 
 class ConfigInputEnv(ExecEnv):
     def __init__(self, cfg, desc=''):
@@ -193,11 +178,21 @@ class ConfigParaCheckEnv(ExecEnv):
             return True
         return super(ConfigParaCheckEnv, self).__exit__(exception_type, value, traceback)
 
-
-class ExceptionConfigParaError(Exception):
-    def __init__(self, value='', desc=''):
-        super(ExceptionConfigParaError, self).__init__()
-        self.value = value
-        self.desc = desc
+class ExceptionConfigError(Exception):
+    def __init__(self, process, reason='', data=None):
+        super(ExceptionConfigError, self).__init__()
+        self.process = process
+        self.reason = reason
+        self.data = data
     def __str__(self):
-        return repr(self.value)
+        return "[Config %s] failed since '%s' with (%s)" % (self.process, self.reason, str(self.data))
+
+class ExceptionConfigParaError(ExceptionConfigError):
+    def __init__(self, obj, param, reason, data=None):
+        super(ExceptionConfigParaError, self).__init__('Parameter Checking', reason, data)
+        self.obj = obj
+        self.param = param
+    def __str__(self):
+        return "[Config %s - %s:%s] failed since '%s' with (%s)" % (self.process, self.obj, self.param, self.reason, str(self.data))
+
+

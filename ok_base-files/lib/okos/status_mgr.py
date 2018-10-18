@@ -122,6 +122,13 @@ class StatusMgr(threading.Thread):
                 if ifname in ifs_next:
                     ifx.update(ifs_next[ifname])
 
+        def abstract_link_status(ifx_output, ifx_input):
+            ifx_output['state'] = ifx_input['up'] and 1 or 0
+            ifx_output['physical_state'] = ifx_input.setdefault('carrier', False) and 1 or 0
+            ifx_output['proto'] = ifx_input.setdefault('proto','none')
+            ifx_output['status'] = ifx_output['proto'] != 'none' and 1 or 0
+            ifx_output['ip_type'] = ip_types.setdefault(ifx_output['proto'], -1)
+
         with IfStateEnv('Link Statue'):
             update_ifs_state({ifname: {
                 'state': data['up'] and 1 or 0,
@@ -138,15 +145,15 @@ class StatusMgr(threading.Thread):
             })
             
         p = re.compile('^([0-9]+)([FH])$')
-        def abstract_speed(ifx_report, ifx_state):
-            if 'speed' in ifx_state and ifx_report['physical_state']:
-                speed = ifx_state['speed']
+        def abstract_speed(ifx_output, ifx_input):
+            if 'speed' in ifx_input and ifx_output['physical_state']:
+                speed = ifx_input['speed']
                 res = p.match(speed)
                 if res:
                     res = res.groups()
-                    ifx_report['bandwidth'] = res[0]
-                    ifx_report['duplex'] = res[1] == 'F' and 1 or 2
-            return ifx_report
+                    ifx_output['bandwidth'] = res[0]
+                    ifx_output['duplex'] = res[1] == 'F' and 1 or 2
+            return ifx_output
         map(abstract_speed, ifs_state, interfaces)
 
 

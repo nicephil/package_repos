@@ -92,8 +92,8 @@ const.CONFIG_SECURITY_ZONE = ('TRUSTED', 'UNTRUSTED', 'DMZ', 'GUEST')
 const.FMT_PATTERN = {
         'ipaddr': re.compile(r'^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$'),
         'port_fwd_id': re.compile(r'^[a-zA-Z0-9]*_[a-zA-Z0-9_]*$'),
-        'p_socket_port': re.compile(r'^([0-9]{1,5})$'),
-        'p_socket_port_range': re.compile(r'^([0-9]{1,5})(-([0-9]{1,5}))?$'),
+        'socket_port': re.compile(r'^([0-9]{1,5})$'),
+        'socket_port_range': re.compile(r'^([0-9]{1,5})([-~:]([0-9]{1,5}))?$'),
 }
 
 
