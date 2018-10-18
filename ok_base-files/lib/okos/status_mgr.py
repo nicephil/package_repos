@@ -109,109 +109,75 @@ class StatusMgr(threading.Thread):
         #   |dnss|String|such as "8.8.8.8,9.9.9.9"|
         ip_types = {'dhcp': 0, 'static':1, 'pppoe': 2}
         with IfStateEnv('Create Basic interfaces infor'):
-            ifs_state = {ifname: {
+            ifs_state = [{
                     'ifname': ifname,
                     'name': phy_ifnames[ifname]['logic'],
                     'type': phy_ifnames[ifname]['type'],
                     #'mac': data['macaddr'],
-                } for ifname in phy_ifnames
-            }
+            } for ifname in phy_ifnames]
 
         def update_ifs_state(ifs_next):
             for ifname, ifx in ifs_state.iteritems():
                 if ifname in ifs_next:
                     ifx.update(ifs_next[ifname])
 
-        def abstract_link_status(ifx_output, ifx_input):
+        def abstract_link_status(ifx_output):
+            ifx_input = interfaces[ifx_output['ifname']]
             ifx_output['state'] = ifx_input['up'] and 1 or 0
             ifx_output['physical_state'] = ifx_input.setdefault('carrier', False) and 1 or 0
             ifx_output['proto'] = ifx_input.setdefault('proto','none')
             ifx_output['status'] = ifx_output['proto'] != 'none' and 1 or 0
             ifx_output['ip_type'] = ip_types.setdefault(ifx_output['proto'], -1)
-
+            ifx_output['uptime'] = ifx_input['uptime']
         with IfStateEnv('Link Statue'):
-            update_ifs_state({ifname: {
-                'state': data['up'] and 1 or 0,
-                'physical_state': data.setdefault('carrier', False) and 1 or 0,
-                'proto': data.setdefault('proto','none'),
-                } for ifname, data in interfaces.iteritems()
-            })
-
-        with IfStateEnv('IP protocol'):
-            update_ifs_state({ifname: {
-                    'status': data['proto'] != 'none' and 1 or 0,
-                    'ip_type': ip_types.setdefault(data['proto'], -1),
-                } for ifname, data in interfaces.iteritems()
-            })
+            map(abstract_link_status, ifs_state)
 
         p = re.compile('^([0-9]+)([FH])$')
-        def abstract_speed(ifx_output, ifx_input):
+        def abstract_speed(ifx_output):
+            ifx_input = interfaces[ifx_output['ifname']]
             if 'speed' in ifx_input and ifx_output['physical_state']:
-                speed = ifx_input['speed']
-                res = p.match(speed)
+                res = p.match(ifx_input['speed'])
                 if res:
-                    res = res.groups()
-                    ifx_output['bandwidth'] = res[0]
-                    ifx_output['duplex'] = res[1] == 'F' and 1 or 2
+                    bandwidth, duplex = res.groups()
+                    ifx_output['bandwidth'] = bandwidth
+                    ifx_output['duplex'] = duplex == 'F' and 1 or 2
             return ifx_output
-        #map(abstract_speed, ifs_state, interfaces)
-
-
         with IfStateEnv('Interface speed'):
+            map(abstract_speed, ifs_state)
 
-            speeds = { ifname: ('speed' in data and ifs_state[ifname]['physical_state']) and data['speed'] or '' for ifname, data in interfaces.iteritems()}
-            report = {}
-            for ifname in interfaces:
-                res = p.match(speeds[ifname])
-                res = res and res.groups()
-                report[ifname] = res and {'bandwidth':res[0], 'duplex':res[1] == 'F' and 1 or 2} or {}
-            update_ifs_state(report)
+        def abstract_ip_setting(ifx_output):
+            ifx_input = interfaces[ifx_output['ifname']]
+            if ifx_output['status']:
+                ifx_output['dnss'] = ','.join([dns for dns in ifx_input['dns-server']])
+                ifx_output['ips'] = [{'ip':ip['address'], 'netmask':ip['mask']} for ip in ifx_input['ipv4-address']]
+                if ifx_output['type'] == const.DEV_CONF_PORT_TYPE['wan']:
+                    defaultroutes = [r['nexthop'] for r in ifx_input['route'] if r['target'] == '0.0.0.0']
+                    if defaultroutes:
+                        ifx_output['gateway'] = defaultroutes[0]
+        with IfStateEnv('IP Setting'):
+            map(abstract_ip_setting, ifs_state)
 
-        with IfStateEnv('IP address'):
-            update_ifs_state({ifname: {
-                    'uptime': data['uptime'],
-                    'dnss': ','.join([dns for dns in data['dns-server']]),
-                    'ips': [
-                            {'ip': ipv4_addr['address'],
-                            'netmask': ipv4_addr['mask'],
-                        } for ipv4_addr in data['ipv4-address']
-                    ],
-                } for ifname, data in interfaces.iteritems()
-                    if ifs_state[ifname]['status']
-            })
-        with IfStateEnv('Gateway'):
-            gateways = {ifname: [r['nexthop'] for r in data['route'] if r['target'] == '0.0.0.0']
-                        for ifname, data in interfaces.iteritems()
-                            if ifs_state[ifx]['state'] and
-                                ifs_state[ifx]['type'] == const.DEV_CONF_PORT_TYPE['wan']
-                    }
-            update_ifs_state({ifname: { 'gateway': data[0]}
-                for ifname, data in gateways.iteritems() if data
-            })
-
+        def abstract_pppoe(ifx_output):
+            if ifx_output['type'] == const.DEV_CONF_PORT_TYPE['wan'] and ifx_output['proto'] == 'pppoe' and ifx_output['status']:
+                ifx_input = network_conf[ifx_output['ifname']]
+                ifx_output['pppoe_username'] = ifx_input['username']
+                ifx_output['pppoe_password'] = ifx_input['password']
         with IfStateEnv('pppoe'):
-            update_ifs_state({ifx: {
-                    'pppoe_username': network_conf[ifs_state[ifx]['ifname']]['username'],
-                    'pppoe_password': network_conf[ifs_state[ifx]['ifname']]['password'],
-                } for ifx, v in interfaces.iteritems()
-                    if ifs_state[ifx]['type'] == const.DEV_CONF_PORT_TYPE['wan'] and
-                        ifs_state[ifx]['proto'] == 'pppoe' and
-                        ifs_state[ifx]['status']
-            })
+            map(abstract_pppoe, ifs_state)
+
+        def abstract_dhcp_server(ifx_output):
+            if ifx_output['status'] and ifx_output['type'] == const.DEV_CONF_PORT_TYPE['lan']:
+                ifx_input = dhcp_conf[ifx_output['ifname']]
+                ifx_output['dhcp_start'] = ifx_input['start']
+                ifx_output['dhcp_limit'] = ifx_input['limit']
         with IfStateEnv('DHCP server'):
-            update_ifs_state({ifx: {
-                    'dhcp_start': dhcp_conf[ifx]['start'],
-                    'dhcp_limit': dhcp_conf[ifx]['limit'],
-                } for ifx, v in interfaces.iteritems()
-                    if ifs_state[ifx]['status'] and
-                        ifs_state[ifx]['type'] == const.DEV_CONF_PORT_TYPE['lan']
-            })
+            map(abstract_dhcp_server, ifs_state)
 
         info_msg = {
             'operate_type': const.DEV_IF_STATUS_RESP_OPT_TYPE,
             'timestamp': int(time.time()),
             'cookie_id': 0,
-            'data': json.dumps({'list':[v for k,v in ifs_state.iteritems()]}),
+            'data': json.dumps({'list':ifs_state}),
         }
         with open('/tmp/if_state.tmp','w+') as f:
             json.dump(ifs_state,f)
