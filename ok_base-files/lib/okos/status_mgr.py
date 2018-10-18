@@ -143,7 +143,7 @@ class StatusMgr(threading.Thread):
                     'ip_type': ip_types.setdefault(data['proto'], -1),
                 } for ifname, data in interfaces.iteritems()
             })
-            
+
         p = re.compile('^([0-9]+)([FH])$')
         def abstract_speed(ifx_output, ifx_input):
             if 'speed' in ifx_input and ifx_output['physical_state']:
@@ -158,7 +158,7 @@ class StatusMgr(threading.Thread):
 
 
         with IfStateEnv('Interface speed'):
-            
+
             speeds = { ifname: ('speed' in data and ifs_state[ifname]['physical_state']) and data['speed'] or '' for ifname, data in interfaces.iteritems()}
             report = {}
             for ifname in interfaces:
@@ -234,7 +234,7 @@ class StatusMgr(threading.Thread):
         data_json = {}
         productinfo_data = self.conf_mgr.get_productinfo_data()
         data_json['software_version'] = productinfo_data['swversion']
-        data_json['boot_version'] = productinfo_data['bootversion']
+        data_json['boot_version'] = productinfo_data['bootversion'] if 'bootversion' in productinfo_data else 'v1.1.1'
         data_json['cpu'] = productinfo_data['cpu']
         data_json['memory'] = productinfo_data['mem']
         data_json['eth_port'] = productinfo_data['eth_port']
