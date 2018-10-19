@@ -215,6 +215,9 @@ function action_queryname()
     response.errcode = 0
 
     response.name = uci:get("system", "@system[0]", "device_name")
+    sys.call("echo 'stop auto downloading okos, as you activate webui' > /dev/tty0")
+    sys.call("/etc/init.d/handle_cloud stop")
+    sys.call("echo 'restart device, or complete webui wizard to continue' > /dev/tty0")
 
     -- response --
     response_json(response)
@@ -395,7 +398,7 @@ function action_configlan()
         ifname = "eth3",
         ipaddr = "192.168.1.1",
         netmask = "255.255.255.0",
-        dhcp_server_enable = 0,
+        dhcp_server_enable = 1,
         dhcp_start = "1",
         dhcp_limit = "200", 
         dhcp_leasetime = "1200" # seconds
@@ -700,7 +703,7 @@ function action_diag()
         errcode = 0
     }
     ]]--
-    --sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/172.16.254.254';/etc/init.d/dnsmasq reload;")
+    --- sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/172.16.254.254';/etc/init.d/dnsmasq reload;")
     sys.call("/etc/init.d/log restart;sleep 1")
     response.errcode = sys.call("ifdown wan; sleep 1; ifup wan;sleep 3")
     tmp = nw:get_protocol("static", "wan")
@@ -803,9 +806,9 @@ function action_querydiag()
         sys.call("uci revert dhcp;/etc/init.d/dnsmasq reload;sleep 3")
     end
 
-    -- if response.errocode == 0 and response.step == -1 then
-    --    sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/172.16.254.254';uci commit dhcp;/etc/init.d/dnsmasq reload;sleep 3")
-    -- end
+    ---if response.errocode == 0 and response.step == -1 then
+    ---    sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/172.16.254.254';uci commit dhcp;/etc/init.d/dnsmasq reload;sleep 3")
+    ---end
 
     -- response --
     response_json(response)
@@ -874,7 +877,8 @@ function action_regdev()
     response.errcode = sys.call("/sbin/uci set capwapc.server.mas_server=" .. input.oakmgr .. " && /sbin/uci commit capwapc")
 
     if response.errcode == 0 then
-        response.errcode = sys.user.setpasswd("root", input.passcode)
+        -- response.errcode = sys.user.setpasswd("root", input.passcode)
+        sys.call("/etc/init.d/handle_cloud start")
     end
     
     -- response --
