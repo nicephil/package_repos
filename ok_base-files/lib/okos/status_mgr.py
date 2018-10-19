@@ -74,14 +74,39 @@ class StatusMgr(threading.Thread):
         phy_ifnames = const.PORT_MAPPING_PHY
         cfg_ifnames = const.PORT_MAPPING_CONFIG
 
+        '''
+                    |  WAN   |  WAN1  |  WAN2  | LAN4053
+        config: ----+--------+--------+--------+---------
+        enable      |   y    |   n    |   n    |   y
+        cable       |   on   |  off   |  off   |  off
+        device: ----+--------+--------+--------+---------
+        up          |   y    |   y    |   y    |   y
+        carrier     |   y    |   n    |   n    |   n     # physical state
+        speed       | 1000F  |  -1F   |  -1F   |  -1F
+        mtu         |  1492  |  1500  |  1500  |  1500
+        mac addr    |        |        |        |
+        interface: -+--------+--------+--------+---------
+        up          |   y    |   n    |   n    |   y     # Admin state
+        pending     |   n    |   n    |   n    |   n
+        available   |   y    |   y    |   y    |   y
+        dynamic     |   n    |   n    |   n    |   n
+        uptime      |  3705  |   -    |   -    |  4036
+        l3_device   |  eth0  |   -    |   -    |  eth3
+        device      |  eth0  |  eth1  |  eth2  |  eth3
+        proto       | static |  none  |  none  | static
+        ip addresses|   y    |   -    |   -    |   y
+        dnss        |   y    |   -    |   -    |   y
+        routes      |   y    |   -    |   -    |   y
+        '''
         with IfStateEnv('Aquire State and Config from ubus'):
             # {'eth0':...}
             devices = ubus.call('network.device','status', {})[0]
             #devices = {k:v for k,v in devices.iteritems() if k.startswith('eth')}
             devices = {k:v for k,v in devices.iteritems() if k in phy_ifnames}
             interfaces = {d: ubus.call('network.interface.' + phy_ifnames[d]['ifname'], 'status', {})[0] for d in devices}
-            for ifx,c in interfaces.iteritems():
-                c.update(devices[ifx])
+            for ifx,c in devices.iteritems():
+                c.update(interfaces[ifx])
+            interfaces = devices
             network_conf = ubus.call('uci', 'get', {'config':'network'})[0]['values']
             network_conf = {cfg_ifnames[k]['phy']:v for k,v in network_conf.iteritems() if k in cfg_ifnames}
             dhcp_conf = ubus.call('uci', 'get', {'config':'dhcp'})[0]['values']
@@ -123,25 +148,24 @@ class StatusMgr(threading.Thread):
 
         def abstract_link_status(ifx_output):
             ifx_input = interfaces[ifx_output['ifname']]
-            ifx_output['state'] = ifx_input['up'] and 1 or 0
-            ifx_output['physical_state'] = ifx_input.setdefault('carrier', False) and 1 or 0
+            ifx_output['state'] = ifx_output['physical_state'] = ifx_input.setdefault('carrier', False) and 1 or 0
             ifx_output['proto'] = ifx_input.setdefault('proto','none')
-            ifx_output['status'] = ifx_output['proto'] != 'none' and 1 or 0
+            ifx_output['status'] = ifx_output['proto'] != 'none' and 1 or 0 # It's admin state
             ifx_output['ip_type'] = ip_types.setdefault(ifx_output['proto'], -1)
-            ifx_output['uptime'] = ifx_input['uptime']
         with IfStateEnv('Link Statue'):
             map(abstract_link_status, ifs_state)
 
         p = re.compile('^([0-9]+)([FH])$')
         def abstract_speed(ifx_output):
             ifx_input = interfaces[ifx_output['ifname']]
-            if 'speed' in ifx_input and ifx_output['physical_state']:
+            if ifx_output['status'] and 'uptime' in ifx_input:
+                ifx_output['uptime'] = ifx_input['uptime']
+            if ifx_output['physical_state'] and 'speed' in ifx_input:
                 res = p.match(ifx_input['speed'])
                 if res:
                     bandwidth, duplex = res.groups()
                     ifx_output['bandwidth'] = bandwidth
                     ifx_output['duplex'] = duplex == 'F' and 1 or 2
-            return ifx_output
         with IfStateEnv('Interface speed'):
             map(abstract_speed, ifs_state)
 
@@ -173,20 +197,26 @@ class StatusMgr(threading.Thread):
         with IfStateEnv('DHCP server'):
             map(abstract_dhcp_server, ifs_state)
 
-        info_msg = {
-            'operate_type': const.DEV_IF_STATUS_RESP_OPT_TYPE,
-            'timestamp': int(time.time()),
-            'cookie_id': 0,
-            'data': json.dumps({'list':ifs_state}),
-        }
+
         with open('/tmp/if_state.tmp','w+') as f:
             json.dump(ifs_state,f)
 
-        self.mailbox.pub(const.STATUS_Q, (1, info_msg), timeout=0)
+        with IfStateEnv('Dump Interfaces State Data'):
+            data = json.dumps({'list': ifs_state})
 
-        self.if_status_timer = threading.Timer(60, self.if_status_timer_func)
-        self.if_status_timer.name = 'IF_Status'
-        self.if_status_timer.start()
+        with IfStateEnv('Post Interfaces State'):
+            info_msg = {
+                'operate_type': const.DEV_IF_STATUS_RESP_OPT_TYPE,
+                'timestamp': int(time.time()),
+                'cookie_id': 0,
+                'data': data,
+            }
+            self.mailbox.pub(const.STATUS_Q, (1, info_msg), timeout=0)
+        
+        with IfStateEnv('Restart Interface State Report Timer'):
+            self.if_status_timer = threading.Timer(60, self.if_status_timer_func)
+            self.if_status_timer.name = 'IF_Status'
+            self.if_status_timer.start()
         return info_msg
 
     def run(self):
