@@ -71,6 +71,7 @@
         "DIAG_PAGE": "诊断页面",
         "SUCCESS": "恭喜",
         "SUCCESS_TIP":"您已经成功连接到OakCloud， 下一步请在OakCloud上注册或登录您的账号，以便能管理和使用您的设备.",
+        "REGIST_MAC": "当前设备的MAC为 {{ mac }}, 您也可以使用该MAC直接在OakManager进行设备注册",
         "RETURN_CONFIG":"返回配置页",
         "GO_CLOUD":"前往OakCloud",
         "FAIL":"失败",
