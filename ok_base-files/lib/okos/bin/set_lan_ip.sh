@@ -104,6 +104,7 @@ fi
 
 if [ -z "$no_restart" ]; then
     /etc/init.d/network reload
+    /etc/init.d/dnsmasq reload
     /etc/init.d/firewall reload
 fi
 
