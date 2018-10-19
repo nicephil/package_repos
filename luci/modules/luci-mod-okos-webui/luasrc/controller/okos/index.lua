@@ -700,7 +700,7 @@ function action_diag()
         errcode = 0
     }
     ]]--
-    sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/172.16.254.254';/etc/init.d/dnsmasq reload;")
+    --sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/172.16.254.254';/etc/init.d/dnsmasq reload;")
     sys.call("/etc/init.d/log restart;sleep 1")
     response.errcode = sys.call("ifdown wan; sleep 1; ifup wan;sleep 3")
     tmp = nw:get_protocol("static", "wan")
@@ -803,9 +803,9 @@ function action_querydiag()
         sys.call("uci revert dhcp;/etc/init.d/dnsmasq reload;sleep 3")
     end
 
-    if response.errocode == 0 and response.step == -1 then
-        sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/172.16.254.254';uci commit dhcp;/etc/init.d/dnsmasq reload;sleep 3")
-    end
+    -- if response.errocode == 0 and response.step == -1 then
+    --    sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/172.16.254.254';uci commit dhcp;/etc/init.d/dnsmasq reload;sleep 3")
+    -- end
 
     -- response --
     response_json(response)

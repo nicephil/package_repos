@@ -20,7 +20,6 @@ config dnsmasq
 	list notinterface	'wan wan1 wan2'
 	#list bogusnxdomain     '64.94.110.11'
 	option localservice	1  # disable to allow DNS requests from non-local subnets
-    list address '/router.oakridge.vip/172.16.254.254'
 
 config dhcp lan4053
 	option interface	lan4053
@@ -28,3 +27,8 @@ config dhcp lan4053
 	option limit	200
 	option leasetime 43200
     option ignore 0
+
+
+config domain 'okos_router'
+    option name 'router.oakridge.vip'
+    option ip '172.16.254.254'

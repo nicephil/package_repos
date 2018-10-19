@@ -89,8 +89,8 @@ uci commit firewall
 
 if [ -z "${vid}" ]; then
     # need to adjust router.oakridge.vip --> lanip mapping
-    # dhcp.@dnsmasq[0].address='/router.oakridge.vip/172.16.254.254'
-    uci set dhcp.@dnsmasq[0].address="/router.oakridge.vip/${ipaddr}"
+    # dhcp.okos_router.ip='172.16.254.254'
+    uci set dhcp.okos_router.ip="${ipaddr}"
     uci commit dhcp
     # need to adjust firewall 80 mapping
     # firewall.@redirect[0].dest_ip='172.16.254.254'
