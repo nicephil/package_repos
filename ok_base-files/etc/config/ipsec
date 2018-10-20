@@ -1,0 +1,26 @@
+config 'ipsec'
+  option 'zone' 'vpn'
+
+config 'remote' 'acme'
+  option 'enabled' '1'
+  option 'gateway' '7.7.7.7'
+  option 'authentication_method' 'psk'
+  option 'pre_shared_key' 'yourpasswordhere'
+  list   'p1_proposal' 'pre_g2_aes_sha1'
+  list   'sainfo' 'acme_dmz'
+  list   'sainfo' 'acme_lan'
+
+config 'p1_proposal' 'pre_g2_aes_sha1'
+  option 'encryption_algorithm' 'aes128'
+  option 'hash_algorithm' 'sha1'
+  option 'dh_group' 'modp1024'
+
+config 'tunnel' 'acme_lan'
+  option 'local_subnet' '192.168.2.64/26'
+  option 'remote_subnet' '10.1.2.0/24'
+  option 'p2_proposal' 'g2_aes_sha1'
+
+config 'p2_proposal' 'g2_aes_sha1'
+  option 'pfs_group' 'modp1024'
+  option 'encryption_algorithm' 'aes 128'
+  option 'authentication_algorithm' 'sha1'
