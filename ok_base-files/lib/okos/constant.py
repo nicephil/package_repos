@@ -93,6 +93,7 @@ const.FMT_PATTERN = {
         'ipaddr': re.compile(r'^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$'),
         'mac': re.compile(r'^([0-9a-zA-Z]{2})[:-]?([0-9a-zA-Z]{2})[:-]?([0-9a-zA-Z]{2})[:-]?([0-9a-zA-Z]{2})[:-]?([0-9a-zA-Z]{2})[:-]?([0-9a-zA-Z]{2})$'),
         'entry_id': re.compile(r'^[a-zA-Z0-9]*_[a-zA-Z0-9_]*$'),
+        'simple_id': re.compile(r'^[a-zA-Z0-9]*$'),
         'socket_port': re.compile(r'^([0-9]{1,5})$'),
         'socket_port_range': re.compile(r'^([0-9]{1,5})([-~:]([0-9]{1,5}))?$'),
 }

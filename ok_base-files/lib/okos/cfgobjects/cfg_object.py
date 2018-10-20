@@ -127,7 +127,7 @@ class CfgObj(object):
                     for n in new for o in old if n.data[differ] == o.data[differ]]
             return remove + add + change
     
-    def _check_ipaddr_(self, input, obj_name=''):
+    def _check_ipaddr_(self, input):
         p_ipaddr = const.FMT_PATTERN['ipaddr']
         result = p_ipaddr.match(input)
         if not result:
@@ -139,11 +139,14 @@ class CfgObj(object):
             return False, 'IP address format error'
         return True, input
 
-    def _check_zone_(self, input, obj_name=''):
+    def _check_zone_(self, input):
         return bool(input in const.CONFIG_SECURITY_ZONE), input
     
-    def _check_entry_id_(self, input, obj_name=''):
+    def _check_entry_id_(self, input):
         p_id = const.FMT_PATTERN['entry_id']
+        return p_id.match(input), input
+    def _check_simple_id_(self, input):
+        p_id = const.FMT_PATTERN['simple_id']
         return p_id.match(input), input
 
     def _check_sock_port_(self, input):

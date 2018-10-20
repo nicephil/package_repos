@@ -1,17 +1,16 @@
 --- a/src/_updown/_updown.in
 +++ b/src/_updown/_updown.in
-@@ -16,11 +16,9 @@
- # or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- # for more details.
+@@ -22,6 +22,13 @@
+ # that, and use the (left/right)updown parameters in ipsec.conf to make
+ # strongSwan use yours instead of this default one.
  
--# CAUTION:  Installing a new version of strongSwan will install a new
--# copy of this script, wiping out any custom changes you make.  If
--# you need changes, make a copy of this under another name, and customize
--# that, and use the (left/right)updown parameters in ipsec.conf to make
--# strongSwan use yours instead of this default one.
-+# Add your custom ip rules to the /etc/ipsec.user file if you need that functionality.
++# Add your custom commands to the file "/etc/ipsec.user". Other packages could
++# also install their scripts in the directory "/etc/hotplug.d/ipsec".
++# This files/scripts are executed by the openwrt hotplug functionality on
++# ipsec events.
 +
-+[ -e /etc/ipsec.user ] && . /etc/ipsec.user "$1"
- 
++/sbin/hotplug-call ipsec "$1"
++
  #      PLUTO_VERSION
  #              indicates  what  version of this interface is being
+ #              used.  This document describes version  1.1.   This

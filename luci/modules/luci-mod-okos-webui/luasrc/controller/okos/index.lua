@@ -215,9 +215,9 @@ function action_queryname()
     response.errcode = 0
 
     response.name = uci:get("system", "@system[0]", "device_name")
-    sys.call("echo 'stop auto downloading okos, as you activate webui' > /dev/tty0")
-    sys.call("/etc/init.d/handle_cloud stop")
-    sys.call("echo 'restart device, or complete webui wizard to continue' > /dev/tty0")
+    --sys.call("echo 'stop auto downloading okos, as you activate webui' > /dev/tty0")
+    --sys.call("/etc/init.d/handle_cloud stop")
+    --sys.call("echo 'restart device, or complete webui wizard to continue' > /dev/tty0")
 
     -- response --
     response_json(response)
@@ -876,10 +876,10 @@ function action_regdev()
 
     response.errcode = sys.call("/sbin/uci set capwapc.server.mas_server=" .. input.oakmgr .. " && /sbin/uci commit capwapc")
 
-    if response.errcode == 0 then
+    -- if response.errcode == 0 then
         -- response.errcode = sys.user.setpasswd("root", input.passcode)
-        sys.call("/etc/init.d/handle_cloud start")
-    end
+        -- sys.call("/etc/init.d/handle_cloud start")
+    -- end
     
     -- response --
     response_json(response)

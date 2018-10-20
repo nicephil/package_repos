@@ -21,7 +21,7 @@ class CfgMacIpBinding(CfgObj):
         new = self.data
         checker = ParameterChecker(new)
         with ConfigInputEnv(new, 'MAC IP binding configuration'):
-            checker['id'] = (self._check_entry_id_, None)
+            checker['id'] = (self._check_simple_id_, None)
             checker['mac'] = (self._check_mac_, None)
             checker['ip'] = (self._check_ipaddr_, None)
             checker['name'] = (None, '')
@@ -36,7 +36,7 @@ class CfgMacIpBinding(CfgObj):
         old = self.data
         checker = ParameterChecker(old)
         with ConfigInputEnv(old, 'MAC IP binding remove'):
-            checker['id'] = (self._check_entry_id_, None)
+            checker['id'] = (self._check_simple_id_, None)
         cmd = [const.CONFIG_BIN_DIR+'set_mac_ip.sh', checker['id'], '-R', '-S']
         res = self.doit(cmd, 'MAC IP binding Entry Removed')                
         return res
