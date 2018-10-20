@@ -46,8 +46,23 @@ walk_config_and_setup()
     config_foreach setup_network wifi-iface
 }
 
+apfw_setup_mustaccept_rule()
+{
+    auth=$(uci get system.auth_url.auth_url 2>/dev/null|awk -F'[ :/]+' '{print $2}')
+    if [ -n "$auth" ]
+    then
+        auth_ip=$(host -W 5 $auth | awk '{if(!match($4,"found:")){print $4;exit}}')
+        if [ -n "$auth_ip" ]
+        then
+            iptables -F MustAccept
+            iptables -A MustAccept  -d $auth_ip -j ACCEPT 
+        fi
+    fi
+}
+
 apfw_dyn_start()
 {
+    apfw_setup_mustaccept_rule
     walk_config_and_setup
 }
 

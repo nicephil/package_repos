@@ -69,6 +69,8 @@ set_global_static_chains_rules()
     $CMD -N WhiteList
     #$CMD -N GotoPortal
 
+    # must to accept chain for auth server
+    $CMD -N MustAccept
     # guest network isolation
     $CMD -N isolation
 
@@ -79,6 +81,8 @@ set_global_static_chains_rules()
 
     # firewall rule
     $CMD -A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT 
+    # must to accept
+    $CMD -A FORWARD -j MustAccept
     # network isolation
     $CMD -A FORWARD -j isolation
     # ClientControl rule
