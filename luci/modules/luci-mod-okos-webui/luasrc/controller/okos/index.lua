@@ -23,6 +23,7 @@ function index()
     --page.sysauth_authenticator = "htmlauth"
 
     entry({"okos", "haspasscode"}, call("action_haspasscode"), _("CheckHasPasscode"))
+    entry({"okos", "hassdc"}, call("action_hassdc"), _("HasSDC"))
     entry({"okos", "login"}, call("action_login"), _("Login)"))
     entry({"okos", "internetstatus"}, call("action_internetstatus"), _("InternetStatus"))
     entry({"okos", "configname"}, call("action_configname"), _("ConfigNAME"))
@@ -137,6 +138,47 @@ function action_haspasscode()
     response_json(response)
 
 end
+
+-- check if sdc works well
+function action_hassdc()
+    -- sanity check --
+    if not sanity_check_get() then
+        return
+    end
+
+    -- process --
+    local response = { }
+    --[[
+    response = {
+        errcode = 0
+    }
+    ]]--
+
+    -- try to access 
+    --[[ post_data = {
+            'mac' : self.productinfo_data['mac'],
+            'delay' : const.HEARTBEAT_DELAY,
+            'list' : []
+        }
+    url = 'http://{server}:{port}/{path}/api/device/router/info'.format(server=server[0], port=server[1], path=server[2])
+    ]]--
+    response.errcode = 1
+    local mac = uci:get("productinfo", "productinfo", "mac")
+    local mas_server = uci:get("capwapc", "server", "mas_server")
+    local url = 'http://' .. mas_server .. '/nms/api/device/router/check'
+    local post_data = "{'mac':'" .. mac .. "'}"
+    local cmd = 'curl -m 60 -i -s -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "' .. post_data .. '" "' .. url .. '"|grep "error_code" 2>/dev/null'
+ 
+    local result = sys.exec(cmd)
+    if result ~= nil and result:match("0")  then
+        response.errcode = 0
+    end
+    
+    -- response --
+    response_json(response)
+
+end
+
 
 -- check login
 function action_login()
