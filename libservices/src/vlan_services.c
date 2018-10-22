@@ -193,13 +193,25 @@ int vlan_set_pvid(const char *port_name, int pvid, int type)
         sprintf(buf, "lan%d", pvid);
         cfg_set_option_value(tuple, buf);
     } else {
-        sprintf(tuple, "network.lan%d.ifname", pvid);
-        cfg_get_option_value(tuple, buf, sizeof(buf));
-        if (!strstr(buf, "eth0.4090")) {
-            strcat(buf, " ");
-            strcat(buf, "eth0.4090");
-            cfg_set_option_value(tuple, buf);
+        // w282,a750 has two ethernets
+        if ((cfg_is_w282() || cfg_is_a750()) && !strcmp(port_name, "eth2")) {
+            sprintf(tuple, "network.lan%d.ifname", pvid);
+            cfg_get_option_value(tuple, buf, sizeof(buf));
+            if (!strstr(buf, "eth0.4091")) {
+                strcat(buf, " ");
+                strcat(buf, "eth0.4091");
+                cfg_set_option_value(tuple, buf);
+            }
+        } else {
+            sprintf(tuple, "network.lan%d.ifname", pvid);
+            cfg_get_option_value(tuple, buf, sizeof(buf));
+            if (!strstr(buf, "eth0.4090")) {
+                strcat(buf, " ");
+                strcat(buf, "eth0.4090");
+                cfg_set_option_value(tuple, buf);
+            }
         }
+        
     }
 
     //sprintf(tuple, "vlan_port.VLAN%s.pvid", port_name);
