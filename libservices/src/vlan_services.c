@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "services/cfg_services.h"
 #include "services/vlan_services.h"
@@ -213,10 +214,13 @@ int vlan_set_pvid(const char *port_name, int pvid, int type)
     char eth1_port[12] = "eth0.4090";
     char eth2_port[12] = "eth0.4091";
 
+
     if (cfg_is_w282() || cfg_is_a750()) {
         strcpy(eth1_port, "eth1.4");
         strcpy(eth2_port, "eth1.5");
     }
+
+    syslog(LOG_ERR, "--->port_name:%s, pvid:%d, eth1:%s, eth2:%s\n", port_name, pvid, eth1_port, eth2_port);
 
     if (!strncmp(port_name, "ath", 3)) {
         //wireless.ath13.network='lan'
@@ -224,6 +228,7 @@ int vlan_set_pvid(const char *port_name, int pvid, int type)
         sprintf(buf, "lan%d", pvid);
         cfg_set_option_value(tuple, buf);
     } else if (!strcmp(port_name, "eth1")) {
+        default_lan_remove_ifname(eth1_port);
         sprintf(tuple, "network.lan%d.ifname", pvid);
         cfg_get_option_value(tuple, buf, sizeof(buf));
         if (!strstr(buf, eth1_port)) {
@@ -231,8 +236,8 @@ int vlan_set_pvid(const char *port_name, int pvid, int type)
             strcat(buf, eth1_port);
             cfg_set_option_value(tuple, buf);
         }
-        default_lan_remove_ifname(eth1_port);
     } else if (!strcmp(port_name, "eth2")) {
+        default_lan_remove_ifname(eth2_port);
         sprintf(tuple, "network.lan%d.ifname", pvid);
         cfg_get_option_value(tuple, buf, sizeof(buf));
         if (!strstr(buf, eth2_port)) {
@@ -240,7 +245,6 @@ int vlan_set_pvid(const char *port_name, int pvid, int type)
             strcat(buf, eth2_port);
             cfg_set_option_value(tuple, buf);
         }
-        default_lan_remove_ifname(eth2_port);
     }
 
     //sprintf(tuple, "vlan_port.VLAN%s.pvid", port_name);
