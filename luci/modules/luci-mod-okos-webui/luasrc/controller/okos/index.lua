@@ -151,6 +151,7 @@ function action_hassdc()
     --[[
     response = {
         errcode = 0
+        url = "alpha1.oakridge.io"
     }
     ]]--
 
@@ -166,11 +167,12 @@ function action_hassdc()
     local mac = uci:get("productinfo", "productinfo", "mac")
     local mas_server = uci:get("capwapc", "server", "mas_server")
     local url = 'http://' .. mas_server .. '/nms/api/device/router/check'
-    local post_data = "{'mac':'" .. mac .. "'}"
-    local cmd = 'curl -m 60 -i -s -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "' .. post_data .. '" "' .. url .. '"|grep "error_code" 2>/dev/null'
+    local post_data = '{"mac":"' .. mac .. '"}'
+    local cmd = 'curl -m 30 -i -s -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d \'' .. post_data .. '\' "' .. url .. '" 2>/dev/null'
  
     local result = sys.exec(cmd)
-    if result ~= nil and result:match("0")  then
+    response.url = mas_server
+    if result ~= nil and result:match("\"error_code\" : 0")  then
         response.errcode = 0
     end
     
