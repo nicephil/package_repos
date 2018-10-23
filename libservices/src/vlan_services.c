@@ -214,8 +214,8 @@ int vlan_set_pvid(const char *port_name, int pvid, int type)
     char eth2_port[12] = "eth0.4091";
 
     if (cfg_is_w282() || cfg_is_a750()) {
-        strcpy(eth1_port, "eth1.4090");
-        strcpy(eth2_port, "eth1.4091");
+        strcpy(eth1_port, "eth1.4");
+        strcpy(eth2_port, "eth1.5");
     }
 
     if (!strncmp(port_name, "ath", 3)) {
