@@ -9,7 +9,7 @@ function test_capwapc_and_libs()
     scp -r /home/llwang/repos/master_for_AA-12.09/osdk_repos/bin/ar71xx/packages/libservices_1.0-0_ar71xx.ipk root@$1:/tmp/
     scp -r /home/llwang/repos/master_for_AA-12.09/osdk_repos/bin/ar71xx/packages/libnmsc_1.0-0_ar71xx.ipk root@$1:/tmp/
     scp -r /home/llwang/repos/master_for_AA-12.09/osdk_repos/bin/ar71xx/packages/capwapc_1_ar71xx.ipk root@$1:/tmp/
-    ssh root@$1 "/etc/init.d/handle_cloud stop;opkg remove --force-depends capwapc libnmsc libservices;opkg install /tmp/*.ipk;/etc/init.d/capwapc restart;"
+    ssh root@$1 "/etc/init.d/handle_cloud stop;cp /etc/config/capwapc /tmp/;opkg remove --force-depends capwapc libnmsc libservices;opkg install /tmp/*.ipk;cp /tmp/capwapc /etc/config/capwapc;/etc/init.d/capwapc restart;"
 }
 
 function test_capwapc()
@@ -33,7 +33,9 @@ function test_busybox()
 
 #test_capwapc $ip
 
-test_okos_scripts $ip
+test_capwapc_and_libs $ip
+
+#test_okos_scripts $ip
 
 #test_busybox $ip
 

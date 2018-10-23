@@ -183,35 +183,64 @@ int vlan_set_type(const char *port_name, int type)
     return 0;
 }
 
+static int default_lan_remove_ifname(char *ifname)
+{
+    char *tuple = "network.lan1.ifname";
+    char buf[128] = {0};
+    int buf_len = 0;
+    char change[128] = {0};
+    char *key_p = NULL;
+    char *sub_str = NULL;
+
+    cfg_get_option_value(tuple, buf, sizeof(buf));
+    buf_len = strlen(buf);
+
+    if ((key_p = strstr(buf, ifname)) != NULL) {
+        *key_p =  '\0';
+        strcpy(change, buf);
+        sub_str = key_p + strlen(ifname) + 1;
+        strcat(change, sub_str);
+        cfg_set_option_value(tuple, change);
+    }
+    return 0;
+}
+
 int vlan_set_pvid(const char *port_name, int pvid, int type)
 {
     char tuple[128];
     char buf[128];
+
+    char eth1_port[12] = "eth0.4090";
+    char eth2_port[12] = "eth0.4091";
+
+    if (cfg_is_w282() || cfg_is_a750()) {
+        strcpy(eth1_port, "eth1.4090");
+        strcpy(eth2_port, "eth1.4091");
+    }
+
     if (!strncmp(port_name, "ath", 3)) {
         //wireless.ath13.network='lan'
         sprintf(tuple, "wireless.%s.network", port_name);
         sprintf(buf, "lan%d", pvid);
         cfg_set_option_value(tuple, buf);
-    } else {
-        // w282,a750 has two ethernets
-        if ((cfg_is_w282() || cfg_is_a750()) && !strcmp(port_name, "eth2")) {
-            sprintf(tuple, "network.lan%d.ifname", pvid);
-            cfg_get_option_value(tuple, buf, sizeof(buf));
-            if (!strstr(buf, "eth0.4091")) {
-                strcat(buf, " ");
-                strcat(buf, "eth0.4091");
-                cfg_set_option_value(tuple, buf);
-            }
-        } else {
-            sprintf(tuple, "network.lan%d.ifname", pvid);
-            cfg_get_option_value(tuple, buf, sizeof(buf));
-            if (!strstr(buf, "eth0.4090")) {
-                strcat(buf, " ");
-                strcat(buf, "eth0.4090");
-                cfg_set_option_value(tuple, buf);
-            }
+    } else if (!strcmp(port_name, "eth1")) {
+        sprintf(tuple, "network.lan%d.ifname", pvid);
+        cfg_get_option_value(tuple, buf, sizeof(buf));
+        if (!strstr(buf, eth1_port)) {
+            strcat(buf, " ");
+            strcat(buf, eth1_port);
+            cfg_set_option_value(tuple, buf);
         }
-        
+        default_lan_remove_ifname(eth1_port);
+    } else if (!strcmp(port_name, "eth2")) {
+        sprintf(tuple, "network.lan%d.ifname", pvid);
+        cfg_get_option_value(tuple, buf, sizeof(buf));
+        if (!strstr(buf, eth2_port)) {
+            strcat(buf, " ");
+            strcat(buf, eth2_port);
+            cfg_set_option_value(tuple, buf);
+        }
+        default_lan_remove_ifname(eth2_port);
     }
 
     //sprintf(tuple, "vlan_port.VLAN%s.pvid", port_name);

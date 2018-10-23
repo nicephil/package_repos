@@ -17,7 +17,6 @@ const dc_json_node dc_nodes[] = {
     {"dns",             dc_hdl_node_dns},
     {"capwap",          dc_hdl_node_capwap},
     {"probe",           dc_hdl_node_probe},  /* not supported */
-    {"log",             dc_hdl_node_log},
     {"network",         dc_hdl_node_network}, /* not supported */
     {"ether_interfaces",dc_hdl_node_ethif}, /* not supported */
     {"vlans",           dc_hdl_node_vlan},
@@ -28,6 +27,7 @@ const dc_json_node dc_nodes[] = {
     {"wlan",            dc_hdl_node_wlan}, 
     {"ports",           dc_hdl_node_vlan_port},
     {"interfaces",      dc_hdl_node_interface},
+    {"log",             dc_hdl_node_log},
     {"save_config",     dc_hdl_node_save_config}
 };
 #define DC_JSON_NODES_COUNT  sizeof(dc_nodes)/sizeof(dc_nodes[0])

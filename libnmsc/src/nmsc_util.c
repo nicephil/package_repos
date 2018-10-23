@@ -102,7 +102,7 @@ void nmsc_delay_op_new(int (*operator)(void *reserved), void *param, int size)
 
 int nmsc_delay_op_log(void *reserved) 
 {
-
+    //return 0;
     int ret = log_apply_all(*(int *)reserved);
 
     if (ret != 0) {
