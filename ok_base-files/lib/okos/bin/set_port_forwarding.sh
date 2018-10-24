@@ -5,19 +5,23 @@ help()
     cat <<_HELP_
 Setup port forwarding entry.
 
-Usage: $0 ID # use ID to identify each port forwarding entry. Caller MUST ensure it's unique.
-        ID # [a-zA-z][a-zA-Z0-9_]{,9}
-        --src-zone [TRUSTED|UNTRUSTED|DMZ|GUEST] # assign source security zone of traffic
-        --dst-zone [TRUSTED|UNTRUSTED|DMZ|GUEST] # assign destinate security zone of traffic
-        --src-ip SRC_IP # source ip address of input traffic
-        --src-dip SRC_DIP # destinate ip addresss of input traffice
-        --dst-ip DST_IP # ip address of target in the local network
-        --src-port SRC_PORT # sourc port of input traffic
-        --src-dport SRC_DPORT # destinate port of input traffic
-        --dst-port DST_PORT # destinate port on the target
-        --src-mac SRC_MAC # source mac address of input traffic
+Usage: $0 ID [--src-zone ZONE] [--dst-zone ZONE] [--src-ip IP] [--src-dip IP] [--dst-ip IP]
+            [--src-port PORT] [--src-dport PORT] [--dst-port PORT] [--src-mac MAC]
+            [-p PROTO] [-j ACTION] [-R] [-S]
+        ID # use ID to identify each port forwarding entry. 
+           # Caller MUST ensure it's unique.
+           # [a-zA-z][a-zA-Z0-9_]{,9}
+        --src-zone {TRUSTED|UNTRUSTED|DMZ|GUEST} # assign source security zone of traffic
+        --dst-zone {TRUSTED|UNTRUSTED|DMZ|GUEST} # assign destinate security zone of traffic
+        --src-ip IP # source ip address of input traffic
+        --src-dip IP # destinate ip addresss of input traffice
+        --dst-ip IP # ip address of target in the local network
+        --src-port PORT # sourc port of input traffic
+        --src-dport PORT # destinate port of input traffic
+        --dst-port PORT # destinate port on the target
+        --src-mac MAC # source mac address of input traffic
         -p PROTO # protocol
-        -j [DNAT|SNAT] # target of this entry, DNAT by default.
+        -j {DNAT|SNAT} # target of this entry, DNAT by default.
         -R # remove this entry
         -S # don't restart service
 Example:

@@ -1,4 +1,4 @@
-config dnsmasq
+config dnsmasq 'common'
 	option domainneeded	1
 	option boguspriv	1
 	option filterwin2k	0  # enable for dial on demand
@@ -17,18 +17,19 @@ config dnsmasq
 	#list server		'/mycompany.local/1.2.3.4'
 	#option nonwildcard	1
 	#list interface		br-lan
-	list notinterface	'wan wan1 wan2'
+	list notinterface	'wan'
+	list notinterface	'wan1'
+	list notinterface	'wan2'
 	#list bogusnxdomain     '64.94.110.11'
 	option localservice	1  # disable to allow DNS requests from non-local subnets
 
-config dhcp lan4053
-	option interface	lan4053
-	option start 	1
-	option limit	200
-	option leasetime 43200
-    option ignore 0
-
+config 'dhcp' 'lan4053'
+	option interface	'lan4053'
+	option start		1
+	option limit		200
+	option leasetime	43200
+	option ignore		0
 
 config domain 'okos_router'
-    option name 'router.oakridge.vip'
-    option ip '172.16.254.254'
+	option name 'router.oakridge.vip'
+	option ip '172.16.254.254'

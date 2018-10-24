@@ -4,12 +4,12 @@ help()
 {
     cat <<_HELP_
 Setup WAN port on static ip mode.
-Usage: $0 [wan|wan1|wan2] GATEWAY IPADDR/NETMASK[,IPADDR/NETMASK] DNS[,DNS]
-        [-R] [-r IPADDRx] [-m MTU]
+Usage: $0 {wan|wan1|wan2} GATEWAY IPADDR/NETMASK[,IPADDR/NETMASK] DNS[,DNS]
+        [-r IPADDR] [-m MTU] [-RS] 
 
         -r IPADDR # Add default route on this WAN port, and set IPADDR as primary IP.
-        -R # Don't add default route on this WAN port
         -m MTU # Set MTU on this interface
+        -R # Don't add default route on this WAN port
         -S # don't restart service
 Example:
     $0 wan 192.168.254.254 192.168.254.101/255.255.255.0,192.168.254.102/255.255.255.0,192.168.254.103/255.255.255.0 8.8.8.8,9.9.9.9 # set wan port with 3 ip addresses
@@ -36,8 +36,6 @@ dnss="$4"
 shift 4
 
 defaultroute='0'
-src_ip=''
-mtu=''
 while [ -n "$1" ]; do
     case $1 in
         -r) defaultroute='1';src_ip="$2";shift 2;;

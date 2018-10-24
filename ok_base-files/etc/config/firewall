@@ -1,4 +1,4 @@
-config defaults
+config defaults 'common'
 	option syn_flood	1
 	option input		ACCEPT
 	option output		ACCEPT
@@ -7,32 +7,32 @@ config defaults
 	option disable_ipv6	1
 
 config zone 'TRUSTED'
-	option name		TRUSTED
-	#list network		'lan4053'
+	option name			TRUSTED
+	list network		'lan4053'
 	option input		ACCEPT
 	option output		ACCEPT
 	option forward		ACCEPT
 
 config zone 'UNTRUSTED'
-    option name		UNTRUSTED
+    option name			UNTRUSTED
     list network		'wan'
     list network		'wan1'
-    list network      'wan2'
+    list network		'wan2'
 	option input		REJECT
 	option output		ACCEPT
 	option forward		REJECT
-	option masq		1
+	option masq			1
 	option mtu_fix		1
 
 config zone 'DMZ'
-	option name		DMZ
+	option name			DMZ
 	#list network		'lan4053'
 	option input		ACCEPT
 	option output		ACCEPT
 	option forward		REJECT
 
 config zone 'GUEST'
-	option name		GUEST
+	option name			GUEST
 	#list network		'lan4053'
 	option input		REJECT
 	option output		ACCEPT
@@ -41,12 +41,21 @@ config zone 'GUEST'
 config forwarding 'TRUSTED_to_UNTRUSTED'
 	option src		TRUSTED
 	option dest		UNTRUSTED
+config forwarding 'TRUSTED_to_DMZ'
+	option src		TRUSTED
+	option dest		DMZ
+config forwarding 'TRUSTED_to_GUEST'
+	option src		TRUSTED
+	option dest		GUEST
+config forwarding 'GUEST_to_UNTRUSTED'
+	option src		GUEST
+	option dest		UNTRUSTED
 
 # We need to accept udp packets on port 68,
 # see https://dev.openwrt.org/ticket/4108
 config rule 'Allow_DHCP_Renew'
-	option name		Allow_DHCP_Renew
-	option src		UNTRUSTED
+	option name			Allow_DHCP_Renew
+	option src			UNTRUSTED
 	option proto		udp
 	option dest_port	68
 	option target		ACCEPT
@@ -54,11 +63,39 @@ config rule 'Allow_DHCP_Renew'
 
 # Allow IPv4 ping
 config rule 'Allow_Ping'
-	option name		Allow_Ping
-	option src		UNTRUSTED
+	option name			Allow_Ping
+	option src			UNTRUSTED
 	option proto		icmp
 	option icmp_type	echo-request
 	option family		ipv4
+	option target		ACCEPT
+
+config rule 'Allow_esp'
+	option name			Allow_esp
+	option src			UNTRUSTED
+	option proto		esp
+	option target		ACCEPT
+
+config rule 'Allow_ah'
+	option name			Allow_ah
+	option src			UNTRUSTED
+	option proto		ah
+	option target		ACCEPT
+
+config rule 'allow_ike_p1'
+	option name			allow_ike_p1
+	option src			UNTRUSTED
+	option proto		udp
+	option src_port		500
+	option dest_port	500
+	option target		ACCEPT
+
+config rule 'allow_ike_p2'
+	option name			allow_ike_p2
+	option src			UNTRUSTED
+	option proto		udp
+	option src_port		4500
+	option dest_port	4500
 	option target		ACCEPT
 
 # include a file with users custom iptables rules

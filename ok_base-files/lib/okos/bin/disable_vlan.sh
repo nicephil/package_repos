@@ -4,9 +4,9 @@ help()
 {
     cat <<_HELP_
 Disable an VLAN interface.
-Usage: $0 [lan4053]
+Usage: $0 {lan4053} [-v VLANID] [-z ZONE] [-S]
         -v VLANID # vlan id [1~4093] on the target interface
-        -z ZONE [TRUSTED|UNTRUSTED|DMZ|GUEST] # assign security zone
+        -z {TRUSTED|UNTRUSTED|DMZ|GUEST} # assign security zone
         -S # don't restart service
 Example:
     $0 lan4053 -v 100 # disable VLAN 100 on port
@@ -25,7 +25,6 @@ case $1 in
 esac
 shift 1
 
-vid=''
 zone='TRUSTED'
 while [ -n "$1" ]; do
     case $1 in

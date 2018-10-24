@@ -4,13 +4,13 @@ help()
 {
     cat <<_HELP_
 Setup WAN port on PPPOE mode.
-Usage: $0 [wan|wan1|wan2] USERNAME PASSWORD
-        [-k KEEPALIVE] [-d DNS[,DNS]] [-Gg]
+Usage: $0 {wan|wan1|wan2} USERNAME PASSWORD
+        [-k KEEPALIVE] [-d DNS[,DNS]] [-m MTU] [-rRS]
         -k KEEPALIVE # How many unreceived echo will trigger reconnection. Echo will be sent for every 5 seconds.
         -d DNS[,DNS] # Manually add dns list
+        -m MTU # Set MTU on this interface
         -r # Add default route on this WAN port, it's default behavior.
         -R # Don't add default route on this WAN port
-        -m MTU # Set MTU on this interface
         -S # don't restart service
 Example:
     $0 wan hzhz804352 oakridge -k 3 -d '8.8.8.8,9.9.9.9'
@@ -34,10 +34,7 @@ username="$2"
 password="$3"
 shift 3
 
-keepalive=''
-dnss=''
 defaultroute='1'
-mtu=''
 while [ -n "$1" ]; do
     case $1 in
         -k) keepalive="$2";shift 2;;

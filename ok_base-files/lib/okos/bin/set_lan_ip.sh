@@ -8,10 +8,10 @@ Support create/setup VLAN interface.
 lan4053 represents PHY port eth3. It means the native vlan.
 LAN port will be added to a security zone, TRUSTED by default.
 
-Usage: $0 [lan4053] IPADDR NETMASK
+Usage: $0 {lan4053} IPADDR NETMASK [-m MTU] [-v VLANID] [-z ZONE] [-S]
         -m MTU # Set MTU on this interface
         -v VLANID # vlan id [1~4093] on the target interface
-        -z ZONE [TRUSTED|UNTRUSTED|DMZ|GUEST] # assign security zone
+        -z {TRUSTED|UNTRUSTED|DMZ|GUEST} # assign security zone
         -S # don't restart service
 Example:
     $0 lan4053 192.168.254.254 255.255.255.0 # set lan port with static ip addresses
@@ -33,8 +33,6 @@ ipaddr="$2"
 netmask="$3"
 shift 3
 
-mtu=''
-vid=''
 zone='TRUSTED'
 while [ -n "$1" ]; do
     case $1 in

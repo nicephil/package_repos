@@ -1,5 +1,5 @@
 config 'ipsec'
-  option 'zone' 'vpn'
+  option 'zone' 'TRUST'
 
 config 'remote' 'acme'
   option 'enabled' '1'

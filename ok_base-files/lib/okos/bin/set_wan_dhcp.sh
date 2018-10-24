@@ -4,11 +4,11 @@ help()
 {
     cat <<_HELP_
 Setup WAN port on DHCP mode.
-Usage: $0 [wan|wan1|wan2] [-d DNS[,DNS]] [-Gg]
+Usage: $0 {wan|wan1|wan2} [-d DNS[,DNS]] [-m MTU] [-rRS]
         -d DNS[,DNS] # Manually add dns list
+        -m MTU # Set MTU on this interface
         -r # Add default route on this WAN port, It's default behavior.
         -R # Don't add default route on this WAN port
-        -m MTU # Set MTU on this interface
         -S # don't restart service
 Example:
     $0 wan # Set port 'wan' as dhcp mode.
@@ -31,9 +31,7 @@ case $1 in
 esac
 shift 1
 
-dnss=""
 defaultroute='1'
-mtu=''
 while [ -n "$1" ]; do
     case $1 in
         -d) dnss="$2";shift 2;;

@@ -43,6 +43,7 @@ if [ -n "${vid}" ]; then
     fi
 fi
 
+uci del_list dhcp.common.interface="${ifx}"
 if [ -z "$vid" ]; then
     uci set dhcp.${ifx}.ignore="1"
     #uci set dhcp.@dnsmasq[0].notinterface="wan wan1 wan2 ${ifx}"

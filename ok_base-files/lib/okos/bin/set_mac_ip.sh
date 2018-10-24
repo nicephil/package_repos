@@ -5,8 +5,10 @@ help()
     cat <<_HELP_
 Setup mac ip entry binding.
 
-Usage: $0 ID # use ID to identify each port mac ip address binding entry. Caller MUST ensure it's unique.
-        ID # [a-zA-z][a-zA-Z0-9_]{,9}
+Usage: $0 ID [--mac MAC] [--ip IPADDR] [--name NAME] [-R] [-S]
+        ID # use ID to identify each port mac ip address binding entry. 
+           # Caller MUST ensure it's unique.
+           # [a-zA-z][a-zA-Z0-9_]{,9}
         --mac MAC # mac address of device
         --ip IPADDR # ip address of device
         --name NAME # host name of device

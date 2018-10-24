@@ -4,7 +4,7 @@ help()
 {
     cat <<_HELP_
 Disable an interface.
-Usage: $0 [wan|wan1|wan2|lan]
+Usage: $0 {wan|wan1|wan2|lan4053} [-S]
         -S # don't restart service
 Example:
     $0 wan # disable wan port

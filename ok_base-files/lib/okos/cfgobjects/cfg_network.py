@@ -49,7 +49,9 @@ class CfgNetwork(CfgObj):
         res = self.doit(cmd, 'Change IP address of LAN interface')
         if checker['dhcp_server_enable']:
             cmd = [const.CONFIG_BIN_DIR+'set_dhcp_server.sh', checker['ifname'], 
-                checker['dhcp_start'], checker['dhcp_limit'], '-l', checker['dhcp_lease_time'],
+                '--start', checker['dhcp_start'], 
+                '--limit', checker['dhcp_limit'],
+                '--lease', checker['dhcp_lease_time'],
             ]
         else:
             cmd = [const.CONFIG_BIN_DIR+'disable_dhcp_server.sh', checker['ifname'], ]
