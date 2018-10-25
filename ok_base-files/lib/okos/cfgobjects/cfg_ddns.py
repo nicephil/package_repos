@@ -3,7 +3,6 @@
 import argparse, os, subprocess, re, json
 from cfg_object import CfgObj
 from okos_utils import log_debug, log_info, log_warning, log_err, log_crit
-import ubus
 
 class CfgDDNS(CfgObj):
     def __init__(self):

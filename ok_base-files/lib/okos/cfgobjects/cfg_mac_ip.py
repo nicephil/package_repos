@@ -45,7 +45,3 @@ class CfgMacIpBinding(CfgObj):
         self.add()
         return True
 
-    @logcfg
-    def post_run(self):
-        self.doit(['/etc/init.d/dnsmasq', 'reload'], 'Restart dnsmasq')
-        return True

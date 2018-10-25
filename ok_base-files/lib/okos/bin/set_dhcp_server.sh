@@ -54,9 +54,13 @@ fi
 
 if [ -z "$remove" ]; then
     [ -n "$start" -a -n "$limit" ] || exit 1
+    echo "Setup DHCP poll [${start},${limit}] on $ifx"
 
     uci set dhcp.${ifx}=dhcp
-    uci add_list dhcp.common.interface="${ifx}"
+    uci get dhcp.common.interface | grep -e "\<${ifx}\>" > /dev/null
+    if [ "$?" != 0 ]; then
+        uci add_list dhcp.common.interface="${ifx}"
+    fi
     uci set dhcp.${ifx}.interface="${ifx}"
     uci set dhcp.${ifx}.start="${start}"
     uci set dhcp.${ifx}.limit="${limit}"
@@ -71,6 +75,7 @@ if [ -z "$remove" ]; then
         uci commit webui_config
     fi
 else
+    echo "Remove DHCP poll on $ifx"
     uci delete dhcp.${ifx}
     uci del_list dhcp.common.interface="${ifx}"
     if [ -z "$vid" ]; then
@@ -86,8 +91,6 @@ uci commit dhcp
 if [ -z "$no_restart" ]; then
     /etc/init.d/dnsmasq restart
 fi
-
-echo "Set DHCP server on $ifx : $vid"
 
 exit 0
 

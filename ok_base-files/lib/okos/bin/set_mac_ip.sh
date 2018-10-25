@@ -41,15 +41,22 @@ while [ -n "$1" ]; do
     esac
 done
 
-uci delete dhcp.${id}
+uci get dhcp.${id} > /dev/null
+if [ "$?" == 0 ]; then
+    uci delete dhcp.${id}
+fi 
+
 if [ -z "$remove" ]; then
     [ -z "$mac" -o -z "$ip" ] && help && exit 1
+    echo "Binding MAC ${mac} to IP $ip"
     uci set dhcp.${id}='host'
     uci set dhcp.${id}.mac="$mac"
     uci set dhcp.${id}.ip="$ip"
     if [ -n "$name" ]; then
         uci set dhcp.${id}.name="$name"
     fi
+else
+    echo "Remove MAC binding <${id}>"
 fi
 
 uci commit dhcp

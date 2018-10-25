@@ -41,23 +41,17 @@ class CfgNetwork(CfgObj):
                 checker['dhcp_start'] = (None, None)
                 checker['dhcp_limit'] = (None, None)
                 checker['dhcp_lease_time'] = (None, 38400)
-        cmd = [const.CONFIG_BIN_DIR+'set_lan_ip.sh', checker['ifname'], checker['gateway'], checker['netmask'],]
-        cmd_vlan = not checker['untagged'] and ['-v', str(checker['vlan']),] or []
+        cmd = [const.CONFIG_BIN_DIR+'set_vlan.sh', checker['ifname'], '-S',]
+        cmd += ['--ipaddr', checker['gateway'], '--netmask', checker['netmask'],]
+        cmd_vlan = not checker['untagged'] and ['--vid', str(checker['vlan']),] or []
         cmd += cmd_vlan
-        cmd += ['-z', checker['security_zone']]
-        cmd += ['-S',]
+        cmd += ['--zone', checker['security_zone']]
         res = self.doit(cmd, 'Change IP address of LAN interface')
-        if checker['dhcp_server_enable']:
-            cmd = [const.CONFIG_BIN_DIR+'set_dhcp_server.sh', checker['ifname'], 
-                '--start', checker['dhcp_start'], 
-                '--limit', checker['dhcp_limit'],
-                '--lease', checker['dhcp_lease_time'],
-            ]
-        else:
-            cmd = [const.CONFIG_BIN_DIR+'disable_dhcp_server.sh', checker['ifname'], ]
+
+        cmd = [const.CONFIG_BIN_DIR+'set_dhcp_server.sh', checker['ifname'], '-S', ]
         cmd += cmd_vlan
-        cmd += ['-S',]
-        res &= self.doit(cmd)
+        cmd += checker['dhcp_server_enable'] and ['--start', checker['dhcp_start'], '--limit', checker['dhcp_limit'], '--lease', checker['dhcp_lease_time'],] or ['-R',]
+        res &= self.doit(cmd, 'Set DHCP pool of vlan')
         return res
 
     @logcfg
@@ -73,24 +67,17 @@ class CfgNetwork(CfgObj):
             ifname = checker['ifname']
         res = True
         if not checker['untagged']:
-            cmd = [const.CONFIG_BIN_DIR+'disable_vlan.sh', ifname, ]
-            cmd += ['-z', checker['security_zone'],]
-            cmd += ['-v', checker['vlan'],]
-            cmd += ['-S',]
+            cmd = [const.CONFIG_BIN_DIR+'set_vlan.sh', ifname, '-S', '-R']
+            cmd += ['--zone', checker['security_zone'],]
+            cmd += ['--vid', checker['vlan'],]
             res &= self.doit(cmd, 'Disable VLAN interface')
         if checker['dhcp_server_enable']:
-            cmd = [const.CONFIG_BIN_DIR+'disable_dhcp_server.sh', ifname, ]
-            cmd += not checker['untagged'] and ['-v', checker['vlan'], ] or []
-            cmd += ['-S',]
+            cmd = [const.CONFIG_BIN_DIR+'set_dhcp_server.sh', ifname, '-S', '-R']
+            cmd += not checker['untagged'] and ['--vid', checker['vlan'], ] or []
             res &= self.doit(cmd, "Disable DHCP Server")
         return res
 
     @logcfg
     def change(self):
         self.add()
-        return True
-
-    @logcfg
-    def post_run(self):
-        self.doit(['/etc/init.d/network', 'reload'], 'Restart network')
         return True

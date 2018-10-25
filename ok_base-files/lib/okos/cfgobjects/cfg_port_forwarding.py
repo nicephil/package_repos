@@ -16,6 +16,8 @@ class CfgPortForwarding(CfgObj):
     def __init__(self, entry={}):
         super(CfgPortForwarding, self).__init__(differ='id')
         self.data.update(entry)
+        if entry:
+            self.data['id'] += '_port'
     
     @logcfg
     def parse(self, j):
@@ -32,7 +34,7 @@ class CfgPortForwarding(CfgObj):
         new = self.data
         checker = ParameterChecker(new)
         with ConfigInputEnv(new, 'Port Forwarding configuration'):
-            checker['id'] = (self._check_entry_id_, None)
+            checker['id'] = (None, None)
             checker['interface_name'] = (None, None)
             checker['external_ip'] = (self._check_ipaddr_, None)
             checker['local_ip'] = (self._check_ipaddr_, None)
@@ -40,19 +42,18 @@ class CfgPortForwarding(CfgObj):
             checker['external_port'] = (self._check_sock_port_, None)
             checker['local_port'] = (self._check_sock_port_, None)
 
-        cmd = [const.CONFIG_BIN_DIR+'set_port_forwarding.sh', checker['id'], ]
+        cmd = [const.CONFIG_BIN_DIR+'set_port_forwarding.sh', checker['id'], '-S', ]
         cmd += ['--src-zone', 'UNTRUSTED', '--dst-zone', 'TRUSTED', ]
-        cmd += ['--src-dip', checker['external_ip'], '--dst-ip', checker['local_ip'], '-p', checker['protocol'], ]
+        cmd += ['--src-dip', checker['external_ip'], '--dst-ip', checker['local_ip'], '--proto', checker['protocol'], ]
         cmd += ['--src-dport', checker['external_port'], '--dst-port', checker['local_port'], ]
-        cmd += ['-S',]
         res = self.doit(cmd, 'Port Forwarding Setting')                
         return res
     @logcfg
     def remove(self):
         old = self.data
         checker = ParameterChecker(old)
-        with ConfigInputEnv(old, 'Port Forwarding configuration'):
-            checker['id'] = (self._check_entry_id_, None)
+        with ConfigInputEnv(old, 'Port Forwarding removement'):
+            checker['id'] = (None, None)
         cmd = [const.CONFIG_BIN_DIR+'set_port_forwarding.sh', checker['id'], '-R', '-S']
         res = self.doit(cmd, 'Port Forwarding Entry Removed')                
         return res
@@ -61,7 +62,3 @@ class CfgPortForwarding(CfgObj):
         self.add()
         return True
 
-    @logcfg
-    def post_run(self):
-        self.doit(['/etc/init.d/firewall', 'reload'], 'Restart firewall')
-        return True

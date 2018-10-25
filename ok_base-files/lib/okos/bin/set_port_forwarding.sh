@@ -7,7 +7,7 @@ Setup port forwarding entry.
 
 Usage: $0 ID [--src-zone ZONE] [--dst-zone ZONE] [--src-ip IP] [--src-dip IP] [--dst-ip IP]
             [--src-port PORT] [--src-dport PORT] [--dst-port PORT] [--src-mac MAC]
-            [-p PROTO] [-j ACTION] [-R] [-S]
+            [--proto PROTO] [--action ACTION] [-R] [-S]
         ID # use ID to identify each port forwarding entry. 
            # Caller MUST ensure it's unique.
            # [a-zA-z][a-zA-Z0-9_]{,9}
@@ -20,8 +20,8 @@ Usage: $0 ID [--src-zone ZONE] [--dst-zone ZONE] [--src-ip IP] [--src-dip IP] [-
         --src-dport PORT # destinate port of input traffic
         --dst-port PORT # destinate port on the target
         --src-mac MAC # source mac address of input traffic
-        -p PROTO # protocol
-        -j {DNAT|SNAT} # target of this entry, DNAT by default.
+        --proto PROTO # protocol
+        --action {DNAT|SNAT} # target of this entry, DNAT by default.
         -R # remove this entry
         -S # don't restart service
 Example:
@@ -54,8 +54,8 @@ while [ -n "$1" ]; do
         --src-dport) src_dport="$2";shift 2;;
         --dst-port) dst_port="$2";shift 2;;
         --src-mac) src_mac="$2";shift 2;;
-        -p) proto="$2";shift 2;;
-        -j) target="$2";shift 2;;
+        --proto) proto="$2";shift 2;;
+        --action) target="$2";shift 2;;
         -R) remove='yes';shift 1;;
         -S) no_restart='1';shift 1;;
         --) shift;break;;
@@ -88,6 +88,7 @@ if [ -z "$remove" ]; then
     esac
     [ -z "$dst_ip" ] && dst_ip="$src_dip"
     [ -z "$dst_port" ] && dst_port="$src_dport"
+    echo "Port Forwarding [${src_dip}:${src_dport}] to [${dst_ip}:${dst_port}] for protocol $proto"
 
     uci set firewall.${id}='redirect'
     uci set firewall.${id}.name="${id}"
@@ -102,6 +103,8 @@ if [ -z "$remove" ]; then
     [ -n "$src_mac" ] && uci set firewall.${id}.src_mac="${src_mac}"
     [ -n "$proto" ] && uci set firewall.${id}.proto="${proto}"
     [ -n "$target" ] && uci set firewall.${id}.target="${target}"
+else
+    echo "Remove port forwarding <${id}>"
 fi
 uci commit firewall
 

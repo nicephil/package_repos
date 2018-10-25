@@ -1,4 +1,4 @@
-config 'ipsec'
+config 'ipsec' 'common'
   option 'zone' 'TRUST'
 
 config 'remote' 'acme'
