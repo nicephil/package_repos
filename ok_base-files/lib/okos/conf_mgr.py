@@ -98,6 +98,12 @@ class ConfMgr(threading.Thread):
         self.handlers[const.DEV_REBOOT_OPT_TYPE]['response_handler']  = None
         self.handlers[const.DEV_REBOOT_OPT_TYPE]['response_id']  = None
 
+        # upgrade_request
+        self.handlers[const.DEV_UPGRADE_REQ_OPT_TYPE]  = {}
+        self.handlers[const.DEV_UPGRADE_REQ_OPT_TYPE]['request_handler']  = self.handle_upgrade_request
+        self.handlers[const.DEV_UPGRADE_REQ_OPT_TYPE]['response_handler']  = self.upgrade_response
+        self.handlers[const.DEV_UPGRADE_REQ_OPT_TYPE]['response_id']  = const.DEV_UPGRADE_RESP_OPT_TYPE
+
     def run(self):
         self.process_data()
 
@@ -121,6 +127,32 @@ class ConfMgr(threading.Thread):
 
     def get_capwapc(self):
         return self.capwapc_data
+
+    def handle_upgrade_request(self, request):
+        ret = 0
+        data = json.loads(request['data'], encoding='utf-8')
+        log_err("+++++++++>{}".format(data))
+        url = data['url']
+        timeout = data['timeout']
+        ret = os.system("wget -q -T {} -O - \'{}\' | tail -c +65 | tar xzf - -O > {}".format(timeout, url, const.CST_IMG_TMP_FILE))
+        if ret != 0:
+            okos_system_log_err("download firmware failed, errcode:{}".format(ret))
+            os.system("(sleep 20;reboot)&")
+
+        ret = os.system("sysupgrade -d 20 -n {}".format(const.CST_IMG_TMP_FILE))
+        if ret != 0:
+            okos_system_log_err("upgrade firmware failed, errcode:{}".format(ret))
+        return ret
+
+    def upgrade_response(self, ret, request, response_id):
+        json_data = {}
+        json_data['error_code'] = ret
+        msg = {}
+        msg['operate_type'] = response_id
+        msg['cookie_id'] = request['cookie_id']
+        msg['timestamp'] = int(time.time())
+        msg['data'] = json.dumps(json_data)
+        self.mailbox.pub(const.STATUS_Q, (1, msg), timeout=0)
 
     def handle_diag_request(self, request):
         '''
@@ -252,6 +284,7 @@ class ConfMgr(threading.Thread):
 
     def handle_webuiconf_query(self, request):
         ret = 0
+
         return ret
 
     def webuiconf_parse(self, sid):
@@ -338,8 +371,9 @@ class ConfMgr(threading.Thread):
         self.mailbox.pub(const.STATUS_Q, (1, msg), timeout=0)
 
     def handle_reboot(self, request):
-        ret = os.system('reboot')
         okos_system_log_info("device is reset from nms request")
+        time.sleep(5)
+        ret = os.system('reboot')
 
     def process_data(self):
         while not self.term:

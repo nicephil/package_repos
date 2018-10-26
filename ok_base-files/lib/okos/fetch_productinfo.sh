@@ -21,7 +21,7 @@ echo -e  "\toption model Oakridge_OKGW"
 echo -e "\toption serial ${serial}"
 echo -e "\toption mac ${mac}"
 echo -e "\toption swversion `cat /etc/issue`"
-bootversion=$(cat /overlay/upper/etc/issue 2>/dev/null)
+bootversion=$(cat /etc/issue 2>/dev/null)
 [ -n "$bootversion" ] && echo -e "\toption bootversion $bootversion"
 [ -n "$cpu" ] && echo -e "\toption cpu \"$cpu\""
 [ -n "$mem" ] && echo -e "\toption mem \"$mem\""
