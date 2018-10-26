@@ -1,5 +1,7 @@
 config 'ipsec' 'common'
+  option 'debug' '1'
   option 'zone' 'TRUST'
+  option 'rtinstall_enabled' '0'
 
 config 'remote' 'site_hanhai'
   option 'enabled' '1'
@@ -8,23 +10,21 @@ config 'remote' 'site_hanhai'
   option 'local_identifier'   '223.93.139.132'
   option 'authentication_method' 'psk'
   option 'pre_shared_key' 'iahnah'
-  list   'p1_proposal' 'pre_g2_aes_sha1'
+  list   'crypto_proposal' 'g2_aes_sha1'
+  option 'force_crypto_proposal' '1'
   list   'tunnel' 't_hanhai'
 
-config 'p1_proposal' 'pre_g2_aes_sha1'
+config 'crypto_proposal' 'g2_aes_sha1'
   option 'encryption_algorithm' 'aes128'
   option 'hash_algorithm' 'sha1'
-  option 'dh_group' 'modp1024'
+  option 'dh_group' 'modp2048'
 
 config 'tunnel' 't_hanhai'
-  option 'mark' 100
   option 'mode' 'start'
+  option 'mark' 100
   option 'keyexchange' 'ikev1'
   option 'local_subnet' '0.0.0.0/0'
   option 'remote_subnet' '0.0.0.0/0'
   option 'p2_proposal' 'g2_aes_sha1'
+  option 'force_crypto_proposal' '1'
 
-config 'p2_proposal' 'g2_aes_sha1'
-  option 'pfs_group' 'modp1024'
-  option 'encryption_algorithm' 'aes128'
-  option 'authentication_algorithm' 'sha1'
