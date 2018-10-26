@@ -24,6 +24,7 @@ const.SYSLOADER_OKOS_LIB_DIR = ''.join([const.SYSLOADER_DIR, const.SYSLOADER_OKO
 
 const.OKOS_CFGDIFF_SCRIPT = ''.join([const.OKOS_OKOS_LIB_DIR, const.OKOS_CFGDIFF_SCRIPT_STR])
 const.OKOS_DDNS_STATUS_SCRIPT = ''.join([const.OKOS_OKOS_LIB_DIR, const.OKOS_DDNS_STATUS_SCRIPT_STR])
+const.CST_IMG_TMP_FILE = '/tmp/okos.img.gz'
 
 
 
@@ -69,6 +70,10 @@ const.DEV_WEBUI_CONF_RESP_OPT_TYPE = 2010
 # diag request
 const.DEV_DIAG_REQ_OPT_TYPE = 2011
 const.DEV_DIAG_RESP_OPT_TYPE = 2012
+
+# upgrade request
+const.DEV_UPGRADE_REQ_OPT_TYPE = 2013
+const.DEV_UPGRADE_RESP_OPT_TYPE = 2014
 
 #
 const.DEV_CONF_PORT_TYPE = {'none':-1, 'wan':0, 'lan':1, 'bridge':2, }
