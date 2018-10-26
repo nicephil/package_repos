@@ -344,6 +344,7 @@ do_upgrade() {
 	fi
 
 	v "Upgrade completed"
+    {
 	[ -n "$DELAY" ] && sleep "$DELAY"
 	ask_bool 1 "Reboot" && {
 		v "Rebooting system..."
@@ -352,4 +353,5 @@ do_upgrade() {
 		sleep 5
 		echo b 2>/dev/null >/proc/sysrq-trigger
 	}
+    } &
 }
