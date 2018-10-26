@@ -41,10 +41,11 @@ do
     echo "----->$response" | logger -t 'handle_cloud'
 
     # renew if gw is unreachable
-    [ "$GW_OK" = "0" ]  && {
+    [ "$GW_OK" = "0" -a -f "/tmp/firstboot_report" ]  && {
         echo "----->looks gateway is unreachable, renew ip now" | logger -t 'handle_cloud'
-        ubus call network.interface notify_proto '{"action": 2, "interface": "lan1", "signal": 16}'
-        sleep 3
+        #ubus call network.interface notify_proto '{"action": 2, "interface": "lan1", "signal": 16}'
+        /etc/init.d/network restart
+        sleep 20
         GW_OK="1"
     }
     network_get_gateway __aa lan1;

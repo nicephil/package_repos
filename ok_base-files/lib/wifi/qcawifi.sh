@@ -1998,7 +1998,7 @@ config wifi-device  wifi$devidx
     option macaddr ${mac}
     option hwmode	${mode_11}
     option htmode auto
-    option disabled 0
+    option disabled 1
     option txpower 31
     option wmm 1
     option bintval 100
@@ -2033,6 +2033,7 @@ config wifi-iface ath60
     option ssid ok_${ssid_tmp}_5G
     option encryption psk-mixed
     option key oakridge
+    option disabled 0
     option hidden 1
 
 
@@ -2044,6 +2045,7 @@ config wifi-iface ath50
     option ssid ok_${ssid_tmp}
     option encryption psk-mixed
     option key oakridge
+    option disabled 0
     option hidden 1
 
 EOF

@@ -45,6 +45,7 @@ sync;echo 3 > /proc/sys/vm/drop_caches
 
 
 rm -rf $lockfile
+
 if [ ! -f "/tmp/firstboot_report" ]
 then
     has_reportnow=1 /lib/okos/getifaceinfo.sh
