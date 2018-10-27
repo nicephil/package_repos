@@ -8,10 +8,12 @@ from constant import const
 class CfgNetwork(CfgObj):
     def __init__(self, vlan={}, ifx={}, ifname=''):
         super(CfgNetwork, self).__init__(differ='vlan')
-        self.data.update(vlan)
+        d = self.data
+        d.update(vlan)
         if vlan and ifx and ifname:
-            self.data['ifname'] = const.PORT_MAPPING_LOGIC[ifname]['ifname']
-            self.data['untagged'] = bool(ifx.setdefault('native_vlan', 1) == vlan.setdefault('vlan',1))
+            d['ifname'] = const.PORT_MAPPING_LOGIC[ifname]['ifname']
+            d['untagged'] = bool(ifx.setdefault('native_vlan', 1) == d.setdefault('vlan',1))
+            vlan['ifname'] = d['untagged'] and d['ifname'] or '{}_{}'.format(d['ifname'], d['vlan'])
 
     @logcfg
     def parse(self, j):
