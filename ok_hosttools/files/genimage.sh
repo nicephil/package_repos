@@ -3,7 +3,7 @@ swversion=$1
 origin_files__bin_files="lede-x86-generic-combined-squashfs.img.gz|bin.app|x86_gw"
 server="image.oakridge.vip"
 server=$(host -W 5 $server 2>/dev/null | awk '{if(!match($4,"found:"))print $4}')
-[ -z $server] && server="106.14.245.228"
+[ -z "$server" ] && server="106.14.245.228"
 
 
 
