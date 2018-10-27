@@ -50,15 +50,16 @@ if [ "$?" != 0 ]; then
 fi
 if [ -z "$remove" ]; then
     echo "Add option ${option}:${value} on ${pool}"
-    uci get dhcp.${pool}.dhcp_option | grep -e "\<${option},${value}\>" > /dev/null
+    uci get dhcp.${pool}.dhcp_option | grep -e "\<${option},\"${value}\"\>" > /dev/null
     if [ "$?" != 0 ]; then
-        uci add_list dhcp.${pool}.dhcp_option="${option},${value}"
+        uci add_list dhcp.${pool}.dhcp_option="${option},\"${value}\""
+        uci set dhcp.${pool}.force='1'
     fi
 else
     echo "Remove option ${option}:${value} on ${pool}"
     uci get dhcp.${pool}.dhcp_option | grep -e "\<${option},${value}\>" > /dev/null
     if [ "$?" == 0 ]; then
-        uci del_list dhcp.${pool}.dhcp_option="${option},${value}"
+        uci del_list dhcp.${pool}.dhcp_option="${option},\"${value}\""
     fi
 fi
 

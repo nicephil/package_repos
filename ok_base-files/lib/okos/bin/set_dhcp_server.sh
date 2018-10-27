@@ -62,6 +62,7 @@ if [ -z "$remove" ]; then
         uci add_list dhcp.common.interface="${ifx}"
     fi
     uci set dhcp.${ifx}.interface="${ifx}"
+    uci set dhcp.${ifx}.networkid="${ifname}"
     uci set dhcp.${ifx}.start="${start}"
     uci set dhcp.${ifx}.limit="${limit}"
     uci set dhcp.${ifx}.leasetime="${leasetime}"
