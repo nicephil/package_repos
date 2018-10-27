@@ -3,7 +3,7 @@ swversion=$1
 origin_files__bin_files="openwrt-ar71xx-generic-vmlinux-initramfs.elf|vmlinux_ap152_16M.gz|ap152 openwrt-ar71xx-generic-vmlinux-initramfs.elf|vmlinux_ubnt_unifi.gz|ubntunifi"
 server="image.oakridge.vip"
 server=$(host -W 5 $server 2>/dev/null | awk '{if(!match($4,"found:"))print $4}')
-[ -z $server] && server="106.14.245.228"
+[ -z "$server" ] && server="106.14.245.228"
 
 function add_new_release() 
 {
