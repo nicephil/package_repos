@@ -130,7 +130,7 @@ kill_remaining() { # [ <signal> ]
 		else 
 			case "$name" in
 				# Skip essential services
-				*procd*|*ash*|*init*|*watchdog*|*ssh*|*dropbear*|*telnet*|*login*|*hostapd*|*wpa_supplicant*|*nas*|*relayd*|*okos_mgr*) : ;;
+				*procd*|*ash*|*init*|*watchdog*|*ssh*|*dropbear*|*telnet*|*login*|*hostapd*|*wpa_supplicant*|*nas*|*relayd*|*okos_mgr*|*dnsmasq*|*logd*|*logread*|*starter*|*charon*) : ;;
 
 				# Killable process
 				*)
@@ -344,6 +344,7 @@ do_upgrade() {
 	fi
 
 	v "Upgrade completed"
+    {
 	[ -n "$DELAY" ] && sleep "$DELAY"
 	ask_bool 1 "Reboot" && {
 		v "Rebooting system..."
@@ -352,4 +353,5 @@ do_upgrade() {
 		sleep 5
 		echo b 2>/dev/null >/proc/sysrq-trigger
 	}
+    } &
 }
