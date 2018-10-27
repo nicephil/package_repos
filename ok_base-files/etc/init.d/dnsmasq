@@ -389,7 +389,7 @@ dhcp_add() {
 	if [ "$dynamicdhcp" = "0" ]; then END="static"; fi
 	xappend "--dhcp-range=$networkid,$START,$END,$NETMASK,$leasetime${options:+ $options}"
 
-	dhcp_option_add "$cfg" "$networkid"
+	dhcp_option_add "$cfg" "$networkid" "1"
 }
 
 dhcp_option_append() {
