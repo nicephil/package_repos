@@ -10,14 +10,14 @@ class CfgDhcpOption(CfgObj):
         super(CfgDhcpOption, self).__init__(differ='option_id')
         self.data.update(entry)
         if dhcp_pool:
-            self.data['pool'] = '%s_%s' % (dhcp_pool['ifname'], dhcp_pool['vlan'])
+            self.data['pool'] = dhcp_pool['ifname']
             self.data['option_id'] = '%s_%s' % (self.data['pool'], self.data['id'])
 
     @logcfg
     def parse(self, j):
         dhcp_options = j['network'].setdefault('dhcp_options',[])
         dhcp_pools = j['network'].setdefault('local_networks', [])
-        with ConfigParseEnv(dhcp_options, 'DHCP Options configuration'):
+        with ConfigParseEnv(dhcp_pools, 'DHCP Options configuration'):
             res = [CfgDhcpOption(o,p) for o in dhcp_options for p in dhcp_pools for oid in p['dhcp_option_ids'] if oid == o['id']]
         return res
     
@@ -26,6 +26,7 @@ class CfgDhcpOption(CfgObj):
         new = self.data
         checker = ParameterChecker(new)
         with ConfigInputEnv(new, 'DHCP Option configuration'):
+            checker['id'] = (None, None)
             checker['option'] = (None, None)
             checker['value'] = (None, None)
             checker['pool'] = (None, None)
@@ -40,6 +41,7 @@ class CfgDhcpOption(CfgObj):
         old = self.data
         checker = ParameterChecker(old)
         with ConfigInputEnv(old, 'DHCP Option removement'):
+            checker['id'] = (None, None)
             checker['option'] = (None, None)
             checker['value'] = (None, None)
             checker['pool'] = (None, None)

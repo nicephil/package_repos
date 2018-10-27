@@ -5,9 +5,12 @@ help()
     cat <<_HELP_
 Setup port forwarding entry.
 
-Usage: $0 ID [--src-zone ZONE] [--dst-zone ZONE] [--src-ip IP] [--src-dip IP] [--dst-ip IP]
-            [--src-port PORT] [--src-dport PORT] [--dst-port PORT] [--src-mac MAC]
-            [--proto PROTO] [--action ACTION] [-R] [-S]
+Usage:  $0 ID -R ID
+        $0 ID --src-zone ZONE --dst-zone ZONE 
+            [--src-ip IP] [--src-dip IP] [--dst-ip IP]
+            [--src-port PORT] [--src-dport PORT] [--dst-port PORT]
+            [--src-mac MAC] [--proto PROTO] [--action ACTION] [-S]
+            
         ID # use ID to identify each port forwarding entry. 
            # Caller MUST ensure it's unique.
            # [a-zA-z][a-zA-Z0-9_]{,9}
@@ -21,7 +24,7 @@ Usage: $0 ID [--src-zone ZONE] [--dst-zone ZONE] [--src-ip IP] [--src-dip IP] [-
         --dst-port PORT # destinate port on the target
         --src-mac MAC # source mac address of input traffic
         --proto PROTO # protocol
-        --action {DNAT|SNAT} # target of this entry, DNAT by default.
+        --action {*DNAT|SNAT} # target of this entry, DNAT by default.
         -R # remove this entry
         -S # don't restart service
 Example:
@@ -64,7 +67,8 @@ while [ -n "$1" ]; do
     esac
 done
 
-uci delete firewall.${id}
+uci get firewall.${id} >/dev/null 2&>1
+[ "$?" == 0 ] && uci delete firewall.${id}
 
 if [ -z "$remove" ]; then
     case "$src_zone" in
