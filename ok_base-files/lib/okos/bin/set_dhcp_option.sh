@@ -53,7 +53,6 @@ if [ -z "$remove" ]; then
     uci get dhcp.${pool}.dhcp_option | grep -e "\<${option},\"${value}\"\>" > /dev/null
     if [ "$?" != 0 ]; then
         uci add_list dhcp.${pool}.dhcp_option="${option},\"${value}\""
-        uci set dhcp.${pool}.force='1'
     fi
 else
     echo "Remove option ${option}:${value} on ${pool}"
