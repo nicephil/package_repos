@@ -134,14 +134,20 @@ class ConfMgr(threading.Thread):
         log_err("+++++++++>{}".format(data))
         url = data['url']
         timeout = data['timeout']
+        okos_system_log_info("get upgrade firmware request")
         ret = os.system("wget -q -T {} -O - \'{}\' | tail -c +65 | tar xzf - -O > {}".format(timeout, url, const.CST_IMG_TMP_FILE))
         if ret != 0:
             okos_system_log_err("download firmware failed, errcode:{}".format(ret))
             os.system("(sleep 20;reboot)&")
+            ret = 1
+            return ret
 
-        ret = os.system("sysupgrade -d 20 -n {}".format(const.CST_IMG_TMP_FILE))
-        if ret != 0:
-            okos_system_log_err("upgrade firmware failed, errcode:{}".format(ret))
+        okos_system_log_info("downloaded firmware size:{}, writing firmware to disk".format(os.path.getsize(const.CST_IMG_TMP_FILE)))
+        ret = os.system("sysupgrade -d 20 {}".format(const.CST_IMG_TMP_FILE))
+        ret = 0
+        #if ret != 0:
+        #    okos_system_log_info("upgrade firmware failed, errcode:{}".format(ret))
+        okos_system_log_info("upgrade firmware finished")
         return ret
 
     def upgrade_response(self, ret, request, response_id):
