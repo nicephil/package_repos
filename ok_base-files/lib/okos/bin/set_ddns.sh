@@ -52,7 +52,7 @@ case "${provider}" in
     *) help;exit 1;;
 esac
 
-uci get ddns.${id} >/dev/null 2&>1
+uci get ddns.${id} >/dev/null 2>&1
 if [ "$?" == 0 ]; then
     uci del ddns.${id}
 fi

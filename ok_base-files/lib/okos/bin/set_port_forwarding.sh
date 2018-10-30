@@ -67,7 +67,7 @@ while [ -n "$1" ]; do
     esac
 done
 
-uci get firewall.${id} >/dev/null 2&>1
+uci get firewall.${id} >/dev/null 2>&1
 [ "$?" == 0 ] && uci delete firewall.${id}
 
 if [ -z "$remove" ]; then

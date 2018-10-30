@@ -43,7 +43,7 @@ while [ -n "$1" ]; do
 done
 
 [ -z "$option" -o -z "$value" -o -z "$pool" ] && help && exit 1
-uci get dhcp.${pool} > /dev/null 2&>1
+uci get dhcp.${pool} > /dev/null 2>&1
 if [ "$?" != 0 ]; then
     echo "DHCP pool ${pool} doesn't exist."
     exit 2
