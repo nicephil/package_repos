@@ -5,8 +5,8 @@ help()
     cat <<_HELP_
 Setup/Remove site to site vpn
 Usage: $0 {set|del} ID {OPTIONS} [-S]
-       $0 del ID --remote-subnet IPADDR/NETMASK [-S]
-       $0 set ID --remote-subnet IPADDR/NETMASK --local IPADDR --remote IPADDR --psk STRING
+       $0 del ID --remote-subnets IPADDR/NETMASK [-S]
+       $0 set ID --remote-subnets IPADDR/NETMASK --local IPADDR --remote IPADDR --psk STRING
             [--ikev VERSION] [--encryption ALGORITHM] [--hash ALGORITHM] [--dh GROUP] 
             [-S]
 
@@ -22,14 +22,14 @@ Usage: $0 {set|del} ID {OPTIONS} [-S]
         --encryption {*aes128|aes192|aes256|3des} # Phase 1 encryption method
         --hash {*sha1|md5} # Phase 1 hash alogrithm
         --dh {2|5|*14|15|16|19|20|21|25|26} # Diffie-Hellman exponentiation
-        --remote-subnet IPADDR/NETMASK[,IPADDR/NETMASK] # Remote network eg. 10.1.10.0/23
+        --remote-subnets IPADDR/NETMASK[,IPADDR/NETMASK] # Remote network eg. 10.1.10.0/23
         -R # remove this configuration by ID
         -S # don't restart service, just remove the config.
 Example:
     # set up site to site vpn with hanhai.
-    $0 set 101 --local 223.93.139.132 --remote 68.121.161.25 --psk iahnah --remote-subnet 10.1.10.0/23
+    $0 set 101 --local 223.93.139.132 --remote 68.121.161.25 --psk iahnah --remote-subnets 10.1.10.0/23
     # remove site to site vpn to hanhai
-    $0 del 101 --remote-subnet 10.1.10.0/23
+    $0 del 101 --remote-subnets 10.1.10.0/23
 _HELP_
 }
 
@@ -64,7 +64,7 @@ while [ -n "$1" ]; do
         --encryption) encryption="$2";shift 2;;
         --hash) hash="$2";shift 2;;
         --dh) dh="$2";shift 2;;
-        --remote-subnet) remote_subnets="$2";shift 2;;
+        --remote-subnets) remote_subnets="$2";shift 2;;
         -R) remove='yes';shift 1;;
         -S) no_restart='1';shift 1;;
         --) shift;break;;
