@@ -161,6 +161,7 @@ config_conn() {
 	config_get inactivity               "$1"           inactivity
 	config_get keyexchange              "$1"           keyexchange "ikev2"
 	config_get mark                     "$1"           mark ""
+	config_get updown					"$1"		   updown ""
 
 	[ -n "$local_nat" ] && local_subnet=$local_nat
 
@@ -200,6 +201,7 @@ config_conn() {
 	[ -n "$local_updown" ] && ipsec_xappend "  leftupdown=$local_updown"
 	[ -n "$remote_updown" ] && ipsec_xappend "  rightupdown=$remote_updown"
 	[ -n "$mark" ] && ipsec_xappend "  mark=$mark"
+	[ -n "$updown" ] && ipsec_xappend "  leftupdown=$updown"
 	ipsec_xappend "  keyexchange=$keyexchange"
 
 
@@ -314,9 +316,9 @@ config_ipsec() {
 	swan_xappend "  install_routes = $install_routes"
 	[ -n "$routing_tables_ignored" ] && swan_xappend "  ignore_routing_tables = $routing_tables_ignored"
 	[ -n "$device_list" ] && swan_xappend "  interfaces_use = $device_list"
-	swan_xappend "    plugins {"
-	swan_xappend "      include /etc/strongswan.d/charon/*.conf"
-	swan_xappend "    }"
+	swan_xappend "  plugins {"
+	swan_xappend "    include /etc/strongswan.d/charon/*.conf"
+	swan_xappend "  }"
 	swan_xappend "  syslog {"
 	swan_xappend "    identifier = ipsec"
 	swan_xappend "    daemon {"
