@@ -30,10 +30,13 @@ class StatusMgr(threading.Thread):
         self.term = False
         self.conf_mgr = conf_mgr
         self.mailbox = mailbox
+        self.sv = None
+        '''
         try:
             self.sv = vici.Session()
         except Exception,e:
             log_warning("vici session init failed, {}".format(e))
+        '''
         self.prev_conn_list = []
         self.cpu_mem_timer = threading.Timer(1, self.cpu_mem_timer_func)
         self.cpu_mem_timer.name = 'CPU_MEM_Status'
@@ -212,7 +215,7 @@ class StatusMgr(threading.Thread):
                 'data': data,
             }
             self.mailbox.pub(const.STATUS_Q, (1, info_msg), timeout=0)
-        
+
         with IfStateEnv('Restart Interface State Report Timer'):
             self.if_status_timer = threading.Timer(60, self.if_status_timer_func)
             self.if_status_timer.name = 'IF_Status'
@@ -429,8 +432,6 @@ class StatusMgr(threading.Thread):
         while not self.term:
             if i >= 2:
                 i = 0
-                msg = self.collect_conninfo()
-                self.mailbox.pub(const.STATUS_Q, (1, msg), timeout=0)
                 msg = self.collect_devinfo()
                 self.mailbox.pub(const.STATUS_Q, (200, msg), timeout=0)
             try:
