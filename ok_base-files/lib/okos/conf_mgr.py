@@ -34,8 +34,13 @@ class ToRedirector(threading.Thread):
                 post_data['private_ip'] = ni.ifaddresses(self.confmgr.productinfo_data['eth_port'])[ni.AF_INET][0]['addr']
                 post_data['private_mask'] = ni.ifaddresses(self.confmgr.productinfo_data['eth_port'])[ni.AF_INET][0]['netmask']
             except Exception, e:
-                post_data['private_ip'] = ni.ifaddresses('pppoe-wan')[ni.AF_INET][0]['addr']
-                post_data['private_mask'] = ni.ifaddresses('pppoe-wan')[ni.AF_INET][0]['netmask']
+                try:
+                    post_data['private_ip'] = ni.ifaddresses('pppoe-wan')[ni.AF_INET][0]['addr']
+                    post_data['private_mask'] = ni.ifaddresses('pppoe-wan')[ni.AF_INET][0]['netmask']
+                except Exception, e:
+                    okos_info("can not get private_ip to query redirector, err:{}".format(e))
+                    time.sleep(10)
+                    continue
 
             key = md5.new("{SALT}{_mac}".format(SALT=const.SALT, _mac=post_data['device'])).hexdigest()
             url="http://{_server_ip}:{PORT}/redirector/v1/device/register/?key={KEY}".format(_server_ip=const.DEFAULT_ADDR,
@@ -61,10 +66,13 @@ class ConfMgr(threading.Thread):
         self.name = 'ConfMgr'
         self.mailbox = mailbox
         self.term = False
+        self.sv = None
+        '''
         try:
             self.sv = vici.Session()
         except Exception,e:
             log_warning("vici session init failed, {}".format(e))
+        '''
         self.productinfo_data = okos_utils.get_productinfo()
         self.confinfo_data = okos_utils.get_whole_confinfo()
         self.capwapc_data = okos_utils.get_capwapc()
