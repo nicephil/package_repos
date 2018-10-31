@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse, os, subprocess, re, json, sys
-from cfgobjects import CfgSystem, CfgDDNS, CfgInterface, CfgNetwork, CfgPortForwarding, CfgMacIpBinding, CfgDhcpOption, CfgDone, CfgIpForwarding
+from cfgobjects import CfgSystem, CfgDDNS, CfgInterface, CfgNetwork, CfgPortForwarding, CfgMacIpBinding, CfgDhcpOption, CfgDone, CfgIpForwarding,CfgSiteToSiteVPN
 from okos_utils import log_crit, log_err, log_warning, log_info, log_debug
 import fcntl
 import ubus
@@ -16,6 +16,7 @@ class OakmgrCfg(object):
             CfgMacIpBinding(),
             CfgDhcpOption(),
             CfgDone(),
+            CfgSiteToSiteVPN(),
             #CfgDDNS(),
             ]
     def __init__(self, f=''):

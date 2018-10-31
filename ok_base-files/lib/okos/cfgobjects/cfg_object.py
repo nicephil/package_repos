@@ -148,6 +148,9 @@ class CfgObj(object):
     def _check_simple_id_(self, input):
         p_id = const.FMT_PATTERN['simple_id']
         return p_id.match(input), input
+    def _check_number_(self, input):
+        p = const.FMT_PATTERN['number']
+        return p.match(input), input
 
     def _check_sock_port_(self, input):
         p = const.FMT_PATTERN['socket_port_range']

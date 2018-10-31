@@ -51,5 +51,5 @@ elif [ "$PLUTO_VERB" = 'up-client' ]; then
     ip tunnel del ${tunnel_name}
 fi
 
-echo goodbye
+echo "$PLUTO_VERB is done."
 
