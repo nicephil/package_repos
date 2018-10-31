@@ -20,6 +20,9 @@ class PingMgr(threading.Thread):
 
     def process_data(self):
         while self.running:
-            for site in self.sites:
-                loss, mtt, att = ping.quiet_ping(site)
-            time.sleep(5)
+            try:
+                for site in self.sites:
+                    loss, mtt, att = ping.quiet_ping(site)
+                time.sleep(5)
+            except Exception,e:
+                log_info("ping is abort as {}".format(e))
