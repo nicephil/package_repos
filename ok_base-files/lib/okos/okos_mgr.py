@@ -141,7 +141,10 @@ class OKOSMgr(object):
         request_data = okos_utils.post_url(url, json_data=post_data)
         if self.first_access_nms:
             self.first_access_nms = False
-            okos_system_log_info("connected to oakmgr @{}".format(socket.gethostbyname(server[0])))
+            try:
+                okos_system_log_info("connected to oakmgr @{}".format(socket.gethostbyname(server[0])))
+            except Exception,e:
+                okos_system_log_info("connected to oakmgr @{}".format(server[0]))
         if request_data and 'error_code' in request_data and request_data['error_code'] == 1002:
             okos_system_log_warn("oakmgr-{} reject access".format(server))
         tmp = self.access_fifo()
