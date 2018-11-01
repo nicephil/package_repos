@@ -46,19 +46,16 @@ class OKOSMgr(object):
         try:
             s = os.read(self.pipe_f, 4096)
             s = s.strip('\n')
-
-            json_d = {}
             json_d = json.loads(s, encoding='utf-8')
         except Exception, e:
-            json_d = None
-        log_debug("===>fifo:{}".format(json_d))
+            json_d = {}
         return json_d
 
     def init_system(self):
-        os.system(const.INIT_SYS_SCRIPT);
+        os.system(const.INIT_SYS_SCRIPT)
 
     def init_modules(self):
-        self.init_system();
+        self.init_system()
         self.mailbox = okos_mailbox.MailBox()
         self.conf_mgr = conf_mgr.ConfMgr(self.mailbox)
         self.status_mgr = status_mgr.StatusMgr(self.mailbox, self.conf_mgr)
@@ -95,28 +92,15 @@ class OKOSMgr(object):
     def contract_post_data(self, msg):
         post_data = {
             'mac' : self.productinfo_data['mac'],
-            'delay' : const.HEARTBEAT_DELAY
+            'delay' : const.HEARTBEAT_DELAY,
+            'list' : msg,
         }
-        post_data['list'] = []
-        if msg:
-            l = []
-            d = {}
-            for i in msg:
-                k = i['operate_type']
-                d[k] = i
-            post_data['list'] = [v for k,v in d.items()]
         return post_data
 
     def dispatch_request(self, request_data):
-        if request_data:
-            try:
-                list_data = request_data['list']
-            except Exception, e:
-                log_warning("no list key in list_data:%s" % (str(e)))
-                list_data = {}
-            log_debug("xxxxxxxxxx>{}<xxxxxxxxx".format(list_data))
-            for i,v in enumerate(list_data):
-                self.mailbox.pub(const.CONF_REQUEST_Q, v, timeout=0)
+        list_data = request_data.setdefault('list', [])
+        for v in list_data:
+            self.mailbox.pub(const.CONF_REQUEST_Q, v, timeout=0)
 
     def process_heartbeat(self):
         while not self.process_request_term:

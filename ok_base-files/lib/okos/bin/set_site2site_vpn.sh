@@ -49,11 +49,12 @@ case "$cmd" in
     set) id="$1";shift 1;;
     del) id="$1";shift 1;;
     show) id="$1";shift 1;;
+    statistic) id="$1";shift 1;;
     list) id="";;
     *) help;exit 1;;
 esac
 
-[ -n "$id" ] && echo 'Caller MUST ensure that ID is unique and numberic.'
+#[ -n "$id" ] && echo 'Caller MUST ensure that ID is unique and numberic.'
 site_name="s_$id"
 tunnel_name="t_$id"
 
@@ -92,6 +93,7 @@ cleanup() {
     local tunnel_name="$2"
     local crypto_name="$3"
     echo "cleanup ipsec config in uci $site_name : $tunnel_name : $crypto_name "
+    uci del_list ipsec.common.connections="$id" >/dev/null 2>&1
     uci get ipsec.${site_name} >/dev/null 2>&1
     [ "$?" == 0 -a -n "$site_name" ] && uci del ipsec.${site_name}
     uci get ipsec.${tunnel_name} >/dev/null 2>&1
@@ -142,6 +144,8 @@ set_vpn()
 
     echo "Setup site to site vpn ${id} from ${local_ip} to ${remote_ip} via ${local_nat_ip}"
     uci set ipsec.${site_name}='remote'
+    uci add_list ipsec.common.connections="$id"
+    uci set ipsec.${site_name}.vpnid="$id"
     uci set ipsec.${site_name}.gateway="${remote_ip}"
     uci set ipsec.${site_name}.remote_identifier="${remote_ip}"
     uci set ipsec.${site_name}.local_identifier="${local_ip}"
@@ -189,6 +193,15 @@ show_vpn()
     echo ""
 }
 
+statistic()
+{
+    local res=$(ip -s tunnel show ${tunnel_name})
+    local rx=$(echo $res | cut -d' ' -f 19)
+    local tx=$(echo $res | cut -d' ' -f 32)
+    [ -z "$rx" ] && rx=0
+    [ -z "$tx" ] && tx=0
+    echo $rx $tx
+}
 
 #if [ "$cmd" = 'set' ]; then
 #    echo "ip tunnel add ${tunnel_name} remote ${remote_ip} local ${local_nat_ip} mode vti key ${id}"
@@ -204,6 +217,7 @@ case "$cmd" in
     del) del_vpn;;
     show) show_vpn;exit 0;;
     list) list_all;exit 0;;
+    statistic) statistic;exit 0;;
     *) help;exit 1;;
 esac
 

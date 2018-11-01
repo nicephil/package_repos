@@ -38,7 +38,7 @@ class ToRedirector(threading.Thread):
                     post_data['private_ip'] = ni.ifaddresses('pppoe-wan')[ni.AF_INET][0]['addr']
                     post_data['private_mask'] = ni.ifaddresses('pppoe-wan')[ni.AF_INET][0]['netmask']
                 except Exception, e:
-                    okos_info("can not get private_ip to query redirector, err:{}".format(e))
+                    log_info("can not get private_ip to query redirector, err:{}".format(e))
                     time.sleep(10)
                     continue
 
@@ -307,7 +307,7 @@ class ConfMgr(threading.Thread):
             network_conf = ubus.call('uci', 'get', {"config":"network"})[0]["values"]
             dhcp_conf = ubus.call('uci', 'get', {"config":"dhcp"})[0]["values"]
             webui_conf = ubus.call('uci', 'get', {"config":"webui_config"})[0]["values"]
-        except Excetpion, e:
+        except Exception, e:
             log_err("can not get config by ubus {}".format(e))
 
         e_data = {}

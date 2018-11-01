@@ -9,6 +9,8 @@ import sys
 import time
 import syslog
 import ubus
+import functools
+import vici
 
 from constant import const
 
@@ -86,6 +88,44 @@ def logchecker(check_name):
     return logger
 
 config_conf_file = ''.join([const.CONFIG_DIR, const.CONFIG_CONF_FILE])
+
+def repeat_timer(interval=5, name='StatusTimer'):
+    '''
+    make the function called repeatedly.
+    '''
+    def decorator_repeat(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            this = args[0]
+            res = func(*args, **kwargs)
+            this.add_timer(name, interval, wrapper)
+            return res
+        return wrapper
+    return decorator_repeat
+
+class RepeatedTimer(object):
+    def __init__(self, name, interval, func):
+        super(RepeatedTimer, self).__init__()
+        self.name = name
+        self.interval = interval
+        self.func = func
+        self.timer = threading.Timer(interval, self.repeat(func, interval))
+        self.timer.setName(name)
+        log_debug('Timer is created')
+    def start(self):
+        self.timer.start()
+        log_debug('Timer is kicked off')
+    def repeat(self, func, interval):
+        def wrapper(*args, **kwargs):
+            log_debug('Timer start to execute:')
+            res = func(*args, **kwargs)
+            self.timer = threading.Timer(interval, self.repeat(func, interval))
+            self.timer.setName(self.name)
+            self.start()
+            return res
+        return wrapper
+            
+    
 
 def set_capwapc(mas_server):
     """" set capwapc """
@@ -197,33 +237,25 @@ def get_redirector_key(salt, mac):
 
 
 def post_url(url, param_data=None, json_data=None, files=None):
-    log_debug('url:{url}'.format(url=url))
-    log_debug('param_data:{param_data}'.format(param_data=param_data))
-    log_debug('json_data:{json_data}'.format(json_data=json_data))
-    i = 0
-    while i < 3:
+    log_debug('post to {url}'.format(url=url))
+    log_debug('parameters :{param_data}'.format(param_data=param_data))
+    log_debug('json body :{json_data}'.format(json_data=json_data))
+
+    for i in range(1,4):
         try:
             response = requests.post(url, params=param_data, json=json_data, files=files, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                log_debug('response:status:{status},json:{json}'.format(status=response.status_code, json=data))
+                return data
+            else:
+                log_warning('response:status:{status},response:{response}'.format(status=response.status_code, response=response))
         except Exception, e:
-            i = i + 1
             time.sleep(1)
             log_warning("requests err {}, time:{}".format(repr(e), i))
             continue
-        break
+    return {}
 
-    if i >=3:
-        return None
-
-    if response.status_code == 200:
-        try:
-            log_debug('response:status:{status},json:{json}'.format(status=response.status_code, json=response.json()))
-            return response.json()
-        except Exception, e:
-            log_warning('post_url get exception {}'.format(repr(e)))
-            return None
-    else:
-        log_warning('response:status:{status},response:{response}'.format(status=response.status_code, response=response))
-        return None
 
 def get_url(url, param_data=None, json_data=None):
     log_debug('url:{url}'.format(url=url))
@@ -306,3 +338,4 @@ class ExecEnv(object):
             return not self.raiseup
         log_debug('[%s] %s - done -' % (self.prefix, self.desc))
         return True
+

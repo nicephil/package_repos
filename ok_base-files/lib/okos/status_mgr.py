@@ -2,7 +2,7 @@ import Queue
 import threading
 import time, re
 import okos_utils
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logit, ExecEnv
+from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logit, ExecEnv, RepeatedTimer
 import json
 from constant import const
 import vici
@@ -22,6 +22,24 @@ class IfStateEnv(ExecEnv):
     def __init__(self, desc):
         super(IfStateEnv, self).__init__('Interface State', desc=desc, raiseup=False)
 
+class SystemEnv(ExecEnv):
+    def __init__(self, desc):
+        super(SystemEnv, self).__init__('System Infor', desc=desc, raiseup=False)
+
+class DeviceInfoEnv(ExecEnv):
+    def __init__(self, desc):
+        super(DeviceInfoEnv, self).__init__('Device Infor', desc=desc, raiseup=False)
+
+class SiteToSiteVpnInfoEnv(ExecEnv):
+    def __init__(self, desc):
+        super(SiteToSiteVpnInfoEnv, self).__init__('Site to Site VPN status', desc=desc, raiseup=False)
+
+class IpsecViciEnv(ExecEnv):
+    def __init__(self, desc):
+        super(IpsecViciEnv, self).__init__('Site to Site VPN status', desc=desc, raiseup=False)
+    def __enter__(self):
+        return vici.Session()
+        #return super(IpsecViciEnv, self).__enter__()
 
 class StatusMgr(threading.Thread):
     def __init__(self, mailbox, conf_mgr):
@@ -30,7 +48,13 @@ class StatusMgr(threading.Thread):
         self.term = False
         self.conf_mgr = conf_mgr
         self.mailbox = mailbox
-        self.sv = None
+        self.timers = [
+            RepeatedTimer('Site_VPN', 3, self.vpn_timer_func),
+            RepeatedTimer('CPU_MEM_Status', 5, self.cpu_mem_timer_func),
+            RepeatedTimer('IF_Status', 50, self.if_status_timer_func),
+            RepeatedTimer('Device_Info', 10, self.collect_devinfo),
+        ]
+        
         '''
         try:
             self.sv = vici.Session()
@@ -38,38 +62,69 @@ class StatusMgr(threading.Thread):
             log_warning("vici session init failed, {}".format(e))
         '''
         self.prev_conn_list = []
-        self.cpu_mem_timer = threading.Timer(1, self.cpu_mem_timer_func)
-        self.cpu_mem_timer.name = 'CPU_MEM_Status'
-        self.cpu_mem_timer.start()
-        self.if_status_timer = threading.Timer(1, self.if_status_timer_func)
-        self.if_status_timer.name = 'IF_Status'
-        self.if_status_timer.start()
         self.prev_total_tx_bytes = 0
         self.prev_total_rx_bytes = 0
         self.ping_mgr = ping_mgr.PingMgr()
         self.ping_mgr.start()
 
+    def run(self):
+        for timer in self.timers:
+            timer.start()
+        while not self.term:
+            time.sleep(60)
+
+    def vpn_timer_func(self):
+        sas = []
+        with IpsecViciEnv('Query active VPN connections') as sw:
+            sas = sw.list_sas()
+            sas = [t_name for sa in sas for t_name,v in sa.iteritems() if v['state'] == 'ESTABLISHED' ]
+            with open('/tmp/site_to_site_vpn.json', 'w+') as f:
+                json.dump(sas, f)
+        tunnels = []
+        with SiteToSiteVpnInfoEnv('Prepare Site to Site VPN statues:'):
+            vpn_conf = ubus.call('uci', 'get', {'config':'ipsec'})[0]['values']
+            tunnels = [v for v in vpn_conf.itervalues() if v['.type'] == 'remote' ]
+        statistic = {}
+        vpn_sas = []
+        with SiteToSiteVpnInfoEnv('Prepare Site to Site VPN statues:'):
+            f = lambda i, sas: ('s_%s-t_%s' % (i,i) in sas) and 1 or 0
+            vpn_sas = [{
+                'id': t['vpnid'],
+                'state': f(t['vpnid'], sas),
+                'total_tx_bytes': 0,
+                'total_rx_bytes': 0,
+            } for t in tunnels]
+            with open('/tmp/vpn_status.tmp','w+') as f:
+                json.dump(vpn_sas,f)
+            data = json.dumps({'list': vpn_sas})
+        with SiteToSiteVpnInfoEnv('Report Site to Site VPN statues:'):
+            msg = {
+                'operate_type': const.VPN_CONN_STATUS_RESP_OPT_TYPE,
+                'timestamp': int(time.time()),
+                'cookie_id': 1,
+                'data': data,
+            }
+            self.mailbox.pub(const.STATUS_Q, (1, msg), timeout=0)
+            
+
     def cpu_mem_timer_func(self):
-        try:
+        with SystemEnv('Query cpu & memory information'):
             cpu_stats = psutil.cpu_percent(0)
             mem_stats = psutil.virtual_memory().percent
-            info_msg = {}
-            info_msg['operate_type'] = const.DEV_CPU_MEM_STATUS_RESP_OPT_TYPE
-            info_msg['timestamp'] = int(time.time())
-            info_msg['cookie_id'] = 0
-            data_json = {}
-            data_json['cpu_load'] = int(cpu_stats)
-            data_json['mem_load'] = int(mem_stats)
-            info_msg['data'] = json.dumps(data_json)
+        with SystemEnv('Report cpu & memory information'):
+            data_json = {
+                'cpu_load': int(cpu_stats),
+                'mem_load': int(mem_stats),
+            }
+            data = json.dumps(data_json)
+            info_msg = {
+                'operate_type': const.DEV_CPU_MEM_STATUS_RESP_OPT_TYPE,
+                'timestamp': int(time.time()),
+                'cookie_id': 0,
+                'data': data,
+            }
             self.mailbox.pub(const.STATUS_Q, (1, info_msg), timeout=0)
-        except Exception, e:
-            log_warning("cpu_mem_status:{}".format(e))
 
-        self.cpu_mem_timer = threading.Timer(5, self.cpu_mem_timer_func)
-        self.cpu_mem_timer.name = 'CPU_MEM_Status'
-        self.cpu_mem_timer.start()
-
-    @logit
     def if_status_timer_func(self):
         '''
         This timer will be self-kicked off for every 60 seconds.
@@ -216,44 +271,32 @@ class StatusMgr(threading.Thread):
             }
             self.mailbox.pub(const.STATUS_Q, (1, info_msg), timeout=0)
 
-        with IfStateEnv('Restart Interface State Report Timer'):
-            self.if_status_timer = threading.Timer(60, self.if_status_timer_func)
-            self.if_status_timer.name = 'IF_Status'
-            self.if_status_timer.start()
-        return info_msg
-
-    def run(self):
-        self.process_data()
-
     def collect_devinfo(self):
-        info_msg = {}
-        info_msg['operate_type'] = const.DEV_INFO_OPT_TYPE
-        info_msg['timestamp'] = int(time.time())
-        info_msg['cookie_id'] = 0
-        data_json = {}
-        productinfo_data = self.conf_mgr.get_productinfo_data()
-        data_json['software_version'] = productinfo_data['swversion']
-        data_json['boot_version'] = productinfo_data['bootversion'] if 'bootversion' in productinfo_data else 'v1.1.1'
-        data_json['cpu'] = productinfo_data['cpu']
-        data_json['memory'] = productinfo_data['mem']
-        data_json['eth_port'] = productinfo_data['eth_port']
-        data_json['sn'] = productinfo_data['serial']
-        data_json['product_name'] = productinfo_data['model']
-        if 'port_status' in productinfo_data:
-            data_json['port_status'] = productinfo_data['port_status']
-        data_json['uptime'] = int(round(time.time() - psutil.BOOT_TIME))
-        try:
-            data_json['internal_ip'] = ni.ifaddresses(productinfo_data['eth_port'])[ni.AF_INET][0]['addr']
-        except:
-            data_json['internal_ip'] = ni.ifaddresses('pppoe-wan')[ni.AF_INET][0]['addr']
+        with DeviceInfoEnv('Collect Device Infor'):
+            data_json = {}
+            productinfo_data = self.conf_mgr.get_productinfo_data()
+            data_json['software_version'] = productinfo_data['swversion']
+            data_json['boot_version'] = productinfo_data.setdefault('bootversion','v1.1.1')
+            data_json['cpu'] = productinfo_data['cpu']
+            data_json['memory'] = productinfo_data['mem']
+            data_json['eth_port'] = productinfo_data['eth_port']
+            data_json['sn'] = productinfo_data['serial']
+            data_json['product_name'] = productinfo_data['model']
 
-        confinfo_data = self.conf_mgr.get_confinfo_data()
-        data_json['config_version'] = confinfo_data['config_version']
-        try:
+            confinfo_data = self.conf_mgr.get_confinfo_data()
+            data_json['config_version'] = confinfo_data['config_version']
+
+        with DeviceInfoEnv('Collect info from config_version_webui'):
             data_json['config_version_webui'] = ubus.call('uci', 'get', {"config":"system", "section":"@system[0]", "option":"config_version_webui"})[0]["value"]
-        except Exception, e:
-            log_err("config_version_webui not found {}".format(e))
-        info_msg['data'] = json.dumps(data_json)
+
+        with DeviceInfoEnv('Report Device Info'):
+            info_msg = {
+                'operate_type': const.DEV_INFO_OPT_TYPE,
+                'timestamp': int(time.time()),
+                'cookie_id': 0,
+                'data': json.dumps(data_json),
+            }
+            self.mailbox.pub(const.STATUS_Q, (200, info_msg), timeout=0)
         return info_msg
 
     def collect_total_bytes(self, new_conn_list):
@@ -337,6 +380,11 @@ class StatusMgr(threading.Thread):
             if sconn:
                 sconn.close()
         return conn_list
+
+    def collect_vpn_conninfo(self):
+        pass
+
+
 
     def collect_conninfo_from_ipsec(self):
         try:
@@ -427,18 +475,3 @@ class StatusMgr(threading.Thread):
         msg['data'] = json.dumps(json_data_list)
         return msg
 
-    def process_data(self):
-        i = 0
-        while not self.term:
-            if i >= 2:
-                i = 0
-                msg = self.collect_devinfo()
-                self.mailbox.pub(const.STATUS_Q, (200, msg), timeout=0)
-            try:
-                msg = self.collect_ddns_status()
-            except Exception, e:
-                log_warning("collect_ddns_staus:{}".format(e))
-                msg = None
-            self.mailbox.pub(const.STATUS_Q, (200, msg), timeout=0)
-            i  = i + 1
-            time.sleep(5)

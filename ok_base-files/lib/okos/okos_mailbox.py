@@ -42,7 +42,5 @@ class MailBox(object):
         q = self.queues[msgid]
         while not q.empty():
             msgbody.append(q.get_nowait())
-        if len(msgbody) == 0:
-            msgbody = None
         #log_debug("OUT:get_all msgid: '{msgid}', msgbody: {msgbody}".format(msgid=msgid, msgbody=msgbody))
         return msgbody
