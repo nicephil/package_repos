@@ -2,7 +2,7 @@ import Queue
 import threading
 import time, re
 import okos_utils
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logit, ExecEnv, RepeatedTimer
+from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logit, ExecEnv, RepeatedTimer, ReportTimer
 import json
 from constant import const
 import vici
@@ -49,8 +49,8 @@ class StatusMgr(threading.Thread):
         self.conf_mgr = conf_mgr
         self.mailbox = mailbox
         self.timers = [
-            RepeatedTimer('Site_VPN', 6, self.vpn_timer_func),
-            RepeatedTimer('CPU_MEM_Status', 10, self.cpu_mem_timer_func),
+            ReportTimer('Site_VPN', 60, self.vpn_timer_func, self.mailbox, const.VPN_CONN_STATUS_RESP_OPT_TYPE),
+            ReportTimer('CPU_MEM_Status', 10, self.cpu_mem_timer_func, self.mailbox, const.DEV_CPU_MEM_STATUS_RESP_OPT_TYPE),
             RepeatedTimer('IF_Status', 60, self.if_status_timer_func),
             RepeatedTimer('Device_Info', 60, self.collect_devinfo),
         ]
@@ -107,26 +107,28 @@ class StatusMgr(threading.Thread):
             } for i,t in enumerate(tunnels)]
             with open('/tmp/vpn_status.tmp','w+') as f:
                 json.dump(vpn_sas,f)
-            data = json.dumps({'list': vpn_sas})
+        return {'site_to_site_vpns': vpn_sas}
+        '''
         with SiteToSiteVpnInfoEnv('Report Site to Site VPN statues:'):
             msg = {
                 'operate_type': const.VPN_CONN_STATUS_RESP_OPT_TYPE,
                 'timestamp': int(time.time()),
-                'cookie_id': 1,
-                'data': data,
+                'cookie_id': 0,
+                'data': json.dumps({'list': vpn_sas}),
             }
-            self.mailbox.pub(const.STATUS_Q, (1, msg), timeout=0)
+            self.mailbox.pub(const.STATUS_Q, (1, msg), timeout=0)'''
             
 
     def cpu_mem_timer_func(self):
         with SystemEnv('Query cpu & memory information'):
             cpu_stats = psutil.cpu_percent(0)
             mem_stats = psutil.virtual_memory().percent
+        data_json = {}
         with SystemEnv('Report cpu & memory information'):
-            data_json = {
-                'cpu_load': int(cpu_stats),
-                'mem_load': int(mem_stats),
-            }
+            data_json['cpu_load'] = int(cpu_stats)
+            data_json['mem_load'] = int(mem_stats)
+        return data_json
+        '''
             data = json.dumps(data_json)
             info_msg = {
                 'operate_type': const.DEV_CPU_MEM_STATUS_RESP_OPT_TYPE,
@@ -134,7 +136,7 @@ class StatusMgr(threading.Thread):
                 'cookie_id': 0,
                 'data': data,
             }
-            self.mailbox.pub(const.STATUS_Q, (1, info_msg), timeout=0)
+            self.mailbox.pub(const.STATUS_Q, (1, info_msg), timeout=0)'''
 
     def if_status_timer_func(self):
         '''

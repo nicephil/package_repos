@@ -13,6 +13,7 @@ from datetime import datetime
 from signal import SIGKILL
 import netifaces as ni
 import md5
+import socket, struct
 
 
 class ToRedirector(threading.Thread):

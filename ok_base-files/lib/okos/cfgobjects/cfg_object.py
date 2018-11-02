@@ -98,7 +98,7 @@ class CfgObj(object):
         self.log_debug("Do - %s - " % (cmd))
         try:
             cmd = [str(c) for c in cmd]
-            if cmd[0].startwith('/'):
+            if not cmd[0].startswith('/'):
                 cmd[0] = path + cmd[0]
             res = subprocess.check_call(cmd)
         except subprocess.CalledProcessError as e:

@@ -125,7 +125,29 @@ class RepeatedTimer(object):
             return res
         return wrapper
             
-    
+class ReportTimer(object):
+    def __init__(self, name, interval, func, mailbox, operate_type):
+        super(ReportTimer, self).__init__()
+        self.name = name
+        self.interval = interval
+        self.func = func
+        self.timer = threading.Timer(interval, self.repeat(func, interval))
+        self.timer.setName(name)
+        self.env = OakmgrEnvelope(mailbox, operate_type)
+        log_debug('Timer is created')
+    def start(self):
+        self.timer.start()
+        log_debug('Timer is kicked off')
+    def repeat(self, func, interval):
+        def wrapper(*args, **kwargs):
+            log_debug('Timer start to execute:')
+            res = func(*args, **kwargs)
+            self.env.send(res)
+            self.timer = threading.Timer(interval, self.repeat(func, interval))
+            self.timer.setName(self.name)
+            self.start()
+            return res
+        return wrapper
 
 def set_capwapc(mas_server):
     """" set capwapc """
@@ -338,3 +360,18 @@ class ExecEnv(object):
         log_debug('[%s] %s - done -' % (self.prefix, self.desc))
         return True
 
+class OakmgrEnvelope(object):
+    def __init__(self, mailbox, operate_type, cookie_id=0, pri=1, timeout=0):
+        super(OakmgrEnvelope, self).__init__()
+        self.mailbox = mailbox
+        self.pri = pri
+        self.timeout = timeout
+        self.msg = {
+            'operate_type': operate_type,
+            'cookie_id': cookie_id,
+        }
+
+    def send(self, json_data):
+        self.msg['timestamp'] = int(time.time())
+        self.msg['data'] = json.dumps(json_data)
+        self.mailbox.pub(const.STATUS_Q, (self.pri, self.msg), timeout=self.timeout)
