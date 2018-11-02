@@ -12,7 +12,7 @@ import socket
 import psutil
 import time
 import fcntl
-import os, sys
+import os, sys, subprocess
 import sqlite3
 import netifaces as ni
 import ubus
@@ -49,7 +49,7 @@ class StatusMgr(threading.Thread):
         self.conf_mgr = conf_mgr
         self.mailbox = mailbox
         self.timers = [
-            RepeatedTimer('Site_VPN', 60, self.vpn_timer_func),
+            RepeatedTimer('Site_VPN', 6, self.vpn_timer_func),
             RepeatedTimer('CPU_MEM_Status', 10, self.cpu_mem_timer_func),
             RepeatedTimer('IF_Status', 60, self.if_status_timer_func),
             RepeatedTimer('Device_Info', 60, self.collect_devinfo),
@@ -81,19 +81,30 @@ class StatusMgr(threading.Thread):
             with open('/tmp/site_to_site_vpn.json', 'w+') as f:
                 json.dump(sas, f)
         tunnels = []
-        with SiteToSiteVpnInfoEnv('Prepare Site to Site VPN statues:'):
+        with SiteToSiteVpnInfoEnv('Query Site to Site VPN config:'):
             vpn_conf = ubus.call('uci', 'get', {'config':'ipsec'})[0]['values']
             tunnels = [v for v in vpn_conf.itervalues() if v['.type'] == 'remote' ]
-        statistic = {}
+        statistic = []
+        with SiteToSiteVpnInfoEnv('Prepare Site to Site VPN statistic:'):
+            with open(os.devnull, 'w') as DEVNULL:
+                stats = [subprocess.check_output([const.CONFIG_BIN_DIR+'set_site2site_vpn.sh', 'statistic', t['vpnid']], stderr=DEVNULL) for t in tunnels]
+            def split_data(stat):
+                p = re.compile('^RX:([0-9]*)[ ]+TX:([0-9]*)')
+                if stat:
+                    m = p.match(stat)
+                    if m:
+                        return m.groups()
+                return ('0','0')
+            statistic = map(split_data, stats)
         vpn_sas = []
         with SiteToSiteVpnInfoEnv('Prepare Site to Site VPN statues:'):
             f = lambda i, sas: ('s_%s-t_%s' % (i,i) in sas) and 1 or 0
             vpn_sas = [{
                 'id': t['vpnid'],
                 'state': f(t['vpnid'], sas),
-                'total_tx_bytes': 0,
-                'total_rx_bytes': 0,
-            } for t in tunnels]
+                'total_tx_bytes': statistic[i][1],
+                'total_rx_bytes': statistic[i][0],
+            } for i,t in enumerate(tunnels)]
             with open('/tmp/vpn_status.tmp','w+') as f:
                 json.dump(vpn_sas,f)
             data = json.dumps({'list': vpn_sas})

@@ -88,7 +88,7 @@ class CfgObj(object):
                     return False
         return True
 
-    def doit(self, cmd, comment=''):
+    def doit(self, cmd, comment='', path=const.CONFIG_BIN_DIR):
         '''
         cmd = ['/lib/okos/bin/set_..._.sh', '33', '201'] ; shell = False
         cmd = ['/lib/okos/bin/set_..._.sh 33 201'] ; shell = True
@@ -98,6 +98,8 @@ class CfgObj(object):
         self.log_debug("Do - %s - " % (cmd))
         try:
             cmd = [str(c) for c in cmd]
+            if cmd[0].startwith('/'):
+                cmd[0] = path + cmd[0]
             res = subprocess.check_call(cmd)
         except subprocess.CalledProcessError as e:
             self.log_warning("Execute %s failed!" % (e.cmd))

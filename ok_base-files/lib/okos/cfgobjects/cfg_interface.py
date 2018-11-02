@@ -97,7 +97,7 @@ class CfgInterface(CfgObj):
                     checker['dnss'] = (None, '')
                     checker['default_route_enable'] = (None, 0)
                     checker['mtu'] = (None, 0)
-                cmd = [const.CONFIG_BIN_DIR+'set_wan_dhcp.sh', checker['logic_ifname']]
+                cmd = ['set_wan_dhcp.sh', checker['logic_ifname']]
                 cmd += (checker['manual_dns'] and checker['dnss']) and ['-d', checker['dnss'], ] or []
                 cmd += checker['default_route_enable'] and ['-r',] or ['-R',]
                 cmd += checker['mtu'] and ['-m', checker['mtu']] or []
@@ -113,7 +113,7 @@ class CfgInterface(CfgObj):
                     checker['default_route_ip'] = (None, '')
                     checker['mtu'] = (None, 0)
                 ips_str = ','.join(['%s/%s' % (ip['ip'], ip['netmask']) for ip in checker['ips']])
-                cmd = [const.CONFIG_BIN_DIR+'set_wan_static_ip.sh', checker['logic_ifname'], checker['gateway'], ips_str, checker['dnss']]
+                cmd = ['set_wan_static_ip.sh', checker['logic_ifname'], checker['gateway'], ips_str, checker['dnss']]
                 cmd += (checker['default_route_enable'] and checker['default_route_ip']) and ['-r', checker['default_route_ip']] or ['-R',]
                 cmd += checker['mtu'] and ['-m', checker['mtu']] or []
                 cmd += ['-S',]
@@ -127,7 +127,7 @@ class CfgInterface(CfgObj):
                     checker['pppoe_keep_connected'] = (None, 1)
                     checker['default_route_enable'] = (None, 0)
                     checker['mtu'] = (None, 0)
-                cmd = [const.CONFIG_BIN_DIR+'set_wan_pppoe.sh', checker['logic_ifname'],
+                cmd = ['set_wan_pppoe.sh', checker['logic_ifname'],
                         checker['pppoe_username'], checker['pppoe_password'], '-k', checker['pppoe_timeout'], ]
                 cmd += checker['default_route_enable'] and ['-r',] or ['-R',]
                 cmd += checker['mtu'] and ['-m', checker['mtu'],] or []
@@ -135,7 +135,7 @@ class CfgInterface(CfgObj):
                 return self.doit(cmd)
         # Disable interface
         else:
-            cmd = [const.CONFIG_BIN_DIR+'disable_port.sh', checker['logic_ifname'], ]
+            cmd = ['disable_port.sh', checker['logic_ifname'], ]
             return self.doit(cmd)
         return True
 

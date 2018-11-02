@@ -11,7 +11,7 @@ class CfgDone(CfgObj):
 
     @logcfg
     def post_run(self):
-        self.doit(['/etc/init.d/dnsmasq', 'reload'], 'Restart dnsmasq')
-        self.doit(['/etc/init.d/network', 'reload'], 'Restart network')
-        self.doit(['/etc/init.d/firewall', 'reload'], 'Restart firewall')
+        self.doit(['/etc/init.d/dnsmasq', 'reload'], 'Restart dnsmasq', path='')
+        self.doit(['/etc/init.d/network', 'reload'], 'Restart network', path='')
+        self.doit(['/etc/init.d/firewall', 'reload'], 'Restart firewall', path='')
         return True

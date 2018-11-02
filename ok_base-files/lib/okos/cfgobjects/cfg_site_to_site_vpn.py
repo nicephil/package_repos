@@ -49,7 +49,7 @@ class CfgSiteToSiteVPN(CfgObj):
             checker['perfect_forward_secrecy'] = (None, 1)
             checker['dynamic_routing'] = (None, 1)
 
-        cmd = [const.CONFIG_BIN_DIR+'set_site2site_vpn.sh', 'set', checker['id'], '-S']
+        cmd = ['set_site2site_vpn.sh', 'set', checker['id'], '-S']
         cmd += ['--remote-subnets', checker['remote_subnets'], '--local', checker['local_ip'], '--remote', checker['remote_ip'], '--psk', checker['pre_shared_key']]
         cmd += ['--ikev', checker['key_exchange_ver'], '--encryption', checker['encryption'], '--hash', checker['hash'], '--dh', checker['dh_group']]
         cmd += checker['perfect_forward_secrecy'] and ['--pfs',] or []
@@ -64,7 +64,7 @@ class CfgSiteToSiteVPN(CfgObj):
         with ConfigInputEnv(old, 'Remove site to site vpn'):
             checker['id'] = (None, None)
 
-        cmd = [const.CONFIG_BIN_DIR+'set_site2site_vpn.sh', 'del', checker['id'], '-S']
+        cmd = ['set_site2site_vpn.sh', 'del', checker['id'], '-S']
         res = self.doit(cmd, 'Site to site vpn %s Removed' % (checker['id']))                
         return res
 

@@ -31,7 +31,7 @@ class CfgDhcpOption(CfgObj):
             checker['value'] = (None, None)
             checker['pool'] = (None, None)
 
-        cmd = [const.CONFIG_BIN_DIR+'set_dhcp_option.sh', checker['id'], '-S']
+        cmd = ['set_dhcp_option.sh', checker['id'], '-S']
         cmd += ['--option', checker['option'], '--value', checker['value'], '--pool', checker['pool']]
         res = self.doit(cmd, 'DHCP Option Setting')                
         return res
@@ -46,7 +46,7 @@ class CfgDhcpOption(CfgObj):
             checker['value'] = (None, None)
             checker['pool'] = (None, None)
 
-        cmd = [const.CONFIG_BIN_DIR+'set_dhcp_option.sh', checker['id'], '-R', '-S']
+        cmd = ['set_dhcp_option.sh', checker['id'], '-R', '-S']
         cmd += ['--option', checker['option'], '--value', checker['value'], '--pool', checker['pool']]
         res = self.doit(cmd, 'DHCP Option Entry Removed')                
         return res

@@ -42,7 +42,7 @@ class CfgPortForwarding(CfgObj):
             checker['external_port'] = (self._check_sock_port_, None)
             checker['local_port'] = (self._check_sock_port_, None)
 
-        cmd = [const.CONFIG_BIN_DIR+'set_port_forwarding.sh', checker['id'], '-S', ]
+        cmd = ['set_port_forwarding.sh', checker['id'], '-S', ]
         cmd += ['--src-zone', 'UNTRUSTED', '--dst-zone', 'TRUSTED', ]
         cmd += ['--src-dip', checker['external_ip'], '--dst-ip', checker['local_ip'], '--proto', checker['protocol'], ]
         cmd += ['--src-dport', checker['external_port'], '--dst-port', checker['local_port'], ]
@@ -54,7 +54,7 @@ class CfgPortForwarding(CfgObj):
         checker = ParameterChecker(old)
         with ConfigInputEnv(old, 'Port Forwarding removement'):
             checker['id'] = (None, None)
-        cmd = [const.CONFIG_BIN_DIR+'set_port_forwarding.sh', checker['id'], '-R', '-S']
+        cmd = ['set_port_forwarding.sh', checker['id'], '-R', '-S']
         res = self.doit(cmd, 'Port Forwarding Entry Removed')                
         return res
     @logcfg
