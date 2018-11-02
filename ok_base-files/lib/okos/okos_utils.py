@@ -150,7 +150,6 @@ def get_capwapc():
 
 def get_productinfo():
     """" get productinfo """
-    productinfo_data={}
     try:
         value=ubus.call("uci", "get", {"config":"productinfo","section":"productinfo"})
         productinfo_data=value[0]['values']
@@ -311,11 +310,11 @@ def daemonlize(pid_file):
         log_err("fork #2 failed: %d (%s)" % (e.errno,
                                              e.strerror))
         sys.exit(1)
-
+'''
 def netmask_int_to_a(v):
     netmask = socket.inet_ntoa(struct.pack('!I', (1<<32)-(1<<(32-v))))
     return netmask
-
+'''
 class ExecEnv(object):
     def __init__(self, prefix, cxt='', desc='', raiseup=True):
         super(ExecEnv, self).__init__()

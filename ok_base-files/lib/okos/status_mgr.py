@@ -49,10 +49,10 @@ class StatusMgr(threading.Thread):
         self.conf_mgr = conf_mgr
         self.mailbox = mailbox
         self.timers = [
-            RepeatedTimer('Site_VPN', 3, self.vpn_timer_func),
-            RepeatedTimer('CPU_MEM_Status', 5, self.cpu_mem_timer_func),
-            RepeatedTimer('IF_Status', 50, self.if_status_timer_func),
-            RepeatedTimer('Device_Info', 10, self.collect_devinfo),
+            RepeatedTimer('Site_VPN', 60, self.vpn_timer_func),
+            RepeatedTimer('CPU_MEM_Status', 10, self.cpu_mem_timer_func),
+            RepeatedTimer('IF_Status', 60, self.if_status_timer_func),
+            RepeatedTimer('Device_Info', 60, self.collect_devinfo),
         ]
         
         '''

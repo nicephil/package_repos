@@ -4,7 +4,7 @@ help()
 {
     cat <<_HELP_
 Setup/Remove site to site vpn
-Usage: $0 {set|del|list|show} [ID] [OPTIONS] [-S]
+Usage: $0 {set|del|list|show|statistic} [ID] [OPTIONS] [-S]
        $0 set ID --remote-subnets IPADDR/NETMASK --local IPADDR --remote IPADDR --psk STRING
             [--ikev VERSION] [--encryption ALGORITHM] [--hash ALGORITHM] [--dh GROUP] 
             [--pfs] [--dynamic-routing]
@@ -12,6 +12,7 @@ Usage: $0 {set|del|list|show} [ID] [OPTIONS] [-S]
        $0 del ID [-S]
        $0 list
        $0 show ID
+       $0 statistic ID
 
         ID # use ID to identify each site to site vpn entry. 
            # Caller MUST ensure it's unique.
@@ -200,7 +201,7 @@ statistic()
     local tx=$(echo $res | cut -d' ' -f 32)
     [ -z "$rx" ] && rx=0
     [ -z "$tx" ] && tx=0
-    echo $rx $tx
+    echo "RX:$rx TX:$tx"
 }
 
 #if [ "$cmd" = 'set' ]; then

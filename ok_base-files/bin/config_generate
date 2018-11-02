@@ -452,6 +452,10 @@ fi
             delete network.lan.ip6assign
             rename network.lan='lan4053'
 
+			set network.vpn=interface
+			set network.vpn.ifname='t_+'
+			set network.vpn.proto='none'
+
 EOF
 #end of OK_PATCH
 
