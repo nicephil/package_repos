@@ -25,10 +25,9 @@ class CfgMacIpBinding(CfgObj):
             checker['mac'] = (self._check_mac_, None)
             checker['ip'] = (self._check_ipaddr_, None)
             checker['name'] = (None, '')
-        cmd = ['set_mac_ip.sh', checker['id'], ]
+        cmd = ['set_mac_ip.sh', 'set', checker['id'], '-S']
         cmd += ['--mac', checker['mac'], '--ip', checker['ip'], ]
         cmd += checker['name'] and ['--name', checker['name'], ] or []
-        cmd += ['-S',]
         res = self.doit(cmd, 'MAC IP Binding')                
         return res
     @logcfg
@@ -37,7 +36,7 @@ class CfgMacIpBinding(CfgObj):
         checker = ParameterChecker(old)
         with ConfigInputEnv(old, 'MAC IP binding remove'):
             checker['id'] = (self._check_simple_id_, None)
-        cmd = ['set_mac_ip.sh', checker['id'], '-R', '-S']
+        cmd = ['set_mac_ip.sh', 'del', checker['id'],  '-S']
         res = self.doit(cmd, 'MAC IP binding Entry Removed')                
         return res
     @logcfg

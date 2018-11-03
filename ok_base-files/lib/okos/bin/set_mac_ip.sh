@@ -5,24 +5,28 @@ help()
     cat <<_HELP_
 Setup mac ip entry binding.
 
-Usage: $0 ID [--mac MAC] [--ip IPADDR] [--name NAME] [-R] [-S]
+Usage:  $0 {set|del} ID [--mac MAC] [--ip IPADDR] [--name NAME] [-S]
+        $0 set ID --mac MAC --ip IPADDR [--name NAME] [-S]
+        $0 del IP [-S]
+        
         ID # use ID to identify each port mac ip address binding entry. 
            # Caller MUST ensure it's unique.
            # [a-zA-z][a-zA-Z0-9_]{,9}
         --mac MAC # mac address of device
         --ip IPADDR # ip address of device
         --name NAME # host name of device
-        -R # remove this entry
         -S # don't restart service
 Example:
     $0 chenyu01 --mac 00:33:22:44:55:66 --ip 192.168.1.5 --name "chenyu_pad"
 _HELP_
 }
 
-if [ $# -lt 1 ]; then
-    help
-    exit 1
-fi
+case "$1" in
+    set) cmd="$1";;
+    del) cmd="$1";;
+    *) help; exit 1;;
+esac
+shift 1
 
 echo 'Caller MUST ensure that ID is unique.'
 id="$1"
@@ -41,12 +45,18 @@ while [ -n "$1" ]; do
     esac
 done
 
-uci get dhcp.${id} > /dev/null
-if [ "$?" == 0 ]; then
-    uci delete dhcp.${id}
-fi 
+_del_mac_ip()
+{
+    uci get dhcp.${id} > /dev/null 2>&1
+    if [ "$?" == 0 ]; then
+        uci delete dhcp.${id}
+    fi
+}
 
-if [ -z "$remove" ]; then
+set_mac_ip()
+{
+    _del_mac_ip
+
     [ -z "$mac" -o -z "$ip" ] && help && exit 1
     echo "Binding MAC ${mac} to IP $ip"
     uci set dhcp.${id}='host'
@@ -55,9 +65,18 @@ if [ -z "$remove" ]; then
     if [ -n "$name" ]; then
         uci set dhcp.${id}.name="$name"
     fi
-else
+}
+del_mac_ip()
+{
     echo "Remove MAC binding <${id}>"
-fi
+    _del_mac_ip
+}
+
+case "$cmd" in
+    set) set_mac_ip;;
+    del) del_mac_ip;;
+    *) help;exit 1;;
+esac
 
 uci commit dhcp
 

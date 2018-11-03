@@ -18,7 +18,7 @@ class CfgDhcpOption(CfgObj):
         dhcp_options = j['network'].setdefault('dhcp_options',[])
         dhcp_pools = j['network'].setdefault('local_networks', [])
         with ConfigParseEnv(dhcp_pools, 'DHCP Options configuration'):
-            res = [CfgDhcpOption(o,p) for o in dhcp_options for p in dhcp_pools for oid in p['dhcp_option_ids'] if oid == o['id']]
+            res = [CfgDhcpOption(o,p) for o in dhcp_options for p in dhcp_pools if p['dhcp_server_enable'] for oid in p['dhcp_option_ids'] if oid == o['id']]
         return res
     
     @logcfg
@@ -31,7 +31,7 @@ class CfgDhcpOption(CfgObj):
             checker['value'] = (None, None)
             checker['pool'] = (None, None)
 
-        cmd = ['set_dhcp_option.sh', checker['id'], '-S']
+        cmd = ['set_dhcp_option.sh', 'set', '-S']
         cmd += ['--option', checker['option'], '--value', checker['value'], '--pool', checker['pool']]
         res = self.doit(cmd, 'DHCP Option Setting')                
         return res
@@ -46,7 +46,7 @@ class CfgDhcpOption(CfgObj):
             checker['value'] = (None, None)
             checker['pool'] = (None, None)
 
-        cmd = ['set_dhcp_option.sh', checker['id'], '-R', '-S']
+        cmd = ['set_dhcp_option.sh', 'del', '-S']
         cmd += ['--option', checker['option'], '--value', checker['value'], '--pool', checker['pool']]
         res = self.doit(cmd, 'DHCP Option Entry Removed')                
         return res

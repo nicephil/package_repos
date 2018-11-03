@@ -4,22 +4,25 @@ help()
 {
     cat <<_HELP_
 Setup DHCP server on LAN port.
-Usage: $0 {lan4053} [--start START] [--limit LIMIT] [--lease LEASE] [--vid VLANID] [-R] [-S]
+Usage:  $0 {set|del} {lan4053} [--start START] [--limit LIMIT] [--lease LEASE] [--vid VLANID] [-S]
+        $0 set {lan4053} --start START --limit LIMIT [--lease LEASE] [--vid VLANID] [-S]
+        $0 del {lan4053} [--vid VLANID] [-S]
         --start START # the minimum address
         --limit LIMIT # the size of the address pool
         --lease LEASE # the lease time of addresses handed out to clients
         --vid VLANID # vlan id [1~4093] on the target interface
-        -R # disable this dhcp pool
         -S # don't restart service
 Example:
-    $0 lan4053 1 200 -l 83400 
+    $0 set lan4053 1 200 -l 83400 
 _HELP_
 }
 
-if [ $# -lt 1 ]; then
-    help
-    exit 1
-fi
+case "$1" in
+    set) cmd="$1";;
+    del) cmd="$1";;
+    *) help; exit 1;;
+esac
+shift 1
 
 case $1 in
     lan4053) ifx="$1";ifname="eth3";;
@@ -34,7 +37,6 @@ while [ -n "$1" ]; do
         --lease) leasetime="$2";shift 2;;
         --start) start="$2";shift 2;;
         --limit) limit="$2";shift 2;;
-        -R) remove='yes';shift 1;;
         -S) no_restart='1';shift 1;;
         --) shift;break;;
         -*) help;exit 1;;
@@ -52,12 +54,13 @@ if [ -n "${vid}" ]; then
     fi
 fi
 
-if [ -z "$remove" ]; then
+set_dhcp_pool()
+{
     [ -n "$start" -a -n "$limit" ] || exit 1
     echo "Setup DHCP poll [${start},${limit}] on $ifx"
 
     uci set dhcp.${ifx}=dhcp
-    uci get dhcp.common.interface | grep -e "\<${ifx}\>" > /dev/null
+    uci get dhcp.common.interface | grep -e "\<${ifx}\>" > /dev/null 2>&1
     if [ "$?" != 0 ]; then
         uci add_list dhcp.common.interface="${ifx}"
     fi
@@ -75,19 +78,27 @@ if [ -z "$remove" ]; then
         uci set webui_config.${ifx}.dhcp_server_enable="1"
         uci commit webui_config
     fi
-else
+}
+
+del_dhcp_pool()
+{
     echo "Remove DHCP poll on $ifx"
-    uci delete dhcp.${ifx}
-    uci del_list dhcp.common.interface="${ifx}"
+    uci delete dhcp.${ifx} > /dev/null 2>&1
+    uci del_list dhcp.common.interface="${ifx}" >/dev/null 2>&1
     if [ -z "$vid" ]; then
         # need to update webui_config
         uci set webui_config.${ifx}.dhcp_server_enable="0"
         uci commit webui_config
     fi
-fi
+}
+
+case "$cmd" in
+    set) set_dhcp_pool;;
+    del) del_dhcp_pool;;
+    *) help; exit 1;;
+esac
 
 uci commit dhcp
-
 
 if [ -z "$no_restart" ]; then
     /etc/init.d/dnsmasq restart

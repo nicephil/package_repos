@@ -4,9 +4,9 @@ help()
 {
     cat <<_HELP_
 Setup port forwarding entry.
-
-Usage:  $0 ID -R ID
-        $0 ID --src-zone ZONE --dst-zone ZONE 
+ 
+Usage:  $0 del ID [-S]
+        $0 add ID --src-zone ZONE --dst-zone ZONE 
             [--src-ip IP] [--src-dip IP] [--dst-ip IP]
             [--src-port PORT] [--src-dport PORT] [--dst-port PORT]
             [--src-mac MAC] [--proto PROTO] [--action ACTION] [-S]
@@ -25,7 +25,6 @@ Usage:  $0 ID -R ID
         --src-mac MAC # source mac address of input traffic
         --proto PROTO # protocol
         --action {*DNAT|SNAT} # target of this entry, DNAT by default.
-        -R # remove this entry
         -S # don't restart service
 Example:
     # mapping all the traffic targeted to wan port's tcp port 22 to local host 172.16.254.145 with same dest port.
@@ -35,10 +34,12 @@ Example:
 _HELP_
 }
 
-if [ $# -lt 1 ]; then
-    help
-    exit 1
-fi
+case "$1" in
+    set) cmd="$1";;
+    del) cmd="$1";;
+    *) help;exit 1;;
+esac
+shift 1
 
 echo 'Caller MUST ensure that ID is unique.'
 id="$1"
@@ -59,7 +60,6 @@ while [ -n "$1" ]; do
         --src-mac) src_mac="$2";shift 2;;
         --proto) proto="$2";shift 2;;
         --action) target="$2";shift 2;;
-        -R) remove='yes';shift 1;;
         -S) no_restart='1';shift 1;;
         --) shift;break;;
         -*) help;exit 1;;
@@ -67,10 +67,16 @@ while [ -n "$1" ]; do
     esac
 done
 
-uci get firewall.${id} >/dev/null 2>&1
-[ "$?" == 0 ] && uci delete firewall.${id}
+_del_pfwd()
+{
+    uci get firewall.${id} >/dev/null 2>&1
+    [ "$?" == 0 ] && uci delete firewall.${id}
+}
 
-if [ -z "$remove" ]; then
+set_pfwd()
+{
+    _del_pfwd
+
     case "$src_zone" in
         TRUSTED) src_zone_id='0';;
         UNTRUSTED) src_zone_id='1';;
@@ -107,9 +113,20 @@ if [ -z "$remove" ]; then
     [ -n "$src_mac" ] && uci set firewall.${id}.src_mac="${src_mac}"
     [ -n "$proto" ] && uci set firewall.${id}.proto="${proto}"
     [ -n "$target" ] && uci set firewall.${id}.target="${target}"
-else
+}
+
+del_pfwd()
+{
     echo "Remove port forwarding <${id}>"
-fi
+    _del_pfwd
+}
+
+case "$cmd" in
+    set) set_pfwd;;
+    del) del_pfwd;;
+    *) help;exit 1;;
+esac
+
 uci commit firewall
 
 

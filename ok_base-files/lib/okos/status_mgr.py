@@ -51,8 +51,8 @@ class StatusMgr(threading.Thread):
         self.timers = [
             ReportTimer('Site_VPN', 60, self.vpn_timer_func, self.mailbox, const.VPN_CONN_STATUS_RESP_OPT_TYPE),
             ReportTimer('CPU_MEM_Status', 10, self.cpu_mem_timer_func, self.mailbox, const.DEV_CPU_MEM_STATUS_RESP_OPT_TYPE),
-            RepeatedTimer('IF_Status', 60, self.if_status_timer_func),
-            RepeatedTimer('Device_Info', 60, self.collect_devinfo),
+            ReportTimer('IF_Status', 60, self.if_status_timer_func, self.mailbox, const.DEV_IF_STATUS_RESP_OPT_TYPE),
+            ReportTimer('Device_Info', 60, self.collect_devinfo, self.mailbox, const.DEV_INFO_OPT_TYPE),
         ]
         
         '''
@@ -107,7 +107,7 @@ class StatusMgr(threading.Thread):
             } for i,t in enumerate(tunnels)]
             with open('/tmp/vpn_status.tmp','w+') as f:
                 json.dump(vpn_sas,f)
-        return {'site_to_site_vpns': vpn_sas}
+        return vpn_sas and {'site_to_site_vpns': vpn_sas} or None
         '''
         with SiteToSiteVpnInfoEnv('Report Site to Site VPN statues:'):
             msg = {
@@ -241,48 +241,42 @@ class StatusMgr(threading.Thread):
             map(abstract_speed, ifs_state)
 
         def abstract_ip_setting(ifx_output):
-            ifx_input = interfaces[ifx_output['ifname']]
-            if ifx_output['status']:
-                ifx_output['dnss'] = ','.join([dns for dns in ifx_input['dns-server']])
-                ifx_output['ips'] = [{'ip':ip['address'], 'netmask':ip['mask']} for ip in ifx_input['ipv4-address']]
-                if ifx_output['type'] == const.DEV_CONF_PORT_TYPE['wan']:
-                    defaultroutes = [r['nexthop'] for r in ifx_input['route'] if r['target'] == '0.0.0.0']
-                    if defaultroutes:
-                        ifx_output['gateway'] = defaultroutes[0]
-        with IfStateEnv('IP Setting'):
-            map(abstract_ip_setting, ifs_state)
+            ifname = ifx_output['ifname']
+            with IfStateEnv('IP Setting on %s' % (ifname)):
+                ifx_input = interfaces[ifname]
+                if ifx_output['status']:
+                    ifx_output['dnss'] = ','.join([dns for dns in ifx_input.setdefault('dns-server', [])])
+                    ifx_output['ips'] = [{'ip':ip['address'], 'netmask':ip['mask']} for ip in ifx_input.setdefault('ipv4-address',[])]
+                    if ifx_output['type'] == const.DEV_CONF_PORT_TYPE['wan']:
+                        defaultroutes = [r['nexthop'] for r in ifx_input.setdefault('route',[]) if r['target'] == '0.0.0.0']
+                        if defaultroutes:
+                            ifx_output['gateway'] = defaultroutes[0]
+        map(abstract_ip_setting, ifs_state)
 
         def abstract_pppoe(ifx_output):
-            if ifx_output['type'] == const.DEV_CONF_PORT_TYPE['wan'] and ifx_output['proto'] == 'pppoe' and ifx_output['status']:
-                ifx_input = network_conf[ifx_output['ifname']]
-                ifx_output['pppoe_username'] = ifx_input['username']
-                ifx_output['pppoe_password'] = ifx_input['password']
-        with IfStateEnv('pppoe'):
-            map(abstract_pppoe, ifs_state)
+            ifname = ifx_output['ifname']
+            with IfStateEnv('pppoe on %s' % (ifname)):
+                if ifx_output['type'] == const.DEV_CONF_PORT_TYPE['wan'] and ifx_output['proto'] == 'pppoe' and ifx_output['status']:
+                    ifx_input = network_conf[ifname]
+                    ifx_output['pppoe_username'] = ifx_input['username']
+                    ifx_output['pppoe_password'] = ifx_input['password']
+        map(abstract_pppoe, ifs_state)
 
         def abstract_dhcp_server(ifx_output):
-            if ifx_output['status'] and ifx_output['type'] == const.DEV_CONF_PORT_TYPE['lan']:
-                ifx_input = dhcp_conf[ifx_output['ifname']]
-                ifx_output['dhcp_start'] = ifx_input['start']
-                ifx_output['dhcp_limit'] = ifx_input['limit']
-        with IfStateEnv('DHCP server'):
-            map(abstract_dhcp_server, ifs_state)
+            ifname = ifx_output['ifname']
+            with IfStateEnv('DHCP server on %s' % (ifname)):
+                if ifx_output['status'] and ifx_output['type'] == const.DEV_CONF_PORT_TYPE['lan']:
+                    ifx_input = dhcp_conf[ifname]
+                    ifx_output['dhcp_start'] = ifx_input['start']
+                    ifx_output['dhcp_limit'] = ifx_input['limit']
+        map(abstract_dhcp_server, ifs_state)
 
 
         with open('/tmp/if_state.tmp','w+') as f:
             json.dump(ifs_state,f)
 
-        with IfStateEnv('Dump Interfaces State Data'):
-            data = json.dumps({'list': ifs_state})
+        return {'list': ifs_state}
 
-        with IfStateEnv('Post Interfaces State'):
-            info_msg = {
-                'operate_type': const.DEV_IF_STATUS_RESP_OPT_TYPE,
-                'timestamp': int(time.time()),
-                'cookie_id': 0,
-                'data': data,
-            }
-            self.mailbox.pub(const.STATUS_Q, (1, info_msg), timeout=0)
 
     def collect_devinfo(self):
         with DeviceInfoEnv('Collect Device Infor'):
@@ -302,15 +296,8 @@ class StatusMgr(threading.Thread):
         with DeviceInfoEnv('Collect info from config_version_webui'):
             data_json['config_version_webui'] = ubus.call('uci', 'get', {"config":"system", "section":"@system[0]", "option":"config_version_webui"})[0]["value"]
 
-        with DeviceInfoEnv('Report Device Info'):
-            info_msg = {
-                'operate_type': const.DEV_INFO_OPT_TYPE,
-                'timestamp': int(time.time()),
-                'cookie_id': 0,
-                'data': json.dumps(data_json),
-            }
-            self.mailbox.pub(const.STATUS_Q, (200, info_msg), timeout=0)
-        return info_msg
+        return data_json
+
 
     def collect_total_bytes(self, new_conn_list):
         total_tx_bytes = 0

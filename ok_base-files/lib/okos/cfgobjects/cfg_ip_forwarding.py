@@ -29,7 +29,7 @@ class CfgIpForwarding(CfgObj):
             checker['external_ip'] = (self._check_ipaddr_, None)
             checker['local_ip'] = (self._check_ipaddr_, None)
 
-        cmd = ['set_port_forwarding.sh', checker['id'], '-S']
+        cmd = ['set_port_forwarding.sh', 'set', checker['id'], '-S']
         cmd += ['--src-zone', 'UNTRUSTED', '--dst-zone', 'TRUSTED', ]
         cmd += ['--src-dip', checker['external_ip'], '--dst-ip', checker['local_ip'], '--proto', 'all', ]
         res = self.doit(cmd, 'Port Forwarding Setting')                
@@ -40,7 +40,7 @@ class CfgIpForwarding(CfgObj):
         checker = ParameterChecker(old)
         with ConfigInputEnv(old, 'Port Forwarding removement'):
             checker['id'] = (self._check_entry_id_, None)
-        cmd = ['set_port_forwarding.sh', checker['id'], '-R', '-S']
+        cmd = ['set_port_forwarding.sh', 'del', checker['id'], '-S']
         res = self.doit(cmd, 'Port Forwarding Entry Removed')                
         return res
     @logcfg

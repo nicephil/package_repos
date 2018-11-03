@@ -142,7 +142,8 @@ class ReportTimer(object):
         def wrapper(*args, **kwargs):
             log_debug('Timer start to execute:')
             res = func(*args, **kwargs)
-            self.env.send(res)
+            if res:
+                self.env.send(res)
             self.timer = threading.Timer(interval, self.repeat(func, interval))
             self.timer.setName(self.name)
             self.start()

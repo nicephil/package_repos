@@ -8,25 +8,29 @@ Support create/setup VLAN interface.
 lan4053 represents PHY port eth3. It means the native vlan.
 LAN port will be added to a security zone, TRUSTED by default.
 
-Usage: $0 {lan4053} [--ipaddr IPADDR] [--netmask NETMASK] [--mtu MTU] [--vid VLANID] [--zone ZONE] [-RS]
+Usage:  $0 {set|del} {lan4053} [--ipaddr IPADDR] [--netmask NETMASK] 
+                        [--mtu MTU] [--vid VLANID] [--zone ZONE] [-S]
+        $0 add {lan4053} --ipaddr IPADDR --netmask NETMASK
+                        [--mtu MTU] [--vid VLANID] [--zone ZONE] [-S]
+        $0 del {lan4053} [--vid VLANID] [--zone ZONE] [-S]
         --ipaddr IPADDR # static ipaddress
         --netmask NETMASK # format 255.255.255.0
         --mtu MTU # Set MTU on this interface
         --vid VLANID # vlan id [1~4093] on the target interface
-        --zone {TRUSTED|UNTRUSTED|DMZ|GUEST} # assign security zone
-        -R # disable this vlan
+        --zone {*TRUSTED|UNTRUSTED|DMZ|GUEST} # assign security zone
         -S # don't restart service
 Example:
-    $0 lan4053 192.168.254.254 255.255.255.0 # set lan port with static ip addresses
-    $0 lan4053 192.168.101.254 255.255.255.0 -v 101 # set vlan 101 interface with static ip addresses
+    $0 set lan4053 192.168.254.254 255.255.255.0 # set lan port with static ip addresses
+    $0 set lan4053 192.168.101.254 255.255.255.0 --vid 101 # set vlan 101 interface with static ip addresses
 _HELP_
 }
 
-
-if [ $# -lt 3 ]; then
-    help
-    exit 1
-fi
+case $1 in
+    set) cmd="$1";;
+    del) cmd="$1";;
+    *) help; exit 1;;
+esac
+shift 1
 
 case $1 in
     lan4053) ifx="$1";ifname="eth3";;
@@ -67,7 +71,8 @@ if [ -n "${vid}" ]; then
     fi
 fi
 
-if [ -z "$remove" ]; then
+set_vlan()
+{
     [ -n "$ipaddr" -a -n "$netmask" ] || exit 1
 
     uci delete network.${ifx}
@@ -79,7 +84,7 @@ if [ -z "$remove" ]; then
     if [ -n "$mtu" ]; then
         uci set network.${ifx}.mtu=$mtu
     fi
-    uci get firewall.${zone}.network | grep -e "\<${ifx}\>" > /dev/null
+    uci get firewall.${zone}.network | grep -e "\<${ifx}\>" > /dev/null 2>&1
     if [ "$?" != 0 ]; then
         uci add_list firewall.${zone}.network="${ifx}"
     fi 
@@ -94,11 +99,20 @@ if [ -z "$remove" ]; then
         uci set webui_config.${ifx}.netmask="${netmask}"
         uci commit webui_config
     fi
+}
 
-else
+del_vlan()
+{
     uci delete network.${ifx}
     uci del_list firewall.${zone}.network="${ifx}"
-fi
+}
+
+
+case "$cmd" in
+    set) set_vlan;;
+    del) del_vlan;;
+    *) help;exit 1;;
+esac
 
 uci commit network
 uci commit firewall
