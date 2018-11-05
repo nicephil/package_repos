@@ -112,6 +112,7 @@ platform_mtk_okos_nand_upgrade() {
 	upgrade_log "mount"
 	ps >>$UPGRADE_LOG_FILE
 	upgrade_log_end
+    PART_NAME=firmware
 
 	get_image "$1" | mtd write - "${PART_NAME:-image}" >>$UPGRADE_LOG_FILE 2>&1
 
