@@ -11,6 +11,7 @@ class CfgNetwork(CfgObj):
         d = self.data
         d.update(vlan)
         if vlan and ifx and ifname:
+            # e3 => lan4053
             d['ifname'] = const.PORT_MAPPING_LOGIC[ifname]['ifname']
             d['untagged'] = bool(ifx.setdefault('native_vlan', 1) == d.setdefault('vlan',1))
             vlan['ifname'] = d['untagged'] and d['ifname'] or '{}_{}'.format(d['ifname'], d['vlan'])

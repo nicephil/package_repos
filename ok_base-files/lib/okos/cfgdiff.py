@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
 import argparse, os, subprocess, re, json, sys
-from cfgobjects import CfgSystem, CfgDDNS, CfgInterface, CfgNetwork, CfgPortForwarding, CfgMacIpBinding, CfgDhcpOption, CfgDone, CfgIpForwarding,CfgSiteToSiteVPN
+from cfgobjects import CfgSystem, CfgDDNS, CfgInterface, CfgNetwork, CfgPortForwarding, CfgMacIpBinding, CfgDhcpOption, CfgDone, CfgIpForwarding, CfgSiteToSiteVPN, CfgKickoff
 from okos_utils import log_crit, log_err, log_warning, log_info, log_debug
 import fcntl
 import ubus
 
 class OakmgrCfg(object):
     Templates = [
+            #CfgKickoff(),
             CfgSystem(),
             CfgInterface(),
             CfgNetwork(),
@@ -86,6 +87,11 @@ class ConfigEnv(object):
 
 def config_exec(args):
     with ConfigEnv():
+        with open(args.target, 'r') as ori:
+            with open('/tmp/config.ori', 'w') as f:
+                f.write(ori.read())
+                f.write('\n')
+
         cur = OakmgrCfg(args.target).parse()
         ori = OakmgrCfg(args.original).parse()
         diff = cur - ori

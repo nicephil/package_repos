@@ -7,11 +7,11 @@ from constant import const
 
 class CfgDhcpOption(CfgObj):
     def __init__(self, entry={}, dhcp_pool={}):
-        super(CfgDhcpOption, self).__init__(differ='option_id')
+        super(CfgDhcpOption, self).__init__(differ='id')
         self.data.update(entry)
         if dhcp_pool:
             self.data['pool'] = dhcp_pool['ifname']
-            self.data['option_id'] = '%s_%s' % (self.data['pool'], self.data['id'])
+            #self.data['option_id'] = '%s_%s' % (self.data['pool'], self.data['id'])
 
     @logcfg
     def parse(self, j):
