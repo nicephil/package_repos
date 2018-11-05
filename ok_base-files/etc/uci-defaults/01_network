@@ -1,0 +1,41 @@
+#!/bin/sh
+
+. /lib/functions.sh
+. /lib/platform.sh
+. /lib/functions/uci-defaults.sh
+. /lib/functions/system.sh
+
+mtkmips_setup_interfaces()
+{
+	local board="$1"
+
+	ucidef_set_interface_loopback
+
+	case $board in
+	"HCMT7621"* | "WT6711")
+		ucidef_set_interfaces_lan_wan "eth0" "eth1"
+		;;
+	*)
+		ucidef_set_interfaces_lan_wan "eth0.1" "eth0.2"
+		;;
+	esac
+}
+
+[ -e /etc/config/network ] && exit 0
+
+touch /etc/config/network
+
+board=$(mtkmips_board_name)
+
+mtkmips_setup_interfaces $board
+
+# OK_PATCH
+uci -q batch <<-EOF
+    set network.lan.ipaddr='172.16.254.254'
+EOF
+
+#end of OK_PATCH
+
+uci commit network
+
+exit 0
