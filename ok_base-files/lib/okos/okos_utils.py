@@ -11,6 +11,9 @@ import syslog
 import ubus
 import functools
 import vici
+import subprocess
+import re
+import socket
 
 from constant import const
 
@@ -153,8 +156,10 @@ class ReportTimer(object):
 def set_capwapc(mas_server):
     """" set capwapc """
     try:
-        value=ubus.call("uci", "set", {"config":"capwapc","section":"server", "values":{"mas_server":mas_server}})
-        value=ubus.call("uci", "commit", {"config":"capwapc"})
+        ubus.call("uci", "set", {"config":"capwapc","section":"server", "values":{"mas_server":mas_server}})
+        #_, _, localip = SystemCall().localip2target(mas_server)
+        #ubus.call("uci", "set", {"config":"capwapc","section":"server", "values":{"local_ip":localip}})
+        ubus.call("uci", "commit", {"config":"capwapc"})
     except Exception, e:
         log_warning('set_capwapc get exception {}'.format(repr(e)))
         return False
@@ -376,3 +381,74 @@ class OakmgrEnvelope(object):
         self.msg['timestamp'] = int(time.time())
         self.msg['data'] = json.dumps(json_data)
         self.mailbox.pub(const.STATUS_Q, (self.pri, self.msg), timeout=self.timeout)
+
+
+class SystemCall(object):
+    def __init__(self, debug=True):
+        super(SystemCall, self).__init__()
+        self.debug = debug
+    
+    def _call(self, cmd, comment='', path='', debug=True):
+        '''
+        cmd = ['/lib/okos/bin/set_..._.sh', '33', '201'] ; shell = False
+        cmd = ['/lib/okos/bin/set_..._.sh 33 201'] ; shell = True
+        '''
+        
+        if self.debug:
+            if comment:
+                log_debug(comment)
+            log_debug("System Call - %s - " % (cmd))
+        try:
+            cmd = [str(c) for c in cmd]
+            if not cmd[0].startswith('/') and path:
+                cmd[0] = path + cmd[0]
+            res = subprocess.check_call(cmd)
+        except subprocess.CalledProcessError as e:
+            log_warning("Execute System Call %s failed!" % (e.cmd))
+            return False
+        except Exception as e:
+            log_warning("Execute System Call %s failed with %s!" % (cmd, type(e).__name__))
+            return False
+        if self.debug:
+            log_debug("System Call - %s - return %d" % (cmd, res))
+        return res == 0 and True or False
+
+    def _output(self, cmd, comment='', path='', debug=True):
+        '''
+        cmd = ['/lib/okos/bin/set_..._.sh', '33', '201'] ; shell = False
+        cmd = ['/lib/okos/bin/set_..._.sh 33 201'] ; shell = True
+        '''
+        
+        if self.debug:
+            if comment:
+                log_debug(comment)
+            log_debug("System Call - %s - " % (cmd))
+        try:
+            cmd = [str(c) for c in cmd]
+            if not cmd[0].startswith('/') and path:
+                cmd[0] = path + cmd[0]
+            res = subprocess.check_output(cmd)
+        except subprocess.CalledProcessError as e:
+            log_warning("Execute System Call %s failed[%s] :> %s" % (e.cmd, e.returncode, e.output))
+            return ''
+        except Exception as e:
+            log_warning("Execute System Call %s failed with %s!" % (cmd, type(e).__name__))
+            return ''
+        if self.debug:
+            log_debug("System Call - %s - return %s" % (cmd, res))
+        return res
+    
+    def localip2target(self, target):
+        '''
+        Get local information about route to target
+        noly support ip address of target
+        example:
+            gateway, interface, localip = SystemCall().localip2taregt('13.112.4.123')
+
+        '''
+        p = const.FMT_PATTERN['ipaddr']
+        if not p.match(target):
+            target = socket.gethostbyname(target)
+        p = re.compile('^[0-9.]{7,15}[ ]+via[ ]+([0-9.]{7,15})[ ]+dev[ ]+([a-z_0-9]+)[ ]+src[ ]+([0-9.]{7,15})')
+        res = p.match(self._output(['ip', 'route', 'get', target]))
+        return res and res.groups() or ('','','')

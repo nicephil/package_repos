@@ -2,7 +2,7 @@ import Queue
 import threading
 import time, re
 import okos_utils
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logit, ExecEnv, RepeatedTimer, ReportTimer
+from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logit, ExecEnv, RepeatedTimer, ReportTimer, SystemCall
 import json
 from constant import const
 import vici
@@ -78,8 +78,8 @@ class StatusMgr(threading.Thread):
         with IpsecViciEnv('Query active VPN connections') as sw:
             sas = sw.list_sas()
             sas = [t_name for sa in sas for t_name,v in sa.iteritems() if v['state'] == 'ESTABLISHED' ]
-            with open('/tmp/site_to_site_vpn.json', 'w+') as f:
-                json.dump(sas, f)
+            #with open('/tmp/site_to_site_vpn.json', 'w+') as f:
+            #    json.dump(sas, f)
         tunnels = []
         with SiteToSiteVpnInfoEnv('Query Site to Site VPN config:'):
             vpn_conf = ubus.call('uci', 'get', {'config':'ipsec'})[0]['values']
@@ -105,8 +105,8 @@ class StatusMgr(threading.Thread):
                 'total_tx_bytes': statistic[i][1],
                 'total_rx_bytes': statistic[i][0],
             } for i,t in enumerate(tunnels)]
-            with open('/tmp/vpn_status.tmp','w+') as f:
-                json.dump(vpn_sas,f)
+            #with open('/tmp/vpn_status.tmp','w+') as f:
+            #    json.dump(vpn_sas,f)
         return vpn_sas and {'site_to_site_vpns': vpn_sas} or None
         '''
         with SiteToSiteVpnInfoEnv('Report Site to Site VPN statues:'):
@@ -272,8 +272,8 @@ class StatusMgr(threading.Thread):
         map(abstract_dhcp_server, ifs_state)
 
 
-        with open('/tmp/if_state.tmp','w+') as f:
-            json.dump(ifs_state,f)
+        #with open('/tmp/if_state.tmp','w+') as f:
+        #    json.dump(ifs_state,f)
 
         return {'list': ifs_state}
 
@@ -293,9 +293,12 @@ class StatusMgr(threading.Thread):
             confinfo_data = self.conf_mgr.get_confinfo_data()
             data_json['config_version'] = confinfo_data['config_version']
 
-        with DeviceInfoEnv('Collect info from config_version_webui'):
+        with DeviceInfoEnv('Collect info for config_version_webui'):
             data_json['config_version_webui'] = ubus.call('uci', 'get', {"config":"system", "section":"@system[0]", "option":"config_version_webui"})[0]["value"]
-
+        with DeviceInfoEnv('Collect info for local ip address'):
+            mas_server = ubus.call('uci', 'get', {'config':'capwapc', 'section':'server'})[0]['values'].setdefault('mas_server', '')
+            _, _, data_json['internal_ip'] = SystemCall(debug=False).localip2target(mas_server)
+            
         return data_json
 
 
