@@ -8,10 +8,10 @@ HCMT7621-N256)
     mac=${mac%:*}
     mac=`echo $mac |tr '[a-z]' '[A-Z]'`
     serial=`echo $mac |tr -d :`
-    model=`EdgeRouter_X`
+    model=`$board`
     echo -e "config productinfo productinfo"
-    echo -e  "\toption production AC-${model}"
-    echo -e  "\toption model UBNT_AC-${model}"
+    echo -e  "\toption production ${model}"
+    echo -e  "\toption model MTK_${model}"
     echo -e "\toption serial ${serial}"
     echo -e "\toption mac ${mac}"
     ;;
