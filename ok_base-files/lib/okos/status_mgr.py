@@ -17,6 +17,7 @@ import sqlite3
 import netifaces as ni
 import ubus
 import ping_mgr
+import uci
 
 class IfStateEnv(ExecEnv):
     def __init__(self, desc):
@@ -294,9 +295,11 @@ class StatusMgr(threading.Thread):
             data_json['config_version'] = confinfo_data['config_version']
 
         with DeviceInfoEnv('Collect info for config_version_webui'):
-            data_json['config_version_webui'] = ubus.call('uci', 'get', {"config":"system", "section":"@system[0]", "option":"config_version_webui"})[0]["value"]
+            #data_json['config_version_webui'] = ubus.call('uci', 'get', {"config":"system", "section":"@system[0]", "option":"config_version_webui"})[0]["value"]
+            data_json['config_version_webui'] = uci.UciSection('system', 'system')['config_version_webui']
         with DeviceInfoEnv('Collect info for local ip address'):
-            mas_server = ubus.call('uci', 'get', {'config':'capwapc', 'section':'server'})[0]['values'].setdefault('mas_server', '')
+            #mas_server = ubus.call('uci', 'get', {'config':'capwapc', 'section':'server'})[0]['values'].setdefault('mas_server', '')
+            mas_server = uci.UciSection('capwapc', 'server')['mas_server']
             _, _, data_json['internal_ip'] = SystemCall(debug=False).localip2target(mas_server)
             
         return data_json
