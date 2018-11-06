@@ -1,0 +1,13 @@
+--- a/control.c
++++ b/control.c
+@@ -915,6 +915,10 @@ int control_finish (struct tunnel *t, st
+             po = add_opt (po, "ipparam");
+             po = add_opt (po, IPADDY (t->peer.sin_addr));
+         }
++
++#if OK_PATCH
++        setenv("PEER_PUBIP", IPADDY(t->peer.sin_addr), 1);
++#endif
+         start_pppd (c, po);
+         opt_destroy (po);
+         if (c->lac)
