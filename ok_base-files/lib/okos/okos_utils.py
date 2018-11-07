@@ -127,7 +127,7 @@ class RepeatedTimer(object):
             self.start()
             return res
         return wrapper
-            
+
 class ReportTimer(object):
     def __init__(self, name, interval, func, mailbox, operate_type):
         super(ReportTimer, self).__init__()
@@ -202,7 +202,7 @@ def set_whole_confinfo(str):
             ff.write(f.read())
             ff.flush()
         f.seek(0,0)
-        f.truncate()
+        #f.truncate()
         f.write(str)
         f.flush()
     confinfo_data = json.loads(str, encoding='utf-8')
@@ -387,13 +387,13 @@ class SystemCall(object):
     def __init__(self, debug=False):
         super(SystemCall, self).__init__()
         self.debug = debug
-    
+
     def _call(self, cmd, comment='', path='', debug=True):
         '''
         cmd = ['/lib/okos/bin/set_..._.sh', '33', '201'] ; shell = False
         cmd = ['/lib/okos/bin/set_..._.sh 33 201'] ; shell = True
         '''
-        
+
         if self.debug:
             if comment:
                 log_debug(comment)
@@ -418,7 +418,7 @@ class SystemCall(object):
         cmd = ['/lib/okos/bin/set_..._.sh', '33', '201'] ; shell = False
         cmd = ['/lib/okos/bin/set_..._.sh 33 201'] ; shell = True
         '''
-        
+
         if self.debug:
             if comment:
                 log_debug(comment)
@@ -437,7 +437,7 @@ class SystemCall(object):
         if self.debug:
             log_debug("System Call - %s - return %s" % (cmd, res))
         return res
-    
+
     def localip2target(self, target):
         '''
         Get local information about route to target

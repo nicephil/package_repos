@@ -55,7 +55,7 @@ class StatusMgr(threading.Thread):
             ReportTimer('IF_Status', 60, self.if_status_timer_func, self.mailbox, const.DEV_IF_STATUS_RESP_OPT_TYPE),
             ReportTimer('Device_Info', 60, self.collect_devinfo, self.mailbox, const.DEV_INFO_OPT_TYPE),
         ]
-        
+
         '''
         try:
             self.sv = vici.Session()
@@ -75,6 +75,7 @@ class StatusMgr(threading.Thread):
             time.sleep(60)
 
     def vpn_timer_func(self):
+        return
         sas = []
         with IpsecViciEnv('Query active VPN connections') as sw:
             sas = sw.list_sas()
@@ -118,7 +119,7 @@ class StatusMgr(threading.Thread):
                 'data': json.dumps({'list': vpn_sas}),
             }
             self.mailbox.pub(const.STATUS_Q, (1, msg), timeout=0)'''
-            
+
 
     def cpu_mem_timer_func(self):
         with SystemEnv('Query cpu & memory information'):
@@ -301,7 +302,7 @@ class StatusMgr(threading.Thread):
             #mas_server = ubus.call('uci', 'get', {'config':'capwapc', 'section':'server'})[0]['values'].setdefault('mas_server', '')
             mas_server = uci.UciSection('capwapc', 'server')['mas_server']
             _, _, data_json['internal_ip'] = SystemCall(debug=False).localip2target(mas_server)
-            
+
         return data_json
 
 
