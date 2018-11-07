@@ -40,18 +40,9 @@ boot() {
 	[ "$FAILSAFE" = "true" ] && touch /tmp/.failsafe
 
 	/sbin/kmodloader
-    ## OK_PATCH
-    # generate productinfo
-    /lib/okos/fetch_productinfo.sh > /etc/config/productinfo
-    [ "$?" != "0" ] && {
-        rm -rfv /root/*
-        /lib/okos/fetch_productinfo.sh > /etc/config/productinfo
-    }
-    touch /etc/issue
-    mac=`uci get productinfo.productinfo.mac|tr -d :|tr '[a-z]' '[A-Z]'`
-    uci set system.@system[0].hostname="$mac";uci commit system
-	echo "$mac" > /proc/sys/kernel/hostname
-    ## end OK_PATCH
+    # OK_PATCH
+    /lib/okos/okos_init.sh
+    #end of OK_PATCH
 
 
 	# allow wifi modules time to settle

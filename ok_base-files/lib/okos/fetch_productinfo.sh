@@ -2,22 +2,31 @@
 
 board=$(cat /tmp/sysinfo/board_name)
 
-case "$board" in
-HCMT7621-N256)
-    mac=$(hexdump -e '1/1 "%02x:"' -n6 /dev/mtd2)
-    mac=${mac%:*}
-    mac=`echo $mac |tr '[a-z]' '[A-Z]'`
-    serial=`echo $mac |tr -d :`
-    model="$board"
-    echo -e "config productinfo productinfo"
-    echo -e  "\toption production ${model}"
-    echo -e  "\toption model MTK_${model}"
-    echo -e "\toption serial ${serial}"
-    echo -e "\toption mac ${mac}"
-    ;;
-*)
-    ;;
-esac
-
-echo -e "\toption bootversion `cat /etc/issue`"
+eth=$(ip route list | awk '$1 ~ /default/{print $5;exit}')
+[ -z "$eth" ] && eth="eth0"
+eth_status=$(ethtool $eth  | awk -F'[ :]+' '/Speed/{speed=$2} /Duplex/{duplex=$2;} END{print speed"|"duplex}')
+OIFS=$IFS;IFS='|';set -- $eth_status;eth_speed=$1;eth_duplex=$2;IFS=$OIFS
+eth_speed=${eth_speed%b/s}
+if [ "$eth_duplex"x = "Full"x ]
+then
+    eth_duplex="FDX"
+else
+    eth_duplex="HDX"
+fi
+mac=$(cat /sys/class/net/$eth/address)
+serial=`echo $mac | tr -d : | tr '[a-z]' '[A-Z]'`
+cpu="$(cat /proc/cpuinfo | awk -F':' '/model name/{print $2;exit}' | awk '{print $1,$2,$4,$6}')"
+mem="$(cat /proc/meminfo | awk '/MemTotal/{a=$2/1024/1024;if(a != int(a)) a=a+1;print int(a)"G";exit}')"
+echo -e "config productinfo productinfo"
+echo -e  "\toption production $board"
+echo -e  "\toption model MTK_$board"
+echo -e "\toption serial ${serial}"
+echo -e "\toption mac ${mac}"
+echo -e "\toption swversion `cat /etc/issue`"
+bootversion=$(cat /etc/issue 2>/dev/null)
+[ -n "$bootversion" ] && echo -e "\toption bootversion $bootversion"
+[ -n "$cpu" ] && echo -e "\toption cpu \"$cpu\""
+[ -n "$mem" ] && echo -e "\toption mem \"$mem\""
+[ -n "$eth" ] && echo -e "\toption eth_port \"$eth\""
+[ -n "$eth_speed" ] && echo -e "\toption port_status \"$eth_speed $eth_duplex\""
 
