@@ -23,6 +23,7 @@ echo -e  "\toption model MTK_$board"
 echo -e "\toption serial ${serial}"
 echo -e "\toption mac ${mac}"
 echo -e "\toption swversion `cat /etc/issue`"
+echo -e "\toption bootversion `cat /etc/issue`"
 bootversion=$(cat /etc/issue 2>/dev/null)
 [ -n "$bootversion" ] && echo -e "\toption bootversion $bootversion"
 [ -n "$cpu" ] && echo -e "\toption cpu \"$cpu\""
