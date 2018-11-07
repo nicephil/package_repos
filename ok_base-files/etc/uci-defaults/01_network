@@ -13,7 +13,7 @@ mtkmips_setup_interfaces()
 
 	case $board in
 	"HCMT7621"* | "WT6711")
-		ucidef_set_interfaces_lan_wan "eth0" "eth1"
+		ucidef_set_interfaces_lan_wan "eth1" "eth0"
 		;;
 	*)
 		ucidef_set_interfaces_lan_wan "eth0.1" "eth0.2"
