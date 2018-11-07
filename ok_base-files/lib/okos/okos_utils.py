@@ -195,14 +195,14 @@ def get_whole_conf_bak_path():
     return "{}_bak".format(config_conf_file)
 
 def set_whole_confinfo(str):
-    with open(config_conf_file, 'rw+', 0) as f:
+    with open(config_conf_file, 'w+', 0) as f:
         fcntl.flock(f.fileno(), fcntl.LOCK_EX)
         with open("{}_bak".format(config_conf_file), 'w+', 0) as ff:
             ff.truncate()
             ff.write(f.read())
             ff.flush()
         f.seek(0,0)
-        #f.truncate()
+        f.truncate()
         f.write(str)
         f.flush()
     confinfo_data = json.loads(str, encoding='utf-8')
