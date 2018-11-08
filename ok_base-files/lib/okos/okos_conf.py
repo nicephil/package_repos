@@ -1,7 +1,7 @@
 import threading
 from constant import const
 from okos_logger import log_debug, log_warning, log_err
-from conf_handlers import ConfRequest, WebUiConf, Reboot, Diag, Upgrade
+from conf_handlers import ConfRequest, WebUiConf, Reboot, Diag, Upgrade, QueryWiredClients
 
 
 class ConfMgr(threading.Thread):
@@ -16,6 +16,7 @@ class ConfMgr(threading.Thread):
         self._register(Reboot(self.mailbox))
         self._register(Diag(self.mailbox))
         self._register(Upgrade(self.mailbox))
+        self._register(QueryWiredClients(self.mailbox))
         
         self.timers = [
         ]

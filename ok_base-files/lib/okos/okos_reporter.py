@@ -42,7 +42,8 @@ class WiredClientReporter(Poster):
         super(WiredClientReporter, self).__init__(name, interval, mailbox, operate_type, repeated=True)
     def handler(self, *args, **kwargs):
         arpt = SystemCall().get_arp_entries()
-        return {'arp_entries': arpt}
+        arpt = [{'mac': a['HW address'], 'ip': a['IP address']} for a in arpt]
+        return {'clients': arpt}
 
 
 class SystemHealthReporter(Poster):

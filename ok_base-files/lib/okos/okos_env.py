@@ -141,6 +141,13 @@ class SystemCall(object):
     def get_arp_entries(self):
         '''
         return a list contains arp entries
+
+        /proc/net/arp
+        IP address       HW type     Flags       HW address            Mask     Device
+        192.168.254.142  0x1         0x2         f0:d5:bf:ac:44:a0     *        eth0
+        192.168.254.254  0x1         0x2         00:ec:ac:ce:80:8c     *        eth0
+
+        [{"Mask": "*", "HW address": "00:ec:ac:ce:80:8c", "IP address": "192.168.254.254", "HW type": "0x1", "Flags": "0x2", "Device": "eth0"}]
         '''
         arpt = {}
         with SystemCallEnv('get arp entries', debug=True) as e:
