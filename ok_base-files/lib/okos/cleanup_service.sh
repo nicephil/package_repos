@@ -18,6 +18,7 @@
 /etc/init.d/qos stop
 # 2.6 predownload image related
 /etc/init.d/predownload stop
+killall -9 S99predownload
 # 2.7 system status monitor related
 /etc/init.d/sysstat stop
 # 2.8 ntp related
@@ -25,13 +26,18 @@
 # 2.9 schedule related
 /etc/init.d/atd stop
 /etc/init.d/cron stop
+killall -9 runtimefixup.sh
+killall -9 apstats.sh
+killall -9 setgre.sh
 # 3.0 stop wifi
 wifi down
 
 # 3.00 stop tcpdump and arpwatch
 killall -9 clientevent.py
 killall -9 tcpdump
-sed -i.bak -e '1 iexit' /lib/okos/wifievent.sh
+sed -i -e '1 iexit' /lib/okos/wifievent.sh
+# 3.01 stop syslogd
+/etc/init.d/boot stop
 
 
 # 3. clean wifi config
