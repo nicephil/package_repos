@@ -200,8 +200,17 @@ platform_do_upgrade() {
 	esac
 }
 
+okos_stop_service()
+{
+    /etc/init.d/supervisor stop
+    /etc/init.d/ipsec stop
+    /etc/init.d/okos_mgr stop
+}
+
 platform_firmware_okos_upgrade() {
 	. /lib/functions.sh
+
+    okos_stop_service
 
 	fm=$(find_mtd_index "firmware")
 	if [ -n "$fm" ]; then
