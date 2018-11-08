@@ -9,7 +9,8 @@ SERVICE_PID_FILE="/var/run/okos_mgr.pid"
 SERVICE_STOP_TIME=3
 
 start () {
-    /lib/okos/okos_mgr.py
+    #/lib/okos/okos_mgr.py
+    /lib/okos/okos_oakmgr.py
 }
 
 stop () {

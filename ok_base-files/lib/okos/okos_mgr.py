@@ -2,7 +2,7 @@
 import time
 import okos_utils
 import threading
-import  okos_mailbox
+import okos_mailbox
 import status_mgr
 import conf_mgr
 import json
@@ -11,7 +11,7 @@ import socket
 import sys
 import ubus
 
-from okos_utils import log_crit, log_err, log_warning, log_info, log_debug, okos_system_log_info, okos_system_log_warn
+from okos_logger import log_crit, log_err, log_warning, log_info, log_debug, okos_system_log_info, okos_system_log_warn
 from constant import const
 
 class OKOSMgr(object):

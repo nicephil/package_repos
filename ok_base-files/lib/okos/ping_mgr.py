@@ -1,10 +1,6 @@
-import Queue
 import threading
 import time
-import okos_utils
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit
-import json
-from constant import const
+from okos_logger import log_info
 import ping
 
 class PingMgr(threading.Thread):

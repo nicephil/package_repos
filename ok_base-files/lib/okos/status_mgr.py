@@ -1,20 +1,20 @@
-import Queue
 import threading
-import time, re
+import time
+import re
 import okos_utils
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logit, ExecEnv, RepeatedTimer, ReportTimer, SystemCall
+from okos_logger import log_debug, log_info, log_warning, log_err, log_crit, logit
+from okos_env import ExecEnv, SystemCall
+from okos_timer import ReportTimer
 import json
 from constant import const
 import vici
-from collections import OrderedDict
 import copy
 import socket
 import psutil
-import time
 import fcntl
-import os, sys, subprocess
+import os
+import subprocess
 import sqlite3
-import netifaces as ni
 import ubus
 import ping_mgr
 import uci

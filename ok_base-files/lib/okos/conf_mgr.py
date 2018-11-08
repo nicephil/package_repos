@@ -1,19 +1,17 @@
-import Queue
 import threading
 import time
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, okos_system_log_info, okos_system_log_err
+from okos_logger import log_debug, log_info, log_warning, log_err, log_crit, okos_system_log_info, okos_system_log_err
 import okos_utils
 import json
 from constant import const
-import vici
-import os
-import ubus
 import subprocess
 from datetime import datetime
 from signal import SIGKILL
 import netifaces as ni
 import md5
+import os
 import socket, struct
+import ubus
 
 
 class ToRedirector(threading.Thread):

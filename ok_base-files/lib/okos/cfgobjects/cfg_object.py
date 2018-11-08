@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-import argparse, os, subprocess, re, json
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logcfg, logger, ExecEnv
+import subprocess
+from okos_logger import log_debug, log_info, log_warning, log_err, log_crit, logcfg, logger
+from okos_env import ExecEnv
 from constant import const
 
 class CfgObj(object):

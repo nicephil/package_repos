@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 from cfg_object import CfgObj, ConfigInputEnv, ConfigParseEnv, ConfigParaCheckEnv, ExceptionConfigParaError, ParameterChecker
-from okos_utils import logcfg, logchecker
-#import ubus
+from okos_logger import logcfg, logchecker
 from constant import const
 
 class CfgMacIpBinding(CfgObj):

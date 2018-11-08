@@ -62,9 +62,9 @@ set_mac_ip()
     uci set dhcp.${id}='host'
     uci set dhcp.${id}.mac="$mac"
     uci set dhcp.${id}.ip="$ip"
-    if [ -n "$name" ]; then
-        uci set dhcp.${id}.name="$name"
-    fi
+    #if [ -n "$name" ]; then
+    #    uci set dhcp.${id}.name="$name"
+    #fi
 }
 del_mac_ip()
 {
