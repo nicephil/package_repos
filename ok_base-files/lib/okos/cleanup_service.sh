@@ -28,6 +28,12 @@
 # 3.0 stop wifi
 wifi down
 
+# 3.00 stop tcpdump and arpwatch
+killall -9 clientevent.py
+killall -9 tcpdump
+sed -i.bak -e '1 iexit' /lib/okos/wifievent.sh
+
+
 # 3. clean wifi config
 # 3.0 fetch the default wifi config
 [ -f /etc/defcfg/wireless ] && cp  /etc/defcfg/wireless /etc/config/wireless
