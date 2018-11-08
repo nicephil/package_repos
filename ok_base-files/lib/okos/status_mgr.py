@@ -75,7 +75,6 @@ class StatusMgr(threading.Thread):
             time.sleep(60)
 
     def vpn_timer_func(self):
-        return
         sas = []
         with IpsecViciEnv('Query active VPN connections') as sw:
             sas = sw.list_sas()
