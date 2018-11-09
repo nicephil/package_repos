@@ -1,24 +1,24 @@
 from constant import const
-from okos_logger import log_debug, log_warning, okos_system_log_info, okos_system_log_err, log_err
-from okos_utils import set_whole_confinfo, get_whole_conf_bak_path, get_whole_conf_path, rollback_whole_confinfo
+from okos_tools import log_debug, log_warning, okos_system_log_info, okos_system_log_err, log_err
+from okos_tools import set_whole_confinfo, get_whole_conf_bak_path, get_whole_conf_path, rollback_whole_confinfo
 import time
 import os
-from okos_env import OakmgrEnvelope
-from uci import UciSection
-import uci
+from okos_tools import Envelope
+from okos_tools import UciSection
 import json
 from datetime import datetime
 from signal import SIGKILL
 import subprocess
 import socket
 import struct
+import ubus
 
 class ConfHandler(object):
-    def __init__(self, mailbox, request_id, response_id):
+    def __init__(self, mailbox, request_id, response_id, pri=1):
         super(ConfHandler, self).__init__()
         self.request_id = request_id
         self.response_id = response_id
-        self.env = OakmgrEnvelope(mailbox, response_id)
+        self.env = Envelope(mailbox, operate_type=response_id, pri=pri)
     def handler(self, request):
         res = self._handler(request)
         if res:

@@ -1,6 +1,6 @@
 import threading
 import time
-from okos_logger import log_info
+from okos_tools import log_info
 import ping
 
 class PingMgr(threading.Thread):
@@ -22,3 +22,4 @@ class PingMgr(threading.Thread):
                 time.sleep(5)
             except Exception,e:
                 log_info("ping is abort as {}".format(e))
+

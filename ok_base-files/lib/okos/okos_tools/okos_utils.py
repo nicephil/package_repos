@@ -122,20 +122,22 @@ def get_redirector_key(salt, mac):
     return key
 
 
-def post_url(url, param_data=None, json_data=None, files=None):
-    log_debug('post to {url}'.format(url=url))
-    log_debug('parameters :{param_data}'.format(param_data=param_data))
-    log_debug('json body :{json_data}'.format(json_data=json_data))
+def post_url(url, param_data=None, json_data=None, files=None, debug=False):
+    if debug:
+        log_debug('post to {url}'.format(url=url))
+        log_debug('parameters :{param_data}'.format(param_data=param_data))
+        log_debug('json body :{json_data}'.format(json_data=json_data))
 
     for i in range(1,4):
         try:
             response = requests.post(url, params=param_data, json=json_data, files=files, timeout=5)
             if response.status_code == 200:
                 data = response.json()
-                log_debug('response:status:{status},json:{json}'.format(status=response.status_code, json=data))
+                if debug:
+                    log_debug('response:{status}, json:{json}'.format(status=response.status_code, json=data))
                 return data
             else:
-                log_warning('response:status:{status},response:{response}'.format(status=response.status_code, response=response))
+                log_warning('response:{status}, response:{response}'.format(status=response.status_code, response=response))
         except Exception, e:
             time.sleep(1)
             log_warning("requests err {}, time:{}".format(repr(e), i))
@@ -143,10 +145,11 @@ def post_url(url, param_data=None, json_data=None, files=None):
     return {}
 
 
-def get_url(url, param_data=None, json_data=None):
-    log_debug('url:{url}'.format(url=url))
-    log_debug('param_data:{param_data}'.format(param_data=param_data))
-    log_debug('json_data:{json_data}'.format(json_data=json_data))
+def get_url(url, param_data=None, json_data=None, debug=False):
+    if debug:
+        log_debug('url:{url}'.format(url=url))
+        log_debug('param_data:{param_data}'.format(param_data=param_data))
+        log_debug('json_data:{json_data}'.format(json_data=json_data))
     i = 0
     while i < 3:
         try:

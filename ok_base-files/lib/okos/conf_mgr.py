@@ -1,7 +1,7 @@
 import threading
 import time
-from okos_logger import log_debug, log_info, log_warning, log_err, log_crit, okos_system_log_info, okos_system_log_err
-import okos_utils
+from okos_tools import log_debug, log_info, log_warning, log_err, log_crit, okos_system_log_info, okos_system_log_err
+from okos_tools import post_url, set_capwapc, get_capwapc, get_productinfo, get_whole_confinfo, get_capwapc
 import json
 from constant import const
 import subprocess
@@ -45,7 +45,7 @@ class ToRedirector(threading.Thread):
             url="http://{_server_ip}:{PORT}/redirector/v1/device/register/?key={KEY}".format(_server_ip=const.DEFAULT_ADDR,
                                                                                                 PORT=const.DEFAULT_PORT,
                                                                                                 KEY=key)
-            request_data = okos_utils.post_url(url, json_data=post_data)
+            request_data = post_url(url, json_data=post_data)
             '''
             print request_data
             import random
@@ -55,8 +55,8 @@ class ToRedirector(threading.Thread):
             # 2. update the new capwapc fetched from redirector
             if request_data and 'oakmgr_pub_name' in request_data:
                 if request_data['oakmgr_pub_name'] != self.confmgr.capwapc_data['mas_server']:
-                    okos_utils.set_capwapc(request_data['oakmgr_pub_name'])
-                    self.confmgr.capwapc_data = okos_utils.get_capwapc()
+                    set_capwapc(request_data['oakmgr_pub_name'])
+                    self.confmgr.capwapc_data = get_capwapc()
             time.sleep(120)
 
 class ConfMgr(threading.Thread):
@@ -72,9 +72,9 @@ class ConfMgr(threading.Thread):
         except Exception,e:
             log_warning("vici session init failed, {}".format(e))
         '''
-        self.productinfo_data = okos_utils.get_productinfo()
-        self.confinfo_data = okos_utils.get_whole_confinfo()
-        self.capwapc_data = okos_utils.get_capwapc()
+        self.productinfo_data = get_productinfo()
+        self.confinfo_data = get_whole_confinfo()
+        self.capwapc_data = get_capwapc()
         self.handlers = {}
         self.register_handlers()
         self.queryredirector = ToRedirector(self)
@@ -359,13 +359,13 @@ class ConfMgr(threading.Thread):
         self.mailbox.pub(const.STATUS_Q, (1, msg), timeout=0)
 
     def handle_conf(self, request):
-        self.confinfo_data = okos_utils.set_whole_confinfo(request['data'])
+        self.confinfo_data = set_whole_confinfo(request['data'])
         okos_system_log_info("configuration data obtained")
         time.sleep(3)
-        ret = os.system("{} -o {} {}".format(const.OKOS_CFGDIFF_SCRIPT, okos_utils.get_whole_conf_bak_path(), okos_utils.get_whole_conf_path()))
+        ret = os.system("{} -o {} {}".format(const.OKOS_CFGDIFF_SCRIPT, get_whole_conf_bak_path(), get_whole_conf_path()))
         if ret != 0:
             okos_system_log_err("configuration loaded failed")
-            self.confinfo_data = okos_utils.rollback_whole_confinfo()
+            self.confinfo_data = rollback_whole_confinfo()
         else:
             okos_system_log_info("configuration loaded successfully")
         return ret

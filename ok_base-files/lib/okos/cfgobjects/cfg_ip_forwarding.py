@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from cfg_object import CfgObj, ConfigInputEnv, ConfigParseEnv, ConfigParaCheckEnv, ExceptionConfigParaError, ParameterChecker
-from okos_logger import logcfg, logchecker
+from okos_tools import logcfg, logchecker
 from constant import const
 
 class CfgIpForwarding(CfgObj):

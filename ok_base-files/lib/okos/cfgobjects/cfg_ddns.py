@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from cfg_object import CfgObj
-from okos_logger import log_debug, log_info, log_warning, log_err, log_crit
+from okos_tools import log_debug, log_info, log_warning, log_err, log_crit
 
 class CfgDDNS(CfgObj):
     def __init__(self):

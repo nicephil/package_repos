@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from cfg_object import CfgObj
-from okos_logger import logcfg
+from okos_tools import logcfg
 from constant import const
 
 class CfgDone(CfgObj):

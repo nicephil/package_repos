@@ -7,14 +7,30 @@ import socket
 import re
 import arptable
 
+
 class ExecEnv(object):
-    def __init__(self, prefix, cxt='', desc='', raiseup=True, debug=True):
+    def __init__(self, prefix, cxt=None, desc='', raiseup=True, debug=True):
         super(ExecEnv, self).__init__()
         self.desc = desc
         self.cxt = cxt
         self.prefix = prefix
         self.raiseup = raiseup
         self.debug = debug
+
+    @property
+    def output(self):
+        return self.cxt
+    @output.setter
+    def output(self, value):
+        self.cxt = value
+
+    def log_debug(self, c):
+        log_debug('[%s] %s : %s' % (self.prefix, self.desc, c))
+    def log_warning(self, c):
+        log_warning('[%s] %s WARNING: %s' % (self.prefix, self.desc, c))
+    def log_err(self, c):
+        log_err('[%s] %s ERROR: %s' % (self.prefix, self.desc, c))
+
     def __enter__(self):
         if self.debug:
             log_debug('[%s] %s - start -' % (self.prefix, self.desc))
@@ -26,6 +42,8 @@ class ExecEnv(object):
         if exception_type:
             #log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, traceback.format_exc()))
             #log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, str(traceback)))
+            if self.cxt:
+                log_debug('[%s] context:\n%s\n' % (self.prefix, self.cxt))
             log_err('[%s] exception :> %s >< %s <%s:%s>' % (self.prefix, exception_type, value, traceback.tb_frame.f_code.co_filename, traceback.tb_lineno))
             log_err('[%s] %s - failed -' % (self.prefix, self.desc))
             return not self.raiseup
@@ -36,28 +54,6 @@ class ExecEnv(object):
 class SystemCallEnv(ExecEnv):
     def __init__(self, desc, debug=False):
         super(SystemCallEnv, self).__init__('System Call', desc=desc, debug=debug)
-
-class Envelope(object):
-    def __init__(self, mailbox, operate_type=0, pri=1, timeout=0):
-        super(Envelope, self).__init__()
-        self.mailbox = mailbox
-        self.pri = pri
-        self.timeout = timeout
-        self.msg = {
-            'operate_type': operate_type,
-        }
-
-    def go(self, json_data, cookie_id=0):
-        if not json_data:
-            return
-        self.msg['cookie_id'] = cookie_id
-        self.msg['timestamp'] = int(time.time())
-        self.msg['data'] = json.dumps(json_data)
-        self.mailbox.pub(const.STATUS_Q, (self.pri, self.msg), timeout=self.timeout)
-
-class OakmgrEnvelope(Envelope):
-    def __init__(self, mailbox, operate_type, pri=1):
-        super(OakmgrEnvelope, self).__init__(mailbox, operate_type=operate_type, pri=pri)
 
 
 class SystemCall(object):
@@ -150,6 +146,6 @@ class SystemCall(object):
         [{"Mask": "*", "HW address": "00:ec:ac:ce:80:8c", "IP address": "192.168.254.254", "HW type": "0x1", "Flags": "0x2", "Device": "eth0"}]
         '''
         arpt = {}
-        with SystemCallEnv('get arp entries', debug=True) as e:
+        with SystemCallEnv('get arp entries', debug=False) as e:
             arpt = arptable.get_arp_table()
         return arpt

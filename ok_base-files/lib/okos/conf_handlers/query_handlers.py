@@ -1,6 +1,6 @@
 from conf_handlers import ConfHandler
 from constant import const
-from okos_env import SystemCall
+from okos_tools import SystemCall
 
 class QueryWiredClients(ConfHandler):
     def __init__(self, mailbox):

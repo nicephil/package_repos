@@ -2,7 +2,7 @@
 
 import subprocess
 from cfg_object import CfgObj
-from okos_logger import log_debug, log_info, log_warning, log_err, log_crit
+from okos_tools import log_debug, log_info, log_warning, log_err, log_crit
 import ubus
 
 class CfgSystem(CfgObj):

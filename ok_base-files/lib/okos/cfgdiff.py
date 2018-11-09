@@ -4,7 +4,7 @@ import argparse
 import json
 import sys
 from cfgobjects import CfgSystem, CfgInterface, CfgNetwork, CfgPortForwarding, CfgMacIpBinding, CfgDhcpOption, CfgDone, CfgIpForwarding, CfgSiteToSiteVPN, CfgKickoff
-from okos_logger import log_crit, log_err, log_warning, log_info, log_debug
+from okos_tools import log_crit, log_err, log_warning, log_info, log_debug
 import fcntl
 import ubus
 

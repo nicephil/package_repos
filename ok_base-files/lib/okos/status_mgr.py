@@ -1,10 +1,10 @@
 import threading
 import time
 import re
-import okos_utils
-from okos_logger import log_debug, log_info, log_warning, log_err, log_crit, logit
-from okos_env import ExecEnv, SystemCall
-from okos_timer import ReportTimer
+from okos_tools import log_debug, log_info, log_warning, log_err, log_crit, logit
+from okos_tools import ExecEnv, SystemCall
+from okos_tools import ReportTimer
+from okos_tools import post_url, get_ddns_status
 import json
 from constant import const
 import vici
@@ -350,7 +350,7 @@ class StatusMgr(threading.Thread):
                 'override':1
             }
             url="http://{mas_server}/nms/file/device/stat".format(mas_server=capwapc_data['mas_server'])
-            okos_utils.post_url(url, param_data=param_data, files=files)
+            post_url(url, param_data=param_data, files=files)
             os.system("cat /tmp/apstats_*.json|logger -t 'xxx';rm -rf /tmp/apstats_*.json")
 
     # sqlite3  $dbfile "BEGIN TRANSACTION;CREATE TABLE IF NOT EXISTS ${tablename}(PPPD_PID TEXT PRIMARY KEY NOT NULL,IFNAME,DEVICE,IPLOCAL,IPREMOTE,PEERNAME,TS,TX,RX,PEER_PUBIP);COMMIT;"
@@ -467,7 +467,7 @@ class StatusMgr(threading.Thread):
         json_data_list = {}
         json_data_list['ddnss'] = []
         for v in confinfo_data['network']['ddnss']:
-            ddns_status = okos_utils.get_ddns_status(v['provider'])
+            ddns_status = get_ddns_status(v['provider'])
             if not ddns_status:
                 log_warning('ddclient start, but no ddclient cache')
                 return None

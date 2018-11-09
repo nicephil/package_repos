@@ -1,17 +1,18 @@
-from okos_env import ExecEnv, SystemCall
+from okos_tools import ExecEnv, SystemCall
 import vici
-from okos_timer import Poster, Timer
+from okos_tools import Poster, Timer
 from constant import const
-from okos_logger import log_debug, log_info
-from uci import UciConfig, UciSection, UciStatus, PRODUCT_INFO, CAPWAP_SERVER
+from okos_tools import log_debug, log_info
+from okos_tools import UciConfig, UciSection, UciStatus, PRODUCT_INFO, CAPWAP_SERVER
 import os
 import subprocess
 import re
 import psutil
-from okos_utils import get_whole_confinfo, post_url
+from okos_tools import get_whole_confinfo, post_url
 import netifaces as ni
 import time
 import md5
+
 
 class IfStateEnv(ExecEnv):
     def __init__(self, desc, debug=False):
@@ -48,7 +49,7 @@ class WiredClientReporter(Poster):
 
 class SystemHealthReporter(Poster):
     def __init__(self, mailbox, operate_type=const.DEV_CPU_MEM_STATUS_RESP_OPT_TYPE, name='CpuMemTimer', interval=10):
-        super(SystemHealthReporter, self).__init__(name, interval, mailbox, operate_type, repeated=True)
+        super(SystemHealthReporter, self).__init__(name, interval, mailbox, operate_type, repeated=True, pri=1)
     def handler(self, *args, **kwargs):
         with SystemEnv('Query cpu & memory information'):
             cpu_stats = psutil.cpu_percent(0)

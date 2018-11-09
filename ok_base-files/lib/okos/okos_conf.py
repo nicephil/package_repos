@@ -1,8 +1,7 @@
 import threading
 from constant import const
-from okos_logger import log_debug, log_warning, log_err
+from okos_tools import log_debug, log_warning, log_err, ExecEnv
 from conf_handlers import ConfRequest, WebUiConf, Reboot, Diag, Upgrade, QueryWiredClients
-
 
 class ConfMgr(threading.Thread):
     def __init__(self, mailbox):
@@ -24,18 +23,32 @@ class ConfMgr(threading.Thread):
         self.handlers[handler.request_id] = handler
     
     def run(self):
+        '''
+        {
+            "mac" : "000C2932A423",
+            "delay" : 10,
+            "list" : [
+                {
+                    "operate_type" : 3102,
+                    "cookie_id" : 1234,
+                    "timestamp" : 2222222,
+                    "data" : "{\"url\" : \"http://image.oakridge.vip/images/x86_gw/sysloader/v2.433.2_bin.app\", \"timeout\" : 60}"
+                }
+            ],
+            'errorcode': 1002,
+        }
+        '''
         map(lambda x: x.start(), self.timers)
 
         while not self.term:
-            try:
-                request = self.mailbox.sub(const.CONF_REQUEST_Q)
-                log_debug('request:{request}'.format(request=request))
-                request_id = request['operate_type']
+            with ExecEnv('Conf Request', desc='Exec request from mailbox', raiseup=False, debug=True) as ctx:
+                ctx.output = request = self.mailbox.sub(const.CONF_REQUEST_Q)
+                request_id, cookie_id, timestamp = request['operate_type'], request['cookie_id'], request['timestamp']
                 if request_id in self.handlers:
                     self.handlers[request_id].handler(request)
                 else:
-                    log_warning("no register handler for {}".format(request))
-            except Exception,e:
-                log_warning("process_data:{}, {}".format(request, e))
-                raise
+                    ctx.log_warning("no registered handler for {}".format(request_id))
+
+                
+
 

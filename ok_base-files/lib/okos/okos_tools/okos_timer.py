@@ -1,7 +1,8 @@
 import functools
 import threading
 from okos_logger import log_debug
-from okos_env import OakmgrEnvelope
+from envelope import Envelope
+
 
 class Timer(object):
     def __init__(self, name='', interval=10, repeated=False, now=True, debug=True):
@@ -38,9 +39,9 @@ class Timer(object):
 
 
 class Poster(Timer):
-    def __init__(self, name, interval, mailbox, operate_type, repeated=False):
+    def __init__(self, name, interval, mailbox, operate_type, repeated=False, pri=200):
         super(Poster, self).__init__(name, interval, repeated)
-        self.env = OakmgrEnvelope(mailbox, operate_type)
+        self.env = Envelope(mailbox, operate_type=operate_type, pri=pri)
     def repeat(self):
         def wrapper(*args, **kwargs):
             log_debug('Timer %s start to execute:' % (self.name))
@@ -96,14 +97,14 @@ class RepeatedTimer(object):
         pass
             
 class ReportTimer(object):
-    def __init__(self, name, interval, func, mailbox, operate_type):
+    def __init__(self, name, interval, func, mailbox, operate_type, pri=200):
         super(ReportTimer, self).__init__()
         self.name = name
         self.interval = interval
         self.func = func
         self.timer = threading.Timer(interval, self.repeat(func, interval))
         self.timer.setName(name)
-        self.env = OakmgrEnvelope(mailbox, operate_type)
+        self.env = Envelope(mailbox, operate_type=operate_type, pri=pri)
         log_debug('Timer is created')
     def start(self):
         self.timer.start()
