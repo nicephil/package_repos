@@ -13,7 +13,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
  *
- *   Copyright (C) 2009 Jo-Philipp Wich <jow@openwrt.org>
+ *   Copyright (C) 2009 Jo-Philipp Wich <xm@subsignal.org>
  */
 
 #include <stdio.h>
@@ -29,7 +29,6 @@
 #include <math.h>
 #include <time.h>
 #include <signal.h>
-#include <limits.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>

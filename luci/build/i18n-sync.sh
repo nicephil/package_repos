@@ -1,18 +1,25 @@
 #!/bin/sh
 
-[ -d ./build ] || {
-	echo "Execute as ./build/i18n-sync.sh" >&2
-	exit 1
-}
+for m in */*/Makefile; do
+	if grep -qE '^PO *=' $m; then
+		p="${m%/Makefile}"
+		t="$(sed -ne 's/^PO *= *//p' $m)"
+
+		case "$t" in
+			*\ *)
+				echo "WARNING: Cannot handle $p" >&2
+				continue
+			;;
+			*base*)
+				continue
+			;;
+		esac
+
+		if [ -f "po/templates/$t.pot" ]; then
+			./build/i18n-scan.pl "$p" > "po/templates/$t.pot"
+		fi
+	fi
+done
 
 ./build/mkbasepot.sh
-
-find . -name '*.pot' -and -not -name base.pot -and -not -name rrdtool.pot | \
-	while read path; do
-		dir="${path%/po/templates/*}"
-		echo -n "Updating ${path#./} ... "
-		./build/i18n-scan.pl "$dir" > "$path"
-		echo "done"
-	done
-
-./build/i18n-update.pl
+./build/i18n-update.pl po

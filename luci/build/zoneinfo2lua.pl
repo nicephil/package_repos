@@ -8,7 +8,7 @@ use strict;
 my %TZ;
 
 my $tzdin  = $ARGV[0] || "/usr/share/zoneinfo";
-my $tzdout = $ARGV[1] || "./modules/luci-base/luasrc/sys/zoneinfo";
+my $tzdout = $ARGV[1] || "./modules/base/luasrc/sys/zoneinfo";
 
 local $/ = "\012";
 open( ZTAB, "< $tzdin/zone.tab" ) || die "open($tzdin/zone.tab): $!";
@@ -46,34 +46,6 @@ while( ! eof ZTAB ) {
 
 close ZTAB;
 
-# Add Etc/GMT zones from manually as they are not in zone.tab
-$TZ{"Etc/GMT"} = "GMT0";
-$TZ{"Etc/GMT-1"} = "<+01>-1";
-$TZ{"Etc/GMT-2"} = "<+02>-2";
-$TZ{"Etc/GMT-3"} = "<+03>-3";
-$TZ{"Etc/GMT-4"} = "<+04>-4";
-$TZ{"Etc/GMT-5"} = "<+05>-5";
-$TZ{"Etc/GMT-6"} = "<+06>-6";
-$TZ{"Etc/GMT-7"} = "<+07>-7";
-$TZ{"Etc/GMT-8"} = "<+08>-8";
-$TZ{"Etc/GMT-9"} = "<+09>-9";
-$TZ{"Etc/GMT-10"} = "<+10>-10";
-$TZ{"Etc/GMT-11"} = "<+11>-11";
-$TZ{"Etc/GMT-12"} = "<+12>-12";
-$TZ{"Etc/GMT-13"} = "<+13>-13";
-$TZ{"Etc/GMT-14"} = "<+14>-14";
-$TZ{"Etc/GMT+1"} = "<-01>1";
-$TZ{"Etc/GMT+2"} = "<-02>2";
-$TZ{"Etc/GMT+3"} = "<-03>3";
-$TZ{"Etc/GMT+4"} = "<-04>4";
-$TZ{"Etc/GMT+5"} = "<-05>5";
-$TZ{"Etc/GMT+6"} = "<-06>6";
-$TZ{"Etc/GMT+7"} = "<-07>7";
-$TZ{"Etc/GMT+8"} = "<-08>8";
-$TZ{"Etc/GMT+9"} = "<-09>9";
-$TZ{"Etc/GMT+10"} = "<-10>10";
-$TZ{"Etc/GMT+11"} = "<-11>11";
-$TZ{"Etc/GMT+12"} = "<-12>12";
 
 open(O, "> $tzdout/tzdata.lua") || die "open($tzdout/tzdata.lua): $!\n";
 

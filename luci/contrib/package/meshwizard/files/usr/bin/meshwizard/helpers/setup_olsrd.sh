@@ -4,7 +4,7 @@
 . /lib/functions.sh
 . $dir/functions.sh
 
-protocols="4"
+local protocols="4"
 if [ "$ipv6_enabled" = 1 ] && [ "$has_ipv6" == "1" ]; then
     protocols="4 6"
 fi
@@ -115,28 +115,13 @@ setup_watchdog() {
 }
 
 setup_jsoninfo() {
-	proto="$1"
+    # Setup jsoninfo
 	uci batch <<- EOF
 		set $cfg.olsrd_jsoninfo=LoadPlugin
 		set $cfg.olsrd_jsoninfo.library="olsrd_jsoninfo.so.0.0"
 	EOF
-	if [ "$proto" = "6" ]; then
-		uci set $cfg.olsrd_jsoninfo.ipv6only='1'
-	fi
-	uci_commitverbose "Setup olsr jsoninfo plugin" $cfg
+    uci_commitverbose "Setup olsr jsoninfo plugin" $cfg
 }
-
-setup_txtinfo() {
-	proto="$1"
-	uci batch <<- EOF
-	    set $cfg.olsrd_txtinfo=LoadPlugin
-	    set $cfg.olsrd_txtinfo.library="olsrd_txtinfo.so.0.1"
-	EOF
-	if [ "$proto" = "6" ]; then
-		uci set $cfg.olsrd_txtinfo.ipv6only='1'
-	fi
-	uci_commitverbose "Setup olsr txtinfo plugin" $cfg
-} 
 
 
 for proto in $protocols; do
@@ -155,6 +140,6 @@ for proto in $protocols; do
     setup_nameservice
     setup_dyngw_plain
     setup_watchdog
-    setup_jsoninfo $proto
-    setup_txtinfo $proto
+    setup_jsoninfo
+
 done

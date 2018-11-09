@@ -9,16 +9,15 @@
 # You may not use this file except in compliance with the License.
 # You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+. /lib/functions.sh
+
 echo "
-/* Meshwizard 0.3.1 */
+/* Meshwizard 0.2.0 */
 "
 
 # config
 export dir="/usr/bin/meshwizard"
-
-. /lib/functions.sh
 . $dir/functions.sh
-. $dir/helpers/read_defaults.sh
 [ -f /proc/net/ipv6_route ] && export has_ipv6=1
 
 # Check which packages we have installed
@@ -29,28 +28,30 @@ opkg list_installed |grep luci-app-splash > /dev/null && export has_luci_splash=
 
 # Check whether we want to cleanup/restore uci config before setting new options
 cleanup=$(uci -q get meshwizard.general.cleanup)
-[ "$cleanup" == 1 ] && restore_factory_defaults
+[ "$cleanup" == 1 ] && $dir/helpers/restore_default_config.sh
 
 # Rename wifi interfaces
 $dir/helpers/rename-wifi.sh
 
-export lan_is_olsr="$(uci -q get meshwizard.netconfig.lan_config)"
-
 # Get community
-community="$(uci -q get meshwizard.community.name || uci -q get freifunk.community.name)"
+community=$(uci -q get meshwizard.community.name || uci -q get freifunk.community.name)
 [ -z "$community" ] && echo "Error: Community is not set in /etc/config/freifunk, aborting now." && exit 1
 export community="$community"
-
-# we need a list of widgets later on. It will be populated in read_defaults.sh
-widgets=""
+echo $community
 
 # Get a list of networks we need to setup
 networks=$(uci show meshwizard.netconfig | grep -v "netconfig=" | sed -e 's/meshwizard.netconfig\.\(.*\)\_.*/\1/' |sort|uniq)
 export networks
 [ -z "$networks" ] && echo "Error: No networks to setup could be found in /etc/config/meshwizard, aborting now." && exit 1
 
-# Read defaults and node config
-read_defaults $community
+# Read default values (first from /etc/config/freifunk, then from /etc/config/profile_$community
+# then /etc/config/meshwizard
+# last will overwrite first
+
+$dir/helpers/read_defaults.sh $community > /tmp/meshwizard.tmp
+while read line; do
+	export "${line//\"/}"
+done < /tmp/meshwizard.tmp
 
 # Do config
 $dir/helpers/initial_config.sh
@@ -116,13 +117,6 @@ for net in $networks; do
 	$dir/helpers/setup_olsrd_interface.sh $net
 
 	net_dhcp=$(uci -q get meshwizard.netconfig.${net}_dhcp)
-	export ${net}_dhcp=$net_dhcp
-
-        if [ "$net" = "lan" ] && [ "$lan_is_olsr" = "1" ]; then
-                uci -q set dhcp.lan.ignore="1"
-                uci_commitverbose "Disable DHCP on LAN because it is an olsr interface." dhcp
-        fi
-
 	if [ "$net_dhcp" == 1 ]; then
 		$dir/helpers/setup_dhcp.sh $net
 	fi
