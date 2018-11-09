@@ -14,7 +14,7 @@ start ()
 {
     [ -f "/overlay/root/imgurl" ] && { 
         imgurl="`cat /overlay/root/imgurl`"
-        (sleep 600;ulimit -f 16384;wget -c "$imgurl" -O "/overlay/root/${imgurl##*/}" 2>&1 | logger -t 'predownload';ulimit -f unlimited;) & 
+        (sleep 1800;ulimit -f 16384;nice -n 20 wget -c "$imgurl" -O "/overlay/root/${imgurl##*/}" 2>&1 | logger -t 'predownload';ulimit -f unlimited;) & 
     }
 }
 
