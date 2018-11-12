@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
-import argparse, os, subprocess, re, json, sys
-from cfgobjects import CfgSystem, CfgDDNS, CfgInterface, CfgNetwork, CfgPortForwarding, CfgMacIpBinding, CfgDhcpOption, CfgDone, CfgIpForwarding, CfgSiteToSiteVPN, CfgKickoff
-from okos_utils import log_crit, log_err, log_warning, log_info, log_debug
+import argparse
+import json
+import sys
+from cfgobjects import CfgSystem, CfgInterface, CfgNetwork, CfgPortForwarding, CfgMacIpBinding, CfgDhcpOption, CfgDone, CfgIpForwarding, CfgSiteToSiteVPN, CfgKickoff
+from okos_tools import log_crit, log_err, log_warning, log_info, log_debug
 import fcntl
 import ubus
 

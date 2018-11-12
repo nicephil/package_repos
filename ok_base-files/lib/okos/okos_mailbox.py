@@ -1,4 +1,4 @@
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit
+from okos_tools import log_debug, log_info, log_warning, log_err, log_crit
 import Queue
 from constant import const
 

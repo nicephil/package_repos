@@ -58,6 +58,9 @@ const.DEV_CONF_RESP_OPT_TYPE = 2002
 const.DEV_CONN_STATUS_QUREY_OPT_TYPE = 2003
 const.DEV_CONN_STATUS_RESP_OPT_TYPE = 2004
 const.VPN_CONN_STATUS_RESP_OPT_TYPE = 2015
+const.CLIENT_ONLINE_QUERY_OPT_TYPE = 2016
+const.CLIENT_ONLINE_RESP_OPT_TYPE = 2017
+const.CLIENT_ONLINE_STATUS_RESP_OPT_TYPE = 2018
 
 
 const.DEV_DDNS_STATUS_RESP_OPT_TYPE = 2006
@@ -84,9 +87,10 @@ const.DEV_CONF_PORT_STATE = {'up':1, 'down':0}
 const.CONFIG_BIN_DIR = '/lib/okos/bin/'
 const.PORT_MAPPING = [
         {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan', 'logic': 'e0', 'phy': 'eth0'},
-        {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan1', 'logic': 'e1', 'phy': 'eth1'},
-        {'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan2', 'logic': 'e2', 'phy': 'eth2'},
-        {'type': const.DEV_CONF_PORT_TYPE['lan'], 'ifname': 'lan4053', 'logic': 'e3', 'phy': 'eth3'},
+        {'type': const.DEV_CONF_PORT_TYPE['lan'], 'ifname': 'lan', 'logic': 'e1', 'phy': 'eth1'},
+        #{'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan1', 'logic': 'e1', 'phy': 'eth1'},
+        #{'type': const.DEV_CONF_PORT_TYPE['wan'], 'ifname': 'wan2', 'logic': 'e2', 'phy': 'eth2'},
+        #{'type': const.DEV_CONF_PORT_TYPE['lan'], 'ifname': 'lan4053', 'logic': 'e3', 'phy': 'eth3'},
         ]
 
 const.PORT_MAPPING_PHY = {ifx['phy']:ifx for ifx in const.PORT_MAPPING}

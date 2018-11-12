@@ -9,7 +9,7 @@ do
     okos_mgr_count=$(echo $_pid | awk '{print NF}')
     [ -z "$okos_mgr_pid" -o "$okos_mgr_count" -gt "1" ] && {
         logger -t supervisor -p 3 "OKOS_MGR ($okos_mgr_pid) is exit abnormally, restart it !!!"
-        /etc/init.d/okos_mgr restart
+        /etc/init.d/okos_mgrc restart
     }
 
     echo 3 > /proc/sys/vm/drop_caches

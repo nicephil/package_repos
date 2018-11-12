@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
 from cfg_object import CfgObj, ConfigInputEnv, ConfigParseEnv, ConfigParaCheckEnv, ExceptionConfigParaError, ParameterChecker
-from okos_utils import logcfg, logchecker
+from okos_tools import logcfg, logchecker
 import json
-#import ubus
 from constant import const
 
 class CfgKickoff(CfgObj):
