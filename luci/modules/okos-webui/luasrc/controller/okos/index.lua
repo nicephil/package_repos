@@ -175,6 +175,7 @@ function action_hassdc()
     if result ~= nil and result:match("\"error_code\" : 0")  then
         response.errcode = 0
     end
+    response.errcode = 1
     
     -- response --
     response_json(response)
@@ -311,8 +312,8 @@ end
 
 
 local p2l_names = { }                                             
-p2l_names['eth0'] = 'e0'                            
-p2l_names['eth1'] = 'e1'
+p2l_names['eth0'] = 'e1'                            
+p2l_names['eth1'] = 'e0'
 p2l_names['eth2'] = 'e2'
 p2l_names['eth3'] = 'e3'
 p2l_names['br-lan4000'] = 'switch'          
@@ -588,7 +589,7 @@ function action_configwan()
         mtu = "1500"
     }
     ]]--
-    if input.proto == nil or input.ifname == nil or input.ifname ~= "eth0" then
+    if input.proto == nil or input.ifname == nil or input.ifname ~= "eth1" then
         http.status(400, "Bad Request");
         http.close()
         return
