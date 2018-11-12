@@ -4,7 +4,7 @@ import threading
 import argparse
 from okos_tools import daemonlize, post_url
 from okos_tools import UbusEnv, UciConfig, UciSection, PRODUCT_INFO, CAPWAP_SERVER
-from okos_tools import okos_system_log_info, log_warning, okos_system_log_warn, log_debug
+from okos_tools import okos_system_log_info, log_warning, okos_system_log_warn, log_debug, log_err
 import os
 from constant import const
 from okos_mailbox import MailBox
@@ -13,6 +13,7 @@ from okos_tools import Timer
 import socket
 import json
 from okos_reporter import SystemHealthReporter, Site2SiteVpnReporter, IfStatusReporter, DeviceReporter, Redirector, WiredClientReporter
+import time
 
 class Oakmgr(object):
     def __init__(self, mailbox):
@@ -47,16 +48,16 @@ class Oakmgr(object):
             json_d = {}
         return json_d
 
-    def access(self, msg):
+    def access(self, msgs):
         server = (self.capwap['mas_server'], 80, 'nms')
         #server = ('192.168.254.141', 8080, 'nms-webapp')
         url = 'http://{server}:{port}/{path}/api/device/router/info'.format(server=server[0], port=server[1], path=server[2])
         post_data = {
             'mac' : self.device_mac,
             'delay' : const.HEARTBEAT_DELAY,
-            'list' : msg,
+            'list' : msgs,
         }
-        requested = post_url(url, json_data=post_data, debug=True)
+        requested = post_url(url, json_data=post_data, debug=False)
         if self.first_access_nms:
             self.first_access_nms = False
             try:
@@ -66,9 +67,7 @@ class Oakmgr(object):
         if requested and 'error_code' in requested and requested['error_code'] == 1002:
             okos_system_log_warn("oakmgr-{} reject access".format(server))
         
-        tmp = self.access_pipe()
-        if tmp:
-            requested = tmp
+        requested = self.access_pipe() or requested
         
         for r in requested.setdefault('list', []):
             log_debug('REQUESTED data: %s' % (r))
@@ -81,8 +80,8 @@ class HeartBeat(Timer):
         self.mailbox = mailbox
         
     def handler(self, *args, **kwargs):
-        msg = self.mailbox.get_all(const.HEARTBEAT_Q)
-        self.oakmgr.access(msg)
+        msgs = self.mailbox.get_all(const.HEARTBEAT_Q)
+        self.oakmgr.access([m[1] for m in msgs])
 
 class PostMan(threading.Thread):
     def __init__(self, mailbox):
@@ -100,23 +99,27 @@ class PostMan(threading.Thread):
             DeviceReporter(mailbox),
             WiredClientReporter(mailbox),
         ]
-    
+
+
+    def _round(self):
+        msg = self.mailbox.sub(const.STATUS_Q)
+        if not msg:
+            time.sleep(10)
+            log_err('ERROR: subscribe messages from STATUS_Q failed!\n\n')
+            return
+        if msg[0] < 10:
+            msgs = self.mailbox.get_all(const.STATUS_Q)
+            msgs.append(msg)
+            self.oakmgr.access([m[1] for m in msgs])
+        else:
+            self.mailbox.pub(const.HEARTBEAT_Q, msg[1])
+
     def run(self):
         map(lambda x: x.start(), self.timers)
 
-        while not self.term:
-            msg = self.mailbox.sub(const.STATUS_Q)
-            # emergency status
-            if msg[0] < 10:
-                msg_list = []
-                msg_list.append(msg[1])
-                temp = self.mailbox.get_all(const.STATUS_Q)
-                if temp:
-                    for i in temp:
-                        msg_list.append(i[1])
-                self.oakmgr.access(msg_list)
-            else:
-                self.mailbox.pub(const.HEARTBEAT_Q, msg[1], timeout=0)
+        while_loop = lambda : ((not self.term) and self._round()) or while_loop()
+        while_loop()
+            
 
 class OkosMgr(object):
     def __init__(self):
@@ -133,12 +136,11 @@ class OkosMgr(object):
     def join_threads(self):
         os.system(const.INIT_SYS_SCRIPT)
         okos_system_log_info("oakos is up, version:{}".format(self.productinfo['swversion']))
-        for t in self.threads:
-            t.start()
-        for t in self.timers:
-            t.start()
-        for t in self.threads:
-            t.join()
+
+        map(lambda t: t.start(), self.threads)
+        map(lambda t: t.start(), self.timers)
+        map(lambda t: t.join(), self.threads)
+        
 
 class debug(object):
     def __init__(self):

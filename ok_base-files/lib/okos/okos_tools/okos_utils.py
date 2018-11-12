@@ -137,7 +137,7 @@ def post_url(url, param_data=None, json_data=None, files=None, debug=False):
                     log_debug('response:{status}, json:{json}'.format(status=response.status_code, json=data))
                 return data
             else:
-                log_warning('response:{status}, response:{response}'.format(status=response.status_code, response=response))
+                log_warning('Target reply error : {response}\n'.format(status=response.status_code, response=response))
         except Exception, e:
             time.sleep(1)
             log_warning("requests err {}, time:{}".format(repr(e), i))

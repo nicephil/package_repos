@@ -2,6 +2,7 @@ import threading
 from constant import const
 from okos_tools import log_debug, log_warning, log_err, ExecEnv
 from conf_handlers import ConfRequest, WebUiConf, Reboot, Diag, Upgrade, QueryWiredClients
+import time
 
 class ConfMgr(threading.Thread):
     def __init__(self, mailbox):
@@ -40,14 +41,22 @@ class ConfMgr(threading.Thread):
         '''
         map(lambda x: x.start(), self.timers)
 
-        while not self.term:
-            with ExecEnv('Conf Request', desc='Exec request from mailbox', raiseup=False, debug=True) as ctx:
-                ctx.output = request = self.mailbox.sub(const.CONF_REQUEST_Q)
-                request_id, cookie_id, timestamp = request['operate_type'], request['cookie_id'], request['timestamp']
-                if request_id in self.handlers:
-                    self.handlers[request_id].handler(request)
-                else:
-                    ctx.log_warning("no registered handler for {}".format(request_id))
+        while_loop = lambda : (not self.term and self._round()) or while_loop
+        while_loop()
+
+    def _round(self):
+        with ExecEnv('Conf Request', desc='Exec request from mailbox', raiseup=False, debug=True) as ctx:
+            request = self.mailbox.sub(const.CONF_REQUEST_Q)
+            if not request:
+                time.sleep(10)
+                ctx.log_err('subscribe message from CONF_REQUEST_Q failed!\n\n')
+                return
+            ctx.output = request = request[1]
+            request_id, _cookie_id, _timestamp = request['operate_type'], request['cookie_id'], request['timestamp']
+            if request_id in self.handlers:
+                self.handlers[request_id].handler(request)
+            else:
+                ctx.log_warning("no registered handler for {}".format(request_id))
 
                 
 
