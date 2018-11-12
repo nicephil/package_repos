@@ -9,6 +9,7 @@ config defaults 'common'
 config zone 'TRUSTED'
 	option name			TRUSTED
 	list network		'lan4053'
+	list network		'lan'
 	list network		'vpn'
 	option input		ACCEPT
 	option output		ACCEPT
