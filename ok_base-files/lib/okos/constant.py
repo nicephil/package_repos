@@ -95,6 +95,7 @@ const.PORT_MAPPING = [
 const.PORT_MAPPING_PHY = {ifx['phy']:ifx for ifx in const.PORT_MAPPING}
 const.PORT_MAPPING_LOGIC = {ifx['logic']:ifx for ifx in const.PORT_MAPPING}
 const.PORT_MAPPING_CONFIG = {ifx['ifname']:ifx for ifx in const.PORT_MAPPING}
+const.LAN_IFACES = [p['phy'] for p in const.PORT_MAPPING if p['type'] == const.DEV_CONF_PORT_TYPE['lan']]
 
 const.CONFIG_SECURITY_ZONE = ('TRUSTED', 'UNTRUSTED', 'DMZ', 'GUEST')
 

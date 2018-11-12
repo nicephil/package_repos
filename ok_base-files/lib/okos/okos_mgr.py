@@ -57,7 +57,7 @@ class Oakmgr(object):
             'delay' : const.HEARTBEAT_DELAY,
             'list' : msgs,
         }
-        requested = post_url(url, json_data=post_data, debug=False)
+        requested = post_url(url, json_data=post_data, debug=True)
         if self.first_access_nms:
             self.first_access_nms = False
             try:
@@ -97,7 +97,7 @@ class PostMan(threading.Thread):
             Site2SiteVpnReporter(mailbox), 
             IfStatusReporter(mailbox), 
             DeviceReporter(mailbox),
-            WiredClientReporter(mailbox),
+            #WiredClientReporter(mailbox),
         ]
 
 

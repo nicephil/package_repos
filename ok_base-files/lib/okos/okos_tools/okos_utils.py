@@ -8,6 +8,7 @@ import sys
 import time
 import ubus
 from constant import const
+import re
 
 
 config_conf_file = ''.join([const.CONFIG_DIR, const.CONFIG_CONF_FILE])
@@ -205,3 +206,18 @@ def netmask_int_to_a(v):
     netmask = socket.inet_ntoa(struct.pack('!I', (1<<32)-(1<<(32-v))))
     return netmask
 '''
+class MacAddress(object):
+    ''' Utilize to check mac address format and formula string.'''
+    mac_pattern = re.compile(r"^([a-fA-F0-9]{2})[:-]?([a-fA-F0-9]{2})[:-]?([a-fA-F0-9]{2})[:-]?([a-fA-F0-9]{2})[:-]?([a-fA-F0-9]{2})[:-]?([a-fA-F0-9]{2})$")
+    def __init__(self, mac):
+        super(MacAddress, self).__init__()
+        self.mac = self._format_mac(mac)
+
+    def _format_mac(self, mac, sep=''):
+        content = MacAddress.mac_pattern.match(mac.lower())
+        return content and sep.join(('{:02x}'.format(int(c, 16)) for c in content.groups()))
+
+    @property
+    def output(self):
+        return self._format_mac(self.mac, '-')
+

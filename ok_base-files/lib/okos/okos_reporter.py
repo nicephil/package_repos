@@ -12,26 +12,27 @@ from okos_tools import get_whole_confinfo, post_url
 import netifaces as ni
 import time
 import md5
+from okos_tools import ArpDb, MacAddress
 
 
 class IfStateEnv(ExecEnv):
-    def __init__(self, desc, debug=False):
+    def __init__(self, desc, debug=True):
         super(IfStateEnv, self).__init__('Interface State', desc=desc, raiseup=False, debug=debug)
 
 class SystemEnv(ExecEnv):
-    def __init__(self, desc, debug=False):
+    def __init__(self, desc, debug=True):
         super(SystemEnv, self).__init__('System Infor', desc=desc, raiseup=False, debug=debug)
 
 class DeviceInfoEnv(ExecEnv):
-    def __init__(self, desc, debug=False):
+    def __init__(self, desc, debug=True):
         super(DeviceInfoEnv, self).__init__('Device Infor', desc=desc, raiseup=False, debug=debug)
 
 class SiteToSiteVpnInfoEnv(ExecEnv):
-    def __init__(self, desc, debug=False):
+    def __init__(self, desc, debug=True):
         super(SiteToSiteVpnInfoEnv, self).__init__('Site to Site VPN status', desc=desc, raiseup=False, debug=debug)
 
 class IpsecViciEnv(ExecEnv):
-    def __init__(self, desc, debug=False):
+    def __init__(self, desc, debug=True):
         super(IpsecViciEnv, self).__init__('Site to Site VPN status', desc=desc, raiseup=False, debug=debug)
     def __enter__(self):
         return vici.Session()
@@ -39,13 +40,39 @@ class IpsecViciEnv(ExecEnv):
 
 
 class WiredClientReporter(Poster):
-    def __init__(self, mailbox, operate_type=const.CLIENT_ONLINE_STATUS_RESP_OPT_TYPE, name='WiredClientTimer', interval=60):
+    def __init__(self, mailbox, operate_type=const.CLIENT_ONLINE_STATUS_RESP_OPT_TYPE, name='WiredClientTimer', interval=6):
         super(WiredClientReporter, self).__init__(name, interval, mailbox, operate_type, repeated=True)
-    def handler(self, *args, **kwargs):
-        arpt = SystemCall().get_arp_entries()
-        arpt = [{'mac': a['HW address'], 'ip': a['IP address']} for a in arpt]
-        return {'clients': arpt}
 
+        with ArpDb(debug=True) as arp_db:
+            arp_db.create_table()
+
+    def handler(self, *args, **kwargs):
+        with ExecEnv('WiredClients', desc='Query Arp Cache', raiseup=False, debug=True) as X:
+            arpt = [a for a in SystemCall().get_arp_entries() for dev in const.LAN_IFACES if dev in a['Device']]
+            arpt = [{'mac':MacAddress(a['HW address']).mac, 'ip':a['IP address'], 'device':a['Device']} for a in arpt]
+            arpt = [a for a in arpt if a['mac']]
+            with ArpDb(debug=True) as arp_db:
+                arpd = arp_db.get_all()
+                arp_db.update_all(arpt)
+
+            print 'old:', arpd
+            print 'new:', arpt
+
+        with ExecEnv('WiredClients', desc='Report clients', raiseup=False, debug=True) as X:
+            down = [a for a in arpt if a not in arpd]
+            up = [a for a in arpd if a not in arpt]
+            print 'down:', down
+            print 'up  :', up
+
+            def set_state(entry, state):
+                entry['state'] = state
+                return entry
+            map(lambda x: set_state(x, 1), down)
+            map(lambda x: set_state(x, 0), up)
+            res = down + up
+            print res
+
+            return {'clients': res}
 
 class SystemHealthReporter(Poster):
     def __init__(self, mailbox, operate_type=const.DEV_CPU_MEM_STATUS_RESP_OPT_TYPE, name='CpuMemTimer', interval=10):
