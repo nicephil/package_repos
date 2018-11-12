@@ -25,7 +25,7 @@ class ConfHandler(object):
             self.env.go(res, request['cookie_id'])
     def _handler(self, request):
         pass
-    
+
 
 class ConfRequest(ConfHandler):
     def __init__(self, mailbox):
@@ -145,6 +145,11 @@ class Diag(ConfHandler):
 
         elif data['ip_type'] == 2: # pppoe
             try:
+                param = {'config':'network', 'section':lname, 'values':{'proto':'pppoe', 'username':'magictry', 'password':data['pppoe_password'], 'defaultroute':0}}
+                ubus.call('uci', 'set', param)
+                ubus.call('uci', 'commit', {'config':'network'})
+                ubus.call('network', 'reload', {})
+                time.sleep(1)
                 param = {'config':'network', 'section':lname, 'values':{'proto':'pppoe', 'username':data['pppoe_username'], 'password':data['pppoe_password'], 'defaultroute':0}}
                 ubus.call('uci', 'set', param)
                 ubus.call('uci', 'commit', {'config':'network'})
@@ -213,7 +218,7 @@ class Diag(ConfHandler):
             log_warning("name:{} diag failure, {}".format(name, e))
             ret['error_code'] = const.CAN_NOT_GET_IP
             return ret
-        
+
 class Reboot(ConfHandler):
     def __init__(self, mailbox):
         super(Reboot, self).__init__(mailbox, const.DEV_REBOOT_OPT_TYPE, 0)
