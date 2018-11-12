@@ -1,7 +1,7 @@
 #!/bin/sh
 
 eth=$(ip route list | awk '$1 ~ /default/{print $5;exit}')
-[ -z "$eth" ] && eth="eth0"
+[ -z "$eth" ] && eth="eth1"
 eth_status=$(ethtool $eth  | awk -F'[ :]+' '/Speed/{speed=$2} /Duplex/{duplex=$2;} END{print speed"|"duplex}')
 OIFS=$IFS;IFS='|';set -- $eth_status;eth_speed=$1;eth_duplex=$2;IFS=$OIFS
 eth_speed=${eth_speed%b/s}

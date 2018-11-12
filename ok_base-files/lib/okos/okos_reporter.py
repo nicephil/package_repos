@@ -102,7 +102,7 @@ class Site2SiteVpnReporter(Poster):
         return vpn_sas and {'site_to_site_vpns': vpn_sas} or None
 
 class IfStatusReporter(Poster):
-    def __init__(self, mailbox, operate_type=const.DEV_IF_STATUS_RESP_OPT_TYPE, name='IfStatusTimer', interval=60):
+    def __init__(self, mailbox, operate_type=const.DEV_IF_STATUS_RESP_OPT_TYPE, name='IfStatusTimer', interval=5):
         super(IfStatusReporter, self).__init__(name, interval, mailbox, operate_type, repeated=True)
     def handler(self, *args, **kwargs):
         '''
@@ -254,7 +254,7 @@ class DeviceReporter(Poster):
             #mas_server = ubus.call('uci', 'get', {'config':'capwapc', 'section':'server'})[0]['values'].setdefault('mas_server', '')
             mas_server = self.capwap_server['mas_server']
             _, _, data_json['internal_ip'] = SystemCall(debug=False).localip2target(mas_server)
-            
+
         return data_json
 
 class Redirector(Timer):
@@ -277,7 +277,7 @@ class Redirector(Timer):
                 post_data['private_ip'] = ni.ifaddresses('pppoe-wan')[ni.AF_INET][0]['addr']
                 post_data['private_mask'] = ni.ifaddresses('pppoe-wan')[ni.AF_INET][0]['netmask']
             except Exception, e:
-                log_info("can not get private_ip to query redirector, err:{}".format(e))                
+                log_info("can not get private_ip to query redirector, err:{}".format(e))
 
         key = md5.new("{SALT}{_mac}".format(SALT=const.SALT, _mac=post_data['device'])).hexdigest()
         url="http://{_server_ip}:{PORT}/redirector/v1/device/register/?key={KEY}".format(_server_ip=const.DEFAULT_ADDR,
