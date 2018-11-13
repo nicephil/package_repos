@@ -5,7 +5,7 @@ from envelope import Envelope
 
 
 class Timer(object):
-    def __init__(self, name='', interval=10, repeated=False, now=True, debug=True):
+    def __init__(self, name='', interval=60, repeated=False, now=True, debug=False):
         super(Timer, self).__init__()
         self.name = name
         self.interval = interval
@@ -13,20 +13,17 @@ class Timer(object):
         self._timer = threading.Timer(now and 1 or self.interval, self.repeat())
         self._timer.name = self.name
         self.debug = debug
-        if self.debug:
-            log_debug('Timer %s is created' % (self.name))
+        self.debug and log_debug('Timer %s is created' % (self.name))
 
     def handler(self, *args, **kwargs):
         log_debug("I am in the handler")
         pass
     def start(self):
-        if self.debug:
-            log_debug("Timer %s is kicked off" % self.name)
+        self.debug and log_debug("Timer %s is kicked off" % self.name)
         self._timer.start()
     def repeat(self):
         def wrapper(*args, **kwargs):
-            if self.debug:
-                log_debug('Timer %s start to execute:' % (self.name))
+            self.debug and log_debug('Timer %s start to execute:' % (self.name))
             if self.repeated:
                 res = self.handler(*args, **kwargs)
                 self._timer = threading.Timer(self.interval, self.repeat())
@@ -39,12 +36,12 @@ class Timer(object):
 
 
 class Poster(Timer):
-    def __init__(self, name, interval, mailbox, operate_type, repeated=False, pri=200):
-        super(Poster, self).__init__(name, interval, repeated)
+    def __init__(self, name, interval, mailbox, operate_type, repeated=False, pri=200, debug=False):
+        super(Poster, self).__init__(name=name, interval=interval, repeated=repeated, debug=debug)
         self.env = Envelope(mailbox, operate_type=operate_type, pri=pri)
     def repeat(self):
         def wrapper(*args, **kwargs):
-            log_debug('Timer %s start to execute:' % (self.name))
+            self.debug and log_debug('Timer %s start to execute:' % (self.name))
             if self.repeated:
                 res = self.handler(*args, **kwargs)
                 self._timer = threading.Timer(self.interval, self.repeat())

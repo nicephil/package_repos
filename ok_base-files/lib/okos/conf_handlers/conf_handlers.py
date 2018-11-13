@@ -14,11 +14,12 @@ import struct
 import ubus
 
 class ConfHandler(object):
-    def __init__(self, mailbox, request_id, response_id, pri=1):
+    def __init__(self, mailbox, request_id, response_id, pri=1, debug=False):
         super(ConfHandler, self).__init__()
         self.request_id = request_id
         self.response_id = response_id
         self.env = Envelope(mailbox, operate_type=response_id, pri=pri)
+        self.debug = debug
     def handler(self, request):
         res = self._handler(request)
         if res:

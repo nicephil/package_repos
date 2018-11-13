@@ -12,7 +12,7 @@ class Envelope(object):
             'operate_type': operate_type,
         }
 
-    def go(self, json_data, cookie_id=0, queue=const.STATUS_Q, pri=None):
+    def go(self, json_data, cookie_id=0, queue=const.STATUS_Q, pri=0):
         if not json_data:
             return
         self.msg['cookie_id'] = cookie_id

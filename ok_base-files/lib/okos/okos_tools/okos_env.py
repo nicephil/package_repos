@@ -40,8 +40,8 @@ class ExecEnv(object):
             #log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, traceback.format_exc()))
             #log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, str(traceback)))
             self.cxt and log_debug('[%s] context:\n%s\n' % (self.prefix, self.cxt))
-            log_err('[%s] exception :> %s >< %s <%s:%s>' % (self.prefix, exception_type, value, traceback.tb_frame.f_code.co_filename, traceback.tb_lineno))
-            log_err('[%s] %s - failed -' % (self.prefix, self.desc))
+            self.log_err('[%s] exception :> %s >< %s <%s:%s>' % (self.prefix, exception_type, value, traceback.tb_frame.f_code.co_filename, traceback.tb_lineno))
+            self.log_err('[%s] %s - failed -' % (self.prefix, self.desc))
             return not self.raiseup
         self.debug and log_debug('[%s] %s - done -' % (self.prefix, self.desc))
         return True

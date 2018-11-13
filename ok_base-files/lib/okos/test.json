@@ -10,3 +10,14 @@
         }
     ]
 }
+
+{
+    "delay" : 10,
+    "list" : [
+        {
+        "operate_type" : 2016,
+        "cookie_id" : 1234,
+        "timestamp" : 2222222
+        }
+    ]
+}

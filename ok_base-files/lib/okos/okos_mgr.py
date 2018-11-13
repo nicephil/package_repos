@@ -2,21 +2,17 @@
 
 import threading
 import argparse
-from okos_tools import daemonlize, post_url
-from okos_tools import UbusEnv, UciConfig, UciSection, PRODUCT_INFO, CAPWAP_SERVER
-from okos_tools import okos_system_log_info, log_warning, okos_system_log_warn, log_debug, log_err
+from okos_tools import *
 import os
 from constant import const
-from okos_mailbox import MailBox
 from okos_conf import ConfMgr
-from okos_tools import Timer
 import socket
 import json
-from okos_reporter import SystemHealthReporter, Site2SiteVpnReporter, IfStatusReporter, DeviceReporter, Redirector, WiredClientReporter
+from okos_reporter import *
 import time
 
 class Oakmgr(object):
-    def __init__(self, mailbox):
+    def __init__(self, mailbox, debug=False):
         super(Oakmgr, self).__init__()
         self.mailbox = mailbox
         self.device_mac = UciSection('productinfo', 'productinfo')['mac']
@@ -24,6 +20,7 @@ class Oakmgr(object):
         self.pipe_f = self.create_pipe(self.pipe_name)
         self.capwap = CAPWAP_SERVER.renew()
         self.first_access_nms = True
+        self.debug = debug
 
     def create_pipe(self, pipe_name):
         pipe_f = None
@@ -42,8 +39,10 @@ class Oakmgr(object):
     def access_pipe(self):
         try:
             s = os.read(self.pipe_f, 4096)
+            self.debug and log_debug('PIPE : %s' % (s))
             s = s.strip('\n')
             json_d = json.loads(s, encoding='utf-8')
+            self.debug and log_debug('JSON : %s' % (json_d))
         except Exception as e:
             json_d = {}
         return json_d
@@ -57,7 +56,7 @@ class Oakmgr(object):
             'delay' : const.HEARTBEAT_DELAY,
             'list' : msgs,
         }
-        requested = post_url(url, json_data=post_data, debug=True)
+        requested = post_url(url, json_data=post_data, debug=self.debug)
         if self.first_access_nms:
             self.first_access_nms = False
             try:
@@ -70,14 +69,15 @@ class Oakmgr(object):
         requested = self.access_pipe() or requested
         
         for r in requested.setdefault('list', []):
-            log_debug('REQUESTED data: %s' % (r))
+            self.debug and log_debug('REQUESTED data: %s' % (r))
             self.mailbox.pub(const.CONF_REQUEST_Q, r, timeout=0)
 
 class HeartBeat(Timer):
-    def __init__(self, oakmgr, mailbox):
-        super(HeartBeat, self).__init__('HeartBeatTimer', const.HEARTBEAT_TIME, repeated=True)
+    def __init__(self, oakmgr, mailbox, interval=const.HEARTBEAT_TIME, debug=False):
+        super(HeartBeat, self).__init__('HeartBeatTimer', interval=interval, repeated=True, debug=debug)
         self.oakmgr = oakmgr
         self.mailbox = mailbox
+        self.debug = debug
         
     def handler(self, *args, **kwargs):
         msgs = self.mailbox.get_all(const.HEARTBEAT_Q)
@@ -89,15 +89,15 @@ class PostMan(threading.Thread):
         self.name = 'StatusMgr'
         self.term = False
         self.mailbox = mailbox
-        self.oakmgr = Oakmgr(mailbox)
+        self.oakmgr = Oakmgr(mailbox, debug=True)
         self.timers = [
-            Redirector(),
-            HeartBeat(self.oakmgr, mailbox),
-            SystemHealthReporter(mailbox), 
-            Site2SiteVpnReporter(mailbox), 
-            IfStatusReporter(mailbox), 
-            DeviceReporter(mailbox),
-            #WiredClientReporter(mailbox),
+            Redirector(interval=120, debug=False),
+            HeartBeat(self.oakmgr, mailbox, debug=False),
+            #SystemHealthReporter(mailbox, interval=10, debug=False), 
+            Site2SiteVpnReporter(mailbox, interval=60, debug=False), 
+            IfStatusReporter(mailbox, interval=60, debug=False), 
+            DeviceReporter(mailbox, interval=60, debug=False),
+            WiredClientReporter(mailbox, interval=10, debug=True),
         ]
 
 
@@ -118,8 +118,11 @@ class PostMan(threading.Thread):
         map(lambda x: x.start(), self.timers)
 
         while_loop = lambda : ((not self.term) and self._round()) or while_loop()
-        while_loop()
+        #while_loop()
+        while not self.term:
+            self._round()
             
+
 
 class OkosMgr(object):
     def __init__(self):

@@ -3,8 +3,8 @@
 import argparse
 import json
 import sys
-from cfgobjects import CfgSystem, CfgInterface, CfgNetwork, CfgPortForwarding, CfgMacIpBinding, CfgDhcpOption, CfgDone, CfgIpForwarding, CfgSiteToSiteVPN, CfgKickoff
-from okos_tools import log_crit, log_err, log_warning, log_info, log_debug
+from cfgobjects import *
+from okos_tools import *
 import fcntl
 import ubus
 
