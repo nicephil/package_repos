@@ -9,5 +9,5 @@ class QueryWiredClients(ConfHandler):
         with ArpDb(debug=True) as arp_db:
             old = arp_db.get_all()
         
-        arpt = [{'mac': a['mac'], 'ip':a['ip'], 'device':a['device']} for a in old]
+        arpt = [{'mac': a['mac'], 'ip':a['ip'], 'device':a['device'], 'vlan':dev2vlan(a['device'])} for a in old]
         return {'clients': arpt}

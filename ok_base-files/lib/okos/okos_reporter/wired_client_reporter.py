@@ -26,8 +26,10 @@ class WiredClientReporter(Poster):
             down = [a for a in old if a not in new]
             map(lambda x: x.setdefault('state', 1), down)
             map(lambda x: x.setdefault('state', 0), up)
-
             res = down + up
             X.output = res
+            
+            map(lambda x: x.setdefault('vlan', dev2vlan(x['device'])), res)
+            
 
         return res and {'clients': res}

@@ -221,3 +221,6 @@ class MacAddress(object):
     def output(self):
         return self._format_mac(self.mac, '-')
 
+def dev2vlan(dev):
+    t = dev.split('.')
+    return (1 in t) and t[1] or '0'
