@@ -53,7 +53,7 @@ class CfgInterface(CfgObj):
                 'wan': self.change_wan_config,
                 'wan1': self.change_wan_config,
                 'wan2': self.change_wan_config,
-                'lan4053': self.change_lan_config,
+                'lan': self.change_lan_config,
                 }
         res = change_hooks[checker['logic_ifname']]()
         self.log_debug("Change interface [%s] config return (%s)." % (checker['logic_ifname'], str(res)))
@@ -75,7 +75,7 @@ class CfgInterface(CfgObj):
             self.log_warning('Set Static IP without DNSs')
             return False, input
         return True, input
-    
+
     @logchecker('Interface')
     def _check_pppoe_timeout_(self, input):
         input = int(input)/5

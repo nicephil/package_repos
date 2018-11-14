@@ -409,13 +409,13 @@ function action_queryifs()
                 end
                 res.username = np:get("username")
                 res.password = np:get("password")
-                if res.ifname == "eth3" then
-                    res.ipaddr = uci:get("webui_config", "lan4053", "ipaddr")
-                    res.netmask = uci:get("webui_config", "lan4053", "netmask")
-                    res.dhcp_start = uci:get("webui_config", "lan4053", "dhcp_start")
-                    res.dhcp_limit = uci:get("webui_config", "lan4053", "dhcp_limit")
-                    res.dhcp_leasetime = uci:get("webui_config", "lan4053", "dhcp_leasetime")
-                    res.dhcp_server_enable = uci:get("webui_config", "lan4053", "dhcp_server_enable")
+                if res.ifname == "eth0" then
+                    res.ipaddr = uci:get("webui_config", "lan", "ipaddr")
+                    res.netmask = uci:get("webui_config", "lan", "netmask")
+                    res.dhcp_start = uci:get("webui_config", "lan", "dhcp_start")
+                    res.dhcp_limit = uci:get("webui_config", "lan", "dhcp_limit")
+                    res.dhcp_leasetime = uci:get("webui_config", "lan", "dhcp_leasetime")
+                    res.dhcp_server_enable = uci:get("webui_config", "lan", "dhcp_server_enable")
                 end
             end
         end
@@ -449,7 +449,7 @@ function action_configlan()
         dhcp_leasetime = "1200" # seconds
     }
     ]]--
-    if input.proto == nil or input.ifname == nil or input.proto ~= "static" or input.ifname ~= "eth3" then
+    if input.proto == nil or input.ifname == nil or input.proto ~= "static" or input.ifname ~= "eth0" then
         http.status(400, "Bad Request");
         http.close()
         return
@@ -464,12 +464,12 @@ function action_configlan()
     ]]--
     response.errcode = 0
 
-    uci:set("webui_config", "lan4053", "ipaddr", input.ipaddr)
-    uci:set("webui_config", "lan4053", "netmask", input.netmask)
-    uci:set("webui_config", "lan4053", "dhcp_server_enable", input.dhcp_server_enable)
-    uci:set("webui_config", "lan4053", "dhcp_start", input.dhcp_start)
-    uci:set("webui_config", "lan4053", "dhcp_limit", input.dhcp_limit)
-    uci:set("webui_config", "lan4053", "dhcp_leasetime", input.dhcp_leasetime)
+    uci:set("webui_config", "lan", "ipaddr", input.ipaddr)
+    uci:set("webui_config", "lan", "netmask", input.netmask)
+    uci:set("webui_config", "lan", "dhcp_server_enable", input.dhcp_server_enable)
+    uci:set("webui_config", "lan", "dhcp_start", input.dhcp_start)
+    uci:set("webui_config", "lan", "dhcp_limit", input.dhcp_limit)
+    uci:set("webui_config", "lan", "dhcp_leasetime", input.dhcp_leasetime)
     uci:commit("webui_config")
 
     -- response --
@@ -527,26 +527,26 @@ function action_old_configlan()
         nw:del_network(n.sid)
     end
     -- del existing lan network
-    local np = nw:get_protocol("static", "lan4053")            
+    local np = nw:get_protocol("static", "lan")            
     local wifname = np:ifname()
-    nw:del_network("lan4053")
+    nw:del_network("lan")
     -- setup new lan network
-    local net = nw:add_network("lan4053", {proto=input.proto, ipaddr=input.ipaddr, netmask=input.netmask})
+    local net = nw:add_network("lan", {proto=input.proto, ipaddr=input.ipaddr, netmask=input.netmask})
     if net then
         net:add_interface(input.ifname)
         nw:commit("network")
         if input.dhcp_server_enable == 0 then
-            nodhcp_list={"wan", "wan1", "wan2", "lan4053"}
+            nodhcp_list={"wan", "wan1", "wan2", "lan"}
             uci:set_list("dhcp", "@dnsmasq[0]", "notinterface", nodhcp_list)
-            uci:set("dhcp", "lan4053", "ignore", 1)
+            uci:set("dhcp", "lan", "ignore", 1)
         else
             nodhcp_list={"wan", "wan1", "wan2"}
             uci:set_list("dhcp", "@dnsmasq[0]", "notinterface", nodhcp_list)
-            uci:set("dhcp", "lan4053", "ignore", 0)
+            uci:set("dhcp", "lan", "ignore", 0)
         end
-        uci:set("dhcp", "lan4053", "start", input.dhcp_start)
-        uci:set("dhcp", "lan4053", "limit", input.dhcp_limit)
-        uci:set("dhcp", "lan4053", "leasetime", input.dhcp_leasetime)
+        uci:set("dhcp", "lan", "start", input.dhcp_start)
+        uci:set("dhcp", "lan", "limit", input.dhcp_limit)
+        uci:set("dhcp", "lan", "leasetime", input.dhcp_leasetime)
         uci:commit("dhcp")
         uci:set("firewall", "@redirect[0]", "dest_ip", input.ipaddr)
         uci:commit("firewall")

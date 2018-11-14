@@ -10,7 +10,7 @@ class CfgNetwork(CfgObj):
         d = self.data
         d.update(vlan)
         if vlan and ifx and ifname:
-            # e3 => lan4053
+            # e3 => lan
             d['ifname'] = const.PORT_MAPPING_LOGIC[ifname]['ifname']
             d['untagged'] = bool(ifx.setdefault('native_vlan', 1) == d.setdefault('vlan',1))
             vlan['ifname'] = d['untagged'] and d['ifname'] or '{}_{}'.format(d['ifname'], d['vlan'])
@@ -25,7 +25,7 @@ class CfgNetwork(CfgObj):
                                                 if ifx['type'] == const.DEV_CONF_PORT_TYPE['lan']
                                                     if vlan['id'] in ifx['local_network_ids'] ]
         return res
-    
+
     @logcfg
     def add(self):
         new = self.data

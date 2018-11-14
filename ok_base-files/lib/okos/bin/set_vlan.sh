@@ -5,14 +5,14 @@ help()
     cat <<_HELP_
 Setup/Remove LAN port on static ip mode.
 Support create/setup VLAN interface.
-lan4053 represents PHY port eth3. It means the native vlan.
+lan represents PHY port eth3. It means the native vlan.
 LAN port will be added to a security zone, TRUSTED by default.
 
-Usage:  $0 {set|del} {lan4053} [--ipaddr IPADDR] [--netmask NETMASK] 
+Usage:  $0 {set|del} {lan} [--ipaddr IPADDR] [--netmask NETMASK] 
                         [--mtu MTU] [--vid VLANID] [--zone ZONE] [-S]
-        $0 add {lan4053} --ipaddr IPADDR --netmask NETMASK
+        $0 add {lan} --ipaddr IPADDR --netmask NETMASK
                         [--mtu MTU] [--vid VLANID] [--zone ZONE] [-S]
-        $0 del {lan4053} [--vid VLANID] [--zone ZONE] [-S]
+        $0 del {lan} [--vid VLANID] [--zone ZONE] [-S]
         --ipaddr IPADDR # static ipaddress
         --netmask NETMASK # format 255.255.255.0
         --mtu MTU # Set MTU on this interface
@@ -20,8 +20,8 @@ Usage:  $0 {set|del} {lan4053} [--ipaddr IPADDR] [--netmask NETMASK]
         --zone {*TRUSTED|UNTRUSTED|DMZ|GUEST} # assign security zone
         -S # don't restart service
 Example:
-    $0 set lan4053 192.168.254.254 255.255.255.0 # set lan port with static ip addresses
-    $0 set lan4053 192.168.101.254 255.255.255.0 --vid 101 # set vlan 101 interface with static ip addresses
+    $0 set lan 192.168.254.254 255.255.255.0 # set lan port with static ip addresses
+    $0 set lan 192.168.101.254 255.255.255.0 --vid 101 # set vlan 101 interface with static ip addresses
 _HELP_
 }
 
@@ -33,7 +33,7 @@ esac
 shift 1
 
 case $1 in
-    lan4053) ifx="$1";ifname="eth3";;
+    lan) ifx="$1";ifname="eth0";;
     *) help; exit 1;;
 esac
 shift 1

@@ -25,12 +25,13 @@ class ConfHandler(object):
             self.env.go(res, request['cookie_id'])
     def _handler(self, request):
         pass
-    
+
 
 class ConfRequest(ConfHandler):
     def __init__(self, mailbox):
         super(ConfRequest, self).__init__(mailbox, const.DEV_CONF_OPT_TYPE, const.DEV_CONF_RESP_OPT_TYPE)
     def _handler(self, request):
+        print "xxxxx>{}".format(request['data'])
         self.confinfo_data = set_whole_confinfo(request['data'])
         okos_system_log_info("configuration data obtained")
         time.sleep(3)
@@ -55,7 +56,7 @@ class WebUiConf(ConfHandler):
         except Exception, e:
             log_err("ubus err {}".format(e))
         json_data['e0'] = self.webuiconf_parse('wan')
-        json_data['e3'] = self.webuiconf_parse('lan4053')
+        json_data['e3'] = self.webuiconf_parse('lan')
         return json_data
 
     def webuiconf_parse(self, sid):
@@ -89,7 +90,7 @@ class WebUiConf(ConfHandler):
                         e_data['dnss'] = _dns
                     else:
                         e_data['dnss'] = e_data['dnss'] + "," + _dns
-            if sid == 'lan4053':
+            if sid == 'lan':
                 e_data['type'] = 1
                 e_data['ips'][0]['ip'] = webui_conf[sid]['ipaddr']
                 e_data['ips'][0]['netmask'] = webui_conf[sid]['netmask']
@@ -213,7 +214,7 @@ class Diag(ConfHandler):
             log_warning("name:{} diag failure, {}".format(name, e))
             ret['error_code'] = const.CAN_NOT_GET_IP
             return ret
-        
+
 class Reboot(ConfHandler):
     def __init__(self, mailbox):
         super(Reboot, self).__init__(mailbox, const.DEV_REBOOT_OPT_TYPE, 0)

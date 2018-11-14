@@ -1,6 +1,6 @@
-config interface lan4053
+config interface lan
     option proto "static"
-    option ifname "eth3"
+    option ifname "eth0"
     option ipaddr  "172.16.254.254"
     option netmask "255.255.255.0"
     option dhcp_server_enable 1

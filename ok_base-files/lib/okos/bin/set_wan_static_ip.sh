@@ -25,9 +25,9 @@ if [ $# -lt 4 ]; then
 fi
 
 case $1 in
-    wan) ifx="$1";ifname="eth0";;
-    wan1) ifx="$1";ifname="eth1";;
-    wan2) ifx="$1";ifname="eth2";;
+    wan) ifx="$1";ifname="eth1";;
+    wan1) ifx="$1";ifname="eth2";;
+    wan2) ifx="$1";ifname="eth3";;
     *) help; exit 1;;
 esac
 gateway="$2"

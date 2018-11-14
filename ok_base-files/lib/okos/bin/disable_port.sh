@@ -4,7 +4,7 @@ help()
 {
     cat <<_HELP_
 Disable an interface.
-Usage: $0 {wan|wan1|wan2|lan4053} [-S]
+Usage: $0 {wan|wan1|wan2|lan} [-S]
         -S # don't restart service
 Example:
     $0 wan # disable wan port
@@ -12,10 +12,10 @@ _HELP_
 }
 
 case "$1" in
-    wan) ifx="$1";ifname="eth0";;
-    wan1) ifx="$1";ifname="eth1";;
-    wan2) ifx="$1";ifname="eth2";;
-    lan4053) ifx="$1";ifname="eth3";;
+    wan) ifx="$1";ifname="eth1";;
+    wan1) ifx="$1";ifname="eth2";;
+    wan2) ifx="$1";ifname="eth3";;
+    lan) ifx="$1";ifname="eth0";;
     *) help; exit 1;;
 esac
 shift 1

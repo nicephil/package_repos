@@ -4,16 +4,16 @@ help()
 {
     cat <<_HELP_
 Setup DHCP server on LAN port.
-Usage:  $0 {set|del} {lan4053} [--start START] [--limit LIMIT] [--lease LEASE] [--vid VLANID] [-S]
-        $0 set {lan4053} --start START --limit LIMIT [--lease LEASE] [--vid VLANID] [-S]
-        $0 del {lan4053} [--vid VLANID] [-S]
+Usage:  $0 {set|del} {lan} [--start START] [--limit LIMIT] [--lease LEASE] [--vid VLANID] [-S]
+        $0 set {lan} --start START --limit LIMIT [--lease LEASE] [--vid VLANID] [-S]
+        $0 del {lan} [--vid VLANID] [-S]
         --start START # the minimum address
         --limit LIMIT # the size of the address pool
         --lease LEASE # the lease time of addresses handed out to clients
         --vid VLANID # vlan id [1~4093] on the target interface
         -S # don't restart service
 Example:
-    $0 set lan4053 1 200 -l 83400 
+    $0 set lan 1 200 -l 83400 
 _HELP_
 }
 
@@ -25,7 +25,7 @@ esac
 shift 1
 
 case $1 in
-    lan4053) ifx="$1";ifname="eth3";;
+    lan) ifx="$1";ifname="eth0";;
     *) help; exit 1;;
 esac
 shift 1

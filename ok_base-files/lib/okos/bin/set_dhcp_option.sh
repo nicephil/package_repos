@@ -11,7 +11,7 @@ Usage: $0 {set|del} --option NUMBER --value STRING --pool POOL_ID [-S]
         --pool POOL_ID # use interface name temporarily
         -S # don't restart service
 Example:
-    $0 set --option 443 --value 192.168.1.3 --pool lan4053
+    $0 set --option 443 --value 192.168.1.3 --pool lan
 _HELP_
 }
 

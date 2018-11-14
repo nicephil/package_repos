@@ -54,7 +54,7 @@ def get_whole_conf_bak_path():
     return "{}_bak".format(config_conf_file)
 
 def set_whole_confinfo(str):
-    with open(config_conf_file, 'rw+', 0) as f:
+    with open(config_conf_file, 'w+', 0) as f:
         fcntl.flock(f.fileno(), fcntl.LOCK_EX)
         with open("{}_bak".format(config_conf_file), 'w+', 0) as ff:
             ff.truncate()
