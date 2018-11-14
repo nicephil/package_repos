@@ -9,7 +9,7 @@ import arptable
 
 
 class ExecEnv(object):
-    def __init__(self, prefix, cxt=None, desc='', raiseup=True, debug=True):
+    def __init__(self, prefix, cxt=None, desc='', raiseup=True, debug=False):
         super(ExecEnv, self).__init__()
         self.desc = desc
         self.cxt = cxt
@@ -32,23 +32,18 @@ class ExecEnv(object):
         log_err('[%s] %s ERROR: %s' % (self.prefix, self.desc, c))
 
     def __enter__(self):
-        if self.debug:
-            log_debug('[%s] %s - start -' % (self.prefix, self.desc))
+        self.debug and log_debug('[%s] %s - start -' % (self.prefix, self.desc))
         return self
     def __exit__(self, exception_type, value, traceback):
-        if self.cxt and self.debug:
-            log_debug('[%s] context:\n%s\n' % (self.prefix, self.cxt))
-        #log_debug('[%s] %s - exit with %s:%s:%s -' % (self.prefix, self.desc, exception_type, value, type(traceback)))
+        (self.cxt and self.debug) and log_debug('[%s] context:\n%s\n' % (self.prefix, self.cxt))
         if exception_type:
             #log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, traceback.format_exc()))
             #log_crit('[%s] exception: <%s> : %s\n%s' % (self.prefix, exception_type, value, str(traceback)))
-            if self.cxt:
-                log_debug('[%s] context:\n%s\n' % (self.prefix, self.cxt))
-            log_err('[%s] exception :> %s >< %s <%s:%s>' % (self.prefix, exception_type, value, traceback.tb_frame.f_code.co_filename, traceback.tb_lineno))
-            log_err('[%s] %s - failed -' % (self.prefix, self.desc))
+            self.cxt and log_debug('[%s] context:\n%s\n' % (self.prefix, self.cxt))
+            self.log_err('[%s] exception :> %s >< %s <%s:%s>' % (self.prefix, exception_type, value, traceback.tb_frame.f_code.co_filename, traceback.tb_lineno))
+            self.log_err('[%s] %s - failed -' % (self.prefix, self.desc))
             return not self.raiseup
-        if self.debug:
-            log_debug('[%s] %s - done -' % (self.prefix, self.desc))
+        self.debug and log_debug('[%s] %s - done -' % (self.prefix, self.desc))
         return True
 
 class SystemCallEnv(ExecEnv):

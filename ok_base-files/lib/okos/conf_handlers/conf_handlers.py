@@ -14,11 +14,12 @@ import struct
 import ubus
 
 class ConfHandler(object):
-    def __init__(self, mailbox, request_id, response_id, pri=1):
+    def __init__(self, mailbox, request_id, response_id, pri=1, debug=False):
         super(ConfHandler, self).__init__()
         self.request_id = request_id
         self.response_id = response_id
         self.env = Envelope(mailbox, operate_type=response_id, pri=pri)
+        self.debug = debug
     def handler(self, request):
         res = self._handler(request)
         if res:
@@ -31,7 +32,6 @@ class ConfRequest(ConfHandler):
     def __init__(self, mailbox):
         super(ConfRequest, self).__init__(mailbox, const.DEV_CONF_OPT_TYPE, const.DEV_CONF_RESP_OPT_TYPE)
     def _handler(self, request):
-        print "xxxxx>{}".format(request['data'])
         self.confinfo_data = set_whole_confinfo(request['data'])
         okos_system_log_info("configuration data obtained")
         time.sleep(3)
@@ -146,6 +146,11 @@ class Diag(ConfHandler):
 
         elif data['ip_type'] == 2: # pppoe
             try:
+                param = {'config':'network', 'section':lname, 'values':{'proto':'pppoe', 'username':'magictry', 'password':data['pppoe_password'], 'defaultroute':0}}
+                ubus.call('uci', 'set', param)
+                ubus.call('uci', 'commit', {'config':'network'})
+                ubus.call('network', 'reload', {})
+                time.sleep(1)
                 param = {'config':'network', 'section':lname, 'values':{'proto':'pppoe', 'username':data['pppoe_username'], 'password':data['pppoe_password'], 'defaultroute':0}}
                 ubus.call('uci', 'set', param)
                 ubus.call('uci', 'commit', {'config':'network'})

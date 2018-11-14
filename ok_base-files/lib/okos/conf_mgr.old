@@ -329,7 +329,7 @@ class ConfMgr(threading.Thread):
                         e_data['dnss'] = _dns
                     else:
                         e_data['dnss'] = e_data['dnss'] + "," + _dns
-            if sid == 'lan':
+            if sid == 'lan4053':
                 e_data['type'] = 1
                 e_data['ips'][0]['ip'] = webui_conf[sid]['ipaddr']
                 e_data['ips'][0]['netmask'] = webui_conf[sid]['netmask']
@@ -350,7 +350,7 @@ class ConfMgr(threading.Thread):
         except Exception, e:
             log_err("ubus err {}".format(e))
         json_data['e0'] = self.webuiconf_parse('wan')
-        json_data['e3'] = self.webuiconf_parse('lan')
+        json_data['e3'] = self.webuiconf_parse('lan4053')
         msg = {}
         msg['operate_type'] = response_id
         msg['cookie_id'] = request['cookie_id']
