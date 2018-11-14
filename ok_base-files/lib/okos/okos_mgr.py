@@ -93,11 +93,12 @@ class PostMan(threading.Thread):
         self.timers = [
             Redirector(interval=120, debug=False),
             HeartBeat(self.oakmgr, mailbox, debug=False),
-            #SystemHealthReporter(mailbox, interval=10, debug=False), 
+            SystemHealthReporter(mailbox, interval=10, debug=False), 
             Site2SiteVpnReporter(mailbox, interval=60, debug=False), 
             IfStatusReporter(mailbox, interval=60, debug=False), 
             DeviceReporter(mailbox, interval=60, debug=False),
-            WiredClientReporter(mailbox, interval=10, debug=True),
+            WiredClientReporter(mailbox, interval=10, debug=False),
+            ClientStatistic(mailbox, interval=5, debug=False)
         ]
 
 

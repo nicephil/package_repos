@@ -6,6 +6,7 @@ import subprocess
 import socket
 import re
 import arptable
+import csv
 
 
 class ExecEnv(object):
@@ -56,54 +57,48 @@ class SystemCall(object):
         super(SystemCall, self).__init__()
         self.debug = debug
     
-    def _call(self, cmd, comment='', path='', debug=True):
+    def _call(self, cmd, comment='', path='', shell=False):
         '''
         cmd = ['/lib/okos/bin/set_..._.sh', '33', '201'] ; shell = False
         cmd = ['/lib/okos/bin/set_..._.sh 33 201'] ; shell = True
         '''
         
-        if self.debug:
-            if comment:
-                log_debug(comment)
-            log_debug("System Call - %s - " % (cmd))
+        self.debug and comment and log_debug(comment)
+        self.debug and log_debug("System Call - %s - start " % (cmd))
         try:
             cmd = [str(c) for c in cmd]
             if not cmd[0].startswith('/') and path:
                 cmd[0] = path + cmd[0]
-            res = subprocess.check_call(cmd)
+            res = subprocess.check_call(cmd, shell=shell)
         except subprocess.CalledProcessError as e:
-            log_warning("Execute System Call %s failed!" % (e.cmd))
+            log_warning("Execute System Call - %s - failed!" % (e.cmd))
             return False
         except Exception as e:
-            log_warning("Execute System Call %s failed with %s!" % (cmd, type(e).__name__))
+            log_warning("Execute System Call - %s - failed with %s!" % (cmd, type(e).__name__))
             return False
-        if self.debug:
-            log_debug("System Call - %s - return %d" % (cmd, res))
+        self.debug and log_debug("System Call - %s - return %d" % (cmd, res))
         return res == 0 and True or False
 
-    def _output(self, cmd, comment='', path='', debug=True):
+    def _output(self, cmd, comment='', path='', shell=False):
         '''
         cmd = ['/lib/okos/bin/set_..._.sh', '33', '201'] ; shell = False
         cmd = ['/lib/okos/bin/set_..._.sh 33 201'] ; shell = True
         '''
         
-        if self.debug:
-            if comment:
-                log_debug(comment)
-            log_debug("System Call - %s - " % (cmd))
+        self.debug and comment and log_debug(comment)
+        self.debug and log_debug("System Output - %s - Start" % (cmd))
         try:
             cmd = [str(c) for c in cmd]
             if not cmd[0].startswith('/') and path:
                 cmd[0] = path + cmd[0]
-            res = subprocess.check_output(cmd)
+            res = subprocess.check_output(cmd, shell=shell)
         except subprocess.CalledProcessError as e:
-            log_warning("Execute System Call %s failed[%s] :> %s" % (e.cmd, e.returncode, e.output))
+            log_warning("Execute System Output - %s - failed[%s] :> %s" % (e.cmd, e.returncode, e.output))
             return ''
         except Exception as e:
-            log_warning("Execute System Call %s failed with %s!" % (cmd, type(e).__name__))
+            log_warning("Execute System Output - %s - failed with %s!" % (cmd, type(e).__name__))
             return ''
-        if self.debug:
-            log_debug("System Call - %s - return %s" % (cmd, res))
+        self.debug and log_debug("System Output - %s - return %s" % (cmd, res))
         return res
     
     def localip2target(self, target):
@@ -141,6 +136,64 @@ class SystemCall(object):
         [{"Mask": "*", "HW address": "00:ec:ac:ce:80:8c", "IP address": "192.168.254.254", "HW type": "0x1", "Flags": "0x2", "Device": "eth0"}]
         '''
         arpt = {}
-        with SystemCallEnv('get arp entries', debug=False) as e:
+        with SystemCallEnv('get arp entries', debug=self.debug) as e:
             arpt = arptable.get_arp_table()
         return arpt
+    
+    def add_statistic(self, *args):
+        '''Add iptables entries to trace throughput of a client
+        :params : (ip, mac)
+        '''
+        ip, mac = args
+        self._call(['iptables', '-t', 'mangle', '-A', 'statistic', '-s', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
+        self._call(['iptables', '-t', 'mangle', '-A', 'statistic', '-d', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
+
+    def del_statistic(self, *args):
+        '''Del iptables entries to trace throughput of a client
+        :params : (ip, mac)
+        '''
+        ip, mac = args
+        self._call(['iptables', '-t', 'mangle', '-D', 'statistic', '-s', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
+        self._call(['iptables', '-t', 'mangle', '-D', 'statistic', '-d', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
+    
+    def get_statistic_counters(self):
+        '''
+        INPUT:
+        Chain statistic (1 references)
+        pkts bytes target     prot opt in     out     source               destination         
+            0     0 RETURN     all  --  *      *       172.16.100.168       0.0.0.0/0                  /* 00:0e:c6:d0:ec:a8 */
+            0     0 RETURN     all  --  *      *       0.0.0.0/0            172.16.100.168          /* 00:0e:c6:d0:ec:a8 */
+        After csv:
+        [
+        {'opt': '--', 'destination': '0.0.0.0/0', 'target': 'RETURN', 'prot': 'all', 'bytes': '0', 'source': '172.16.100.168', None: [''], 'in': '*', 'pkts': '0', 'out': '*'}, 
+        {'opt': '--', 'destination': '172.16.100.168', 'target': 'RETURN', 'prot': 'all', 'bytes': '0', 'source': '0.0.0.0/0', None: [''], 'in': '*', 'pkts': '0', 'out': '*'}
+        ]
+        :return:
+        {
+            mac1 : {'tx_bytes': ?, 'tx_pkts': ?, 'rx_bytes': ?, 'rx_pkts': ?, 'ip': x.x.x.x, 'ts':???},
+            ...,
+            macN : {'tx_bytes': ?, 'tx_pkts': ?, 'rx_bytes': ?, 'rx_pkts': ?, 'ip': x.x.x.x, 'ts':???},
+        }
+        '''
+        ts = int(time.time())
+        ipt = self._output(['iptables', '-t', 'mangle', '-L', 'statistic', '-vn'])
+        ipt = ipt.split('\n')[2:]
+
+        # iptables v1.4.21
+        names = ['pkts', 'bytes', 'target', 'prot', 'opt', 'in', 'out', 'source', 'destination', ]
+
+        reader = csv.DictReader(ipt, fieldnames=names, skipinitialspace=True, delimiter=' ')
+
+        total = [block for block in reader]
+
+        tx = {t[None][1]: {'tx_bytes': t['bytes'], 'tx_pkts': t['pkts'], 'ip': t['source'], 'ts': ts} for t in total if t['destination'] == '0.0.0.0/0'}
+        rx = {t[None][1]: {'rx_bytes': t['bytes'], 'rx_pkts': t['pkts'], 'ip': t['destination'], 'ts': ts} for t in total if t['source'] == '0.0.0.0/0'}
+        map(lambda mac: mac in rx and tx[mac].update(rx[mac]), tx)
+
+        return tx
+
+    def remove_out_of_statistic_data(self, filename, num):
+        files = self._output(['ls %s' % (filename)], shell=True).split('\n')
+        files = [f for f in files if f]
+        old = files[:-num]
+        map(lambda f: self._call(['rm', f]), old)

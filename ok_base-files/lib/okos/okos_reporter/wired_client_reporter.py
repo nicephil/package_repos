@@ -3,9 +3,10 @@ from okos_tools import *
 from constant import const
 
 class WiredClientReporter(Poster):
-    def __init__(self, mailbox, operate_type=const.CLIENT_ONLINE_STATUS_RESP_OPT_TYPE, name='WiredClientTimer', interval=60, debug=False):
-        super(WiredClientReporter, self).__init__(name, interval, mailbox, operate_type, repeated=True, debug=debug, pri=1)
+    def __init__(self, mailbox, operate_type=const.CLIENT_ONLINE_STATUS_RESP_OPT_TYPE, name='WiredClientTimer', interval=10, debug=False):
+        super(WiredClientReporter, self).__init__(name, interval, mailbox, operate_type, repeated=True, debug=debug, pri=5)
         self.debug = debug
+        self.syscall = SystemCall(debug=self.debug)
 
         with ArpDb(debug=self.debug) as arp_db:
             arp_db.create_table()
@@ -26,6 +27,9 @@ class WiredClientReporter(Poster):
             down = [a for a in old if a not in new]
             map(lambda x: x.setdefault('state', 1), down)
             map(lambda x: x.setdefault('state', 0), up)
+
+            map(lambda x: self.syscall.add_statistic(x['ip'], x['mac']), up)
+            map(lambda x: self.syscall.del_statistic(x['ip'], x['mac']), down)
             res = down + up
             X.output = res
             

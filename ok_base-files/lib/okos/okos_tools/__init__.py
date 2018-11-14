@@ -1,5 +1,5 @@
 from okos_env import ExecEnv, SystemCall
-from envelope import Envelope, OakmgrEnvelope
+from envelope import Envelope
 
 from okos_logger import okos_system_log_info, okos_system_log_warn, okos_system_log_err
 from okos_logger import log_debug, log_info, log_warning, log_err, log_crit

@@ -8,3 +8,6 @@
 
 iptables -t mangle -A FORWARD -o t_+ -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1452
 iptables -t mangle -A FORWARD -i t_+ -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1452
+
+iptables -t mangle -N statistic
+iptables -t mangle -I FORWARD -j statistic

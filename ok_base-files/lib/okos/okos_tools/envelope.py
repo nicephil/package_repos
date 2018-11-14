@@ -12,11 +12,11 @@ class Envelope(object):
             'operate_type': operate_type,
         }
 
-    def go(self, json_data, cookie_id=0, queue=const.STATUS_Q, pri=0):
+    def go(self, json_data, cookie_id=0, queue=const.STATUS_Q, pri=0, timestamp=None):
         if not json_data:
             return
         self.msg['cookie_id'] = cookie_id
-        self.msg['timestamp'] = int(time.time())
+        self.msg['timestamp'] = timestamp or int(time.time())
         self.msg['data'] = json.dumps(json_data)
         self.mailbox.pub(queue, (pri or self.pri, self.msg), timeout=self.timeout)
 

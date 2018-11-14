@@ -5,6 +5,14 @@ from envelope import Envelope
 
 
 class Timer(object):
+    '''
+    This is basic class of timer. You can control:
+    1) whether it is repeatable;
+    2) whether you want to kickoff it right now;
+    3) Interval of the timer
+    Usage:
+    Timer('GoodBoy', interval=100, repeated=True, Now=False, debug=True)
+    '''
     def __init__(self, name='', interval=60, repeated=False, now=True, debug=False):
         super(Timer, self).__init__()
         self.name = name
@@ -36,6 +44,14 @@ class Timer(object):
 
 
 class Poster(Timer):
+    '''
+    This timer is used to report message to SDC. So, beside the basic timer,
+    It is added an Envelop object to help package and send message to SDC.
+    So, you have to add parameters:
+    1) mailbox object you want to use;
+    2) operate_type: Such as the destination address of a mail.
+    3) priority of the message, you can identify priority when sending either.
+    '''
     def __init__(self, name, interval, mailbox, operate_type, repeated=False, pri=200, debug=False):
         super(Poster, self).__init__(name=name, interval=interval, repeated=repeated, debug=debug)
         self.env = Envelope(mailbox, operate_type=operate_type, pri=pri)
@@ -43,15 +59,35 @@ class Poster(Timer):
         def wrapper(*args, **kwargs):
             self.debug and log_debug('Timer %s start to execute:' % (self.name))
             if self.repeated:
-                res = self.handler(*args, **kwargs)
+                message = self.handler(*args, **kwargs)
                 self._timer = threading.Timer(self.interval, self.repeat())
                 self._timer.setName(self.name)
                 self.start()
             else:
-                res = self.handler(*args, **kwargs)
-            if res:
-                self.env.go(res)
-            return res
+                message = self.handler(*args, **kwargs)
+            message and self.env.go(message)
+            return message
+        return wrapper
+
+class InTimePoster(Timer):
+    '''
+    This is a special Poster to let you identify the timestamp of the sending message.
+    '''
+    def __init__(self, name, interval, mailbox, operate_type, repeated=False, pri=200, debug=False):
+        super(InTimePoster, self).__init__(name=name, interval=interval, repeated=repeated, debug=debug)
+        self.env = Envelope(mailbox, operate_type=operate_type, pri=pri)
+    def repeat(self):
+        def wrapper(*args, **kwargs):
+            self.debug and log_debug('Timer %s start to execute:' % (self.name))
+            if self.repeated:
+                message, ts = self.handler(*args, **kwargs)
+                self._timer = threading.Timer(self.interval, self.repeat())
+                self._timer.setName(self.name)
+                self.start()
+            else:
+                message, ts = self.handler(*args, **kwargs)
+            message and self.env.go(message, timestamp=ts)
+            return message
         return wrapper
 
 
