@@ -25,6 +25,7 @@ alias ipt='iptables -tfilter'
 alias ipn='iptables -tnat'
 alias ipm='iptables -tmangle'
 alias ipr='iptables -traw'
+export XTABLES_LIBDIR="/usr/lib/"
 
 [ -z "$KSH_VERSION" -o \! -s /etc/mkshrc ] || . /etc/mkshrc
 
