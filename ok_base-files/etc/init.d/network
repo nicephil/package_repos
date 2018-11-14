@@ -28,6 +28,7 @@ start() {
 }
 
 restart() {
+    /sbin/wifi down
 	ifdown -a
 	start
 }
