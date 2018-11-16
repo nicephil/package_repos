@@ -222,5 +222,20 @@ class MacAddress(object):
         return self._format_mac(self.mac, '-')
 
 def dev2vlan(dev):
+    '''
+    'eth0.300' => (eth0, 300)
+    '''
     t = dev.split('.')
-    return (1 in t) and t[1] or '0'
+    len(t) == 1 and t.append('0')
+    return t
+
+def clients_output_fmt(x, ts=None):
+    ifname, vlan = dev2vlan(x['device'])
+    return {
+        'state': x.setdefault('state', 0),
+        'mac': x['mac'],
+        'ip': x['ip'],
+        'timestamp': ts or x.setdefault('timestamp', 0),
+        'vlan': vlan,
+        'interface_name': ifname,
+    }

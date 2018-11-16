@@ -13,7 +13,7 @@ from okos_utils import set_capwapc, get_capwapc, get_productinfo
 from okos_utils import get_ddns_status, get_file_md5sum, get_redirector_key
 from okos_utils import post_url, get_url, daemonlize
 from okos_utils import MacAddress
-from okos_utils import dev2vlan
+from okos_utils import dev2vlan, clients_output_fmt
 
 from uci import UbusEnv, UciSection, UciConfig, UciStatus, PRODUCT_INFO, CAPWAP_SERVER
 

@@ -21,13 +21,11 @@ class ClientStatistic(Poster):
 
     def _report(self):
         ts = int(time.time())
-        print 'dump statistic data to file'
         with open(self.dump_file_name.format(ts=ts), 'w+') as f:
             json.dump(self.cur_data, f)
         self.cur_data = {}
 
     def _period(self):
-        print 'rm out of data'
         self.syscall.remove_out_of_statistic_data(self.dump_file_name.format(ts='*'), self.max_period)
 
     def _sample(self):
@@ -38,13 +36,11 @@ class ClientStatistic(Poster):
         self._report()
         self.period = self.period < self.max_period and self.period+1 or 1
         self.period >= self.max_period and self._period()
-        print 'period: ', self.period
 
     def handler(self, *args, **kwargs):
         self._sample()
         self.counter = self.counter < self.max_counter and self.counter+1 or 1
         self.counter >= self.max_counter and self.report()
-        print 'counter: ', self.counter
         
 
 

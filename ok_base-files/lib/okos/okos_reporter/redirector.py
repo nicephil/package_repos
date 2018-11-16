@@ -33,7 +33,7 @@ class Redirector(Timer):
         url="http://{_server_ip}:{PORT}/redirector/v1/device/register/?key={KEY}".format(_server_ip=const.DEFAULT_ADDR,
                                                                                             PORT=const.DEFAULT_PORT,
                                                                                             KEY=key)
-        request_data = post_url(url, json_data=post_data, debug=True)
+        request_data = post_url(url, json_data=post_data, debug=self.debug)
         '''
         print request_data
         import random

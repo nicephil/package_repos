@@ -1,5 +1,6 @@
 import sqlite3
 from okos_tools import log_debug, log_err, MacAddress
+import time
 
 class ArpDb(object):
     DBNAME = '/tmp/run/arp_table.db'
@@ -32,27 +33,46 @@ class ArpDb(object):
         sql = sql or """CREATE TABLE IF NOT EXISTS {tb_name} (
                                 mac char(12) PRIMARY KEY,
                                 ipaddr text NOT NULL,
-                                device text NOT NULL
+                                device text NOT NULL,
+                                timestamp INTEGER NOT NULL
                                 );""".format(tb_name=ArpDb.TABLE_NAME)
         self.cur.execute(sql)
         log_debug('[%s] <%s> created by "%s"' % (ArpDb.DESC, ArpDb.DBNAME, sql))
     
-    def get_all(self):
+    def get_all(self, timestamp=False):
         '''return all the arp entries from database
-        :return: a list of dict {'mac':..., 'ip':..., 'device':...}
+        :return: a list of dict {'mac':..., 'ip':..., 'device':..., 'timestamp':...,}
         '''
-        sql = '''SELECT mac,ipaddr,device FROM {tb_name}'''.format(tb_name=ArpDb.TABLE_NAME)
+        sql = '''SELECT mac,ipaddr,device,timestamp FROM {tb_name}'''.format(tb_name=ArpDb.TABLE_NAME)
         self.cur.execute(sql)
         res = self.cur.fetchall()
-        return [{'mac':r[0], 'ip':r[1], 'device':r[2]} for r in res]
+        if timestamp:
+            return [{'mac':r[0], 'ip':r[1], 'device':r[2], 'timestamp':r[3]} for r in res]
+        else:
+            return [{'mac':r[0], 'ip':r[1], 'device':r[2]} for r in res]
 
-    def update_all(self, arps):
+    def update_all(self, arps, ts=None):
         ''' update all the arp entris in the database
-        :param arps: a list of dict {'mac':..., 'ip':..., 'device':...}
+        :param arps: a list of dict {'mac':..., 'ip':..., 'device':...,}
         '''
-        arps = [(a['mac'], a['ip'], a['device']) for a in arps]
-        self.conn.execute('DELETE from {tab}'.format(tab=ArpDb.TABLE_NAME))
-        update = lambda e: self.conn.execute("INSERT INTO {tab} (MAC, IPADDR, DEVICE) VALUES(?,?,?)".format(tab=ArpDb.TABLE_NAME), e)
-        map(update, arps)
+        self.cur.execute('DELETE from {tab}'.format(tab=ArpDb.TABLE_NAME))
+
+        millis = ts or int(round(time.time() * 1000))
+        entries = [(a['mac'], a['ip'], a['device'], millis) for a in arps]
+        self.cur.executemany("INSERT INTO {tab} (MAC, IPADDR, DEVICE, TIMESTAMP) VALUES(?,?,?,?)".format(tab=ArpDb.TABLE_NAME), entries)
         self.conn.commit()
         self.debug and log_debug('[%s] insert %s into db <%s>' % (ArpDb.DESC, arps, ArpDb.TABLE_NAME))
+    
+    def remove_olds(self, arps):
+        macs = [(arp['mac'],) for arp in arps]
+        self.cur.executemany('DELETE from {tab} where MAC = ?'.format(tab=ArpDb.TABLE_NAME), macs)
+        self.conn.commit()
+        self.debug and log_debug('[%s] remove %s from db <%s>' % (ArpDb.DESC, macs, ArpDb.TABLE_NAME))
+
+    def add_news(self, arps, ts=None):
+        millis = ts or int(round(time.time() * 1000))
+        entries = [(arp['mac'], arp['ip'], arp['device'], millis) for arp in arps]
+        self.cur.executemany("INSERT INTO {tab} (MAC, IPADDR, DEVICE, TIMESTAMP) VALUES(?,?,?,?)".format(tab=ArpDb.TABLE_NAME), entries)
+        self.conn.commit()
+        self.debug and log_debug('[%s] insert %s into db <%s>' % (ArpDb.DESC, arps, ArpDb.TABLE_NAME))
+        

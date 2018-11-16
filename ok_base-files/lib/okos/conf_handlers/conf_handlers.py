@@ -14,23 +14,27 @@ import struct
 import ubus
 
 class ConfHandler(object):
-    def __init__(self, mailbox, request_id, response_id, pri=1, debug=False):
+    def __init__(self, mailbox, request_id, response_id, pri=1, debug=False, name='ConfHandler'):
         super(ConfHandler, self).__init__()
+        self.name = name
         self.request_id = request_id
         self.response_id = response_id
         self.env = Envelope(mailbox, operate_type=response_id, pri=pri)
         self.debug = debug
     def handler(self, request):
+        self.debug and log_debug('[%s] request - start -' % (self.name))
         res = self._handler(request)
         if res:
             self.env.go(res, request['cookie_id'])
+            self.debug and log_debug('[%s] reply - sent out - with <%s>' % (self.name, res))
+        self.debug and log_debug('[%s] request - done -' % (self.name))
     def _handler(self, request):
         pass
 
 
 class ConfRequest(ConfHandler):
     def __init__(self, mailbox):
-        super(ConfRequest, self).__init__(mailbox, const.DEV_CONF_OPT_TYPE, const.DEV_CONF_RESP_OPT_TYPE)
+        super(ConfRequest, self).__init__(mailbox, const.DEV_CONF_OPT_TYPE, const.DEV_CONF_RESP_OPT_TYPE, name='ConfRequest')
     def _handler(self, request):
         self.confinfo_data = set_whole_confinfo(request['data'])
         okos_system_log_info("configuration data obtained")
@@ -48,7 +52,7 @@ class ConfRequest(ConfHandler):
 
 class WebUiConf(ConfHandler):
     def __init__(self, mailbox):
-        super(WebUiConf, self).__init__(mailbox, const.DEV_WEBUI_CONF_REQ_OPT_TYPE, const.DEV_WEBUI_CONF_RESP_OPT_TYPE)
+        super(WebUiConf, self).__init__(mailbox, const.DEV_WEBUI_CONF_REQ_OPT_TYPE, const.DEV_WEBUI_CONF_RESP_OPT_TYPE, name='WebUiConf')
     def _handler(self, request):
         json_data = {}
         try:
@@ -106,7 +110,7 @@ class WebUiConf(ConfHandler):
 
 class Diag(ConfHandler):
     def __init__(self, mailbox):
-        super(Diag, self).__init__(mailbox, const.DEV_DIAG_REQ_OPT_TYPE, const.DEV_DIAG_RESP_OPT_TYPE)
+        super(Diag, self).__init__(mailbox, const.DEV_DIAG_REQ_OPT_TYPE, const.DEV_DIAG_RESP_OPT_TYPE, name='Diag')
     def _handler(self, request):
         '''
         name: e0
@@ -222,7 +226,7 @@ class Diag(ConfHandler):
 
 class Reboot(ConfHandler):
     def __init__(self, mailbox):
-        super(Reboot, self).__init__(mailbox, const.DEV_REBOOT_OPT_TYPE, 0)
+        super(Reboot, self).__init__(mailbox, const.DEV_REBOOT_OPT_TYPE, 0, name='Reboot')
     def _handler(self, request):
         okos_system_log_info("device is reset from nms request")
         time.sleep(5)
@@ -230,7 +234,7 @@ class Reboot(ConfHandler):
 
 class Upgrade(ConfHandler):
     def __init__(self, mailbox):
-        super(Upgrade, self).__init__(mailbox, const.DEV_UPGRADE_REQ_OPT_TYPE, const.DEV_UPGRADE_RESP_OPT_TYPE)
+        super(Upgrade, self).__init__(mailbox, const.DEV_UPGRADE_REQ_OPT_TYPE, const.DEV_UPGRADE_RESP_OPT_TYPE, name='Upgrade')
     def _handler(self, request):
         ret = 0
         data = json.loads(request['data'], encoding='utf-8')
