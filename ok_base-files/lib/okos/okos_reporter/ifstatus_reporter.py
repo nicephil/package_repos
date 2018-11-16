@@ -77,6 +77,12 @@ class IfStatusReporter(Poster):
                     ifx.update(ifs_next[ifname])
 
         def abstract_link_status(ifx_output):
+            if not ifx_output['ifname'] in interfaces:
+                ifx_output['state'] = ifx_output['physical_state'] =  0
+                ifx_output['proto'] = 'none'
+                ifx_output['status'] = 0 # It's admin state
+                ifx_output['ip_type'] = -1
+                return
             ifx_input = interfaces[ifx_output['ifname']]
             ifx_output['state'] = ifx_output['physical_state'] = ifx_input.setdefault('carrier', False) and 1 or 0
             ifx_output['proto'] = ifx_input.setdefault('proto','none')
@@ -87,6 +93,11 @@ class IfStatusReporter(Poster):
 
         p = re.compile('^([0-9]+)([FH])$')
         def abstract_speed(ifx_output):
+            if not ifx_output['ifname'] in interfaces:
+                ifx_output['uptime'] = 0
+                ifx_output['bandwidth'] = 100
+                ifx_output['duplex'] = 1
+                return
             ifx_input = interfaces[ifx_output['ifname']]
             if ifx_output['status'] and 'uptime' in ifx_input:
                 ifx_output['uptime'] = ifx_input['uptime']
@@ -102,6 +113,8 @@ class IfStatusReporter(Poster):
         def abstract_ip_setting(ifx_output):
             ifname = ifx_output['ifname']
             with IfStateEnv('IP Setting on %s' % (ifname), debug=self.debug):
+                if not ifx_output['ifname'] in interfaces:
+                    return
                 ifx_input = interfaces[ifname]
                 if ifx_output['status']:
                     ifx_output['dnss'] = ','.join([dns for dns in ifx_input.setdefault('dns-server', [])])
