@@ -56,11 +56,11 @@ while [ -n "$1" ]; do
     esac
 done
 
-echo "parameter parsed successfully"
+#echo "parameter parsed successfully"
 
 _del_ddns()
 {
-    echo "remove ${id}"
+    #echo "remove ${id}"
     uci get ddns.${id} >/dev/null 2>&1
     [ "$?" == 0 ] && uci del ddns.${id}
 }
@@ -70,7 +70,7 @@ add_ddns()
     _del_ddns
 
     [ -z "${provider}" -o -z "${domainname}" -o -z "${username}" -o -z "${password}" ] && help && exit 1
-    echo "checking ${provider}"
+    #echo "checking ${provider}"
     case "${provider}" in
         oray.com) ip_url="http://ddns.oray.com/checkip";update_url="http://[USERNAME]:[PASSWORD]@ddns.oray.com/ph/update?hostname=[DOMAIN]&myip=[IP]";;
         3322.org) service="$provider";ip_url="http://ip.3322.org";;
