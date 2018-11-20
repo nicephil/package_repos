@@ -1,74 +1,58 @@
 #!/usr/bin/env python
 
-from cfg_object import CfgObj
-from okos_tools import log_debug, log_info, log_warning, log_err, log_crit
+from cfg_object import CfgObj, ConfigParseEnv, ParameterChecker, ConfigInputEnv
+from okos_tools import *
 
 class CfgDDNS(CfgObj):
-    def __init__(self):
-        super(CfgDDNS, self).__init__('provider')
+    def __init__(self, entry=None):
+        super(CfgDDNS, self).__init__(differ='id')
+        entry and self.data.update(entry)
 
+    @logcfg
     def parse(self, j):
-        ddnss = j['network']['ddnss']
+        ddnss = j['network'].setdefault('ddnss',[])
+        with ConfigParseEnv(ddnss, 'DDNS configuration'):
+            res = [CfgDDNS(ddns) for ddns in ddnss]
         res = [CfgDDNS() for d in ddnss]
-        for i,r in enumerate(res):
-            d = r.data
-            d['provider'] = ddnss[i]['provider']
-            d['hostname'] = ddnss[i]['hostname']
-            d['username'] = ddnss[i]['username']
-            d['password'] = ddnss[i]['password']
+
+    @logcfg
+    def add(self):
+        new = self.data
+        checker = ParameterChecker(new)
+        with ConfigInputEnv(new, 'DDNS config'):
+            checker['id'] = (None, None)
+            checker['interface_name'] = (None, None)
+            checker['ip'] = (self._check_ipaddr_, None)
+            checker['provider'] = (None, None)
+            checker['hostname'] = (None, None)
+            checker['username'] = (None, None)
+            checker['password'] = (None, None)
+        cmd = ['set_ddns.sh', 'set', checker['id'], '-S']
+        cmd += ['--provider', checker['provider'], '--hostname', checker['hostname'],
+                '--username', checker['username'], '--password', checker['password'],
+                '--interface_name', checker['interface_name'], '--ip', checker['ip'],
+                ]
+        res = self.doit(cmd, 'DDNS entry added')                
         return res
 
-    def add(self):
-        log_debug("add")
-        if not self.data['provider'] or not self.data['username'] or not self.data['password'] or not self.data['hostname']:
-            return False
-        try:
-            # 1. disabled all existing service
-            signa = {
-                'config':'ddns',
-                'type':'service',
-                'values':{
-                    'enabled':0
-                }
-            }
-            ubus.call('uci', 'set', signa)
-            # 2. enabled specific provider
-            signa['section'] = self.data['provider'].replace('.','_')
-            signa['values'] = {
-                'username':self.data['username'],
-                'password':self.data['password'],
-                'domain':self.data['hostname'],
-                'enabled':1
-            }
-            ubus.call('uci','set',signa)
-            # 3. commit the change
-            signa={'config':'ddns'}
-            ubus.call('uci', 'commit', signa)
-
-        except Exception, e:
-            log_err("add ddns gets failed,{}".format(e))
-            return False
-        return True
-
+    @logcfg
     def change(self):
-        log_debug("change")
         self.add()
         return True
 
+    @logcfg
     def remove(self):
-        log_debug("remove")
+        old = self.data
+        checker = ParameterChecker(old)
+        with ConfigInputEnv(old, 'DDNS entry remove'):
+            checker['id'] = (None, None)
+        cmd = ['set_ddns.sh', 'del', checker['id'], '-S']
+        res = self.doit(cmd, 'DDNS Entry Removed')                
+        return res
 
+    @logcfg
     def post_run(self):
-        log_debug('post_run')
-        self.restart_service()
+        self.doit(['/etc/init.d/ddns', 'reload'], 'Restart ddns', path='')
         return True
 
-    def restart_service(self):
-        log_debug("post_run")
-        cmd = "/etc/init.d/ddns restart"
-        ret = subprocess.call(cmd, shell=True)
-        if ret == 0:
-            return True
-        else:
-            return False
 

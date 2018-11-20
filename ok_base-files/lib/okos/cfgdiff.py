@@ -20,7 +20,7 @@ class OakmgrCfg(object):
             CfgDhcpOption(),
             CfgDone(),
             CfgSiteToSiteVPN(),
-            #CfgDDNS(),
+            CfgDDNS(),
             ]
     def __init__(self, f=''):
         super(OakmgrCfg, self).__init__()

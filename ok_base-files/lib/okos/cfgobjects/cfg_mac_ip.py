@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from cfg_object import CfgObj, ConfigInputEnv, ConfigParseEnv, ConfigParaCheckEnv, ExceptionConfigParaError, ParameterChecker
-from okos_tools import logcfg, logchecker
+from okos_tools import *
 from constant import const
 
 class CfgMacIpBinding(CfgObj):
@@ -19,7 +19,7 @@ class CfgMacIpBinding(CfgObj):
     def add(self):
         new = self.data
         checker = ParameterChecker(new)
-        with ConfigInputEnv(new, 'MAC IP binding configuration'):
+        with ConfigInputEnv(new, 'MAC IP binding config'):
             checker['id'] = (self._check_simple_id_, None)
             checker['mac'] = (self._check_mac_, None)
             checker['ip'] = (self._check_ipaddr_, None)

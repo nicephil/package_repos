@@ -8,4 +8,4 @@ from cfg_dhcp_option import CfgDhcpOption
 from cfg_done import CfgDone
 from cfg_site_to_site_vpn import CfgSiteToSiteVPN
 from cfg_kickoff import CfgKickoff
-#from cfg_ddns import CfgDDNS
+from cfg_ddns import CfgDDNS

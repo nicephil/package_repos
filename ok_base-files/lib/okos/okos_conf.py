@@ -17,7 +17,7 @@ class ConfMgr(threading.Thread):
         self._register(Reboot(self.mailbox))
         self._register(Diag(self.mailbox))
         self._register(Upgrade(self.mailbox))
-        self._register(QueryWiredClients(self.mailbox, debug=True))
+        self._register(QueryWiredClients(self.mailbox))
         
         self.timers = [
         ]

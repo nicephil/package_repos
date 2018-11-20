@@ -8,7 +8,7 @@ from constant import const
 from okos_conf import ConfMgr
 import socket
 import json
-from okos_reporter import *
+from okos_timers import *
 import time
 
 class Oakmgr(object):
@@ -97,7 +97,7 @@ class PostMan(threading.Thread):
             Site2SiteVpnReporter(mailbox, interval=60, debug=False), 
             IfStatusReporter(mailbox, interval=60, debug=False), 
             DeviceReporter(mailbox, interval=60, debug=False),
-            WiredClientReporter(mailbox, interval=10, debug=True),
+            WiredClientReporter(mailbox, interval=10, debug=False),
             #ClientStatistic(mailbox, interval=5, debug=True)
         ]
 
