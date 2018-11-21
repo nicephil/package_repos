@@ -5,6 +5,6 @@ SUBSYSTEM ~~ (^net$|^input$|button$|^usb$|^ieee1394$|^block$|^atm$|^zaptel$|^tty
 }
 
 DEVICENAME == watchdog {
-	exec /bin/nice -n 20 /sbin/watchdog -T 600000 -t 5 /dev/watchdog
+	exec /bin/nice -n 20 /sbin/watchdog -T 120 -t 5 /dev/watchdog
 	next-event
 }
