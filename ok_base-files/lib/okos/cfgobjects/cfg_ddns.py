@@ -30,7 +30,7 @@ class CfgDDNS(CfgObj):
         cmd = ['set_ddns.sh', 'set', checker['id'], '-S']
         cmd += ['--provider', checker['provider'], '--hostname', checker['hostname'],
                 '--username', checker['username'], '--password', checker['password'],
-                '--interface_name', checker['interface_name'], '--ip', checker['ip'],
+                '--interface_name', checker['interface_name'], '--ipaddr', checker['ip'],
                 ]
         res = self.doit(cmd, 'DDNS entry added')                
         return res

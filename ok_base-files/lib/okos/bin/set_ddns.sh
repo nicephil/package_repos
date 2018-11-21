@@ -5,10 +5,11 @@ help()
     cat <<_HELP_
 Setup/Remove DDNS
 
-Usage:  $0 {set|del} ID [--provider PROVIDER] [--username STRING] [--password STRING]
+Usage:  $0 {set|del|stat} ID [--provider PROVIDER] [--username STRING] [--password STRING]
                         [--domainname STRING] [--interface INTERFACE] [-S]
                         [--ipaddr x.x.x.x]
         $0 del ID
+        $0 stat ID [--domainname STRING] [--ipaddr x.x.x.x]
         $0 set ID [--provider PROVIDER] [--username STRING] [--password STRING]
                   [--domainname STRING] [--interface INTERFACE] [-S]
                   [--ipaddr x.x.x.x]
@@ -33,11 +34,12 @@ _HELP_
 case "$1" in
     set) cmd="$1";;
     del) cmd="$1";;
+    stat) cmd="$1";;
     *) help;exit 1;;
 esac
 shift 1
 
-echo 'Caller MUST ensure that ID is unique.'
+#echo 'Caller MUST ensure that ID is unique.'
 id="$1"
 shift 1
 
@@ -109,9 +111,30 @@ del_ddns()
     _del_ddns
 }
 
+stat_ddns()
+{
+    grep -i 'failed' /var/run/ddns/${id}.err > /dev/null 2>&1
+    if [ "$?" == 0 ]; then
+        echo 'fail'
+        exit 0
+    fi
+    egrep "good|nochg" /var/run/ddns/${id}.dat > /dev/null 2>&1
+    if [ "$?" == 0 ]; then
+        echo 'success'
+        exit 0
+    fi
+    if [ -n "${}" -a -n "${}" ]; then
+        echo 'success'
+    else
+        echo 'success'
+    fi
+    exit 0
+}
+
 case "$cmd" in
     set) add_ddns;;
     del) del_ddns;;
+    stat) stat_ddns;;
     *) help;exit 1;;
 esac
 uci commit ddns
