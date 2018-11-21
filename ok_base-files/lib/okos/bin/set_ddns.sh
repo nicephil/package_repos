@@ -123,7 +123,7 @@ stat_ddns()
         echo 'success'
         exit 0
     fi
-    if [ -n "${}" -a -n "${}" ]; then
+    if [ -n "${domainname}" -a -n "${ipaddr}" ]; then
         echo 'success'
     else
         echo 'success'

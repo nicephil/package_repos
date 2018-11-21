@@ -26,13 +26,16 @@ class OakmgrCfg(object):
         super(OakmgrCfg, self).__init__()
         self.source = f
         self.objects = None
-        try:
-            with open(f, 'r') as cfg:
-                fcntl.flock(cfg.fileno(), fcntl.LOCK_SH)
-                j_str = cfg.read()
-                self._json = json.loads(j_str, encoding='utf-8')
-        except Exception as e:
-            log_info("import json data failed!")
+        if self.source:
+            try:
+                with open(f, 'r') as cfg:
+                    fcntl.flock(cfg.fileno(), fcntl.LOCK_SH)
+                    j_str = cfg.read()
+                    self._json = json.loads(j_str, encoding='utf-8')
+            except Exception as e:
+                log_info("import json data failed! %s" % (f))
+                self._json = {}
+        else:
             self._json = {}
 
 

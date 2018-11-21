@@ -18,6 +18,7 @@ class ConfMgr(threading.Thread):
         self._register(Diag(self.mailbox))
         self._register(Upgrade(self.mailbox))
         self._register(QueryWiredClients(self.mailbox))
+        self._register(DdnsTest(self.mailbox, debug=True))
         
         self.timers = [
         ]
@@ -26,19 +27,19 @@ class ConfMgr(threading.Thread):
     
     def run(self):
         '''
+{
+    "mac" : "000C2932A423",
+    "delay" : 10,
+    "list" : [
         {
-            "mac" : "000C2932A423",
-            "delay" : 10,
-            "list" : [
-                {
-                    "operate_type" : 3102,
-                    "cookie_id" : 1234,
-                    "timestamp" : 2222222,
-                    "data" : "{\"url\" : \"http://image.oakridge.vip/images/x86_gw/sysloader/v2.433.2_bin.app\", \"timeout\" : 60}"
-                }
-            ],
-            'errorcode': 1002,
+            "operate_type" : 3102,
+            "cookie_id" : 1234,
+            "timestamp" : 2222222,
+            "data" : "{\"url\" : \"http://image.oakridge.vip/images/x86_gw/sysloader/v2.433.2_bin.app\", \"timeout\" : 60}"
         }
+    ],
+    'errorcode': 1002
+}
         '''
         map(lambda x: x.start(), self.timers)
 

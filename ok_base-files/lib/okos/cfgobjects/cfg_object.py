@@ -216,16 +216,16 @@ class ParameterChecker(object):
 
 
 class ConfigInputEnv(ExecEnv):
-    def __init__(self, cfg, desc=''):
-        super(ConfigInputEnv, self).__init__('Config Input', cfg, desc)
+    def __init__(self, cfg, desc='', debug=False):
+        super(ConfigInputEnv, self).__init__('Config Input', cfg, desc, debug=debug)
 
 class ConfigParseEnv(ExecEnv):
-    def __init__(self, json, desc=''):
-        super(ConfigParseEnv, self).__init__('Config Parse', json, desc)
+    def __init__(self, json, desc='', debug=False):
+        super(ConfigParseEnv, self).__init__('Config Parse', json, desc, debug=debug)
 
 class ConfigParaCheckEnv(ExecEnv):
-    def __init__(self, para, desc=''):
-        super(ConfigParaCheckEnv, self).__init__('Config Check', para, desc)
+    def __init__(self, para, desc='', debug=False):
+        super(ConfigParaCheckEnv, self).__init__('Config Check', para, desc, debug=debug)
     def __exit__(self, exception_type, value, traceback):
         if exception_type == 'ExceptionConfigParaError':
             log_warning('[%s] %s - faied (%s) -' % (self.prefix, self.desc, value))

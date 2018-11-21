@@ -11,15 +11,15 @@ class CfgDDNS(CfgObj):
     @logcfg
     def parse(self, j):
         ddnss = j['network'].setdefault('ddnss',[])
-        with ConfigParseEnv(ddnss, 'DDNS configuration'):
+        with ConfigParseEnv(ddnss, 'DDNS configuration', debug=True):
             res = [CfgDDNS(ddns) for ddns in ddnss]
-        res = [CfgDDNS() for d in ddnss]
+        return res
 
     @logcfg
     def add(self):
         new = self.data
         checker = ParameterChecker(new)
-        with ConfigInputEnv(new, 'DDNS config'):
+        with ConfigInputEnv(new, 'DDNS config', debug=True):
             checker['id'] = (None, None)
             checker['interface_name'] = (None, None)
             checker['ip'] = (self._check_ipaddr_, None)
@@ -28,9 +28,9 @@ class CfgDDNS(CfgObj):
             checker['username'] = (None, None)
             checker['password'] = (None, None)
         cmd = ['set_ddns.sh', 'set', checker['id'], '-S']
-        cmd += ['--provider', checker['provider'], '--hostname', checker['hostname'],
+        cmd += ['--provider', checker['provider'], '--domainname', checker['hostname'],
                 '--username', checker['username'], '--password', checker['password'],
-                '--interface_name', checker['interface_name'], '--ipaddr', checker['ip'],
+                '--interface', checker['interface_name'], '--ipaddr', checker['ip'],
                 ]
         res = self.doit(cmd, 'DDNS entry added')                
         return res

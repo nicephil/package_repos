@@ -24,7 +24,7 @@ class DdnsTest(ConfHandler):
         new = json.loads(request['data'], encoding='utf-8')
         checker = ParameterChecker(new)
         test_id = 'okos_ddns_test'
-        with ConfigInputEnv(new, 'DDNS test'):
+        with ConfigInputEnv(new, 'DDNS test', debug=self.debug):
             #checker['id'] = (None, None)
             checker['interface_name'] = (None, None)
             checker['ip'] = (None, None)
@@ -33,13 +33,13 @@ class DdnsTest(ConfHandler):
             checker['username'] = (None, None)
             checker['password'] = (None, None)
         cmd = ['set_ddns.sh', 'set', test_id, '-S']
-        cmd += ['--provider', checker['provider'], '--hostname', checker['hostname'],
+        cmd += ['--provider', checker['provider'], '--domainname', checker['hostname'],
                 '--username', checker['username'], '--password', checker['password'],
-                '--interface_name', checker['interface_name'], '--ipaddr', checker['ip'],
+                '--interface', checker['interface_name'], '--ipaddr', checker['ip'],
                 ]
         self.syscall._call(cmd, comment='DDNS entry test - add -', path=const.CONFIG_BIN_DIR)
-        cmd = ['set_ddns.sh', 'stat', test_id, '-S', '--hostname', checker['hostname'], '--ipaddr', checker['ip'],]
+        cmd = ['set_ddns.sh', 'stat', test_id, '-S', '--domainname', checker['hostname'], '--ipaddr', checker['ip'],]
         res = self.syscall._output(cmd, comment='DDNS entry test - stat check -', path=const.CONFIG_BIN_DIR)
         cmd = ['set_ddns.sh', 'del', test_id, '-S']
         self.syscall._call(cmd, comment='DDNS entry test - del -', path=const.CONFIG_BIN_DIR)
-        return {'error_code': res == 'success' and '1' or '0'}
+        return {'error_code': 'success' in res and '0' or '1'}
