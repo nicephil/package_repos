@@ -54,7 +54,8 @@ class Poster(Timer):
     '''
     def __init__(self, name, interval, mailbox, operate_type, repeated=False, pri=200, debug=False):
         super(Poster, self).__init__(name=name, interval=interval, repeated=repeated, debug=debug)
-        self.env = Envelope(mailbox, operate_type=operate_type, pri=pri)
+        self.env = Envelope(mailbox, operate_type=operate_type, pri=pri, debug=debug)
+        self.debug = debug
     def repeat(self):
         def wrapper(*args, **kwargs):
             self.debug and log_debug('Timer %s start to execute:' % (self.name))

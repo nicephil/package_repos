@@ -65,7 +65,10 @@ def set_whole_confinfo(str):
         f.truncate()
         f.write(str)
         f.flush()
-    confinfo_data = json.loads(str, encoding='utf-8')
+    try:
+        confinfo_data = json.loads(str, encoding='utf-8')
+    except Exception as _:
+        confinfo_data = {}
     return confinfo_data
 
 def rollback_whole_confinfo():
@@ -76,14 +79,20 @@ def rollback_whole_confinfo():
         f.truncate()
         f.write(str)
         f.flush()
-    confinfo_data = json.loads(str, encoding='utf-8')
+    try:
+        confinfo_data = json.loads(str, encoding='utf-8')
+    except Exception as _:
+        confinfo_data = {}
     return confinfo_data
 
 def get_whole_confinfo():
     with open(config_conf_file, 'r') as f:
         fcntl.flock(f.fileno(), fcntl.LOCK_SH)
         str = f.read()
-    confinfo_data = json.loads(str, encoding='utf-8')
+    try:
+        confinfo_data = json.loads(str, encoding='utf-8')
+    except Exception as _:
+        confinfo_data = {}
     return confinfo_data
 
 def get_ddns_status(provider):

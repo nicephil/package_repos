@@ -27,7 +27,7 @@ class DeviceReporter(Poster):
             data_json['product_name'] = productinfo_data['model']
 
             confinfo_data = get_whole_confinfo()
-            data_json['config_version'] = confinfo_data['config_version']
+            data_json['config_version'] = confinfo_data.setdefault('config_version', 0)
 
         with DeviceInfoEnv('Collect info for config_version_webui', debug=self.debug):
             #data_json['config_version_webui'] = ubus.call('uci', 'get', {"config":"system", "section":"@system[0]", "option":"config_version_webui"})[0]["value"]

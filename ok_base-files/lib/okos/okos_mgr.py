@@ -98,7 +98,8 @@ class PostMan(threading.Thread):
             IfStatusReporter(mailbox, interval=60, debug=False), 
             DeviceReporter(mailbox, interval=60, debug=False),
             WiredClientReporter(mailbox, interval=10, debug=False),
-            #ClientStatistic(mailbox, interval=5, debug=True)
+            #ClientStatistic(mailbox, interval=5, debug=True),
+            DdnsStateReporter(mailbox, interval=6, debug=True),
         ]
 
 

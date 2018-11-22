@@ -24,10 +24,10 @@ Usage:  $0 {set|del|stat} ID [--provider PROVIDER] [--username STRING] [--passwo
         --ipaddr x.x.x.x # IP Address corresponding to you DOMAIN NAME.
         -S # don't restart service
 Example:
-    $0 set 101_1 --provider 3322.org --domainname ak74.f3322.net --username root --password wangleih --interface wan --ipaddr 192.168.254.171
-    $0 del 101_1
-    $0 set 101_1 --provider oray.com --domainname ak74.f3322.net --username root --password wangleih --interface wan --ipaddr 192.168.254.171
-    $0 set 101_1 --provider zoneedit.com --domainname nicephil.oakridge.vip --username nicephil --password AE7889603A021CE0 --interface wan --ipaddr 192.168.254.171
+    $0 set 101 --provider 3322.org --domainname ak74.f3322.net --username root --password wangleih --interface wan --ipaddr 192.168.254.171
+    $0 del 101
+    $0 set 101 --provider oray.com --domainname ak74.f3322.net --username root --password wangleih --interface wan --ipaddr 192.168.254.171
+    $0 set 101 --provider zoneedit.com --domainname nicephil.oakridge.vip --username nicephil --password AE7889603A021CE0 --interface wan --ipaddr 192.168.254.171
     $0 set 2 --provider 3322.org --domainname largepuppet.f3322.net --username root --password largepuppet --interface wan --ipaddr 223.93.139.132
 _HELP_
 }
@@ -91,6 +91,7 @@ add_ddns()
     uci set ddns.${id}.interface="$interface"
     uci set ddns.${id}.allow_local_ip='1'
     uci set ddns.${id}.upd_privateip='1'
+    uci set ddns.${id}.use_logfile='1'
     uci set ddns.${id}.ip_source='script'
     uci set ddns.${id}.ip_script="/lib/okos/bin/ddns_ip_script.sh ${ipaddr}"
 #    if [ -z "$interface" ]; then
@@ -126,9 +127,9 @@ stat_ddns()
         exit 0
     fi
     if [ -n "${domainname}" -a -n "${ipaddr}" ]; then
-        echo 'success'
+        echo 'fail'
     else
-        echo 'success'
+        echo 'fail'
     fi
     exit 0
 }

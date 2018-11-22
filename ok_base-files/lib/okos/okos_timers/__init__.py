@@ -5,4 +5,5 @@ from ifstatus_reporter  import IfStatusReporter
 from device_reporter import DeviceReporter
 from redirector import Redirector
 from client_statistic import ClientStatistic
+from ddns_state import DdnsStateReporter
 
