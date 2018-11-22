@@ -16,7 +16,7 @@ Usage:  $0 {set|del|stat} ID [--provider PROVIDER] [--username STRING] [--passwo
 
         ID # use ID to identify each ddns configure entry. 
            # Caller MUST ensure it's unique.
-        --provider {oray.com|3322.org|zoneedit.com}
+        --provider {oray.com|3322.org|zoneedit.com|no-ip.com}
         --domainname STRING # The DNS/host name to update, this name must already be registered with the DDNS provider.
         --interface {wan|wan1|wan2}
         --username STRING # Username of your DDNS providers account
@@ -28,6 +28,7 @@ Example:
     $0 del 101_1
     $0 set 101_1 --provider oray.com --domainname ak74.f3322.net --username root --password wangleih --interface wan --ipaddr 192.168.254.171
     $0 set 101_1 --provider zoneedit.com --domainname nicephil.oakridge.vip --username nicephil --password AE7889603A021CE0 --interface wan --ipaddr 192.168.254.171
+    $0 set 2 --provider 3322.org --domainname largepuppet.f3322.net --username root --password largepuppet --interface wan --ipaddr 223.93.139.132
 _HELP_
 }
 
@@ -77,6 +78,7 @@ add_ddns()
         oray.com) ip_url="http://ddns.oray.com/checkip";update_url="http://[USERNAME]:[PASSWORD]@ddns.oray.com/ph/update?hostname=[DOMAIN]&myip=[IP]";;
         3322.org) service="$provider";ip_url="http://ip.3322.org";;
         zoneedit.com) service="$provider";ip_url="http://wtfismyip.com/text";;
+        no-ip.com) service="$provider";;
         *) help;exit 1;;
     esac
 
