@@ -39,6 +39,7 @@ class DdnsTest(ConfHandler):
                 ]
         self.syscall._call(cmd, comment='DDNS entry test - add -', path=const.CONFIG_BIN_DIR)
         cmd = ['set_ddns.sh', 'stat', test_id, '-S', '--domainname', checker['hostname'], '--ipaddr', checker['ip'],]
+        #time.sleep(3)
         res = self.syscall._output(cmd, comment='DDNS entry test - stat check -', path=const.CONFIG_BIN_DIR)
         cmd = ['set_ddns.sh', 'del', test_id, '-S']
         self.syscall._call(cmd, comment='DDNS entry test - del -', path=const.CONFIG_BIN_DIR)

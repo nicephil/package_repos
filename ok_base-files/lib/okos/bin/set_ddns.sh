@@ -89,6 +89,7 @@ add_ddns()
     uci set ddns.${id}.username="$username"
     uci set ddns.${id}.password="$password"
     uci set ddns.${id}.interface="$interface"
+    uci set ddns.${id}.ipaddr="$ipaddr"
     uci set ddns.${id}.allow_local_ip='1'
     uci set ddns.${id}.upd_privateip='1'
     uci set ddns.${id}.use_logfile='1'
@@ -116,21 +117,20 @@ del_ddns()
 
 stat_ddns()
 {
-    grep -i 'failed' /var/run/ddns/${id}.err > /dev/null 2>&1
-    if [ "$?" == 0 ]; then
-        echo 'fail'
-        exit 0
-    fi
     egrep "good|nochg" /var/run/ddns/${id}.dat > /dev/null 2>&1
     if [ "$?" == 0 ]; then
         echo 'success'
         exit 0
     fi
-    if [ -n "${domainname}" -a -n "${ipaddr}" ]; then
-        echo 'fail'
-    else
-        echo 'fail'
+    if [ -n "$ipaddr" ]; then
+        egrep "${ipaddr}" /var/run/ddns/${id}.dat > /dev/null 2>&1
+        if [ "$?" == 0 ]; then
+            echo 'success'
+            exit 0
+        fi
     fi
+
+    echo 'fail'
     exit 0
 }
 

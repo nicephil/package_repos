@@ -99,7 +99,7 @@ class PostMan(threading.Thread):
             DeviceReporter(mailbox, interval=60, debug=False),
             WiredClientReporter(mailbox, interval=10, debug=False),
             #ClientStatistic(mailbox, interval=5, debug=True),
-            DdnsStateReporter(mailbox, interval=6, debug=True),
+            DdnsStateReporter(mailbox, interval=60, debug=False),
         ]
 
 
