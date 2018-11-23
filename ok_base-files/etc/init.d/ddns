@@ -1,0 +1,26 @@
+#!/bin/sh /etc/rc.common
+
+
+START=95
+STOP=10
+boot() {
+return 0
+}
+reload() {
+/usr/lib/ddns/dynamic_dns_updater.sh -- reload
+return 0
+}
+restart() {
+/usr/lib/ddns/dynamic_dns_updater.sh -- stop
+sleep 1
+/usr/lib/ddns/dynamic_dns_updater.sh -- start
+}
+start() {
+/usr/lib/ddns/dynamic_dns_updater.sh -- start
+}
+stop() {
+/usr/lib/ddns/dynamic_dns_updater.sh -- stop
+kill -9 $(pgrep -f dynamic_dns_updater.sh)
+rm /tmp/run/ddns/* >/dev/null 2>&1
+return 0
+}

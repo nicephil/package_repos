@@ -24,13 +24,16 @@ help()
     cat <<_HELP_
 Setup/Remove DDNS
 
-Usage:  $0 {set|del|stat|updatetime} ID [--provider PROVIDER] [--username STRING] [--password STRING]
+Usage:  $0 {set|del|stat|updatetime|test} ID [--provider PROVIDER] [--username STRING] [--password STRING]
                         [--domainname STRING] [--interface INTERFACE] [-S]
                         [--ipaddr x.x.x.x]
         $0 del ID
         $0 stat ID [--domainname STRING] [--ipaddr x.x.x.x]
         $0 updatetime ID
         $0 set ID [--provider PROVIDER] [--username STRING] [--password STRING]
+                  [--domainname STRING] [--interface INTERFACE] [-S]
+                  [--ipaddr x.x.x.x]
+        $0 test ID [--provider PROVIDER] [--username STRING] [--password STRING]
                   [--domainname STRING] [--interface INTERFACE] [-S]
                   [--ipaddr x.x.x.x]
 
@@ -57,6 +60,7 @@ case "$1" in
     del) cmd="$1";;
     stat) cmd="$1";;
     updatetime) cmd="$1";;
+    test) cmd="$1";;
     *) help;exit 1;;
 esac
 shift 1
@@ -89,7 +93,7 @@ _del_ddns()
     [ "$?" == 0 ] && uci del ddns.${id}
 }
 
-add_ddns()
+_add_ddns()
 {
     _del_ddns
 
@@ -103,7 +107,6 @@ add_ddns()
         *) help;exit 1;;
     esac
 
-    echo "Add ddns entry ${domainname} on ${provider}"
     uci set ddns.${id}='service'
     uci set ddns.${id}.enabled='1'
     uci set ddns.${id}.domain="$domainname"
@@ -129,7 +132,7 @@ add_ddns()
         uci set ddns.${id}.service_name="$service"
     fi
 
-    /etc/init.d/ddns restart
+    
 }
 
 del_ddns()
@@ -137,45 +140,79 @@ del_ddns()
     echo "Remove ddns entry <${id}>"
     /etc/init.d/ddns stop
     _del_ddns
+    uci commit ddns
+    /etc/init.d/ddns start
+}
+
+add_ddns()
+{
+    echo "Add ddns entry ${domainname} on ${provider}"
+    /etc/init.d/ddns stop
+    _add_ddns
+    uci commit ddns
     /etc/init.d/ddns start
 }
 
 stat_ddns()
 {
-    egrep "good|nochg" /var/run/ddns/${id}.dat > /dev/null 2>&1
-    [ "$?" == 0 ] && {
+    local data_file="/var/run/ddns/${id}.dat"
+    for i in 1 2 3; do
+        [ -e "$data_file" ] && break
+        #echo waiting $i seconds
+        sleep 1
+    done
+    egrep "good|nochg" $data_file > /dev/null 2>&1
+    if [ "$?" == 0 ] ; then
         echo 'success'
-        exit 0
-    }
-    [ -n "$ipaddr" ] && {
-        egrep "${ipaddr}" /var/run/ddns/${id}.dat > /dev/null 2>&1
-        [ "$?" == 0 ] && {
+        return 0
+    fi
+    if [ -n "$ipaddr" ] ; then
+        egrep "${ipaddr}" $data_file > /dev/null 2>&1
+        if [ "$?" == 0 ] ; then
             echo 'success'
-            exit 0
-        }
-    }
+            return 0
+        fi
+    fi
 
     echo 'fail'
-    exit 0
+    return 0
 }
 
 update_time()
 {
-    local last_time=$(cat /var/run/ddns/${id}.update)
-    local _uptime=$(cat /proc/uptime)
-    local up_time=${_uptime%%.*}
-    local epoch_time=$(( $up_time - $last_time ))
-    echo "${epoch_time} seconds ago"
-    exit 0
+    local upd_file="/var/run/ddns/${id}.update"
+    [ -e "$upd_file" ] && {
+        local last_time=$(cat $upd_file)
+        local _uptime=$(cat /proc/uptime)
+        local up_time=${_uptime%%.*}
+        local epoch_time=$(( $up_time - $last_time ))
+        echo "${epoch_time} seconds ago"
+    }
+    return 0
 }
+
+test_ddns()
+{
+    /etc/init.d/ddns stop
+    _add_ddns
+    uci commit ddns
+    /etc/init.d/ddns start
+    stat_ddns
+    #/etc/init.d/ddns stop
+    #_del_ddns
+    #uci commit ddns
+    #/etc/init.d/ddns start
+}
+
 case "$cmd" in
     set) add_ddns;;
     del) del_ddns;;
-    stat) stat_ddns;;
-    updatetime) update_time;;
+    stat) stat_ddns;exit 0;;
+    updatetime) update_time;exit 0;;
+    test) test_ddns;exit 0;;
     *) help;exit 1;;
 esac
-uci commit ddns
+
 
 
 exit 0
