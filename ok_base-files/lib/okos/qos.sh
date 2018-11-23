@@ -220,8 +220,7 @@ qos_atf_init()
 qos_start ()
 {
     qos_log $LOG_INFO "Kickoff QoS service now."
-    qos_log $LOG_DEBUG "Touch $id_file for restoring client ID infor."
-    touch $id_file
+    return
 
     qos_atf_init
 
