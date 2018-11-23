@@ -31,6 +31,13 @@ do
         /etc/init.d/dnsmasq restart
     }
 
+    syslogd_pid=$(pgrep -f "/sbin/syslogd -L")
+    syslogd_count=$(echo $syslogd_pid | awk '{print NF}')
+    [ -z "$syslogd_pid" -o "$syslogd_count" -gt "1" ] && {
+        logger -t supervisor -p 3 "syslogd ($syslogd_pid)is exit abnormally, restart it !!!"
+        /etc/init.d/boot restart
+    }
+
     clientevent_pid=$(pgrep -f "/lib/okos/clientevent.py")
     clientevent_count=$(echo $clientevent_pid | awk '{print NF}')
     [ -z "$clientevent_pid" -o "$clientevent_count" -gt "1" ] && {

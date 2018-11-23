@@ -222,7 +222,7 @@ qos_start ()
     qos_log $LOG_INFO "Kickoff QoS service now."
     return
 
-    qos_atf_init
+    #qos_atf_init
 
     qos_log $LOG_DEBUG "Install $QDISC qdisc and root class."
     local full_speed
@@ -247,6 +247,8 @@ qos_start ()
 
 qos_atf_deinit()
 {
+    wlanconfig "ath50" commitatf 0
+    wlanconfig "ath60" commitatf 0
     wlanconfig "ath50" delatfgroup public > /dev/null 2>&1
     wlanconfig "ath50" delatfgroup private > /dev/null 2>&1
     wlanconfig "ath60" delatfgroup public > /dev/null 2>&1
@@ -258,7 +260,7 @@ qos_stop ()
 {
     qos_log $LOG_INFO "Stop QoS service now."
 
-    qos_atf_deinit
+    #qos_atf_deinit
 
     qos_log $LOG_INFO "Remove root."
     for iface in $ifaces; do
