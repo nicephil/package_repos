@@ -8,12 +8,12 @@ import os
 class ConfRequest(ConfHandler):
     def __init__(self, mailbox, debug=False):
         super(ConfRequest, self).__init__(mailbox, const.DEV_CONF_OPT_TYPE, const.DEV_CONF_RESP_OPT_TYPE, name='ConfRequest', debug=debug)
-        self.conf = OkosConfig(debug=debug)
+        self.conf = OKOS_CONFIG
         self.syscall = SystemCall(debug=debug)
         self.debug = debug
 
     def _handler(self, request):
-        conf_data = self.conf.set_config(request['data'])
+        self.conf.config = request['data']
         okos_system_log_info("configuration data obtained")
         time.sleep(3)
         res = self.syscall.do_config(self.conf.conf_file, self.conf.bak_file)
@@ -22,8 +22,8 @@ class ConfRequest(ConfHandler):
             okos_system_log_info("configuration loaded successfully")
         else:
             okos_system_log_err("configuration loaded failed")
-            conf_data = self.conf.rollback_config()
+            self.conf.rollback()
         json_data = {}
-        json_data['config_version'] = conf_data.setdefault('config_version', 0)
+        json_data['config_version'] = self.conf.version
         json_data['error_code'] = res and '0' or '1'
         return json_data

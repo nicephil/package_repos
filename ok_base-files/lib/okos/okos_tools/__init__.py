@@ -23,4 +23,4 @@ from database import ArpDb
 
 from okos_mailbox import MailBox
 
-from okos_config import OkosConfig
+from okos_config import OkosConfig, OKOS_CONFIG

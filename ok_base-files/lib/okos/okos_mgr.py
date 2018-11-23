@@ -89,14 +89,14 @@ class PostMan(threading.Thread):
         self.name = 'StatusMgr'
         self.term = False
         self.mailbox = mailbox
-        self.oakmgr = Oakmgr(mailbox, debug=True)
+        self.oakmgr = Oakmgr(mailbox, debug=False)
         self.timers = [
             Redirector(interval=120, debug=False),
             HeartBeat(self.oakmgr, mailbox, debug=False),
             SystemHealthReporter(mailbox, interval=10, debug=False), 
             Site2SiteVpnReporter(mailbox, interval=60, debug=False), 
-            IfStatusReporter(mailbox, interval=60, debug=True), 
-            DeviceReporter(mailbox, interval=60, debug=False),
+            IfStatusReporter(mailbox, interval=60, debug=False), 
+            DeviceReporter(mailbox, interval=60, debug=True),
             WiredClientReporter(mailbox, interval=10, debug=False),
             #ClientStatistic(mailbox, interval=5, debug=True),
             DdnsStateReporter(mailbox, interval=60, debug=False),

@@ -13,7 +13,9 @@ class DeviceReporter(Poster):
         super(DeviceReporter, self).__init__(name, interval=interval, mailbox=mailbox, operate_type=operate_type, repeated=True, debug=debug)
         self.productinfo_data = PRODUCT_INFO.renew()
         self.capwap_server = CAPWAP_SERVER.renew()
+        self.conf = OKOS_CONFIG
         self.debug = debug
+        
     def handler(self, *args, **kwargs):
         with DeviceInfoEnv('Collect Device Infor', debug=self.debug):
             data_json = {}
@@ -25,9 +27,7 @@ class DeviceReporter(Poster):
             data_json['eth_port'] = productinfo_data['eth_port']
             data_json['sn'] = productinfo_data['serial']
             data_json['product_name'] = productinfo_data['model']
-
-            confinfo_data = get_whole_confinfo()
-            data_json['config_version'] = confinfo_data.setdefault('config_version', 0)
+            data_json['config_version'] = self.conf.version
 
         with DeviceInfoEnv('Collect info for config_version_webui', debug=self.debug):
             #data_json['config_version_webui'] = ubus.call('uci', 'get', {"config":"system", "section":"@system[0]", "option":"config_version_webui"})[0]["value"]
