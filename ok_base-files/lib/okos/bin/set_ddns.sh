@@ -1,15 +1,35 @@
 #!/bin/sh
 
+################################################################################
+# Tricky of ddns service:
+# 1) For start/stop/restart: shell script will read configuration from uci at
+#    first, then do start/stop according to the section ID in uci config. So,
+#    It could NOT kill processes which removed previously from uci.
+# 2) When using reload, reload will send signal 1 to all the daemons to restart
+#    them. But, unforturnately, it won't load the configuration from uci newly
+#    added.
+#
+# So, if you are trying to delete a ddns entry, you have to stop service, remove
+# configure section from uci, then start all the sections again.
+# If you are adding some new, you can stop them firstly, add something new, then
+# start them all; or you can add new entries to uci, then restrat service.
+#
+# Important!
+# Trying to restart service in postrun of config process is useless!!!
+# Remove '-S' option from python!
+# 
+
 help()
 {
     cat <<_HELP_
 Setup/Remove DDNS
 
-Usage:  $0 {set|del|stat} ID [--provider PROVIDER] [--username STRING] [--password STRING]
+Usage:  $0 {set|del|stat|updatetime} ID [--provider PROVIDER] [--username STRING] [--password STRING]
                         [--domainname STRING] [--interface INTERFACE] [-S]
                         [--ipaddr x.x.x.x]
         $0 del ID
         $0 stat ID [--domainname STRING] [--ipaddr x.x.x.x]
+        $0 updatetime ID
         $0 set ID [--provider PROVIDER] [--username STRING] [--password STRING]
                   [--domainname STRING] [--interface INTERFACE] [-S]
                   [--ipaddr x.x.x.x]
@@ -36,6 +56,7 @@ case "$1" in
     set) cmd="$1";;
     del) cmd="$1";;
     stat) cmd="$1";;
+    updatetime) cmd="$1";;
     *) help;exit 1;;
 esac
 shift 1
@@ -52,7 +73,7 @@ while [ -n "$1" ]; do
         --username) username="$2";shift 2;;
         --password) password="$2";shift 2;;
         --ipaddr) ipaddr="$2";shift 2;;
-        -S) no_restart='1';shift 1;;
+        -S) shift 1;;
         --) shift;break;;
         -*) help;exit 1;;
         *) break;;
@@ -107,44 +128,55 @@ add_ddns()
     else
         uci set ddns.${id}.service_name="$service"
     fi
+
+    /etc/init.d/ddns restart
 }
 
 del_ddns()
 {
     echo "Remove ddns entry <${id}>"
+    /etc/init.d/ddns stop
     _del_ddns
+    /etc/init.d/ddns start
 }
 
 stat_ddns()
 {
     egrep "good|nochg" /var/run/ddns/${id}.dat > /dev/null 2>&1
-    if [ "$?" == 0 ]; then
+    [ "$?" == 0 ] && {
         echo 'success'
         exit 0
-    fi
-    if [ -n "$ipaddr" ]; then
+    }
+    [ -n "$ipaddr" ] && {
         egrep "${ipaddr}" /var/run/ddns/${id}.dat > /dev/null 2>&1
-        if [ "$?" == 0 ]; then
+        [ "$?" == 0 ] && {
             echo 'success'
             exit 0
-        fi
-    fi
+        }
+    }
 
     echo 'fail'
     exit 0
 }
 
+update_time()
+{
+    local last_time=$(cat /var/run/ddns/${id}.update)
+    local _uptime=$(cat /proc/uptime)
+    local up_time=${_uptime%%.*}
+    local epoch_time=$(( $up_time - $last_time ))
+    echo "${epoch_time} seconds ago"
+    exit 0
+}
 case "$cmd" in
     set) add_ddns;;
     del) del_ddns;;
     stat) stat_ddns;;
+    updatetime) update_time;;
     *) help;exit 1;;
 esac
 uci commit ddns
 
-if [ -z "$no_restart" ]; then
-    /etc/init.d/ddns restart
-fi
 
 exit 0
 

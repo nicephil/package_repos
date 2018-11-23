@@ -10,11 +10,14 @@ class DdnsStateReporter(Poster):
         self.syscall = SystemCall(debug=self.debug)
     
     def _status(self, entry):
-        cmd = ['set_ddns.sh', 'stat', entry['id'], '-S', '--domainname', entry['hostname'], '--ipaddr', entry['ip'],]
+        cmd = ['set_ddns.sh', 'stat', entry['id'], '--domainname', entry['hostname'], '--ipaddr', entry['ip'],]
         res = self.syscall._output(cmd, comment='DDNS entry report - stat -', path=const.CONFIG_BIN_DIR)
         entry['status'] = 'success' in res and '0' or '1'
     def _updatetime(self, entry):
-        entry['updatetime'] = int(round(time.time() * 1000))
+        cmd = ['set_ddns.sh', 'updatetime', entry['id'], ]
+        res = self.syscall._output(cmd, comment='DDNS entry report - updatetime -', path=const.CONFIG_BIN_DIR)
+        epoch_milliseconds = int(res.split(' ')[0] or '0') * 1000
+        entry['updatetime'] = int(round(time.time() * 1000)) - epoch_milliseconds
 
     def handler(self, *args, **kwargs):
         '''

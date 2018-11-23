@@ -32,15 +32,15 @@ class DdnsTest(ConfHandler):
             checker['hostname'] = (None, None)
             checker['username'] = (None, None)
             checker['password'] = (None, None)
-        cmd = ['set_ddns.sh', 'set', test_id, '-S']
+        cmd = ['set_ddns.sh', 'set', test_id, ]
         cmd += ['--provider', checker['provider'], '--domainname', checker['hostname'],
                 '--username', checker['username'], '--password', checker['password'],
                 '--interface', checker['interface_name'], '--ipaddr', checker['ip'],
                 ]
         self.syscall._call(cmd, comment='DDNS entry test - add -', path=const.CONFIG_BIN_DIR)
-        cmd = ['set_ddns.sh', 'stat', test_id, '-S', '--domainname', checker['hostname'], '--ipaddr', checker['ip'],]
+        cmd = ['set_ddns.sh', 'stat', test_id, '--domainname', checker['hostname'], '--ipaddr', checker['ip'],]
         #time.sleep(3)
         res = self.syscall._output(cmd, comment='DDNS entry test - stat check -', path=const.CONFIG_BIN_DIR)
-        cmd = ['set_ddns.sh', 'del', test_id, '-S']
+        cmd = ['set_ddns.sh', 'del', test_id, ]
         self.syscall._call(cmd, comment='DDNS entry test - del -', path=const.CONFIG_BIN_DIR)
         return {'error_code': 'success' in res and '0' or '1'}

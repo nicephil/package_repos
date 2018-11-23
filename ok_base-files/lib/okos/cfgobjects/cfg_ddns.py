@@ -50,9 +50,6 @@ class CfgDDNS(CfgObj):
         res = self.doit(cmd, 'DDNS Entry Removed')                
         return res
 
-    @logcfg
-    def post_run(self):
-        self.doit(['/etc/init.d/ddns', 'reload'], 'Restart ddns', path='')
-        return True
+
 
 

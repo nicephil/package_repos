@@ -197,3 +197,7 @@ class SystemCall(object):
         files = [f for f in files if f]
         old = files[:-num]
         map(lambda f: self._call(['rm', f]), old)
+    
+    def do_config(self, ori, bak):
+        #os.system("{} -o {} {}".format(const.OKOS_CFGDIFF_SCRIPT, get_whole_conf_bak_path(), get_whole_conf_path()))
+        return self._call([const.OKOS_CFGDIFF_SCRIPT, '-o', bak, ori])
