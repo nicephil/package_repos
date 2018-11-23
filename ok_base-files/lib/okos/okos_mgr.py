@@ -95,11 +95,11 @@ class PostMan(threading.Thread):
             HeartBeat(self.oakmgr, mailbox, debug=False),
             SystemHealthReporter(mailbox, interval=10, debug=False), 
             Site2SiteVpnReporter(mailbox, interval=60, debug=False), 
-            IfStatusReporter(mailbox, interval=60, debug=False), 
+            IfStatusReporter(mailbox, interval=60, debug=True), 
             DeviceReporter(mailbox, interval=60, debug=False),
             WiredClientReporter(mailbox, interval=10, debug=False),
             #ClientStatistic(mailbox, interval=5, debug=True),
-            DdnsStateReporter(mailbox, interval=6, debug=True),
+            DdnsStateReporter(mailbox, interval=60, debug=False),
         ]
 
 
