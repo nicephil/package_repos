@@ -6,6 +6,8 @@ import copy
 class UbusEnv(ExecEnv):
     def __init__(self, desc='', debug=False):
         super(UbusEnv, self).__init__('Ubus Context', desc=desc, raiseup=False, debug=debug)
+        self.debug = debug
+        
     def __enter__(self):
         ubus.connect()
         return super(UbusEnv, self).__enter__()

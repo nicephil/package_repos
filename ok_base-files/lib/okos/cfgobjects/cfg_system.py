@@ -1,18 +1,15 @@
 #!/usr/bin/env python
 
-import subprocess
-from cfg_object import CfgObj, ConfigParseEnv
-from okos_tools import log_debug, log_info, log_warning, log_err, log_crit, logcfg
-import ubus
+from cfg_object import CfgObj, ConfigParseEnv, ParameterChecker, ConfigInputEnv
+from okos_tools import logcfg, log_err, UciSection
 
 class CfgSystem(CfgObj):
-    differ = 'hostname'
+    #differ = 'hostname'
 
     def __init__(self, entry=None):
         super(CfgSystem, self).__init__()
         if entry:
             d = self.data
-            d['hostname'] = entry.setdefault('hostname', '')
             d['domain_id'] = entry.setdefault('domain_id', '')
 
     @classmethod
@@ -25,27 +22,22 @@ class CfgSystem(CfgObj):
 
     @logcfg
     def add(self):
-        if not self.data['hostname'] or not self.data['domain_id']:
+        new = self.data
+        checker = ParameterChecker(new)
+        with ConfigInputEnv(new, 'System configuration', debug=True):
+            checker['domain_id'] = (None, '')
+        if not checker['domain_id']:
             return True
-
-        signa = {
-            'config':'system',
-            'type':'system',
-            'values':{
-                'hostname':'{}_{}'.format(self.data['hostname'], self.data['domain_id'])
-            }
-        }
-        try:
-            ubus.call('uci','set', signa)
-        except Exception, e:
-            log_err("ubus uci gets failed, {}".format(e))
-            return False
-        cmd = "hostname {}_{}".format(self.data['hostname'], self.data['domain_id'])
-        ret = subprocess.call(cmd, shell=True)
-        if ret == 0:
-            return True
+        system = UciSection('system', 'system')
+        if checker['domain_id'] != system['domain_id']:
+            system['domain_id'] = checker['domain_id'] 
+            system.commit()
+            hostname = '{}_{}'.format(system['hostname'], system['domain_id'])
+            cmd = ['/bin/hostname', hostname]
+            ret = self.doit(cmd, 'Set Hostname')
+            return ret
         else:
-            return False
+            return True
 
     @logcfg
     def remove(self):

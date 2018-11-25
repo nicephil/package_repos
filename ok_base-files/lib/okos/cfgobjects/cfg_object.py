@@ -97,12 +97,12 @@ class CfgObj(object):
         comment and log_debug('[Config] {comment}'.format(comment=comment))
         log_debug("[Config] Do - {cmd} - ".format(cmd=cmd))
         try:
-            cmd = [str(c) for c in cmd]
+            cmd = map(str, cmd)
             if not cmd[0].startswith('/'):
                 cmd[0] = path + cmd[0]
             rc = subprocess.check_call(cmd)
         except subprocess.CalledProcessError as e:
-            log_warning("[Config] Execute {cmd} failed!".format(cmd=e.cmd))
+            log_warning("[Config] Execute {cmd} return failure <{rc}> : {output}".format(cmd=e.cmd, rc=e.returncode, output=e.output))
             res = False
         except Exception as e:
             log_warning("[Config] Execute {cmd} failed with {expt}!".format(cmd=cmd, expt=type(e).__name__))
@@ -136,7 +136,6 @@ class CfgObj(object):
             added   = [new[i].add_op() for i in new_ids - old_ids]
             removed = [old[i].remove_op() for i in old_ids - new_ids]
             changed = [new[i].change_op(old[i]) for i in new_ids & old_ids if new[i].data != old[i].data]
-
             res = removed + changed + added
             log_debug('result: {rs}'.format(rs=[(r.action, r.data[differ]) for r in res]))
         return res
