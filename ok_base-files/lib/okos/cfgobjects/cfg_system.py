@@ -24,7 +24,7 @@ class CfgSystem(CfgObj):
     def add(self):
         new = self.data
         checker = ParameterChecker(new)
-        with ConfigInputEnv(new, 'System configuration', debug=True):
+        with ConfigInputEnv(new, 'System config input', debug=True):
             checker['domain_id'] = (None, '')
         if not checker['domain_id']:
             return True

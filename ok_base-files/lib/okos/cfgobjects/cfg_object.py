@@ -89,7 +89,7 @@ class CfgObj(object):
         return True
 
     @staticmethod
-    def doit(cmd, comment='', path=const.CONFIG_BIN_DIR):
+    def doit(cmd, comment='', path=const.CONFIG_BIN_DIR, shell=False):
         '''
         cmd = ['/lib/okos/bin/set_..._.sh', '33', '201'] ; shell = False
         cmd = ['/lib/okos/bin/set_..._.sh 33 201'] ; shell = True
@@ -100,15 +100,15 @@ class CfgObj(object):
             cmd = map(str, cmd)
             if not cmd[0].startswith('/'):
                 cmd[0] = path + cmd[0]
-            rc = subprocess.check_call(cmd)
+            rc = subprocess.check_call(cmd, shell=shell)
         except subprocess.CalledProcessError as e:
-            log_warning("[Config] Execute {cmd} return failure <{rc}> : {output}".format(cmd=e.cmd, rc=e.returncode, output=e.output))
+            log_warning("[Config] Do - {cmd} - return failure <{rc}> : {output}".format(cmd=e.cmd, rc=e.returncode, output=e.output))
             res = False
         except Exception as e:
-            log_warning("[Config] Execute {cmd} failed with {expt}!".format(cmd=cmd, expt=type(e).__name__))
+            log_warning("[Config] Do - {cmd} - failed with {expt}!".format(cmd=cmd, expt=type(e).__name__))
             res = False
         else:
-            log_debug("[Config] Do - {cmd} - return {rc}".format(cmd=cmd, rc=rc))
+            log_debug("[Config] Do - {cmd} - done <{rc}>".format(cmd=cmd, rc=rc))
             res = bool(rc == 0)
         return res
 
