@@ -7,10 +7,19 @@ from constant import const
 class CfgDone(CfgObj):
     def __init__(self):
         super(CfgDone, self).__init__()
-
+    
+    @classmethod
     @logcfg
-    def post_run(self):
-        self.doit(['/etc/init.d/dnsmasq', 'reload'], 'Restart dnsmasq', path='')
-        self.doit(['/etc/init.d/network', 'reload'], 'Restart network', path='')
-        self.doit(['/etc/init.d/firewall', 'reload'], 'Restart firewall', path='')
+    def parse(cls, j):
+        pass
+
+    @classmethod
+    @logcfg
+    def post_run(cls):
+        cls.doit(['/etc/init.d/dnsmasq', 'reload'], 'reload dnsmasq', path='')
+        cls.doit(['/etc/init.d/network', 'reload'], 'reload network', path='')
+        cls.doit(['/etc/init.d/firewall', 'reload'], 'reload firewall', path='')
         return True
+
+if __name__ == "__main__":
+    pass

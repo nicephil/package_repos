@@ -10,17 +10,17 @@ import ubus
 
 class OakmgrCfg(object):
     Templates = [
-            #CfgKickoff(),
-            CfgSystem(),
-            CfgInterface(),
-            CfgNetwork(),
-            CfgPortForwarding(),
-            CfgIpForwarding(),
-            CfgMacIpBinding(),
-            CfgDhcpOption(),
-            CfgDone(),
-            CfgSiteToSiteVPN(),
-            CfgDDNS(),
+            #CfgKickoff,
+            CfgSystem,
+            CfgInterface,
+            CfgNetwork,
+            CfgPortForwarding,
+            CfgIpForwarding,
+            CfgMacIpBinding,
+            CfgDhcpOption,
+            CfgDone,
+            CfgSiteToSiteVPN,
+            CfgDDNS,
             ]
     def __init__(self, f=''):
         super(OakmgrCfg, self).__init__()
@@ -40,14 +40,18 @@ class OakmgrCfg(object):
 
 
     def parse(self):
-        self.objects = [self._json and t.parse(self._json) or [] for t in self.Templates]
-        #return bool(len(self.Templates) == len(self.objects))
+        log_debug('[Config Parse] {fname} - start -'.format(fname=self.source))
+        if self._json:
+            self.objects = [T.parse(self._json) or [] for T in self.Templates]
+        else:
+            self.objects = [[] for T in self.Templates]
+        log_debug('[Config Parse] {fname} - completed -'.format(fname=self.source))
         return self
 
     def __sub__(self, old):
         log_debug('Calculate diff from <{old}> to <{new}>'.format(old=old.source, new=self.source))
         diff = OakmgrCfg()
-        diff.objects = [t.diff(self.objects[i], old.objects[i]) for i,t in enumerate(diff.Templates)]
+        diff.objects = [T.diff(self.objects[i], old.objects[i]) for i,T in enumerate(diff.Templates)]
         return diff
 
     def dump(self):
@@ -55,14 +59,18 @@ class OakmgrCfg(object):
 
     def run(self):
         log_debug('Start to execute commands...')
-        for i,objs in enumerate(self.objects):
-            log_debug('\n>>> ' + self.Templates[i].__class__.__name__)
-            if not self.Templates[i].pre_run():
+        for i,T in enumerate(self.Templates):
+            cname = T.__name__
+            log_debug('\n>>> {cname}'.format(cname=cname))
+            log_debug("{cname} pre-run:>".format(cname=cname))
+            if not T.pre_run():
                 return False
-            for o in objs:
+            log_debug("{cname}'s objects run:>".format(cname=cname))
+            for o in self.objects[i]:
                 if not o.run():
                     return False
-            if not self.Templates[i].post_run():
+            log_debug("{cname} post-run:>".format(cname=cname))
+            if not T.post_run():
                 return False
         log_debug('Configuration executed completedly...')
         return True

@@ -6,14 +6,13 @@ from okos_tools import ExecEnv
 from constant import const
 
 class CfgObj(object):
-    def __init__(self, differ=None):
+    differ = None
+    def __init__(self):
         super(CfgObj, self).__init__()
-        self.action = None
         self.name = self.__class__.__name__
-        self.differ = differ
         self.data = {}
-        self.run = None
-        self.change_op()
+        self.no_op()
+
     def __eq__(self, other):
         return False
     def clear_action(self):
@@ -37,6 +36,7 @@ class CfgObj(object):
         self.run = self.noop
         return self
 
+    '''
     def log(self, level, msg):
         logger(level, '[Config] ' + msg)
     def log_debug(self, msg):
@@ -49,36 +49,35 @@ class CfgObj(object):
         log_crit('[Config] ' + msg)
     def log_err(self, msg):
         log_err('[Config] ' + msg)
+    '''
 
     @logcfg
-    def parse(self, j):
-        pass
+    @classmethod
+    def parse(cls, j):
+        raise NotImplementedError
 
     @logcfg
     def add(self):
-        log_debug(self.data)
-        #return True
+        raise NotImplementedError
 
     @logcfg
     def remove(self):
-        log_debug(self.data)
-        #return True
+        raise NotImplementedError
 
     @logcfg
     def change(self):
-        log_debug(self.data)
-        #return True
+        raise NotImplementedError
 
     @logcfg
     def noop(self):
         return True
 
-    @logcfg
-    def pre_run(self):
+    @classmethod
+    def pre_run(cls):
         return True
 
-    @logcfg
-    def post_run(self):
+    @classmethod
+    def post_run(cls):
         return True
 
     def check_para(self, fmt, entry):
@@ -89,46 +88,58 @@ class CfgObj(object):
                     return False
         return True
 
-    def doit(self, cmd, comment='', path=const.CONFIG_BIN_DIR):
+    @staticmethod
+    def doit(cmd, comment='', path=const.CONFIG_BIN_DIR):
         '''
         cmd = ['/lib/okos/bin/set_..._.sh', '33', '201'] ; shell = False
         cmd = ['/lib/okos/bin/set_..._.sh 33 201'] ; shell = True
         '''
-        if comment:
-            self.log_debug(comment)
-        self.log_debug("Do - %s - " % (cmd))
+        comment and log_debug('[Config] {comment}'.format(comment=comment))
+        log_debug("[Config] Do - {cmd} - ".format(cmd=cmd))
         try:
             cmd = [str(c) for c in cmd]
             if not cmd[0].startswith('/'):
                 cmd[0] = path + cmd[0]
-            res = subprocess.check_call(cmd)
+            rc = subprocess.check_call(cmd)
         except subprocess.CalledProcessError as e:
-            self.log_warning("Execute %s failed!" % (e.cmd))
-            return False
+            log_warning("[Config] Execute {cmd} failed!".format(cmd=e.cmd))
+            res = False
         except Exception as e:
-            self.log_warning("Execute %s failed with %s!" % (cmd, type(e).__name__))
-            return False
-        self.log_debug("Do - %s - return %d" % (cmd, res))
-        return res == 0 and True or False
-
-    @logcfg
-    def diff(self, new, old):
-        differ = self.differ
-        if not differ:
-            add = [i.add_op() for i in new[len(old):]]
-            remove = [i.remove_op() for i in old[len(new):]]
-            change = [n.data == old[i].data and n.no_op() or n.change_op(old[i]) for i,n in enumerate(new[:len(old)])]
-            return remove + add + change
-            #return [n.data == old[i].data and n.no_op() or n.change_op(old[i]) for i,n in enumerate(new)]
+            log_warning("[Config] Execute {cmd} failed with {expt}!".format(cmd=cmd, expt=type(e).__name__))
+            res = False
         else:
-            news = {n.data[differ] for n in new}
-            olds = {o.data[differ] for o in old}
-            #change = [n.change_op() for c in news & olds for n in new if c == n.data[differ]]
-            add = [n.add_op() for c in news - olds for n in new if c == n.data[differ]]
-            remove = [n.remove_op() for c in olds - news for n in old if c == n.data[differ]]
-            change = [n.data == o.data and n.no_op() or n.change_op(o)
-                    for n in new for o in old if n.data[differ] == o.data[differ]]
-            return remove + add + change
+            log_debug("[Config] Do - {cmd} - return {rc}".format(cmd=cmd, rc=rc))
+            res = bool(rc == 0)
+        return res
+
+    @classmethod
+    @logcfg
+    def diff(cls, new, old):
+        '''
+        :INPUT:
+        new = [cfg_object1, ...];
+        old = [cfg_object1, .....];
+        '''
+        differ = cls.differ
+        log_debug("{cname}' differ is {differ}".format(cname=cls.__name__, differ=differ))
+        if not differ:
+            added   = [i.add_op() for i in new[len(old):]]
+            removed = [i.remove_op() for i in old[len(new):]]
+            changed = [n.change_op(old[i]) for i,n in enumerate(new[:len(old)]) if n.data != old[i].data]
+            res = removed + changed + added
+            log_debug('result: {rs}'.format(rs=[(r.action, i) for i,r in enumerate(res)]))
+        else:
+            new = {i.data[differ]:i for i in new}
+            old = {i.data[differ]:i for i in old}
+            new_ids = set(new.keys())           # set (id1, id2, ..., idm)
+            old_ids = set(old.keys())           # set (idn, idn+1, ....., idx)
+            added   = [new[i].add_op() for i in new_ids - old_ids]
+            removed = [old[i].remove_op() for i in old_ids - new_ids]
+            changed = [new[i].change_op(old[i]) for i in new_ids & old_ids if new[i].data != old[i].data]
+
+            res = removed + changed + added
+            log_debug('result: {rs}'.format(rs=[(r.action, r.data[differ]) for r in res]))
+        return res
     
     def _check_ipaddr_(self, input):
         p_ipaddr = const.FMT_PATTERN['ipaddr']

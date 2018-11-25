@@ -5,14 +5,17 @@ from okos_tools import *
 from constant import const
 
 class CfgMacIpBinding(CfgObj):
-    def __init__(self, entry={}):
-        super(CfgMacIpBinding, self).__init__(differ='id')
-        self.data.update(entry)
+    differ = 'id'
+    def __init__(self, entry=None):
+        super(CfgMacIpBinding, self).__init__()
+        entry and self.data.update(entry)
+
+    @classmethod
     @logcfg
-    def parse(self, j):
+    def parse(cls, j):
         mac_ips = j['network'].setdefault('mac_ips',[])
-        with ConfigParseEnv(mac_ips, 'MAC IP binding configuration'):
-            res = [CfgMacIpBinding(p) for p in mac_ips]
+        with ConfigParseEnv(mac_ips, 'MAC IP binding configuration', debug=True):
+            res = [cls(p) for p in mac_ips]
         return res
 
     @logcfg

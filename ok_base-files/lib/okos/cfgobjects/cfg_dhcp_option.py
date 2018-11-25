@@ -5,19 +5,21 @@ from okos_tools import logcfg, logchecker
 from constant import const
 
 class CfgDhcpOption(CfgObj):
-    def __init__(self, entry={}, dhcp_pool={}):
-        super(CfgDhcpOption, self).__init__(differ='id')
-        self.data.update(entry)
-        if dhcp_pool:
+    differ = 'id'
+    def __init__(self, entry=None, dhcp_pool=None):
+        super(CfgDhcpOption, self).__init__()
+        if entry and dhcp_pool:
+            self.data.update(entry)
             self.data['pool'] = dhcp_pool['ifname']
             #self.data['option_id'] = '%s_%s' % (self.data['pool'], self.data['id'])
 
+    @classmethod
     @logcfg
-    def parse(self, j):
+    def parse(cls, j):
         dhcp_options = j['network'].setdefault('dhcp_options',[])
         dhcp_pools = j['network'].setdefault('local_networks', [])
-        with ConfigParseEnv(dhcp_pools, 'DHCP Options configuration'):
-            res = [CfgDhcpOption(o,p) for o in dhcp_options for p in dhcp_pools if p['dhcp_server_enable'] for oid in p['dhcp_option_ids'] if oid == o['id']]
+        with ConfigParseEnv(dhcp_pools, 'DHCP Options configuration', debug=True):
+            res = [cls(o,p) for o in dhcp_options for p in dhcp_pools if p['dhcp_server_enable'] for oid in p['dhcp_option_ids'] if oid == o['id']]
         return res
     
     @logcfg

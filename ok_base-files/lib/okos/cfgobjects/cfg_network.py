@@ -5,22 +5,25 @@ from okos_tools import logcfg, logchecker
 from constant import const
 
 class CfgNetwork(CfgObj):
-    def __init__(self, vlan={}, ifx={}, ifname=''):
-        super(CfgNetwork, self).__init__(differ='vlan')
-        d = self.data
-        d.update(vlan)
+    differ = 'vlan'
+
+    def __init__(self, vlan=None, ifx=None, ifname=None):
+        super(CfgNetwork, self).__init__()
         if vlan and ifx and ifname:
+            d = self.data
+            d.update(vlan)
             # e3 => lan4053
             d['ifname'] = const.PORT_MAPPING_LOGIC[ifname]['ifname']
             d['untagged'] = bool(ifx.setdefault('native_vlan', 1) == d.setdefault('vlan',1))
             vlan['ifname'] = d['untagged'] and d['ifname'] or '{}_{}'.format(d['ifname'], d['vlan'])
 
+    @classmethod
     @logcfg
-    def parse(self, j):
+    def parse(cls, j):
         vlans = j['network'].setdefault('local_networks',[])
         ifs = j.setdefault('interfaces', [])
-        with ConfigParseEnv(vlans, 'VLAN configuration'):
-            res = [CfgNetwork(vlan, ifx, ifname) for vlan in vlans
+        with ConfigParseEnv(vlans, 'VLAN configuration', debug=True):
+            res = [cls(vlan, ifx, ifname) for vlan in vlans
                                             for ifname, ifx in ifs.iteritems()
                                                 if ifx['type'] == const.DEV_CONF_PORT_TYPE['lan']
                                                     if vlan['id'] in ifx['local_network_ids'] ]
@@ -45,7 +48,7 @@ class CfgNetwork(CfgObj):
                 checker['dhcp_lease_time'] = (None, 38400)
         cmd = ['set_vlan.sh', 'set', checker['ifname'], '-S',]
         cmd += ['--ipaddr', checker['gateway'], '--netmask', checker['netmask'],]
-        cmd_vlan = not checker['untagged'] and ['--vid', str(checker['vlan']),] or []
+        cmd_vlan = [] if checker['untagged'] else ['--vid', checker['vlan'],]
         cmd += cmd_vlan
         cmd += ['--zone', checker['security_zone']]
         res = self.doit(cmd, 'Change IP address of LAN interface')
@@ -78,7 +81,7 @@ class CfgNetwork(CfgObj):
             res &= self.doit(cmd, 'Disable VLAN interface')
         if checker['dhcp_server_enable']:
             cmd = ['set_dhcp_server.sh', 'del', ifname, '-S', ]
-            cmd += not checker['untagged'] and ['--vid', checker['vlan'], ] or []
+            cmd += [] if checker['untagged'] else ['--vid', checker['vlan'], ]
             res &= self.doit(cmd, "Disable DHCP Server")
         return res
 

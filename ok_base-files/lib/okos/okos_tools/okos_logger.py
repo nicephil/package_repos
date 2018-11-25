@@ -45,10 +45,12 @@ def logger(level, msg):
 
 def logcfg(func):
     def wrapper(*args, **kwargs):
-        log_debug("[Config] Start to <%s:%s>:" % (args[0].__class__.__name__, func.__name__))
+        this = args[0]
+        cname = this.__name__ if isinstance(this, type) else this.__class__.__name__
+        fname = func.__name__
+        log_debug("[Config] Start to <{T}:{func}>:".format(T=cname, func=fname))
         res = func(*args, **kwargs)
-        log_debug("[Config] <%s:%s> is done." % (args[0].__class__.__name__, func.__name__))
-        #log_debug("<%s> is done." % func.__name__)
+        log_debug("[Config] <{T}:{func}> is done.".format(T=cname, func=fname))
         return res
     return wrapper
 

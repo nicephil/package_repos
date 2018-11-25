@@ -5,17 +5,19 @@ from okos_tools import logcfg, logchecker
 from constant import const
 
 class CfgIpForwarding(CfgObj):
-    def __init__(self, entry={}):
-        super(CfgIpForwarding, self).__init__(differ='id')
-        self.data.update(entry)
+    differ = 'id'
+    def __init__(self, entry=None):
+        super(CfgIpForwarding, self).__init__()
         if entry:
+            self.data.update(entry)
             self.data['id'] += '_ip'
     
+    @classmethod
     @logcfg
-    def parse(self, j):
+    def parse(cls, j):
         ip_fwds = j['network'].setdefault('ip_forwardings',[])
-        with ConfigParseEnv(ip_fwds, 'Port Forwarding configuration'):
-            res = [CfgIpForwarding(p) for p in ip_fwds]
+        with ConfigParseEnv(ip_fwds, 'Port Forwarding configuration', debug=True):
+            res = [cls(p) for p in ip_fwds]
         return res
 
     @logcfg

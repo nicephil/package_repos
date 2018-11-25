@@ -5,17 +5,18 @@ from okos_tools import logcfg, logchecker
 from constant import const
 
 class CfgSiteToSiteVPN(CfgObj):
-    def __init__(self, entry={}):
-        super(CfgSiteToSiteVPN, self).__init__(differ='id')
-        self.data.update(entry)
-        if entry:
-            pass
+    differ = 'id'
 
+    def __init__(self, entry=None):
+        super(CfgSiteToSiteVPN, self).__init__()
+        entry and self.data.update(entry)
+
+    @classmethod
     @logcfg
-    def parse(self, j):
+    def parse(cls, j):
         vpns = j['network'].setdefault('site_to_site_vpns',[])
-        with ConfigParseEnv(vpns, 'Site to Site VPN configuration'):
-            res = [CfgSiteToSiteVPN(vpn) for vpn in vpns]
+        with ConfigParseEnv(vpns, 'Site to Site VPN configuration', debug=True):
+            res = [cls(vpn) for vpn in vpns]
         return res
 
     def _check_ikev_(self, input):
@@ -71,8 +72,10 @@ class CfgSiteToSiteVPN(CfgObj):
     def change(self):
         self.add()
         return True
+
+    @classmethod
     @logcfg
-    def post_run(self):
-        self.doit(['/etc/init.d/ipsec', 'reload'], 'Restart ipsec')
+    def post_run(cls):
+        cls.doit(['/etc/init.d/ipsec', 'reload'], 'Restart ipsec')
         return True
 

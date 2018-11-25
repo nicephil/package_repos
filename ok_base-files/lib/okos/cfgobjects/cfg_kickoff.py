@@ -9,7 +9,8 @@ class CfgKickoff(CfgObj):
     def __init__(self):
         super(CfgKickoff, self).__init__()
 
+    @classmethod
     @logcfg
-    def parse(self, j):
+    def parse(clr, j):
         with open('/tmp/config.orgin', 'w+') as f:
             json.dump(j, f)

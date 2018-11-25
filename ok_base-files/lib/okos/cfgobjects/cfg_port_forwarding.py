@@ -12,17 +12,20 @@ class ExceptionConfigPortfwdParaPortError(ExceptionConfigPortfwdParaError):
         super(ExceptionConfigPortfwdParaPortError, self).__init__('socket port', reason, data)
 
 class CfgPortForwarding(CfgObj):
-    def __init__(self, entry={}):
-        super(CfgPortForwarding, self).__init__(differ='id')
-        self.data.update(entry)
+    differ = 'id'
+
+    def __init__(self, entry=None):
+        super(CfgPortForwarding, self).__init__()
         if entry:
+            self.data.update(entry)
             self.data['id'] += '_port'
     
+    @classmethod
     @logcfg
-    def parse(self, j):
+    def parse(cls, j):
         port_fwds = j['network'].setdefault('port_forwardings',[])
-        with ConfigParseEnv(port_fwds, 'Port Forwarding configuration'):
-            res = [CfgPortForwarding(p) for p in port_fwds]
+        with ConfigParseEnv(port_fwds, 'Port Forwarding configuration', debug=True):
+            res = [cls(p) for p in port_fwds]
         return res
     
     def _check_protocol_(self, input):

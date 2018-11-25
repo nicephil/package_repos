@@ -1,21 +1,23 @@
 #!/usr/bin/env python
 
 from cfg_object import CfgObj, ConfigInputEnv, ConfigParseEnv, ParameterChecker
-from okos_tools import logcfg, logchecker
+from okos_tools import logcfg, logchecker, log_err
 from constant import const
 
 class CfgInterface(CfgObj):
-    def __init__(self, ifname='', ifx={}):
-        super(CfgInterface, self).__init__(differ='logic_ifname')
-        self.data.update(ifx)
+    differ = 'logic_ifname'
+    def __init__(self, ifname=None, ifx=None):
+        super(CfgInterface, self).__init__()
         if ifname and ifx:
+            self.data.update(ifx)
             self.data['logic_ifname'] = const.PORT_MAPPING_LOGIC[ifname]['ifname']
 
+    @classmethod
     @logcfg
-    def parse(self, j):
+    def parse(cls, j):
         ifs = j.setdefault('interfaces', {})
-        with ConfigParseEnv(ifs, 'Interfaces configuration'):
-            res = [CfgInterface(ifname,ifx) for ifname,ifx in ifs.iteritems()]
+        with ConfigParseEnv(ifs, 'Interfaces configuration', debug=True):
+            res = [cls(ifname,ifx) for ifname,ifx in ifs.iteritems()]
         return res
 
     @logcfg
@@ -56,12 +58,10 @@ class CfgInterface(CfgObj):
                 'lan4053': self.change_lan_config,
                 }
         res = change_hooks[checker['logic_ifname']]()
-        self.log_debug("Change interface [%s] config return (%s)." % (checker['logic_ifname'], str(res)))
         return res
 
     @logcfg
     def change_lan_config(self):
-        self.log_info('Execute LAN port config.')
         new = self.data
         checker = self._checker_
         with ConfigInputEnv('', "Change interface [%s] to LAN" % (new['logic_ifname'])):
@@ -72,7 +72,7 @@ class CfgInterface(CfgObj):
     @logchecker('Interface')
     def _check_dnss_(self, input):
         if not input:
-            self.log_warning('Set Static IP without DNSs')
+            log_err('Set Static IP without DNSs')
             return False, input
         return True, input
     

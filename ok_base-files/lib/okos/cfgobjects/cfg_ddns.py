@@ -4,15 +4,17 @@ from cfg_object import CfgObj, ConfigParseEnv, ParameterChecker, ConfigInputEnv
 from okos_tools import *
 
 class CfgDDNS(CfgObj):
+    differ = 'id'
     def __init__(self, entry=None):
-        super(CfgDDNS, self).__init__(differ='id')
+        super(CfgDDNS, self).__init__()
         entry and self.data.update(entry)
 
+    @classmethod
     @logcfg
-    def parse(self, j):
+    def parse(cls, j):
         ddnss = j['network'].setdefault('ddnss',[])
         with ConfigParseEnv(ddnss, 'DDNS configuration', debug=True):
-            res = [CfgDDNS(ddns) for ddns in ddnss]
+            res = [cls(ddns) for ddns in ddnss]
         return res
 
     @logcfg

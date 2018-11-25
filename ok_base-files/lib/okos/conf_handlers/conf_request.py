@@ -25,5 +25,5 @@ class ConfRequest(ConfHandler):
             self.conf.rollback()
         json_data = {}
         json_data['config_version'] = self.conf.version
-        json_data['error_code'] = res and '0' or '1'
+        json_data['error_code'] = '0' if res else '1'
         return json_data
