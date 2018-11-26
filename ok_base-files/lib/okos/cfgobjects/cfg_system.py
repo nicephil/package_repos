@@ -30,14 +30,11 @@ class CfgSystem(CfgObj):
             return True
         system = UciSection('system', 'system')
         if checker['domain_id'] != system['domain_id']:
-            system['domain_id'] = checker['domain_id'] 
-            system.commit()
             hostname = '{}_{}'.format(system['hostname'], system['domain_id'])
-            cmd = ['/bin/hostname', hostname]
-            ret = self.doit(cmd, 'Set Hostname')
-            return ret
-        else:
-            return True
+            system['domain_id'] = checker['domain_id']
+            system['hostname'] = hostname
+            system.commit()
+        return True
 
     @logcfg
     def remove(self):

@@ -43,7 +43,7 @@ class OkosConfig(object):
 
     @config.setter
     def config(self, json_str):
-        with open(self.conf_file, 'w+', 0) as ori:
+        with open(self.conf_file, 'r+', 0) as ori:
             fcntl.flock(ori.fileno(), fcntl.LOCK_EX)
             with open(self.bak_file, 'w+', 0) as bak:
                 bak.truncate()

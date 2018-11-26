@@ -131,8 +131,6 @@ _add_ddns()
     else
         uci set ddns.${id}.service_name="$service"
     fi
-
-    
 }
 
 del_ddns()
