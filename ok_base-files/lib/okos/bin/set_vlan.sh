@@ -10,7 +10,7 @@ LAN port will be added to a security zone, TRUSTED by default.
 
 Usage:  $0 {set|del} {lan4053} [--ipaddr IPADDR] [--netmask NETMASK] 
                         [--mtu MTU] [--vid VLANID] [--zone ZONE] [-S]
-        $0 add {lan4053} --ipaddr IPADDR --netmask NETMASK
+        $0 set {lan4053} --ipaddr IPADDR --netmask NETMASK
                         [--mtu MTU] [--vid VLANID] [--zone ZONE] [-S]
         $0 del {lan4053} [--vid VLANID] [--zone ZONE] [-S]
         --ipaddr IPADDR # static ipaddress

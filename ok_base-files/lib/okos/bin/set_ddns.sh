@@ -154,8 +154,9 @@ add_ddns()
 stat_ddns()
 {
     local data_file="/var/run/ddns/${id}.dat"
-    for i in 1 2 3; do
-        [ -e "$data_file" ] && break
+    local data
+    for i in 1 2 3 4 5 7 8 9 10; do
+        [ -e "$data_file" -a -s "$data_file" ] && break
         #echo waiting $i seconds
         sleep 1
     done
@@ -191,15 +192,15 @@ update_time()
 
 test_ddns()
 {
-    /etc/init.d/ddns stop
-    _add_ddns
-    uci commit ddns
-    /etc/init.d/ddns start
+    /etc/init.d/ddns stop >/dev/null 2>&1
+    _add_ddns >/dev/null 2>&1
+    uci commit ddns >/dev/null 2>&1
+    /etc/init.d/ddns start >/dev/null 2>&1
     stat_ddns
-    #/etc/init.d/ddns stop
-    #_del_ddns
-    #uci commit ddns
-    #/etc/init.d/ddns start
+    /etc/init.d/ddns stop >/dev/null 2>&1
+    _del_ddns >/dev/null 2>&1
+    uci commit ddns >/dev/null 2>&1
+    /etc/init.d/ddns start >/dev/null 2>&1
 }
 
 case "$cmd" in
