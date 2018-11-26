@@ -170,12 +170,12 @@ class SystemCall(object):
         ]
         :return:
         {
-            mac1 : {'tx_bytes': ?, 'tx_pkts': ?, 'rx_bytes': ?, 'rx_pkts': ?, 'ip': x.x.x.x, 'ts':???},
+            mac1 : {'mac': 'mac1', 'total_tx_bytes': ?, 'total_tx_pkts': ?, 'total_rx_bytes': ?, 'total_rx_pkts': ?, 'ip': x.x.x.x, 'ts':???},
             ...,
-            macN : {'tx_bytes': ?, 'tx_pkts': ?, 'rx_bytes': ?, 'rx_pkts': ?, 'ip': x.x.x.x, 'ts':???},
+            macN : {'mac': 'macN', 'total_tx_bytes': ?, 'total_tx_pkts': ?, 'total_rx_bytes': ?, 'total_rx_pkts': ?, 'ip': x.x.x.x, 'ts':???},
         }
         '''
-        ts = int(time.time())
+        ts = int(round(time.time()*1000))
         ipt = self._output(['iptables', '-t', 'mangle', '-L', 'statistic', '-vn'])
         ipt = ipt.split('\n')[2:]
 
@@ -186,11 +186,11 @@ class SystemCall(object):
 
         total = [block for block in reader]
 
-        tx = {t[None][1]: {'tx_bytes': t['bytes'], 'tx_pkts': t['pkts'], 'ip': t['source'], 'ts': ts} for t in total if t['destination'] == '0.0.0.0/0'}
-        rx = {t[None][1]: {'rx_bytes': t['bytes'], 'rx_pkts': t['pkts'], 'ip': t['destination'], 'ts': ts} for t in total if t['source'] == '0.0.0.0/0'}
-        map(lambda mac: mac in rx and tx[mac].update(rx[mac]), tx)
+        res = tx = {t[None][1]: {'mac':t[None][1], 'total_tx_bytes': t['bytes'], 'total_tx_pkts': t['pkts'], 'ip': t['source'], 'ts': ts} for t in total if t['destination'] == '0.0.0.0/0'}
+        rx = {t[None][1]: {'mac':t[None][1], 'total_rx_bytes': t['bytes'], 'total_rx_pkts': t['pkts'], 'ip': t['destination'], 'ts': ts} for t in total if t['source'] == '0.0.0.0/0'}
+        map(lambda mac: mac in rx and res[mac].update(rx[mac]), res)
 
-        return tx
+        return res
 
     def remove_out_of_statistic_data(self, filename, num):
         files = self._output(['ls %s' % (filename)], shell=True).split('\n')

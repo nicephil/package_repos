@@ -4,6 +4,9 @@ from constant import const
 import time
 
 class WiredClientReporter(Poster):
+    '''
+    This timer is used to report clients online status automatically.
+    '''
     def __init__(self, mailbox, operate_type=const.CLIENT_ONLINE_STATUS_RESP_OPT_TYPE, name='WiredClientTimer', interval=10, debug=False):
         super(WiredClientReporter, self).__init__(name, interval, mailbox, operate_type, repeated=True, debug=debug, pri=5)
         self.debug = debug

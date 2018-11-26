@@ -16,9 +16,9 @@ class CfgDone(CfgObj):
     @classmethod
     @logcfg
     def post_run(cls):
-        cls.doit(['/etc/init.d/dnsmasq', 'reload'], 'reload dnsmasq', path='')
         cls.doit(['/etc/init.d/network', 'reload'], 'reload network', path='')
         cls.doit(['/etc/init.d/firewall', 'reload'], 'reload firewall', path='')
+        cls.doit(['/etc/init.d/dnsmasq', 'reload'], 'reload dnsmasq', path='')
         return True
 
 if __name__ == "__main__":

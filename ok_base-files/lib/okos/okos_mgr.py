@@ -96,9 +96,9 @@ class PostMan(threading.Thread):
             SystemHealthReporter(mailbox, interval=10, debug=False), 
             Site2SiteVpnReporter(mailbox, interval=60, debug=False), 
             IfStatusReporter(mailbox, interval=60, debug=False), 
-            DeviceReporter(mailbox, interval=60, debug=True),
+            DeviceReporter(mailbox, interval=60, debug=False),
             WiredClientReporter(mailbox, interval=10, debug=False),
-            #ClientStatistic(mailbox, interval=5, debug=True),
+            ClientStatistic(mailbox, interval=15, debug=False),
             DdnsStateReporter(mailbox, interval=60, debug=False),
         ]
 
