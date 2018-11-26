@@ -176,7 +176,7 @@ class SystemCall(object):
         }
         '''
         ts = int(round(time.time()*1000))
-        ipt = self._output(['iptables', '-t', 'mangle', '-L', 'statistic', '-vn'])
+        ipt = self._output(['iptables', '-t', 'mangle', '-L', 'statistic', '-vxn'])
         ipt = ipt.split('\n')[2:]
 
         # iptables v1.4.21
