@@ -246,12 +246,12 @@ qos_start ()
 
 qos_atf_deinit()
 {
-    iwpriv "ath50" commitatf 0 > /dev/null 2>&1
-    iwpriv "ath60" commitatf 0 > /dev/null 2>&1
     wlanconfig "ath50" delatfgroup public > /dev/null 2>&1
     wlanconfig "ath50" delatfgroup private > /dev/null 2>&1
     wlanconfig "ath60" delatfgroup public > /dev/null 2>&1
     wlanconfig "ath60" delatfgroup private > /dev/null 2>&1
+    #iwpriv "ath50" commitatf 0 > /dev/null 2>&1
+    #iwpriv "ath60" commitatf 0 > /dev/null 2>&1
 }
 
 
