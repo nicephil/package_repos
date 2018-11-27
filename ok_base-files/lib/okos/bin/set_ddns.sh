@@ -52,6 +52,8 @@ Example:
     $0 set 101 --provider oray.com --domainname ak74.f3322.net --username root --password wangleih --interface wan --ipaddr 192.168.254.171
     $0 set 101 --provider zoneedit.com --domainname nicephil.oakridge.vip --username nicephil --password AE7889603A021CE0 --interface wan --ipaddr 192.168.254.171
     $0 set 2 --provider 3322.org --domainname largepuppet.f3322.net --username root --password largepuppet --interface wan --ipaddr 223.93.139.132
+    $0 test okos_ddns_test --provider 3322.org --domainname largepuppet.f3322.net --username root --password largepuppet --ipaddr 192.168.1.168
+    $0 test okos_ddns_test --provider no-ip.com --domainname puppet.hopto.org --username largepuppet --password largepuppet --ipaddr 192.168.1.168
 _HELP_
 }
 
