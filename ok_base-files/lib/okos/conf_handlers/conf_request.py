@@ -3,6 +3,7 @@ from constant import const
 from okos_tools import *
 import time
 import os
+from cfgdiff import do_config
 
 
 class ConfRequest(ConfHandler):
@@ -13,9 +14,11 @@ class ConfRequest(ConfHandler):
         self.debug = debug
 
     def _handler(self, request):
-        self.conf.config = request['data']
+        self.conf.config = current = request['data']
+        backup = self.conf.backup
         okos_system_log_info("configuration data obtained")
         time.sleep(3)
+        #res = do_config(current, backup)
         res = self.syscall.do_config(self.conf.conf_file, self.conf.bak_file)
         #ret = os.system("{} -o {} {}".format(const.OKOS_CFGDIFF_SCRIPT, get_whole_conf_bak_path(), get_whole_conf_path()))
         if res:

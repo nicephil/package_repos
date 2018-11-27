@@ -22,6 +22,12 @@ class OkosConfig(object):
             self.conf_data = {}
         self.conf_data.setdefault('config_version', self.default_version)
         return self.conf_data
+    def _generate_bak_data(self, json_str):
+        try:
+            bak = json.loads(json_str, encoding='utf-8')
+        except Exception as _:
+            bak = {}
+        return bak
     
     @property
     def version(self):
@@ -54,6 +60,13 @@ class OkosConfig(object):
             ori.write(json_str)
             ori.flush()
         return self._generate_conf_data(json_str)
+    
+    @property
+    def backup(self):
+        with open(self.bak_file, 'r') as f:
+            fcntl.flock(f.fileno(), fcntl.LOCK_SH)
+            json_str = f.read()
+        return self._generate_bak_data(json_str)
 
     def rollback(self):
         with open(self.conf_file, 'w+', 0) as ori:
