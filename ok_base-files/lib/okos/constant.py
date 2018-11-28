@@ -10,7 +10,8 @@ const.CONFIG_CONF_FILE = './config.json'
 const.OKOS_OKOS_LIB_DIR_STR = './lib/okos/'
 const.OKOS_MGR_STR = './okos_mgr.py'
 const.SYSLOADER_MGR_PIDFILE = './sysloader_mgr.pid'
-const.OKOS_CFGDIFF_SCRIPT_STR = './conf_handlers/cfgdiff.py'
+#const.OKOS_CFGDIFF_SCRIPT_STR = './conf_handlers/cfgdiff.py'
+const.OKOS_CFGDIFF_SCRIPT_STR = './cfgdiff.py'
 const.OKOS_DDNS_STATUS_SCRIPT_STR = './get_ddns_status.sh'
 
 const.BASE_DIR = const.BASE_DIR_STR
