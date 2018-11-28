@@ -56,13 +56,13 @@ class SystemCall(object):
     def __init__(self, debug=False):
         super(SystemCall, self).__init__()
         self.debug = debug
-    
+
     def _call(self, cmd, comment='', path='', shell=False):
         '''
         cmd = ['/lib/okos/bin/set_..._.sh', '33', '201'] ; shell = False
         cmd = ['/lib/okos/bin/set_..._.sh 33 201'] ; shell = True
         '''
-        
+
         self.debug and comment and log_debug(comment)
         self.debug and log_debug("System Call - %s - start " % (cmd))
         try:
@@ -84,7 +84,7 @@ class SystemCall(object):
         cmd = ['/lib/okos/bin/set_..._.sh', '33', '201'] ; shell = False
         cmd = ['/lib/okos/bin/set_..._.sh 33 201'] ; shell = True
         '''
-        
+
         self.debug and comment and log_debug(comment)
         self.debug and log_debug("System Output - %s - Start" % (cmd))
         try:
@@ -100,7 +100,7 @@ class SystemCall(object):
             return ''
         self.debug and log_debug("System Output - %s - return %s" % (cmd, res))
         return res
-    
+
     def localip2target(self, target):
         '''
         Get local information about route to target
@@ -115,6 +115,7 @@ class SystemCall(object):
         p = re.compile('^[0-9.]{7,15}[ ]+via[ ]+([0-9.]{7,15})[ ]+dev[ ]+([a-z_0-9]+)[ ]+src[ ]+([0-9.]{7,15})')
         res = p.match(self._output(['ip', 'route', 'get', target]))
         return res and res.groups() or ('','','')
+
     def ip_netmask_4_iface(self, iface):
         '''
         ipaddress, netmask = SystemCall().ip_netmask_4_iface('eth0')
@@ -123,6 +124,22 @@ class SystemCall(object):
         res = p.search(self._output(['ip', 'address', 'show', iface]))
         return res and res.groups() or ('','')
 
+    def get_dhcpleases_entries(self):
+        '''
+        return a list contains dhcpleases entries
+        /tmp/dhcp.leases
+        '''
+        dhcpleasest = {}
+        with SystemCallEnv('get dhcp lease entries', debug=self.debug) as e:
+            with open('/tmp/dhcp.leases') as f:
+                names = [
+                    'expire_time', 'mac', 'ip', 'hostname', 'client_id',
+                ]  # dnsmasq 2.78
+
+                reader = csv.DictReader(
+                f, fieldnames=names, skipinitialspace=True, delimiter=' ')
+                dhcpleasest = [block for block in reader]
+        return dhcpleasest
 
     def get_arp_entries(self):
         '''
@@ -139,7 +156,7 @@ class SystemCall(object):
         with SystemCallEnv('get arp entries', debug=self.debug) as e:
             arpt = arptable.get_arp_table()
         return arpt
-    
+
     def add_statistic(self, *args):
         '''Add iptables entries to trace throughput of a client
         :params : (ip, mac)
@@ -155,17 +172,17 @@ class SystemCall(object):
         ip, mac = args
         self._call(['iptables', '-t', 'mangle', '-D', 'statistic', '-s', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
         self._call(['iptables', '-t', 'mangle', '-D', 'statistic', '-d', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
-    
+
     def get_statistic_counters(self):
         '''
         INPUT:
         Chain statistic (1 references)
-        pkts bytes target     prot opt in     out     source               destination         
+        pkts bytes target     prot opt in     out     source               destination
             0     0 RETURN     all  --  *      *       172.16.100.168       0.0.0.0/0                  /* 00:0e:c6:d0:ec:a8 */
             0     0 RETURN     all  --  *      *       0.0.0.0/0            172.16.100.168          /* 00:0e:c6:d0:ec:a8 */
         After csv:
         [
-        {'opt': '--', 'destination': '0.0.0.0/0', 'target': 'RETURN', 'prot': 'all', 'bytes': '0', 'source': '172.16.100.168', None: [''], 'in': '*', 'pkts': '0', 'out': '*'}, 
+        {'opt': '--', 'destination': '0.0.0.0/0', 'target': 'RETURN', 'prot': 'all', 'bytes': '0', 'source': '172.16.100.168', None: [''], 'in': '*', 'pkts': '0', 'out': '*'},
         {'opt': '--', 'destination': '172.16.100.168', 'target': 'RETURN', 'prot': 'all', 'bytes': '0', 'source': '0.0.0.0/0', None: [''], 'in': '*', 'pkts': '0', 'out': '*'}
         ]
         :return:
@@ -197,7 +214,7 @@ class SystemCall(object):
         files = [f for f in files if f]
         old = files[:-num]
         map(lambda f: self._call(['rm', f]), old)
-    
+
     def do_config(self, ori, bak):
         #os.system("{} -o {} {}".format(const.OKOS_CFGDIFF_SCRIPT, get_whole_conf_bak_path(), get_whole_conf_path()))
         return self._call([const.OKOS_CFGDIFF_SCRIPT, '-o', bak, ori])

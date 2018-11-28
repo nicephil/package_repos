@@ -6,4 +6,5 @@ from device_reporter import DeviceReporter
 from redirector import Redirector
 from client_statistic import ClientStatistic
 from ddns_state import DdnsStateReporter
+from hostname_reporter import HostnameReporter
 

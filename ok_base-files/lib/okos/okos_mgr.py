@@ -65,9 +65,9 @@ class Oakmgr(object):
                 okos_system_log_info("connected to oakmgr @{}".format(server[0]))
         if requested and 'error_code' in requested and requested['error_code'] == 1002:
             okos_system_log_warn("oakmgr-{} reject access".format(server))
-        
+
         requested = self.access_pipe() or requested
-        
+
         for r in requested.setdefault('list', []):
             self.debug and log_debug('REQUESTED data: %s' % (r))
             self.mailbox.pub(const.CONF_REQUEST_Q, r, timeout=0)
@@ -78,7 +78,7 @@ class HeartBeat(Timer):
         self.oakmgr = oakmgr
         self.mailbox = mailbox
         self.debug = debug
-        
+
     def handler(self, *args, **kwargs):
         msgs = self.mailbox.get_all(const.HEARTBEAT_Q)
         self.oakmgr.access([m[1] for m in msgs])
@@ -93,13 +93,14 @@ class PostMan(threading.Thread):
         self.timers = [
             Redirector(interval=120, debug=False),
             HeartBeat(self.oakmgr, mailbox, debug=False),
-            SystemHealthReporter(mailbox, interval=10, debug=False), 
-            Site2SiteVpnReporter(mailbox, interval=60, debug=False), 
-            IfStatusReporter(mailbox, interval=60, debug=False), 
+            SystemHealthReporter(mailbox, interval=10, debug=False),
+            Site2SiteVpnReporter(mailbox, interval=60, debug=False),
+            IfStatusReporter(mailbox, interval=60, debug=False),
             DeviceReporter(mailbox, interval=60, debug=False),
             WiredClientReporter(mailbox, interval=10, debug=False),
             ClientStatistic(mailbox, interval=15, debug=False),
             DdnsStateReporter(mailbox, interval=60, debug=False),
+            HostnameReporter(interval=10, debug=False),
         ]
 
 
@@ -123,7 +124,7 @@ class PostMan(threading.Thread):
         #while_loop()
         while not self.term:
             self._round()
-            
+
 
 
 class OkosMgr(object):
@@ -145,7 +146,7 @@ class OkosMgr(object):
         map(lambda t: t.start(), self.threads)
         map(lambda t: t.start(), self.timers)
         map(lambda t: t.join(), self.threads)
-        
+
 
 class debug(object):
     def __init__(self):
