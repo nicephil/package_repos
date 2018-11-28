@@ -1,7 +1,6 @@
 from okos_tools import *
 from constant import const
 from collections import defaultdict
-from pprint import pprint
 
 class HostnameEnv(ExecEnv):
     def __init__(self, desc, debug=False):
@@ -29,4 +28,3 @@ class HostnameReporter(Timer):
         with HostnameEnv('Report hostname information', debug=self.debug):
             if data_json['clients']:
                 post_url(self.url, param_data=self.param, json_data=data_json, files=None, debug=False)
-                pprint(data_json)
