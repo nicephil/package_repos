@@ -75,7 +75,15 @@ class CfgSiteToSiteVPN(CfgObj):
 
     @classmethod
     @logcfg
-    def post_run(cls):
+    def post_run(cls, cargo=None, goods=None):
+        cls.add_service('ipsec', cargo)
+        return True
+
+    '''
+    @classmethod
+    @logcfg
+    def post_run(cls, cargo=None):
         cls.doit(['/etc/init.d/ipsec', 'reload'], 'Restart ipsec')
         return True
+    '''
 

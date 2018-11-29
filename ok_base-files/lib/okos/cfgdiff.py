@@ -7,6 +7,7 @@ from cfgobjects import *
 from okos_tools import *
 import fcntl
 import ubus
+from collections import defaultdict
 
 class OakmgrCfg(object):
     Templates = [
@@ -18,7 +19,7 @@ class OakmgrCfg(object):
             CfgIpForwarding,
             CfgMacIpBinding,
             CfgDhcpOption,
-            CfgDone,
+            #CfgDone,
             CfgSiteToSiteVPN,
             CfgDDNS,
             ]
@@ -38,7 +39,7 @@ class OakmgrCfg(object):
         else:
             self._json = {}
 
-        self._json = isinstance(j, dict) and j
+        self._json = j if isinstance(j, dict) else self._json
 
 
     def parse(self):
@@ -59,23 +60,41 @@ class OakmgrCfg(object):
     def dump(self):
         log_debug('Dump uci configuration files...')
 
-    def run(self):
+    def _run(self, cargo):
         log_debug('Start to execute commands...')
         res = False
         for i,T in enumerate(self.Templates):
             log_debug('\n>>> {cname}'.format(cname=T.__name__))
-            if not T.pre_run():
+            goods = self.objects[i]
+            goods and T.pre_run(cargo, goods)
+            goods = filter(lambda o: o.run(), goods)
+            if len(self.objects[i]) != len(goods):
                 break
-            r = filter(lambda o: not o.run(), self.objects[i])
-            if not r and self.objects[i]:
-                break
-            if not T.post_run():
-                break
+            goods and T.post_run(cargo, goods)
         else:
             res = True
         msg = 'completedly' if res else 'failed'
         log_debug('Configuration executed {msg}...'.format(msg=msg))
         return res
+    
+    def service(self, services):
+        log_debug('Start to execute registered service {s}'.format(s=services))
+        syscall = SystemCall()
+        services_templates = [
+            {'name':'system',   'comment':'Reload system',   'cmd': ['/etc/init.d/system', 'reload'], },
+            {'name':'network',  'comment':'Reload network',  'cmd': ['/etc/init.d/network', 'reload'], },
+            {'name':'dnsmasq',  'comment':'Reload dnsmasq',  'cmd': ['/etc/init.d/dnsmasq', 'reload'], },
+            {'name':'ipsec',    'comment':'Reload ipsec',    'cmd': ['/etc/init.d/ipsec', 'reload'], },
+            {'name':'firewall', 'comment':'Reload firewall', 'cmd': ['/etc/init.d/firewall', 'reload'], },
+        ]
+        map(lambda s: syscall._call(s['cmd'], comment=s['comment']) if s['name'] in services else None, services_templates)
+
+    def run(self):
+        cargo = defaultdict(set)
+        res = self._run(cargo)
+        self.service(cargo['services'])
+        return res
+
 
 def do_config(cur, bak):
     with ExecEnv('[Config]', desc='Execute configuration', raiseup=False, debug=True) as X:

@@ -64,3 +64,8 @@ class CfgPortForwarding(CfgObj):
         self.add()
         return True
 
+    @classmethod
+    @logcfg
+    def post_run(cls, cargo=None, goods=None):
+        cls.add_service('firewall', cargo)
+        return True
