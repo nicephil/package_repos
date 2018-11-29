@@ -67,7 +67,7 @@ class OakmgrCfg(object):
             if not T.pre_run():
                 break
             r = filter(lambda o: not o.run(), self.objects[i])
-            if not r:
+            if not r and self.objects[i]:
                 break
             if not T.post_run():
                 break
