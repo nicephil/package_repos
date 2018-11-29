@@ -138,3 +138,8 @@ class CfgInterface(CfgObj):
             return self.doit(cmd)
         return True
 
+    @classmethod
+    @logcfg
+    def post_run(cls, cargo=None, goods=None):
+        cls.add_service('network', cargo)
+        return True

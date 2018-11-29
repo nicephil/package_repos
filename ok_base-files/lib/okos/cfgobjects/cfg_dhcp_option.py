@@ -57,3 +57,8 @@ class CfgDhcpOption(CfgObj):
         self.add()
         return True
 
+    @classmethod
+    @logcfg
+    def post_run(cls, cargo=None, goods=None):
+        cls.add_service('dnsmasq', cargo)
+        return True

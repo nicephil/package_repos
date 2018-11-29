@@ -13,13 +13,15 @@ class CfgDone(CfgObj):
     def parse(cls, j):
         pass
 
+    '''
     @classmethod
     @logcfg
-    def post_run(cls):
+    def post_run(cls, cargo=None, goods=None):
         cls.doit(['/etc/init.d/network', 'reload'], 'reload network', path='')
         cls.doit(['/etc/init.d/firewall', 'reload'], 'reload firewall', path='')
         cls.doit(['/etc/init.d/dnsmasq', 'reload'], 'reload dnsmasq', path='')
         return True
+    '''
 
 if __name__ == "__main__":
     pass

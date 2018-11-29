@@ -4,9 +4,11 @@ import subprocess
 from okos_tools import log_debug, log_info, log_warning, log_err, log_crit, logcfg, logger
 from okos_tools import ExecEnv
 from constant import const
+from collections import defaultdict
 
 class CfgObj(object):
     differ = None
+
     def __init__(self):
         super(CfgObj, self).__init__()
         self.name = self.__class__.__name__
@@ -73,12 +75,17 @@ class CfgObj(object):
         return True
 
     @classmethod
-    def pre_run(cls):
+    def pre_run(cls, cargo=None, goods=None):
         return True
 
     @classmethod
-    def post_run(cls):
+    def post_run(cls, cargo=None, goods=None):
         return True
+
+    @staticmethod
+    def add_service(service, cargo):
+        if cargo is not None:
+            cargo['services'].add(service)
 
     def check_para(self, fmt, entry):
         for k, func in fmt.iteritems():
@@ -179,7 +186,7 @@ class CfgObj(object):
                 return False, 'port range error:(start < end)'
         if start == 0:
             return False, 'port range error:(0 < port < 65536)'
-        return True, end and '%d:%d' % (start, end) or '%d' % (start)
+        return True, '%d:%d' % (start, end) if end else '%d' % (start)
 
     def _check_mac_(self, input):
         p = const.FMT_PATTERN['mac']
@@ -215,12 +222,12 @@ class ParameterChecker(object):
         else:
             entry['value'] = self.src.setdefault(index, default)
         if callable(entry['checker']):
-            log_debug('[Parameter Checking] for [%s]:>' % (index))
             res, data = entry['checker'](entry['value'])
             if not res:
                 log_warning('[Parameter Checking] %s failed (%s) - %s -' % (index, entry['value'], data))
                 raise ExceptionConfigError('ParameterChecker', 'check %s failed' % (index), entry['value'])
             else:
+                log_debug('[Parameter Checking] for [{idx}]:>[{d}]'.format(idx=index, d=data))
                 entry['value'] = data
             
 

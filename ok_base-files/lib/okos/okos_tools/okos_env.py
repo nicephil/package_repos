@@ -7,6 +7,7 @@ import socket
 import re
 import arptable
 import csv
+from collections import defaultdict
 
 
 class ExecEnv(object):
@@ -162,16 +163,42 @@ class SystemCall(object):
         :params : (ip, mac)
         '''
         ip, mac = args
-        self._call(['iptables', '-t', 'mangle', '-A', 'statistic', '-s', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
-        self._call(['iptables', '-t', 'mangle', '-A', 'statistic', '-d', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
+        self._call(['iptables', '-t', 'mangle', '-A', 'statistic_tx', '-s', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
+        self._call(['iptables', '-t', 'mangle', '-A', 'statistic_rx', '-d', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
+        self._call(['iptables', '-t', 'mangle', '-A', 'statistic_tx_wan', '-s', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
+        self._call(['iptables', '-t', 'mangle', '-A', 'statistic_rx_wan', '-d', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
 
     def del_statistic(self, *args):
         '''Del iptables entries to trace throughput of a client
         :params : (ip, mac)
         '''
         ip, mac = args
-        self._call(['iptables', '-t', 'mangle', '-D', 'statistic', '-s', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
-        self._call(['iptables', '-t', 'mangle', '-D', 'statistic', '-d', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
+        self._call(['iptables', '-t', 'mangle', '-D', 'statistic_tx', '-s', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
+        self._call(['iptables', '-t', 'mangle', '-D', 'statistic_rx', '-d', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
+        self._call(['iptables', '-t', 'mangle', '-D', 'statistic_tx_wan', '-s', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
+        self._call(['iptables', '-t', 'mangle', '-D', 'statistic_rx_wan', '-d', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
+
+    def _get_counters_by_chain(self, tpl):
+        ''':RETURN:
+        [{'mac':'mac1', 'total_tx_bytes':?, 'total_tx_pkts':?, 'ip':xxx, 'ts':xxx, },
+         {'mac':'macx', 'total_tx_bytes':?, 'total_tx_pkts':?, 'ip':xxx, 'ts':xxx, },
+         {'mac':'macN', 'total_tx_bytes':?, 'total_tx_pkts':?, 'ip':xxx, 'ts':xxx, },
+        ] or
+        [{'mac':'mac1', 'total_tx_bytes_wan':?, 'total_tx_pkts_wan':?, 'ip':xxx, 'ts':xxx, },
+         {'mac':'macx', 'total_tx_bytes_wan':?, 'total_tx_pkts_wan':?, 'ip':xxx, 'ts':xxx, },
+         {'mac':'macN', 'total_tx_bytes_wan':?, 'total_tx_pkts_wan':?, 'ip':xxx, 'ts':xxx, },
+        ] or
+        ...
+        '''
+        chain, raw, key = tpl['chain'], tpl['raw'], tpl['key']
+        ipt = self._output(['iptables', '-t', 'mangle', '-L', chain, '-vxn'])
+        ts = int(round(time.time()*1000))
+        ipt = ipt.split('\n')[2:]
+        # iptables v1.4.21
+        names = ['pkts', 'bytes', 'target', 'prot', 'opt', 'in', 'out', 'source', 'destination', ]
+        reader = csv.DictReader(ipt, fieldnames=names, skipinitialspace=True, delimiter=' ')
+        total = [block for block in reader]
+        return [{'mac':t[None][1], key[0]:t[raw[0]], key[1]:t[raw[1]], 'ip':t['source'], 'ts':ts} for t in total]
 
     def get_statistic_counters(self):
         '''
@@ -193,19 +220,15 @@ class SystemCall(object):
         }
         '''
         ts = int(round(time.time()*1000))
-        ipt = self._output(['iptables', '-t', 'mangle', '-L', 'statistic', '-vxn'])
-        ipt = ipt.split('\n')[2:]
-
-        # iptables v1.4.21
-        names = ['pkts', 'bytes', 'target', 'prot', 'opt', 'in', 'out', 'source', 'destination', ]
-
-        reader = csv.DictReader(ipt, fieldnames=names, skipinitialspace=True, delimiter=' ')
-
-        total = [block for block in reader]
-
-        res = tx = {t[None][1]: {'mac':t[None][1], 'total_tx_bytes': t['bytes'], 'total_tx_pkts': t['pkts'], 'ip': t['source'], 'ts': ts} for t in total if t['destination'] == '0.0.0.0/0'}
-        rx = {t[None][1]: {'mac':t[None][1], 'total_rx_bytes': t['bytes'], 'total_rx_pkts': t['pkts'], 'ip': t['destination'], 'ts': ts} for t in total if t['source'] == '0.0.0.0/0'}
-        map(lambda mac: mac in rx and res[mac].update(rx[mac]), res)
+        statistic = [
+            {'chain':'statistic_rx', 'raw':('pkts', 'bytes'), 'key':('total_rx_pkts', 'total_rx_bytes'),},
+            {'chain':'statistic_tx', 'raw':('pkts', 'bytes'), 'key':('total_tx_pkts', 'total_tx_bytes'),},
+            {'chain':'statistic_rx_wan', 'raw':('pkts', 'bytes'), 'key':('total_rx_pkts_wan', 'total_rx_bytes_wan'),},
+            {'chain':'statistic_tx_wan', 'raw':('pkts', 'bytes'), 'key':('total_tx_pkts_wan', 'total_tx_bytes_wan'),},
+        ]
+        cargo = map(self._get_counters_by_chain, statistic)
+        res = defaultdict(dict)
+        map(lambda chain: map(lambda m: res[m['mac']].update(m), chain), cargo)
 
         return res
 

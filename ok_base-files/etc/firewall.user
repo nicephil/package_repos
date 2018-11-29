@@ -10,4 +10,16 @@ iptables -t mangle -A FORWARD -o t_+ -p tcp -m tcp --tcp-flags SYN,RST SYN -j TC
 iptables -t mangle -A FORWARD -i t_+ -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1452
 
 iptables -t mangle -N statistic
+iptables -t mangle -N statistic_tx
+iptables -t mangle -N statistic_rx
+iptables -t mangle -N statistic_tx_wan
+iptables -t mangle -N statistic_rx_wan
 iptables -t mangle -I FORWARD -j statistic
+iptables -t mangle -A statistic -o eth0 -j statistic_tx_wan
+iptables -t mangle -A statistic -o eth1 -j statistic_tx_wan
+iptables -t mangle -A statistic -o eth2 -j statistic_tx_wan
+iptables -t mangle -A statistic -i eth0 -j statistic_rx_wan
+iptables -t mangle -A statistic -i eth1 -j statistic_rx_wan
+iptables -t mangle -A statistic -i eth2 -j statistic_rx_wan
+iptables -t mangle -A statistic -j statistic_tx
+iptables -t mangle -A statistic -j statistic_rx

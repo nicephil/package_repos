@@ -89,3 +89,10 @@ class CfgNetwork(CfgObj):
     def change(self):
         self.add()
         return True
+
+    @classmethod
+    @logcfg
+    def post_run(cls, cargo=None, goods=None):
+        cls.add_service('dnsmasq', cargo)
+        cls.add_service('network', cargo)
+        return True
