@@ -15,7 +15,7 @@ class CfgInterface(CfgObj):
     @classmethod
     @logcfg
     def parse(cls, j):
-        ifs = j.setdefault('interfaces', {})
+        ifs = j['interfaces']
         with ConfigParseEnv(ifs, 'Interfaces configuration', debug=True):
             res = [cls(ifname,ifx) for ifname,ifx in ifs.iteritems()]
         return res
@@ -142,4 +142,5 @@ class CfgInterface(CfgObj):
     @logcfg
     def post_run(cls, cargo=None, goods=None):
         cls.add_service('network', cargo)
+        cls.add_service('firewall', cargo)
         return True

@@ -27,19 +27,18 @@ class OakmgrCfg(object):
         super(OakmgrCfg, self).__init__()
         self.source = f
         self.objects = None
+        self._json = defaultdict(dict)
+        self._json['config_version'] = 0
         if self.source:
             try:
                 with open(f, 'r') as cfg:
                     fcntl.flock(cfg.fileno(), fcntl.LOCK_SH)
                     j_str = cfg.read()
-                    self._json = json.loads(j_str, encoding='utf-8')
+                    self._json.update(json.loads(j_str, encoding='utf-8'))
             except Exception as e:
                 log_info("import json data failed! %s" % (f))
-                self._json = {}
-        else:
-            self._json = {}
 
-        self._json = j if isinstance(j, dict) else self._json
+        self._json = self._json.update(j) if isinstance(j, dict) else self._json
 
 
     def parse(self):
@@ -92,7 +91,7 @@ class OakmgrCfg(object):
     def run(self):
         cargo = defaultdict(set)
         res = self._run(cargo)
-        self.service(cargo['services'])
+        res and self.service(cargo['services'])
         return res
 
 

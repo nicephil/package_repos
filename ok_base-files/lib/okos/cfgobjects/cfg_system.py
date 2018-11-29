@@ -15,7 +15,7 @@ class CfgSystem(CfgObj):
     @classmethod
     @logcfg
     def parse(cls, j):
-        system = j['mgmt']['system']
+        system = j['mgmt'].setdefault('system', {})
         with ConfigParseEnv(system, 'System configuration', debug=True):
             res = [cls(system),]            
         return res

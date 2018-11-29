@@ -95,4 +95,5 @@ class CfgNetwork(CfgObj):
     def post_run(cls, cargo=None, goods=None):
         cls.add_service('dnsmasq', cargo)
         cls.add_service('network', cargo)
+        cls.add_service('firewall', cargo)
         return True

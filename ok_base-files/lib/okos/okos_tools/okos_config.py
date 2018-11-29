@@ -1,6 +1,7 @@
 from constant import const
 import fcntl
 import json
+from collections import defaultdict
 
 class OkosConfig(object):
     '''
@@ -12,15 +13,19 @@ class OkosConfig(object):
         self.bak_file = "{}_bak".format(self.conf_file)
         self.debug = debug
         self.default_version = 0
-        self.conf_data = {}
-        self.conf_data.setdefault('config_version', self.default_version)
+        self.conf_data = defaultdict(dict)
+        self.bak_data = defaultdict(dict)
+        self.conf_data['config_version'] = self.default_version
+        self.bak_data['config_version'] = self.default_version
 
     def _generate_conf_data(self, json_str):
+        self.conf_data = defaultdict(dict)
+        self.conf_data['config_version'] = self.default_version
         try:
-            self.conf_data = json.loads(json_str, encoding='utf-8')
+            d = json.loads(json_str, encoding='utf-8')
         except Exception as _:
-            self.conf_data = {}
-        self.conf_data.setdefault('config_version', self.default_version)
+            d = {}
+        self.conf_data.update(d)
         return self.conf_data
     def _generate_bak_data(self, json_str):
         try:
@@ -31,7 +36,7 @@ class OkosConfig(object):
     
     @property
     def version(self):
-        return self.conf_data.setdefault('config_version', self.default_version)
+        return self.conf_data['config_version']
 
     @property
     def whole_conf_path(self):
