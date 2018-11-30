@@ -69,6 +69,7 @@ set_dhcp_pool()
     uci set dhcp.${ifx}.start="${start}"
     uci set dhcp.${ifx}.limit="${limit}"
     uci set dhcp.${ifx}.leasetime="${leasetime}"
+    uci set dhcp.${ifx}.force="1"
     uci set dhcp.${ifx}.ignore="0"
     if [ -z "$vid" ]; then
         # need to update webui_config also

@@ -27,6 +27,7 @@ class OakmgrCfg(object):
         super(OakmgrCfg, self).__init__()
         self.source = f
         self.objects = None
+        self.syscall = SystemCall(debug=True)
         self._json = defaultdict(dict)
         self._json['config_version'] = 0
         if self.source:
@@ -77,8 +78,8 @@ class OakmgrCfg(object):
         return res
     
     def service(self, services):
+        #services.add('network')
         log_debug('Start to execute registered service {s}'.format(s=services))
-        syscall = SystemCall()
         services_templates = [
             {'name':'system',   'comment':'Reload system',   'cmd': ['/etc/init.d/system', 'reload'], },
             {'name':'network',  'comment':'Reload network',  'cmd': ['/etc/init.d/network', 'reload'], },
@@ -86,7 +87,8 @@ class OakmgrCfg(object):
             {'name':'ipsec',    'comment':'Reload ipsec',    'cmd': ['/etc/init.d/ipsec', 'reload'], },
             {'name':'firewall', 'comment':'Reload firewall', 'cmd': ['/etc/init.d/firewall', 'reload'], },
         ]
-        map(lambda s: syscall._call(s['cmd'], comment=s['comment']) if s['name'] in services else None, services_templates)
+        ordered_services = filter(lambda s: bool(s['name'] in services), services_templates)
+        map(lambda s: self.syscall._call(s['cmd'], comment=s['comment']), ordered_services)
 
     def run(self):
         cargo = defaultdict(set)
