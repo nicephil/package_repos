@@ -1,76 +1,57 @@
 #!/usr/bin/env python
 
-import argparse, os, subprocess, re, json
-from cfg_object import CfgObj
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit
-import ubus
+from cfg_object import CfgObj, ConfigParseEnv, ParameterChecker, ConfigInputEnv
+from okos_tools import *
 
 class CfgDDNS(CfgObj):
-    def __init__(self):
-        super(CfgDDNS, self).__init__('provider')
+    differ = 'id'
+    def __init__(self, entry=None):
+        super(CfgDDNS, self).__init__()
+        entry and self.data.update(entry)
 
-    def parse(self, j):
-        ddnss = j['network']['ddnss']
-        res = [CfgDDNS() for d in ddnss]
-        for i,r in enumerate(res):
-            d = r.data
-            d['provider'] = ddnss[i]['provider']
-            d['hostname'] = ddnss[i]['hostname']
-            d['username'] = ddnss[i]['username']
-            d['password'] = ddnss[i]['password']
+    @classmethod
+    @logcfg
+    def parse(cls, j):
+        ddnss = j['network'].setdefault('ddnss',[])
+        with ConfigParseEnv(ddnss, 'DDNS configuration', debug=True):
+            res = [cls(ddns) for ddns in ddnss]
         return res
 
+    @logcfg
     def add(self):
-        log_debug("add")
-        if not self.data['provider'] or not self.data['username'] or not self.data['password'] or not self.data['hostname']:
-            return False
-        try:
-            # 1. disabled all existing service
-            signa = {
-                'config':'ddns',
-                'type':'service',
-                'values':{
-                    'enabled':0
-                }
-            }
-            ubus.call('uci', 'set', signa)
-            # 2. enabled specific provider
-            signa['section'] = self.data['provider'].replace('.','_')
-            signa['values'] = {
-                'username':self.data['username'],
-                'password':self.data['password'],
-                'domain':self.data['hostname'],
-                'enabled':1
-            }
-            ubus.call('uci','set',signa)
-            # 3. commit the change
-            signa={'config':'ddns'}
-            ubus.call('uci', 'commit', signa)
+        new = self.data
+        checker = ParameterChecker(new)
+        with ConfigInputEnv(new, 'DDNS config', debug=True):
+            checker['id'] = (None, None)
+            checker['interface_name'] = (None, None)
+            checker['ip'] = (self._check_ipaddr_, None)
+            checker['provider'] = (None, None)
+            checker['hostname'] = (None, None)
+            checker['username'] = (None, None)
+            checker['password'] = (None, None)
+        cmd = ['set_ddns.sh', 'set', checker['id'], '-S']
+        cmd += ['--provider', checker['provider'], '--domainname', checker['hostname'],
+                '--username', checker['username'], '--password', checker['password'],
+                '--interface', checker['interface_name'], '--ipaddr', checker['ip'],
+                ]
+        res = self.doit(cmd, 'DDNS entry added')                
+        return res
 
-        except Exception, e:
-            log_err("add ddns gets failed,{}".format(e))
-            return False
-        return True
-
+    @logcfg
     def change(self):
-        log_debug("change")
         self.add()
         return True
 
+    @logcfg
     def remove(self):
-        log_debug("remove")
+        old = self.data
+        checker = ParameterChecker(old)
+        with ConfigInputEnv(old, 'DDNS entry remove'):
+            checker['id'] = (None, None)
+        cmd = ['set_ddns.sh', 'del', checker['id'], '-S']
+        res = self.doit(cmd, 'DDNS Entry Removed')                
+        return res
 
-    def post_run(self):
-        log_debug('post_run')
-        self.restart_service()
-        return True
 
-    def restart_service(self):
-        log_debug("post_run")
-        cmd = "/etc/init.d/ddns restart"
-        ret = subprocess.call(cmd, shell=True)
-        if ret == 0:
-            return True
-        else:
-            return False
+
 

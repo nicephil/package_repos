@@ -1,0 +1,23 @@
+{
+    "mac" : "000C2932A423",
+    "delay" : 10,
+    "list" : [
+        {
+        "operate_type" : 2013,
+        "cookie_id" : 1234,
+        "timestamp" : 2222222,
+        "data" : "{\"url\" : \"http://image.oakridge.vip/images/x86_gw/sysloader/v2.433.2_bin.app\", \"timeout\" : 60}"
+        }
+    ]
+}
+
+{
+    "delay" : 10,
+    "list" : [
+        {
+        "operate_type" : 2016,
+        "cookie_id" : 1234,
+        "timestamp" : 2222222
+        }
+    ]
+}

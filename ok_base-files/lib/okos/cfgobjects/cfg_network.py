@@ -1,24 +1,29 @@
 #!/usr/bin/env python
 
 from cfg_object import CfgObj, ConfigInputEnv, ConfigParseEnv, ParameterChecker
-from okos_utils import logcfg, logchecker
-#import ubus
+from okos_tools import logcfg, logchecker
 from constant import const
 
 class CfgNetwork(CfgObj):
-    def __init__(self, vlan={}, ifx={}, ifname=''):
-        super(CfgNetwork, self).__init__(differ='vlan')
-        self.data.update(vlan)
-        if vlan and ifx and ifname:
-            self.data['ifname'] = const.PORT_MAPPING_LOGIC[ifname]['ifname']
-            self.data['untagged'] = bool(ifx.setdefault('native_vlan', 1) == vlan.setdefault('vlan',1))
+    differ = 'vlan'
 
+    def __init__(self, vlan=None, ifx=None, ifname=None):
+        super(CfgNetwork, self).__init__()
+        if vlan and ifx and ifname:
+            d = self.data
+            d.update(vlan)
+            # e3 => lan4053
+            d['ifname'] = const.PORT_MAPPING_LOGIC[ifname]['ifname']
+            d['untagged'] = bool(ifx.setdefault('native_vlan', 1) == d.setdefault('vlan',1))
+            vlan['ifname'] = d['untagged'] and d['ifname'] or '{}_{}'.format(d['ifname'], d['vlan'])
+
+    @classmethod
     @logcfg
-    def parse(self, j):
+    def parse(cls, j):
         vlans = j['network'].setdefault('local_networks',[])
         ifs = j.setdefault('interfaces', [])
-        with ConfigParseEnv(vlans, 'VLAN configuration'):
-            res = [CfgNetwork(vlan, ifx, ifname) for vlan in vlans
+        with ConfigParseEnv(vlans, 'VLAN configuration', debug=True):
+            res = [cls(vlan, ifx, ifname) for vlan in vlans
                                             for ifname, ifx in ifs.iteritems()
                                                 if ifx['type'] == const.DEV_CONF_PORT_TYPE['lan']
                                                     if vlan['id'] in ifx['local_network_ids'] ]
@@ -41,21 +46,20 @@ class CfgNetwork(CfgObj):
                 checker['dhcp_start'] = (None, None)
                 checker['dhcp_limit'] = (None, None)
                 checker['dhcp_lease_time'] = (None, 38400)
-        cmd = [const.CONFIG_BIN_DIR+'set_lan_ip.sh', checker['ifname'], checker['gateway'], checker['netmask'],]
-        cmd_vlan = not checker['untagged'] and ['-v', str(checker['vlan']),] or []
+        cmd = ['set_vlan.sh', 'set', checker['ifname'], '-S',]
+        cmd += ['--ipaddr', checker['gateway'], '--netmask', checker['netmask'],]
+        cmd_vlan = [] if checker['untagged'] else ['--vid', checker['vlan'],]
         cmd += cmd_vlan
-        cmd += ['-z', checker['security_zone']]
-        cmd += ['-S',]
+        cmd += ['--zone', checker['security_zone']]
         res = self.doit(cmd, 'Change IP address of LAN interface')
+
         if checker['dhcp_server_enable']:
-            cmd = [const.CONFIG_BIN_DIR+'set_dhcp_server.sh', checker['ifname'], 
-                checker['dhcp_start'], checker['dhcp_limit'], '-l', checker['dhcp_lease_time'],
-            ]
+            cmd = ['set_dhcp_server.sh', 'set', checker['ifname'], '-S', ]
+            cmd += ['--start', checker['dhcp_start'], '--limit', checker['dhcp_limit'], '--lease', checker['dhcp_lease_time'],]
         else:
-            cmd = [const.CONFIG_BIN_DIR+'disable_dhcp_server.sh', checker['ifname'], ]
+            cmd = ['set_dhcp_server.sh', 'del', checker['ifname'], '-S', ]
         cmd += cmd_vlan
-        cmd += ['-S',]
-        res &= self.doit(cmd)
+        res &= self.doit(cmd, 'Set DHCP pool of vlan')
         return res
 
     @logcfg
@@ -71,15 +75,13 @@ class CfgNetwork(CfgObj):
             ifname = checker['ifname']
         res = True
         if not checker['untagged']:
-            cmd = [const.CONFIG_BIN_DIR+'disable_vlan.sh', ifname, ]
-            cmd += ['-z', checker['security_zone'],]
-            cmd += ['-v', checker['vlan'],]
-            cmd += ['-S',]
+            cmd = ['set_vlan.sh', 'del', ifname, '-S', ]
+            cmd += ['--zone', checker['security_zone'],]
+            cmd += ['--vid', checker['vlan'],]
             res &= self.doit(cmd, 'Disable VLAN interface')
         if checker['dhcp_server_enable']:
-            cmd = [const.CONFIG_BIN_DIR+'disable_dhcp_server.sh', ifname, ]
-            cmd += not checker['untagged'] and ['-v', checker['vlan'], ] or []
-            cmd += ['-S',]
+            cmd = ['set_dhcp_server.sh', 'del', ifname, '-S', ]
+            cmd += [] if checker['untagged'] else ['--vid', checker['vlan'], ]
             res &= self.doit(cmd, "Disable DHCP Server")
         return res
 
@@ -88,7 +90,10 @@ class CfgNetwork(CfgObj):
         self.add()
         return True
 
+    @classmethod
     @logcfg
-    def post_run(self):
-        self.doit(['/etc/init.d/network', 'reload'], 'Restart network')
+    def post_run(cls, cargo=None, goods=None):
+        cls.add_service('dnsmasq', cargo)
+        cls.add_service('network', cargo)
+        cls.add_service('firewall', cargo)
         return True

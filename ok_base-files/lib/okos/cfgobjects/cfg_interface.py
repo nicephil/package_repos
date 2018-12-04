@@ -1,22 +1,23 @@
 #!/usr/bin/env python
 
 from cfg_object import CfgObj, ConfigInputEnv, ConfigParseEnv, ParameterChecker
-from okos_utils import logcfg, logchecker
-#import ubus
+from okos_tools import logcfg, logchecker, log_err
 from constant import const
 
 class CfgInterface(CfgObj):
-    def __init__(self, ifname='', ifx={}):
-        super(CfgInterface, self).__init__(differ='logic_ifname')
-        self.data.update(ifx)
+    differ = 'logic_ifname'
+    def __init__(self, ifname=None, ifx=None):
+        super(CfgInterface, self).__init__()
         if ifname and ifx:
+            self.data.update(ifx)
             self.data['logic_ifname'] = const.PORT_MAPPING_LOGIC[ifname]['ifname']
 
+    @classmethod
     @logcfg
-    def parse(self, j):
-        ifs = j.setdefault('interfaces', {})
-        with ConfigParseEnv(ifs, 'Interfaces configuration'):
-            res = [CfgInterface(ifname,ifx) for ifname,ifx in ifs.iteritems()]
+    def parse(cls, j):
+        ifs = j['interfaces']
+        with ConfigParseEnv(ifs, 'Interfaces configuration', debug=True):
+            res = [cls(ifname,ifx) for ifname,ifx in ifs.iteritems()]
         return res
 
     @logcfg
@@ -57,12 +58,10 @@ class CfgInterface(CfgObj):
                 'lan4053': self.change_lan_config,
                 }
         res = change_hooks[checker['logic_ifname']]()
-        self.log_debug("Change interface [%s] config return (%s)." % (checker['logic_ifname'], str(res)))
         return res
 
     @logcfg
     def change_lan_config(self):
-        self.log_info('Execute LAN port config.')
         new = self.data
         checker = self._checker_
         with ConfigInputEnv('', "Change interface [%s] to LAN" % (new['logic_ifname'])):
@@ -73,7 +72,7 @@ class CfgInterface(CfgObj):
     @logchecker('Interface')
     def _check_dnss_(self, input):
         if not input:
-            self.log_warning('Set Static IP without DNSs')
+            log_err('Set Static IP without DNSs')
             return False, input
         return True, input
     
@@ -97,7 +96,7 @@ class CfgInterface(CfgObj):
                     checker['dnss'] = (None, '')
                     checker['default_route_enable'] = (None, 0)
                     checker['mtu'] = (None, 0)
-                cmd = [const.CONFIG_BIN_DIR+'set_wan_dhcp.sh', checker['logic_ifname']]
+                cmd = ['set_wan_dhcp.sh', checker['logic_ifname']]
                 cmd += (checker['manual_dns'] and checker['dnss']) and ['-d', checker['dnss'], ] or []
                 cmd += checker['default_route_enable'] and ['-r',] or ['-R',]
                 cmd += checker['mtu'] and ['-m', checker['mtu']] or []
@@ -113,7 +112,7 @@ class CfgInterface(CfgObj):
                     checker['default_route_ip'] = (None, '')
                     checker['mtu'] = (None, 0)
                 ips_str = ','.join(['%s/%s' % (ip['ip'], ip['netmask']) for ip in checker['ips']])
-                cmd = [const.CONFIG_BIN_DIR+'set_wan_static_ip.sh', checker['logic_ifname'], checker['gateway'], ips_str, checker['dnss']]
+                cmd = ['set_wan_static_ip.sh', checker['logic_ifname'], checker['gateway'], ips_str, checker['dnss']]
                 cmd += (checker['default_route_enable'] and checker['default_route_ip']) and ['-r', checker['default_route_ip']] or ['-R',]
                 cmd += checker['mtu'] and ['-m', checker['mtu']] or []
                 cmd += ['-S',]
@@ -127,7 +126,7 @@ class CfgInterface(CfgObj):
                     checker['pppoe_keep_connected'] = (None, 1)
                     checker['default_route_enable'] = (None, 0)
                     checker['mtu'] = (None, 0)
-                cmd = [const.CONFIG_BIN_DIR+'set_wan_pppoe.sh', checker['logic_ifname'],
+                cmd = ['set_wan_pppoe.sh', checker['logic_ifname'],
                         checker['pppoe_username'], checker['pppoe_password'], '-k', checker['pppoe_timeout'], ]
                 cmd += checker['default_route_enable'] and ['-r',] or ['-R',]
                 cmd += checker['mtu'] and ['-m', checker['mtu'],] or []
@@ -135,7 +134,13 @@ class CfgInterface(CfgObj):
                 return self.doit(cmd)
         # Disable interface
         else:
-            cmd = [const.CONFIG_BIN_DIR+'disable_port.sh', checker['logic_ifname'], ]
+            cmd = ['disable_port.sh', checker['logic_ifname'], ]
             return self.doit(cmd)
         return True
 
+    @classmethod
+    @logcfg
+    def post_run(cls, cargo=None, goods=None):
+        cls.add_service('network', cargo)
+        cls.add_service('firewall', cargo)
+        return True

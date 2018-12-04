@@ -1,4 +1,4 @@
-config system
+config system system
     option hostname	oakridge
     option timezone UTC
     option zonename UTC
@@ -17,14 +17,14 @@ config timeserver ntp
 	list server	cn.ntp.org.cn
 	option enable_server 1 
 
-config button
+config button button1
     option button 'reset'
     option action 'released'
     option handler 'echo REBOOT > /dev/console;reboot'
     option min '0'
     option max '3'
 
-config button
+config button button2
     option button 'reset'
     option action 'released'
     option handler 'echo RESTORY FACTORY CONFIGRARION > /dev/console; firstboot; reboot -f '

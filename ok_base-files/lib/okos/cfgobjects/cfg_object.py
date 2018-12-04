@@ -1,18 +1,20 @@
 #!/usr/bin/env python
 
-import argparse, os, subprocess, re, json
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit, logcfg, logger, ExecEnv
+import subprocess
+from okos_tools import log_debug, log_info, log_warning, log_err, log_crit, logcfg, logger
+from okos_tools import ExecEnv
 from constant import const
+from collections import defaultdict
 
 class CfgObj(object):
-    def __init__(self, differ=None):
+    differ = None
+
+    def __init__(self):
         super(CfgObj, self).__init__()
-        self.action = None
         self.name = self.__class__.__name__
-        self.differ = differ
         self.data = {}
-        self.run = None
-        self.change_op()
+        self.no_op()
+
     def __eq__(self, other):
         return False
     def clear_action(self):
@@ -36,6 +38,7 @@ class CfgObj(object):
         self.run = self.noop
         return self
 
+    '''
     def log(self, level, msg):
         logger(level, '[Config] ' + msg)
     def log_debug(self, msg):
@@ -48,37 +51,41 @@ class CfgObj(object):
         log_crit('[Config] ' + msg)
     def log_err(self, msg):
         log_err('[Config] ' + msg)
+    '''
 
     @logcfg
-    def parse(self, j):
-        pass
+    @classmethod
+    def parse(cls, j):
+        raise NotImplementedError
 
     @logcfg
     def add(self):
-        log_debug(self.data)
-        #return True
+        raise NotImplementedError
 
     @logcfg
     def remove(self):
-        log_debug(self.data)
-        #return True
+        raise NotImplementedError
 
     @logcfg
     def change(self):
-        log_debug(self.data)
-        #return True
+        raise NotImplementedError
 
     @logcfg
     def noop(self):
         return True
 
-    @logcfg
-    def pre_run(self):
+    @classmethod
+    def pre_run(cls, cargo=None, goods=None):
         return True
 
-    @logcfg
-    def post_run(self):
+    @classmethod
+    def post_run(cls, cargo=None, goods=None):
         return True
+
+    @staticmethod
+    def add_service(service, cargo):
+        if cargo is not None:
+            cargo['services'].add(service)
 
     def check_para(self, fmt, entry):
         for k, func in fmt.iteritems():
@@ -88,46 +95,59 @@ class CfgObj(object):
                     return False
         return True
 
-    def doit(self, cmd, comment=''):
+    @staticmethod
+    def doit(cmd, comment='', path=const.CONFIG_BIN_DIR, shell=False):
         '''
         cmd = ['/lib/okos/bin/set_..._.sh', '33', '201'] ; shell = False
         cmd = ['/lib/okos/bin/set_..._.sh 33 201'] ; shell = True
         '''
-        if comment:
-            self.log_debug(comment)
-        self.log_debug("Do - %s - " % (cmd))
+        comment and log_debug('[Config] {comment}'.format(comment=comment))
+        log_debug("[Config] Do - {cmd} - ".format(cmd=cmd))
         try:
-            cmd = [str(c) for c in cmd]
-            res = subprocess.check_call(cmd)
+            cmd = map(str, cmd)
+            if not cmd[0].startswith('/'):
+                cmd[0] = path + cmd[0]
+            rc = subprocess.check_call(cmd, shell=shell)
         except subprocess.CalledProcessError as e:
-            self.log_warning("Execute %s failed!" % (e.cmd))
-            return False
+            log_warning("[Config] Do - {cmd} - return failure <{rc}> : {output}".format(cmd=e.cmd, rc=e.returncode, output=e.output))
+            res = False
         except Exception as e:
-            self.log_warning("Execute %s failed with %s!" % (cmd, type(e).__name__))
-            return False
-        self.log_debug("Do - %s - return %d" % (cmd, res))
-        return res == 0 and True or False
-
-    @logcfg
-    def diff(self, new, old):
-        differ = self.differ
-        if not differ:
-            add = [i.add_op() for i in new[len(old):]]
-            remove = [i.remove_op() for i in old[len(new):]]
-            change = [n.data == old[i].data and n.no_op() or n.change_op(old[i]) for i,n in enumerate(new[:len(old)])]
-            return remove + add + change
-            #return [n.data == old[i].data and n.no_op() or n.change_op(old[i]) for i,n in enumerate(new)]
+            log_warning("[Config] Do - {cmd} - failed with {expt}!".format(cmd=cmd, expt=type(e).__name__))
+            res = False
         else:
-            news = {n.data[differ] for n in new}
-            olds = {o.data[differ] for o in old}
-            #change = [n.change_op() for c in news & olds for n in new if c == n.data[differ]]
-            add = [n.add_op() for c in news - olds for n in new if c == n.data[differ]]
-            remove = [n.remove_op() for c in olds - news for n in old if c == n.data[differ]]
-            change = [n.data == o.data and n.no_op() or n.change_op(o)
-                    for n in new for o in old if n.data[differ] == o.data[differ]]
-            return remove + add + change
+            log_debug("[Config] Do - {cmd} - done <{rc}>".format(cmd=cmd, rc=rc))
+            res = bool(rc == 0)
+        return res
+
+    @classmethod
+    @logcfg
+    def diff(cls, new, old):
+        '''
+        :INPUT:
+        new = [cfg_object1, ...];
+        old = [cfg_object1, .....];
+        '''
+        differ = cls.differ
+        log_debug("{cname}' differ is {differ}".format(cname=cls.__name__, differ=differ))
+        if not differ:
+            added   = [i.add_op() for i in new[len(old):]]
+            removed = [i.remove_op() for i in old[len(new):]]
+            changed = [n.change_op(old[i]) for i,n in enumerate(new[:len(old)]) if n.data != old[i].data]
+            res = removed + changed + added
+            log_debug('result: {rs}'.format(rs=[(r.action, i) for i,r in enumerate(res)]))
+        else:
+            new = {i.data[differ]:i for i in new}
+            old = {i.data[differ]:i for i in old}
+            new_ids = set(new.keys())           # set (id1, id2, ..., idm)
+            old_ids = set(old.keys())           # set (idn, idn+1, ....., idx)
+            added   = [new[i].add_op() for i in new_ids - old_ids]
+            removed = [old[i].remove_op() for i in old_ids - new_ids]
+            changed = [new[i].change_op(old[i]) for i in new_ids & old_ids if new[i].data != old[i].data]
+            res = removed + changed + added
+            log_debug('result: {rs}'.format(rs=[(r.action, r.data[differ]) for r in res]))
+        return res
     
-    def _check_ipaddr_(self, input, obj_name=''):
+    def _check_ipaddr_(self, input):
         p_ipaddr = const.FMT_PATTERN['ipaddr']
         result = p_ipaddr.match(input)
         if not result:
@@ -139,12 +159,18 @@ class CfgObj(object):
             return False, 'IP address format error'
         return True, input
 
-    def _check_zone_(self, input, obj_name=''):
+    def _check_zone_(self, input):
         return bool(input in const.CONFIG_SECURITY_ZONE), input
     
-    def _check_entry_id_(self, input, obj_name=''):
+    def _check_entry_id_(self, input):
         p_id = const.FMT_PATTERN['entry_id']
         return p_id.match(input), input
+    def _check_simple_id_(self, input):
+        p_id = const.FMT_PATTERN['simple_id']
+        return p_id.match(input), input
+    def _check_number_(self, input):
+        p = const.FMT_PATTERN['number']
+        return p.match(input), input
 
     def _check_sock_port_(self, input):
         p = const.FMT_PATTERN['socket_port_range']
@@ -160,7 +186,7 @@ class CfgObj(object):
                 return False, 'port range error:(start < end)'
         if start == 0:
             return False, 'port range error:(0 < port < 65536)'
-        return True, end and '%d:%d' % (start, end) or '%d' % (start)
+        return True, '%d:%d' % (start, end) if end else '%d' % (start)
 
     def _check_mac_(self, input):
         p = const.FMT_PATTERN['mac']
@@ -196,27 +222,27 @@ class ParameterChecker(object):
         else:
             entry['value'] = self.src.setdefault(index, default)
         if callable(entry['checker']):
-            log_debug('[Parameter Checking] for [%s]:>' % (index))
             res, data = entry['checker'](entry['value'])
             if not res:
                 log_warning('[Parameter Checking] %s failed (%s) - %s -' % (index, entry['value'], data))
                 raise ExceptionConfigError('ParameterChecker', 'check %s failed' % (index), entry['value'])
             else:
+                log_debug('[Parameter Checking] for [{idx}]:>[{d}]'.format(idx=index, d=data))
                 entry['value'] = data
             
 
 
 class ConfigInputEnv(ExecEnv):
-    def __init__(self, cfg, desc=''):
-        super(ConfigInputEnv, self).__init__('Config Input', cfg, desc)
+    def __init__(self, cfg, desc='', debug=False):
+        super(ConfigInputEnv, self).__init__('Config Input', cfg, desc, debug=debug)
 
 class ConfigParseEnv(ExecEnv):
-    def __init__(self, json, desc=''):
-        super(ConfigParseEnv, self).__init__('Config Parse', json, desc)
+    def __init__(self, json, desc='', debug=False):
+        super(ConfigParseEnv, self).__init__('Config Parse', json, desc, debug=debug)
 
 class ConfigParaCheckEnv(ExecEnv):
-    def __init__(self, para, desc=''):
-        super(ConfigParaCheckEnv, self).__init__('Config Check', para, desc)
+    def __init__(self, para, desc='', debug=False):
+        super(ConfigParaCheckEnv, self).__init__('Config Check', para, desc, debug=debug)
     def __exit__(self, exception_type, value, traceback):
         if exception_type == 'ExceptionConfigParaError':
             log_warning('[%s] %s - faied (%s) -' % (self.prefix, self.desc, value))

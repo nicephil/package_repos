@@ -1,49 +1,58 @@
 #!/usr/bin/env python
 
-import argparse, os, subprocess, re, json
-from cfg_object import CfgObj
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit
-import ubus
+from cfg_object import CfgObj, ConfigParseEnv, ParameterChecker, ConfigInputEnv
+from okos_tools import logcfg, log_err, UciSection, ExecEnv
 
 class CfgSystem(CfgObj):
-    def __init__(self):
-        super(CfgSystem, self).__init__('hostname')
+    #differ = 'hostname'
 
-    def parse(self, j):
-        res = CfgSystem()
-        d = res.data
-        system = j['mgmt']['system']
-        d['hostname'] = system['hostname'] if 'hostname' in system else ''
-        d['domain_id'] = system['domain_id'] if 'domain_id' in system else ''
-        return [res,]
+    def __init__(self, entry=None):
+        super(CfgSystem, self).__init__()
+        if entry:
+            d = self.data
+            d['domain_id'] = entry.setdefault('domain_id', '')
 
+    @classmethod
+    @logcfg
+    def parse(cls, j):
+        system = j['mgmt'].setdefault('system', {})
+        with ConfigParseEnv(system, 'System configuration', debug=True):
+            res = [cls(system),]            
+        return res
+
+    def _check_domain_id_(self, input):
+        return True, str(input)
+
+    @logcfg
     def add(self):
-        if not self.data['hostname'] or not self.data['domain_id']:
+        new = self.data
+        checker = ParameterChecker(new)
+        with ConfigInputEnv(new, 'System config input', debug=True):
+            checker['domain_id'] = (self._check_domain_id_, '')
+        if not checker['domain_id']:
             return True
+        with ExecEnv('System', desc='setting', debug=True):
+            system = UciSection('system', 'system')
+            mac = UciSection('productinfo', 'productinfo')['serial']
+            hostname = '{}_{}'.format(mac, checker['domain_id'])
+            if hostname != system['domain_id']:
+                system['domain_id'] = checker['domain_id']
+                system['hostname'] = hostname
+                system.commit()
+        return True
 
-        signa = {
-            'config':'system',
-            'type':'system',
-            'values':{
-                'hostname':'{}_{}'.format(self.data['hostname'], self.data['domain_id'])
-            }
-        }
-        try:
-            ubus.call('uci','set', signa)
-        except Exception, e:
-            log_err("ubus uci gets failed, {}".format(e))
-            return False
-        cmd = "hostname {}_{}".format(self.data['hostname'], self.data['domain_id'])
-        ret = subprocess.call(cmd, shell=True)
-        if ret == 0:
-            return True
-        else:
-            return False
-
+    @logcfg
     def remove(self):
         return True
 
+    @logcfg
     def change(self):
         self.remove()
         self.add()
+        return True
+
+    @classmethod
+    @logcfg
+    def post_run(cls, cargo=None, goods=None):
+        cls.add_service('system', cargo)
         return True

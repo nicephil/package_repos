@@ -1,10 +1,6 @@
-import Queue
 import threading
 import time
-import okos_utils
-from okos_utils import log_debug, log_info, log_warning, log_err, log_crit
-import json
-from constant import const
+from okos_tools import log_info
 import ping
 
 class PingMgr(threading.Thread):
@@ -20,6 +16,10 @@ class PingMgr(threading.Thread):
 
     def process_data(self):
         while self.running:
-            for site in self.sites:
-                loss, mtt, att = ping.quiet_ping(site)
-            time.sleep(5)
+            try:
+                for site in self.sites:
+                    loss, mtt, att = ping.quiet_ping(site)
+                time.sleep(5)
+            except Exception,e:
+                log_info("ping is abort as {}".format(e))
+

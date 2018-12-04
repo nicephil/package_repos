@@ -23,6 +23,7 @@ function index()
     --page.sysauth_authenticator = "htmlauth"
 
     entry({"okos", "haspasscode"}, call("action_haspasscode"), _("CheckHasPasscode"))
+    entry({"okos", "hassdc"}, call("action_hassdc"), _("HasSDC"))
     entry({"okos", "login"}, call("action_login"), _("Login)"))
     entry({"okos", "internetstatus"}, call("action_internetstatus"), _("InternetStatus"))
     entry({"okos", "configname"}, call("action_configname"), _("ConfigNAME"))
@@ -138,6 +139,49 @@ function action_haspasscode()
 
 end
 
+-- check if sdc works well
+function action_hassdc()
+    -- sanity check --
+    if not sanity_check_get() then
+        return
+    end
+
+    -- process --
+    local response = { }
+    --[[
+    response = {
+        errcode = 0
+        url = "alpha1.oakridge.io"
+    }
+    ]]--
+
+    -- try to access 
+    --[[ post_data = {
+            'mac' : self.productinfo_data['mac'],
+            'delay' : const.HEARTBEAT_DELAY,
+            'list' : []
+        }
+    url = 'http://{server}:{port}/{path}/api/device/router/info'.format(server=server[0], port=server[1], path=server[2])
+    ]]--
+    response.errcode = 1
+    local mac = uci:get("productinfo", "productinfo", "mac")
+    local mas_server = uci:get("capwapc", "server", "mas_server")
+    local url = 'http://' .. mas_server .. '/nms/api/device/router/check'
+    local post_data = '{"mac":"' .. mac .. '"}'
+    local cmd = 'curl -m 30 -i -s -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d \'' .. post_data .. '\' "' .. url .. '" 2>/dev/null'
+ 
+    local result = sys.exec(cmd)
+    response.url = mas_server
+    if result ~= nil and result:match("\"error_code\" : 0")  then
+        response.errcode = 0
+    end
+    
+    -- response --
+    response_json(response)
+
+end
+
+
 -- check login
 function action_login()
     -- sanity check --
@@ -215,6 +259,9 @@ function action_queryname()
     response.errcode = 0
 
     response.name = uci:get("system", "@system[0]", "device_name")
+    --sys.call("echo 'stop auto downloading okos, as you activate webui' > /dev/tty0")
+    --sys.call("/etc/init.d/handle_cloud stop")
+    --sys.call("echo 'restart device, or complete webui wizard to continue' > /dev/tty0")
 
     -- response --
     response_json(response)
@@ -395,7 +442,7 @@ function action_configlan()
         ifname = "eth3",
         ipaddr = "192.168.1.1",
         netmask = "255.255.255.0",
-        dhcp_server_enable = 0,
+        dhcp_server_enable = 1,
         dhcp_start = "1",
         dhcp_limit = "200", 
         dhcp_leasetime = "1200" # seconds
@@ -700,7 +747,7 @@ function action_diag()
         errcode = 0
     }
     ]]--
-    sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/172.16.254.254';/etc/init.d/dnsmasq reload;")
+    --- sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/172.16.254.254';/etc/init.d/dnsmasq reload;")
     sys.call("/etc/init.d/log restart;sleep 1")
     response.errcode = sys.call("ifdown wan; sleep 1; ifup wan;sleep 3")
     tmp = nw:get_protocol("static", "wan")
@@ -803,9 +850,9 @@ function action_querydiag()
         sys.call("uci revert dhcp;/etc/init.d/dnsmasq reload;sleep 3")
     end
 
-    if response.errocode == 0 and response.step == -1 then
-        sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/172.16.254.254';uci commit dhcp;/etc/init.d/dnsmasq reload;sleep 3")
-    end
+    ---if response.errocode == 0 and response.step == -1 then
+    ---    sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/172.16.254.254';uci commit dhcp;/etc/init.d/dnsmasq reload;sleep 3")
+    ---end
 
     -- response --
     response_json(response)
@@ -873,9 +920,10 @@ function action_regdev()
 
     response.errcode = sys.call("/sbin/uci set capwapc.server.mas_server=" .. input.oakmgr .. " && /sbin/uci commit capwapc")
 
-    if response.errcode == 0 then
-        response.errcode = sys.user.setpasswd("root", input.passcode)
-    end
+    -- if response.errcode == 0 then
+        -- response.errcode = sys.user.setpasswd("root", input.passcode)
+        -- sys.call("/etc/init.d/handle_cloud start")
+    -- end
     
     -- response --
     response_json(response)

@@ -4,19 +4,14 @@ help()
 {
     cat <<_HELP_
 Disable an interface.
-Usage: $0 [wan|wan1|wan2|lan]
+Usage: $0 {wan|wan1|wan2|lan4053} [-S]
         -S # don't restart service
 Example:
     $0 wan # disable wan port
 _HELP_
 }
 
-if [ $# -lt 1 ]; then
-    help
-    exit 1
-fi
-
-case $1 in
+case "$1" in
     wan) ifx="$1";ifname="eth0";;
     wan1) ifx="$1";ifname="eth1";;
     wan2) ifx="$1";ifname="eth2";;
@@ -24,6 +19,7 @@ case $1 in
     *) help; exit 1;;
 esac
 shift 1
+
 while [ -n "$1" ]; do
     case $1 in
         -S) no_restart='1'; shift 1;;

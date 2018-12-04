@@ -70,6 +70,7 @@
         "DIAG_PAGE": "Diagnose",
         "SUCCESS": "Congratulations",
         "SUCCESS_TIP":"You have successfully connect to OakCloud, you can register or login OakCloud account, and manage your devices",
+        "REGIST_MAC": "The current device's MAC is {{ mac }}, you can also use this MAC to register directly with OakManager.",
         "RETURN_CONFIG":"Return to configuration",
         "GO_CLOUD":"GO OakCloud",
         "FAIL":"Failed",

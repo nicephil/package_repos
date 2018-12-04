@@ -4,21 +4,27 @@ help()
 {
     cat <<_HELP_
 Setup port forwarding entry.
-
-Usage: $0 ID # use ID to identify each port forwarding entry. Caller MUST ensure it's unique.
-        ID # [a-zA-z][a-zA-Z0-9_]{,9}
-        --src-zone [TRUSTED|UNTRUSTED|DMZ|GUEST] # assign source security zone of traffic
-        --dst-zone [TRUSTED|UNTRUSTED|DMZ|GUEST] # assign destinate security zone of traffic
-        --src-ip SRC_IP # source ip address of input traffic
-        --src-dip SRC_DIP # destinate ip addresss of input traffice
-        --dst-ip DST_IP # ip address of target in the local network
-        --src-port SRC_PORT # sourc port of input traffic
-        --src-dport SRC_DPORT # destinate port of input traffic
-        --dst-port DST_PORT # destinate port on the target
-        --src-mac SRC_MAC # source mac address of input traffic
-        -p PROTO # protocol
-        -j [DNAT|SNAT] # target of this entry, DNAT by default.
-        -R # remove this entry
+ 
+Usage:  $0 del ID [-S]
+        $0 add ID --src-zone ZONE --dst-zone ZONE 
+            [--src-ip IP] [--src-dip IP] [--dst-ip IP]
+            [--src-port PORT] [--src-dport PORT] [--dst-port PORT]
+            [--src-mac MAC] [--proto PROTO] [--action ACTION] [-S]
+            
+        ID # use ID to identify each port forwarding entry. 
+           # Caller MUST ensure it's unique.
+           # [a-zA-z][a-zA-Z0-9_]{,9}
+        --src-zone {TRUSTED|UNTRUSTED|DMZ|GUEST} # assign source security zone of traffic
+        --dst-zone {TRUSTED|UNTRUSTED|DMZ|GUEST} # assign destinate security zone of traffic
+        --src-ip IP # source ip address of input traffic
+        --src-dip IP # destinate ip addresss of input traffice
+        --dst-ip IP # ip address of target in the local network
+        --src-port PORT # sourc port of input traffic
+        --src-dport PORT # destinate port of input traffic
+        --dst-port PORT # destinate port on the target
+        --src-mac MAC # source mac address of input traffic
+        --proto PROTO # protocol
+        --action {*DNAT|SNAT} # target of this entry, DNAT by default.
         -S # don't restart service
 Example:
     # mapping all the traffic targeted to wan port's tcp port 22 to local host 172.16.254.145 with same dest port.
@@ -28,10 +34,12 @@ Example:
 _HELP_
 }
 
-if [ $# -lt 1 ]; then
-    help
-    exit 1
-fi
+case "$1" in
+    set) cmd="$1";;
+    del) cmd="$1";;
+    *) help;exit 1;;
+esac
+shift 1
 
 echo 'Caller MUST ensure that ID is unique.'
 id="$1"
@@ -50,9 +58,8 @@ while [ -n "$1" ]; do
         --src-dport) src_dport="$2";shift 2;;
         --dst-port) dst_port="$2";shift 2;;
         --src-mac) src_mac="$2";shift 2;;
-        -p) proto="$2";shift 2;;
-        -j) target="$2";shift 2;;
-        -R) remove='yes';shift 1;;
+        --proto) proto="$2";shift 2;;
+        --action) target="$2";shift 2;;
         -S) no_restart='1';shift 1;;
         --) shift;break;;
         -*) help;exit 1;;
@@ -60,9 +67,16 @@ while [ -n "$1" ]; do
     esac
 done
 
-uci delete firewall.${id}
+_del_pfwd()
+{
+    uci get firewall.${id} >/dev/null 2>&1
+    [ "$?" == 0 ] && uci delete firewall.${id}
+}
 
-if [ -z "$remove" ]; then
+set_pfwd()
+{
+    _del_pfwd
+
     case "$src_zone" in
         TRUSTED) src_zone_id='0';;
         UNTRUSTED) src_zone_id='1';;
@@ -84,6 +98,7 @@ if [ -z "$remove" ]; then
     esac
     [ -z "$dst_ip" ] && dst_ip="$src_dip"
     [ -z "$dst_port" ] && dst_port="$src_dport"
+    echo "Port Forwarding [${src_dip}:${src_dport}] to [${dst_ip}:${dst_port}] for protocol $proto"
 
     uci set firewall.${id}='redirect'
     uci set firewall.${id}.name="${id}"
@@ -98,7 +113,20 @@ if [ -z "$remove" ]; then
     [ -n "$src_mac" ] && uci set firewall.${id}.src_mac="${src_mac}"
     [ -n "$proto" ] && uci set firewall.${id}.proto="${proto}"
     [ -n "$target" ] && uci set firewall.${id}.target="${target}"
-fi
+}
+
+del_pfwd()
+{
+    echo "Remove port forwarding <${id}>"
+    _del_pfwd
+}
+
+case "$cmd" in
+    set) set_pfwd;;
+    del) del_pfwd;;
+    *) help;exit 1;;
+esac
+
 uci commit firewall
 
 

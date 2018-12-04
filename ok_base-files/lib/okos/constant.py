@@ -10,6 +10,7 @@ const.CONFIG_CONF_FILE = './config.json'
 const.OKOS_OKOS_LIB_DIR_STR = './lib/okos/'
 const.OKOS_MGR_STR = './okos_mgr.py'
 const.SYSLOADER_MGR_PIDFILE = './sysloader_mgr.pid'
+#const.OKOS_CFGDIFF_SCRIPT_STR = './conf_handlers/cfgdiff.py'
 const.OKOS_CFGDIFF_SCRIPT_STR = './cfgdiff.py'
 const.OKOS_DDNS_STATUS_SCRIPT_STR = './get_ddns_status.sh'
 
@@ -24,6 +25,7 @@ const.SYSLOADER_OKOS_LIB_DIR = ''.join([const.SYSLOADER_DIR, const.SYSLOADER_OKO
 
 const.OKOS_CFGDIFF_SCRIPT = ''.join([const.OKOS_OKOS_LIB_DIR, const.OKOS_CFGDIFF_SCRIPT_STR])
 const.OKOS_DDNS_STATUS_SCRIPT = ''.join([const.OKOS_OKOS_LIB_DIR, const.OKOS_DDNS_STATUS_SCRIPT_STR])
+const.CST_IMG_TMP_FILE = '/tmp/okos.img.gz'
 
 
 
@@ -47,6 +49,8 @@ const.HEARTBEAT_Q = 'report'
 const.CONF_REQUEST_Q = 'conf_request'
 
 # MSG_OPT_TYPE to NMS
+const.COMMON_RESULT_RESP_OPT_TYPE = 10000
+
 const.DEV_IF_STATUS_RESP_OPT_TYPE = 2008
 const.DEV_CPU_MEM_STATUS_RESP_OPT_TYPE = 12
 const.DEV_INFO_OPT_TYPE = 2000
@@ -56,11 +60,19 @@ const.DEV_CONF_RESP_OPT_TYPE = 2002
 
 const.DEV_CONN_STATUS_QUREY_OPT_TYPE = 2003
 const.DEV_CONN_STATUS_RESP_OPT_TYPE = 2004
+const.VPN_CONN_STATUS_RESP_OPT_TYPE = 2015
 
+const.CLIENT_ONLINE_QUERY_OPT_TYPE = 2016
+const.CLIENT_ONLINE_RESP_OPT_TYPE = 2017
+const.CLIENT_ONLINE_STATUS_RESP_OPT_TYPE = 2018
+
+const.DDNS_TEST_QUERY_OPT_TYPE = 2019
 
 const.DEV_DDNS_STATUS_RESP_OPT_TYPE = 2006
 
 const.DEV_REBOOT_OPT_TYPE = 2007
+
+const.CLIENT_STATISTIC_RPT_OPT_TYPE = 2500
 
 # WebUI conf query
 const.DEV_WEBUI_CONF_REQ_OPT_TYPE = 2009
@@ -69,6 +81,10 @@ const.DEV_WEBUI_CONF_RESP_OPT_TYPE = 2010
 # diag request
 const.DEV_DIAG_REQ_OPT_TYPE = 2011
 const.DEV_DIAG_RESP_OPT_TYPE = 2012
+
+# upgrade request
+const.DEV_UPGRADE_REQ_OPT_TYPE = 2013
+const.DEV_UPGRADE_RESP_OPT_TYPE = 2014
 
 #
 const.DEV_CONF_PORT_TYPE = {'none':-1, 'wan':0, 'lan':1, 'bridge':2, }
@@ -86,13 +102,16 @@ const.PORT_MAPPING = [
 const.PORT_MAPPING_PHY = {ifx['phy']:ifx for ifx in const.PORT_MAPPING}
 const.PORT_MAPPING_LOGIC = {ifx['logic']:ifx for ifx in const.PORT_MAPPING}
 const.PORT_MAPPING_CONFIG = {ifx['ifname']:ifx for ifx in const.PORT_MAPPING}
+const.LAN_IFACES = [p['phy'] for p in const.PORT_MAPPING if p['type'] == const.DEV_CONF_PORT_TYPE['lan']]
 
 const.CONFIG_SECURITY_ZONE = ('TRUSTED', 'UNTRUSTED', 'DMZ', 'GUEST')
 
 const.FMT_PATTERN = {
         'ipaddr': re.compile(r'^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$'),
         'mac': re.compile(r'^([0-9a-zA-Z]{2})[:-]?([0-9a-zA-Z]{2})[:-]?([0-9a-zA-Z]{2})[:-]?([0-9a-zA-Z]{2})[:-]?([0-9a-zA-Z]{2})[:-]?([0-9a-zA-Z]{2})$'),
-        'entry_id': re.compile(r'^[a-zA-Z0-9]*_[a-zA-Z0-9_]*$'),
+        'entry_id': re.compile(r'^[a-zA-Z0-9]+_[a-zA-Z0-9_]+$'),
+        'simple_id': re.compile(r'^[a-zA-Z0-9]+$'),
+        'number': re.compile(r'^[0-9]+$'),
         'socket_port': re.compile(r'^([0-9]{1,5})$'),
         'socket_port_range': re.compile(r'^([0-9]{1,5})([-~:]([0-9]{1,5}))?$'),
 }
