@@ -1,0 +1,26 @@
+#!/bin/sh
+# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2010 Vertical Communications
+
+initramfs_test() {
+	if [ -n "$INITRAMFS" ]; then
+		boot_run_hook initramfs
+        #1. find out virtual rootfs_data partition
+        offset_rootfs_data=$(unsquashfs -s /dev/sda2 | awk '/Filesystem size/{if(($3-int($3))>0)print int($3+1);else print int($3);exit;}')
+        offset_align_64k=$(((((${offset_rootfs_data}*1024)+((64*1024)-1))&~((64*1024)-1)))) 
+        losetup --offset ${offset_align_64k} /dev/loop1 /dev/sda2
+        #2. mount rootfs_data to /overlay
+        mount -t f2fs /dev/loop1 /overlay
+        #3. init overlay
+        for file in $(ls /etc/config)
+        do
+            [ ! -f "/overlay/upper/etc/config/$file" ] && cp -rvf /etc/config/"$file" /overlay/upper/etc/config/. > /dev/console 2>&1
+        done
+        mount --bind /overlay/upper/etc/config /etc/config
+        mount --bind /overlay/upper/root /root
+		preinit_ip_deconfig
+		break
+	fi
+}
+
+boot_hook_add preinit_main initramfs_test
