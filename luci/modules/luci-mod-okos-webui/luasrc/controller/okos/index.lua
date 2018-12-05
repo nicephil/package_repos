@@ -42,7 +42,7 @@ end
 function update_conf_version()
     math.randomseed(tostring(os.time()):reverse():sub(1,6))
     local version = math.random(268435455)
-    uci:set("system", "@system[0]", "config_version_webui", version)
+    uci:set("system", "system", "config_version_webui", version)
     uci:commit("system")
 end
 
@@ -258,7 +258,7 @@ function action_queryname()
     ]]--
     response.errcode = 0
 
-    response.name = uci:get("system", "@system[0]", "device_name")
+    response.name = uci:get("system", "system", "device_name")
     --sys.call("echo 'stop auto downloading okos, as you activate webui' > /dev/tty0")
     --sys.call("/etc/init.d/handle_cloud stop")
     --sys.call("echo 'restart device, or complete webui wizard to continue' > /dev/tty0")
@@ -298,7 +298,7 @@ function action_configname()
     ]]--
     response.errcode = 0
 
-    uci:set("system", "@system[0]", "device_name", input.name)
+    uci:set("system", "system", "device_name", input.name)
     uci:commit("system")
 
     -- updte version --
@@ -536,20 +536,18 @@ function action_old_configlan()
         nw:commit("network")
         if input.dhcp_server_enable == 0 then
             nodhcp_list={"wan", "wan1", "wan2", "lan4053"}
-            uci:set_list("dhcp", "@dnsmasq[0]", "notinterface", nodhcp_list)
+            uci:set_list("dhcp", "common", "notinterface", nodhcp_list)
             uci:set("dhcp", "lan4053", "ignore", 1)
         else
             nodhcp_list={"wan", "wan1", "wan2"}
-            uci:set_list("dhcp", "@dnsmasq[0]", "notinterface", nodhcp_list)
+            uci:set_list("dhcp", "common", "notinterface", nodhcp_list)
             uci:set("dhcp", "lan4053", "ignore", 0)
         end
         uci:set("dhcp", "lan4053", "start", input.dhcp_start)
         uci:set("dhcp", "lan4053", "limit", input.dhcp_limit)
         uci:set("dhcp", "lan4053", "leasetime", input.dhcp_leasetime)
         uci:commit("dhcp")
-        uci:set("firewall", "@redirect[0]", "dest_ip", input.ipaddr)
-        uci:commit("firewall")
-        sys:call("/etc/init.d/network reload;/etc/init.d/dnsmasq reload;/etc/init.d/firewall reload")
+        sys:call("/etc/init.d/network reload;/etc/init.d/dnsmasq reload;")
 
         -- updte version --
         update_conf_version()
