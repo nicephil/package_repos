@@ -4,7 +4,7 @@ from constant import const
 from okos_logger import log_debug
 
 class Envelope(object):
-    def __init__(self, mailbox, operate_type=0, pri=200, timeout=0, debug=False):
+    def __init__(self, mailbox=None, operate_type=0, pri=200, timeout=0, debug=False):
         super(Envelope, self).__init__()
         self.debug = debug
         self.mailbox = mailbox
@@ -22,7 +22,7 @@ class Envelope(object):
         self.msg['data'] = json.dumps(json_data)
         pri = pri or self.pri
         (self.debug or debug) and log_debug('=> queue <{queue}> with pri <{pri}> : {msg}'.format(queue=queue, pri=pri, msg=self.msg))
-        self.mailbox.pub(queue, (pri, self.msg), timeout=self.timeout)
+        self.mailbox and self.mailbox.pub(queue, (pri, self.msg), timeout=self.timeout)
 
 class OakmgrEnvelope(Envelope):
     def __init__(self, mailbox, operate_type, pri=1):

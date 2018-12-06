@@ -7,4 +7,6 @@ from redirector import Redirector
 from client_statistic import ClientStatistic
 from ddns_state import DdnsStateReporter
 from hostname_reporter import HostnameReporter
+from wan_monitor import WanMonitorTimer
+from heartbeat import HeartBeat
 

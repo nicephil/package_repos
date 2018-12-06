@@ -8,7 +8,7 @@ from collections import defaultdict
 
 pp = pprint.pprint
 
-class ClientStatistic(Poster):
+class ClientStatistic(HierarchicPoster):
     '''
     This timer is used to report clients traffic statistic automatically.
     The Timer will be run for every `interval` seconds to sample the statistic
@@ -20,30 +20,25 @@ class ClientStatistic(Poster):
     def __init__(self, mailbox, operate_type=const.CLIENT_STATISTIC_RPT_OPT_TYPE, 
                         name='ClientStatisticTimer', debug=False,
                         interval=15, report=1, period=3):
-        super(ClientStatistic, self).__init__(name, interval, mailbox, operate_type, repeated=True, debug=debug, pri=1)
+        super(ClientStatistic, self).__init__(name, interval, mailbox, operate_type, debug=debug, pri=1)
         self.debug = debug
         self.syscall = SystemCall(debug=self.debug)
         self.cur_data = defaultdict(list)
-        self.counter = 0
-        self.max_counter = report
+        self.max_file_num = 3
         self.dump_file_name = '/tmp/client_statistic.{ts}.json'
-        self.period = 0
-        self.max_period = period
-        self.actions = [
-            {'interval':1,      'func':self._sample, 'counter': 0},
-            {'interval':report, 'func':self._report, 'counter': 0},
-            {'interval':period, 'func':self._period, 'counter': 0},
-        ]
+
+        self.add_layer('sample', 1, self._sample)
+        self.add_layer('report', 1, self._report)
+        self.add_layer('period', 3, self._period)
 
     def _period(self, cargo):
         '''
         At the end of statistic report period, do 
         1) cleanup job.
         '''
-        self.syscall.remove_out_of_statistic_data(self.dump_file_name.format(ts='*'), self.max_period)
-        return cargo
+        self.syscall.remove_out_of_statistic_data(self.dump_file_name.format(ts='*'), self.max_file_num)
+        return True
         
-
     def _report(self, cargo):
         '''
         For every report interval,
@@ -55,7 +50,7 @@ class ClientStatistic(Poster):
             json.dump(self.cur_data, f)
         self.cur_data = defaultdict(list)
         cargo['report'] = fname
-        return cargo
+        return True
 
     def _sample(self, cargo):
         '''
@@ -64,21 +59,10 @@ class ClientStatistic(Poster):
         '''
         cargo['sample'] = statistics = self.syscall.get_statistic_counters()
         map(lambda mac: self.cur_data[mac].append(statistics[mac]), statistics)
-        return cargo
+        return True
 
-    def _action(self, cargo, fx):
-        fx['counter'] = fx['counter']+1 if fx['counter'] < fx['interval'] else 1
-        if fx['counter'] >= fx['interval']:
-            fx['func'](cargo)
-            return True
-        else:
-            return False
-
-    def handler(self, *args, **kwargs):
-        cargo = {}
-        for action in self.actions:
-            if not self._action(cargo, action):
-                break
+    @HierarchicPoster.hierarchic
+    def handler(self, cargo, *args, **kwargs):
         '''
         report format:
         {

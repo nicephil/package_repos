@@ -52,7 +52,7 @@ class Poster(Timer):
     2) operate_type: Such as the destination address of a mail.
     3) priority of the message, you can identify priority when sending either.
     '''
-    def __init__(self, name, interval, mailbox, operate_type, repeated=False, pri=200, debug=False):
+    def __init__(self, name, interval, mailbox=None, operate_type=0, repeated=False, pri=200, debug=False):
         super(Poster, self).__init__(name=name, interval=interval, repeated=repeated, debug=debug)
         self.env = Envelope(mailbox, operate_type=operate_type, pri=pri, debug=debug)
         self.debug = debug
@@ -89,6 +89,36 @@ class InTimePoster(Timer):
                 message, ts = self.handler(*args, **kwargs)
             message and self.env.go(message, timestamp=ts)
             return message
+        return wrapper
+
+
+class HierarchicPoster(Poster):
+    '''
+    This timer is used to implement a hirachical timer.
+    '''
+    def __init__(self, name, interval, mailbox, operate_type, pri, debug=False):
+        super(HierarchicPoster, self).__init__(name, interval, mailbox, operate_type, repeated=True, debug=debug, pri=pri)
+        self.debug = debug
+        self._actions = []
+    def add_layer(self, name, interval, func):
+        self._actions.append({'name':name, 'interval':interval, 'func':func, 'counter': 0})
+    def _action(self, cargo, fx):
+        fx['counter'] = fx['counter']+1 if fx['counter'] < fx['interval'] else 1
+        self.debug and log_debug('Layer<{name}> round {counter}/{interval}'.format(name=fx['name'], counter=fx['counter'], interval=fx['interval']))
+        if fx['counter'] >= fx['interval']:
+            fx['func'](cargo)
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def hierarchic(handler):
+        def wrapper(self, *args, **kwargs):
+            cargo = {}
+            for action in self._actions:
+                if not self._action(cargo, action):
+                    break
+            return handler(self, cargo, *args, **kwargs)
         return wrapper
 
 
