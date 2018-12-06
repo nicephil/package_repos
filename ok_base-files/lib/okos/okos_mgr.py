@@ -28,7 +28,7 @@ class PostMan(threading.Thread):
             ClientStatistic(mailbox, interval=15, debug=False),
             DdnsStateReporter(mailbox, interval=60, debug=False),
             HostnameReporter(interval=10, debug=False),
-            WanMonitorTimer(mailbox, debug=True),
+            WanMonitorTimer(mailbox, debug=False),
         ]
 
 
