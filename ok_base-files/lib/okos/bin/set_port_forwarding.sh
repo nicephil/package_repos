@@ -6,7 +6,7 @@ help()
 Setup port forwarding entry.
  
 Usage:  $0 del ID [-S]
-        $0 add ID --src-zone ZONE --dst-zone ZONE 
+        $0 set ID --src-zone ZONE --dst-zone ZONE 
             [--src-ip IP] [--src-dip IP] [--dst-ip IP]
             [--src-port PORT] [--src-dport PORT] [--dst-port PORT]
             [--src-mac MAC] [--proto PROTO] [--action ACTION] [-S]
@@ -28,9 +28,9 @@ Usage:  $0 del ID [-S]
         -S # don't restart service
 Example:
     # mapping all the traffic targeted to wan port's tcp port 22 to local host 172.16.254.145 with same dest port.
-    $0 ssh_to_svr --src-zone UNTRUSTED --dst-zone TRUSTED --src-dport 22 --dst-ip 172.16.254.145 -p tcp
+    $0 set ssh_to_svr --src-zone UNTRUSTED --dst-zone TRUSTED --src-dport 22 --dst-ip 172.16.254.145 -p tcp
     # mapping an external ip 10.0.1.4 to internal server 172.16.254.145
-    $0 webserver_3 --src-zone UNTRUSTED --dst-zone DMZ --src-dip 10.0.1.4 --dst-ip 172.16.254.145
+    $0 set webserver_3 --src-zone UNTRUSTED --dst-zone DMZ --src-dip 10.0.1.4 --dst-ip 172.16.254.145
 _HELP_
 }
 
@@ -62,7 +62,7 @@ while [ -n "$1" ]; do
         --action) target="$2";shift 2;;
         -S) no_restart='1';shift 1;;
         --) shift;break;;
-        -*) help;exit 1;;
+        -*) help;exit 2;;
         *) break;;
     esac
 done
@@ -82,19 +82,19 @@ set_pfwd()
         UNTRUSTED) src_zone_id='1';;
         DMZ) src_zone_id='2';;
         GUEST) src_zone_id='3';;
-        *) help; exit 1;;
+        *) help; exit 3;;
     esac
     case "$dst_zone" in
         TRUSTED) dst_zone_id='0';;
         UNTRUSTED) dst_zone_id='1';;
         DMZ) dst_zone_id='2';;
         GUEST) dst_zone_id='3';;
-        *) help; exit 1;;
+        *) help; exit 4;;
     esac
     case "$target" in
         DNAT) target="$target";;
         SNAT) target="$target";;
-        *) help; exit 1;;
+        *) help; exit 5;;
     esac
     [ -z "$dst_ip" ] && dst_ip="$src_dip"
     [ -z "$dst_port" ] && dst_port="$src_dport"
@@ -124,7 +124,7 @@ del_pfwd()
 case "$cmd" in
     set) set_pfwd;;
     del) del_pfwd;;
-    *) help;exit 1;;
+    *) help;exit 6;;
 esac
 
 uci commit firewall

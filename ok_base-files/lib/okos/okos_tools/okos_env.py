@@ -157,6 +157,16 @@ class SystemCall(object):
         with SystemCallEnv('get arp entries', debug=self.debug) as e:
             arpt = arptable.get_arp_table()
         return arpt
+    
+    def get_wan_statistic(self, port):
+        '''
+        :RETURN:
+        {'rx_bytes':xxx, 'tx_bytes':yyy}
+        '''
+        raw_data = '/sys/class/net/{port}/statistics/{counter}'.format
+        items = ['rx_bytes', 'tx_bytes']
+        counters = map(lambda i: self._output(['cat', raw_data(port=port, counter=i)]), items)
+        return {items[i]: int(c.strip()) if c != '' else '0' for i, c in enumerate(counters)}
 
     def add_statistic(self, *args):
         '''Add iptables entries to trace throughput of a client

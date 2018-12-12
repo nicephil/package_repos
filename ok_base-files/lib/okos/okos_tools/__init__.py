@@ -5,7 +5,7 @@ from okos_logger import okos_system_log_info, okos_system_log_warn, okos_system_
 from okos_logger import log_debug, log_info, log_warning, log_err, log_crit
 from okos_logger import logger, logcfg, logit, logchecker
 
-from okos_timer import Timer, Poster
+from okos_timer import Timer, Poster, HierarchicPoster
 #from okos_timer import repeat_timer, RepeatedTimer, ReportTimer # will be removed later.
 
 # from okos_utils import config_conf_file
@@ -24,3 +24,5 @@ from database import ArpDb
 from okos_mailbox import MailBox
 
 from okos_config import OkosConfig, OKOS_CONFIG
+
+from okos_manager import Oakmgr

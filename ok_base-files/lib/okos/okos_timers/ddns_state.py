@@ -32,7 +32,7 @@ class DdnsStateReporter(Poster):
         with ExecEnv('DdnsStateReporter', desc='Report DDNS Statue', raiseup=False, debug=self.debug) as X:
             conf = UciConfig('ddns')
             res = [{'id':_id, 'provider': c['service_name'], 'hostname': c['domain'], 'ip': c['ipaddr'],
-                    } for _id, c in conf.iteritems()]
+                    } for _id, c in conf.iteritems() if _id != 'global']
             X.output = res
             map(self._status, res)
             map(self._updatetime, res)
