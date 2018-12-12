@@ -15,7 +15,7 @@ class DeviceReporter(Poster):
         self.capwap_server = CAPWAP_SERVER.renew()
         self.conf = OKOS_CONFIG
         self.debug = debug
-        
+
     def handler(self, *args, **kwargs):
         with DeviceInfoEnv('Collect Device Infor', debug=self.debug):
             data_json = {}
@@ -36,5 +36,5 @@ class DeviceReporter(Poster):
             #mas_server = ubus.call('uci', 'get', {'config':'capwapc', 'section':'server'})[0]['values'].setdefault('mas_server', '')
             mas_server = self.capwap_server['mas_server']
             _, _, data_json['internal_ip'] = SystemCall(debug=False).localip2target(mas_server)
-            
+
         return data_json

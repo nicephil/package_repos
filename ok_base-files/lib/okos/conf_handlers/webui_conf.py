@@ -36,7 +36,7 @@ class WebUiConf(ConfHandler):
             e_data['ip_type'] = 1
             e_data['ips'] = []
             e_data['ips'].append({})
-            e_data['ips'][0]['ip'] = network_conf[sid]['ipaddr']
+            e_data['ips'][0]['ip'] = network_conf[sid]['ipaddr'][0]
             e_data['ips'][0]['netmask'] = network_conf[sid]['netmask']
             if 'gateway' in network_conf[sid]:
                 e_data['gateway'] = network_conf[sid]['gateway']
