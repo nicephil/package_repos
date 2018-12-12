@@ -1,5 +1,5 @@
 config shadowsocks-libev
-	option enable '1'
+	option enable '0'
 	option server 'shadow.oakridge.io'
 	option server_port '8000'
 	option local_port '1080'
@@ -7,7 +7,7 @@ config shadowsocks-libev
 	option timeout '600'
 	option encrypt_method 'rc4-md5'
 	option ignore_list '/dev/null'
-	option udp_mode '1'
+	option udp_mode '0'
 	option tunnel_enable '1'
 	option tunnel_port '5353'
 	option tunnel_forward '8.8.8.8:53'

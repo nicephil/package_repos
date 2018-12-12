@@ -134,7 +134,7 @@ rules() {
 		;;
 	esac
 
-	start_rules
+	# start_rules
 }
 
 boot() {
@@ -150,7 +150,7 @@ start() {
 }
 
 stop() {
-	/usr/bin/ss-rules -f
+	# /usr/bin/ss-rules -f
 	killall -q -9 ss-redir
 	killall -q -9 ss-tunnel
 }
