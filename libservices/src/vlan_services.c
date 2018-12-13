@@ -72,7 +72,7 @@ int vlan_create(int vlanid, int endid)
         cfg_set_option_value(tuple, buf);
 
         // w282, A750 and ubnt_lite_lr no need setup switch
-        if (cfg_is_w282() || cfg_is_a750() || cfg_is_ubnt_lite()) {
+        if (cfg_is_w282() || cfg_is_a750() || cfg_is_ubnt_lite() || cfg_is_a751()) {
             return 0;
         }
 
@@ -117,7 +117,7 @@ int vlan_destroy(int vlanid, int endid)
         sprintf(tuple, "network.lan%d=interface", vlanid);
         cfg_del_section(tuple);
 
-        if (cfg_is_w282() || cfg_is_a750() || cfg_is_ubnt_lite())  {
+        if (cfg_is_w282() || cfg_is_a750() || cfg_is_ubnt_lite() || cfg_is_a751())  {
             return 0;
         }
         //network.vlan1=switch_vlan
@@ -218,9 +218,12 @@ int vlan_set_pvid(const char *port_name, int pvid, int type)
     if (cfg_is_w282() || cfg_is_a750()) {
         strcpy(eth1_port, "eth1.4");
         strcpy(eth2_port, "eth1.5");
+    } else if(cfg_is_a751()) {
+        strcpy(eth1_port, "eth1.5");
+        strcpy(eth2_port, "eth1.6");
     }
 
-    syslog(LOG_ERR, "--->port_name:%s, pvid:%d, eth1:%s, eth2:%s\n", port_name, pvid, eth1_port, eth2_port);
+    syslog(LOG_DEBUG, "--->port_name:%s, pvid:%d, eth1:%s, eth2:%s\n", port_name, pvid, eth1_port, eth2_port);
 
     if (!strncmp(port_name, "ath", 3)) {
         //wireless.ath13.network='lan'

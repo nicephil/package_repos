@@ -661,6 +661,7 @@ static struct product_info g_pinfo;
 #define UBNT_LR_PRODUCTION_NAME "AC-LR"
 #define W282_PRODUCTION_NAME "W282"
 #define A750_PRODUCTION_NAME "A750"
+#define A751_PRODUCTION_NAME "A751"
 
 int cfg_is_ubnt_pro(void)
 {
@@ -701,6 +702,17 @@ int cfg_is_a750(void)
     struct product_info info = {0};
     cfg_get_product_info(&info);
     if (!strcmp(info.production, A750_PRODUCTION_NAME)) {
+        return 1;
+    }
+
+    return 0;
+}
+
+int cfg_is_a751(void)
+{
+    struct product_info info = {0};
+    cfg_get_product_info(&info);
+    if (!strcmp(info.production, A751_PRODUCTION_NAME)) {
         return 1;
     }
 

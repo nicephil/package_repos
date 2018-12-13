@@ -1,6 +1,6 @@
 #!/bin/sh
 
-all_types="A820 A822 A826 A920 A923 W282 WL8200-I2 AC-PRO AC-LITE AC-LR ubntlr ubntlite ubntpro SEAP-380 A750"
+all_types="A820 A822 A826 A920 A923 W282 WL8200-I2 AC-PRO AC-LITE AC-LR ubntlr ubntlite ubntpro SEAP-380 A750 A751"
 url="api.oakridge.io"
 
 echo "====> query old release md5"
