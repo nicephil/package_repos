@@ -138,7 +138,7 @@ rules() {
 }
 
 boot() {
-	until iptables-save -t nat | grep -q "^:zone_lan_prerouting"; do
+	until iptables-save -t nat | grep -q "^:zone_TRUSTED_prerouting"; do
 		sleep 1
 	done
 	start
