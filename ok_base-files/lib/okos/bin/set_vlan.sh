@@ -12,7 +12,7 @@ Usage:  $0 {set|del} {lan4053} [--ipaddr IPADDR] [--netmask NETMASK]
                         [--mtu MTU] [--vid VLANID] [--zone ZONE] [-S]
         $0 set {lan4053} --ipaddr IPADDR --netmask NETMASK
                         [--mtu MTU] [--vid VLANID] [--zone ZONE] [-S]
-        $0 del {lan4053} [--vid VLANID] [--zone ZONE] [-S]
+        $0 del {lan4053} [--vid VLANID] [-S]
         --ipaddr IPADDR # static ipaddress
         --netmask NETMASK # format 255.255.255.0
         --mtu MTU # Set MTU on this interface
@@ -53,13 +53,8 @@ while [ -n "$1" ]; do
     esac
 done
 
-case $zone in
-    TRUSTED) zone_id='0';;
-    UNTRUSTED) zone_id='1';;
-    DMZ) zone_id='2';;
-    GUEST) zone_id='3';;
-    *) help; exit 1;;
-esac
+ZONES="TRUSTED UNTRUSTED DMZ GUEST"
+
 
 if [ -n "${vid}" ]; then
     if [ $vid -ge 4096 -o $vid -le 0 ]; then
@@ -73,6 +68,14 @@ fi
 
 set_vlan()
 {
+    case $zone in
+        TRUSTED) zone_id='0';;
+        UNTRUSTED) zone_id='1';;
+        DMZ) zone_id='2';;
+        GUEST) zone_id='3';;
+        *) echo 'Need ZONE'; help; exit 1;;
+    esac
+
     [ -n "$ipaddr" -a -n "$netmask" ] || exit 1
 
     uci delete network.${ifx}
@@ -84,10 +87,14 @@ set_vlan()
     if [ -n "$mtu" ]; then
         uci set network.${ifx}.mtu=$mtu
     fi
-    uci get firewall.${zone}.network | grep -e "\<${ifx}\>" > /dev/null 2>&1
-    if [ "$?" != 0 ]; then
-        uci add_list firewall.${zone}.network="${ifx}"
-    fi 
+    # uci get firewall.${zone}.network | grep -e "\<${ifx}\>" > /dev/null 2>&1
+    # if [ "$?" != 0 ]; then
+    #     uci add_list firewall.${zone}.network="${ifx}"
+    # fi
+    for z in $ZONES; do
+        uci del_list firewall.${z}.network="${ifx}" > /dev/null 2>&1
+    done
+    uci add_list firewall.${zone}.network="${ifx}"
 
     if [ -z "${vid}" ]; then
         # need to adjust router.oakridge.vip --> lanip mapping
@@ -104,7 +111,10 @@ set_vlan()
 del_vlan()
 {
     uci delete network.${ifx}
-    uci del_list firewall.${zone}.network="${ifx}"
+    #uci del_list firewall.${zone}.network="${ifx}"
+    for z in $ZONES; do
+        uci del_list firewall.${z}.network="${ifx}" > /dev/null 2>&1
+    done
 }
 
 
