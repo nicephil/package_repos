@@ -36,7 +36,11 @@ class WebUiConf(ConfHandler):
             e_data['ip_type'] = 1
             e_data['ips'] = []
             e_data['ips'].append({})
-            e_data['ips'][0]['ip'] = network_conf[sid]['ipaddr'][0]
+            l_ipaddr = network_conf[sid]['ipaddr']
+            if isinstance(l_ipaddr, tuple):
+                e_data['ips'][0]['ip'] = l_ipaddr[0]
+            else:
+                e_data['ips'][0]['ip'] = l_ipaddr
             e_data['ips'][0]['netmask'] = network_conf[sid]['netmask']
             if 'gateway' in network_conf[sid]:
                 e_data['gateway'] = network_conf[sid]['gateway']
