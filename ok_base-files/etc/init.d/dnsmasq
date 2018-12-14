@@ -834,7 +834,7 @@ start_service() {
 		fi
 	}
 
-	ipset list gfwlist > /dev/null 2>&1 || ipset -N gfwlist iphash
+	# ipset list gfwlist > /dev/null 2>&1 || ipset -N gfwlist iphash
 
 	config_load dhcp
 
