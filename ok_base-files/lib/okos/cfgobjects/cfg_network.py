@@ -87,6 +87,7 @@ class CfgNetwork(CfgObj):
 
     @logcfg
     def change(self):
+        #self.remove()
         self.add()
         return True
 

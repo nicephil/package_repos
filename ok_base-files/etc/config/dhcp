@@ -12,6 +12,7 @@ config dnsmasq 'common'
 	option nonegcache	0
 	option authoritative	1
 	option readethers	1
+	# option confdir '/etc/dnsmasq.d'
 	option leasefile	'/tmp/dhcp.leases'
 	option resolvfile	'/tmp/resolv.conf.auto'
 	#list server		'/mycompany.local/1.2.3.4'

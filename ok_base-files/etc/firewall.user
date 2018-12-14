@@ -23,3 +23,11 @@ iptables -t mangle -A statistic -i eth1 -j statistic_rx_wan
 iptables -t mangle -A statistic -i eth2 -j statistic_rx_wan
 iptables -t mangle -A statistic -j statistic_tx
 iptables -t mangle -A statistic -j statistic_rx
+
+ipset list gfwlist > /dev/null 2>&1 || ipset -N gfwlist iphash
+iptables -t nat -N SS_SPEC_WAN_AC
+iptables -t nat -A SS_SPEC_WAN_AC -m set --match-set gfwlist dst -p tcp -m comment --comment "_SS_SPEC_WAN_AC_" -j REDIRECT --to-ports 1080 2>/dev/null
+iptables -t nat -A OUTPUT -p tcp -m comment --comment "_SS_SPEC_RULE_" -j SS_SPEC_WAN_AC
+# iptables -t nat -A PREROUTING -p tcp -m comment --comment "_SS_SPEC_RULE_" -j SS_SPEC_WAN_AC
+iptables -t nat -A zone_TRUSTED_prerouting -p tcp -m comment --comment "_SS_SPEC_RULE_" -j SS_SPEC_WAN_AC
+
