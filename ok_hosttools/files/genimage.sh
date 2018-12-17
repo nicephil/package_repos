@@ -1,9 +1,10 @@
 #!/bin/bash
 swversion=$1
-origin_files__bin_files="openwrt-mtkmips-mt7621-HCMT7621-N256-squashfs-sysupgrade.bin|bin_HCMT7621-N256.app|hcmt7621-n256"
+origin_files__bin_files="openwrt-mtkmips-mt7621-HCMT7621-S256-squashfs-sysupgrade.bin|bin_HCMT7621-S256.app|hcmt7621-s256"
 server=image.oakridge.vip
 server=$(host -W 5 $server 2>/dev/null | awk '{if(!match($4,"found:"))print $4}')
-[ -z $server] && server="106.14.245.228"
+# [ -z $server ] && server="106.14.245.228"
+server="106.14.245.228"
 
 
 
