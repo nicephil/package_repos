@@ -8,6 +8,7 @@ import re
 import arptable
 import csv
 from collections import defaultdict
+import os
 
 
 class ExecEnv(object):
@@ -57,6 +58,23 @@ class SystemCall(object):
     def __init__(self, debug=False):
         super(SystemCall, self).__init__()
         self.debug = debug
+
+    def _check(self, cmd, comment='', path='', shell=False):
+        self.debug and comment and log_debug(comment)
+        self.debug and log_debug("System Check - %s - start " % (cmd))
+        try:
+            cmd = [str(c) for c in cmd]
+            if not cmd[0].startswith('/') and path:
+                cmd[0] = path + cmd[0]
+            with open(os.devnull, 'w') as devnull:
+                res = subprocess.check_call(cmd, shell=shell, stdout=devnull, stderr=devnull)
+        except subprocess.CalledProcessError as e:
+            res = -1
+        except Exception as e:
+            log_warning("Execute System Check - %s - failed with %s!" % (cmd, type(e).__name__))
+            return False
+        self.debug and log_debug("System Check - %s - return %d" % (cmd, res))
+        return res == 0 and True or False
 
     def _call(self, cmd, comment='', path='', shell=False):
         '''
@@ -168,26 +186,6 @@ class SystemCall(object):
         counters = map(lambda i: self._output(['cat', raw_data(port=port, counter=i)]), items)
         return {items[i]: int(c.strip()) if c != '' else '0' for i, c in enumerate(counters)}
 
-    def add_statistic(self, *args):
-        '''Add iptables entries to trace throughput of a client
-        :params : (ip, mac)
-        '''
-        ip, mac = args
-        self._call(['iptables', '-t', 'mangle', '-A', 'statistic_tx', '-s', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
-        self._call(['iptables', '-t', 'mangle', '-A', 'statistic_rx', '-d', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
-        self._call(['iptables', '-t', 'mangle', '-A', 'statistic_tx_wan', '-s', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
-        self._call(['iptables', '-t', 'mangle', '-A', 'statistic_rx_wan', '-d', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
-
-    def del_statistic(self, *args):
-        '''Del iptables entries to trace throughput of a client
-        :params : (ip, mac)
-        '''
-        ip, mac = args
-        self._call(['iptables', '-t', 'mangle', '-D', 'statistic_tx', '-s', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
-        self._call(['iptables', '-t', 'mangle', '-D', 'statistic_rx', '-d', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
-        self._call(['iptables', '-t', 'mangle', '-D', 'statistic_tx_wan', '-s', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
-        self._call(['iptables', '-t', 'mangle', '-D', 'statistic_rx_wan', '-d', ip, '-m', 'comment', '--comment', '"{}"'.format(mac), '-j', 'RETURN'])
-
     def _get_counters_by_chain(self, tpl):
         ''':RETURN:
         [{'mac':'mac1', 'total_tx_bytes':?, 'total_tx_pkts':?, 'ip':xxx, 'ts':xxx, },
@@ -201,7 +199,7 @@ class SystemCall(object):
         ...
         '''
         chain, raw, key = tpl['chain'], tpl['raw'], tpl['key']
-        ipt = self._output(['iptables', '-t', 'mangle', '-L', chain, '-vxn'])
+        ipt = self._output(['iptables', '-w', '-t', 'mangle', '-L', chain, '-vxn'])
         ts = int(round(time.time()*1000))
         ipt = ipt.split('\n')[2:]
         # iptables v1.4.21

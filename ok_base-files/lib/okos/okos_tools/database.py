@@ -5,7 +5,7 @@ import time
 class ArpDb(object):
     DBNAME = '/tmp/run/arp_table.db'
     DESC = 'ARP Cache Database'
-    TABLE_NAME = 'arptable'
+    TABLE_NAME = 'arptablev1'
     def __init__(self, debug=False):
         self.debug = debug
         super(ArpDb, self).__init__()
@@ -31,10 +31,11 @@ class ArpDb(object):
         :return:
         """
         sql = sql or """CREATE TABLE IF NOT EXISTS {tb_name} (
-                                mac char(12) PRIMARY KEY,
+                                id integer PRIMARY KEY,
+                                mac char(12) NOT NULL,
                                 ipaddr text NOT NULL,
                                 device text NOT NULL,
-                                timestamp INTEGER NOT NULL
+                                timestamp real NOT NULL
                                 );""".format(tb_name=ArpDb.TABLE_NAME)
         self.cur.execute(sql)
         log_debug('[%s] <%s> created by "%s"' % (ArpDb.DESC, ArpDb.DBNAME, sql))
@@ -46,6 +47,7 @@ class ArpDb(object):
         sql = '''SELECT mac,ipaddr,device,timestamp FROM {tb_name}'''.format(tb_name=ArpDb.TABLE_NAME)
         self.cur.execute(sql)
         res = self.cur.fetchall()
+        self.debug and log_debug('[%s] query all from db <%s>: %s' % (ArpDb.DESC, ArpDb.TABLE_NAME, res))
         if timestamp:
             return [{'mac':r[0], 'ip':r[1], 'device':r[2], 'timestamp':r[3]} for r in res]
         else:
@@ -72,7 +74,8 @@ class ArpDb(object):
     def add_news(self, arps, ts=None):
         millis = ts or int(round(time.time() * 1000))
         entries = [(arp['mac'], arp['ip'], arp['device'], millis) for arp in arps]
+        self.debug and log_debug('[%s] insert %s into db <%s>' % (ArpDb.DESC, entries, ArpDb.TABLE_NAME))
         self.cur.executemany("INSERT INTO {tab} (MAC, IPADDR, DEVICE, TIMESTAMP) VALUES(?,?,?,?)".format(tab=ArpDb.TABLE_NAME), entries)
         self.conn.commit()
-        self.debug and log_debug('[%s] insert %s into db <%s>' % (ArpDb.DESC, arps, ArpDb.TABLE_NAME))
+        self.debug and log_debug('[%s] insertion into db <%s> is done' % (ArpDb.DESC, ArpDb.TABLE_NAME))
         
