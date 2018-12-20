@@ -30,6 +30,6 @@ iptables -t nat -N SS_SPEC_WAN_AC
 
 iptables -t nat -A OUTPUT -p tcp -m comment --comment "_SS_SPEC_RULE_" -j SS_SPEC_WAN_AC
 # iptables -t nat -A PREROUTING -p tcp -m comment --comment "_SS_SPEC_RULE_" -j SS_SPEC_WAN_AC
-iptables -t nat -S zone_TRUSTED_prerouting > /dev/null 2>&1
-[ "$?" = 0 ] && iptables -t nat -A zone_TRUSTED_prerouting -p tcp -m comment --comment "_SS_SPEC_RULE_" -j SS_SPEC_WAN_AC
+iptables -t nat -S prerouting_TRUSTED_rule > /dev/null 2>&1
+[ "$?" = 0 ] && iptables -t nat -A prerouting_TRUSTED_rule -p tcp -m comment --comment "_SS_SPEC_RULE_" -j SS_SPEC_WAN_AC
 
