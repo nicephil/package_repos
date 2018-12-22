@@ -24,11 +24,11 @@ class PostMan(threading.Thread):
             Site2SiteVpnReporter(mailbox, interval=60, debug=False),
             IfStatusReporter(mailbox, interval=60, debug=False),
             DeviceReporter(mailbox, interval=60, debug=False),
-            WiredClientReporter(mailbox, interval=10, debug=False),
-            ClientStatistic(mailbox, interval=15, debug=False),
-            DdnsStateReporter(mailbox, interval=60, debug=False),
-            HostnameReporter(interval=10, debug=False),
-            WanMonitorTimer(mailbox, debug=False),
+            #WiredClientReporter(mailbox, interval=10, debug=False),
+            #ClientStatistic(mailbox, interval=15, debug=False),
+            #DdnsStateReporter(mailbox, interval=60, debug=False),
+            #HostnameReporter(interval=10, debug=False),
+            #WanMonitorTimer(mailbox, debug=False),
         ]
 
 
