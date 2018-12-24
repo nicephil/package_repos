@@ -104,6 +104,23 @@ config include USER
 	option path /etc/firewall.user
 
 
+config rule 'Allow_guest_DHCP'
+	option name			Allow_guest_DHCP
+	option src			GUEST
+	option proto		udp
+	option dest_port	67
+	option target		ACCEPT
+	option family		ipv4
+
+config rule 'Allow_guest_DNS'
+	option name			Allow_guest_DNS
+	option src			GUEST
+	option proto		udp
+	option dest_port	53
+	option target		ACCEPT
+	option family		ipv4
+
+
 ### EXAMPLE CONFIG SECTIONS
 
 
