@@ -34,7 +34,7 @@ Example:
     # remove site to site vpn to hanhai
     $0 del 101
     # set up site to site vpn with usg inside tipark
-    #0 set 123 --local office.oakridge.vip --remote usg.tipark.oakridge.io --psk oakridge --remote-subnets 172.16.16.0/24
+    $0 set 123 --local office.oakridge.vip --remote usg.tipark.oakridge.io --psk oakridge --remote-subnets 172.16.16.0/24
 _HELP_
 }
 
@@ -52,7 +52,7 @@ case "$cmd" in
     show) id="$1";shift 1;;
     statistic) id="$1";shift 1;;
     list) id="";;
-    *) help;exit 1;;
+    *) echo "unknown cmd $cmd";help;exit 2;;
 esac
 
 #[ -n "$id" ] && echo 'Caller MUST ensure that ID is unique and numberic.'
@@ -84,7 +84,7 @@ while [ -n "$1" ]; do
         -R) remove='yes';shift 1;;
         -S) no_restart='1';shift 1;;
         --) shift;break;;
-        -*) help;exit 1;;
+        -*) echo "unknown option $1";help;exit 3;;
         *) break;;
     esac
 done
@@ -108,19 +108,19 @@ set_vpn()
     case "$ikev" in
         ikev1) ikev=$ikev;;
         ikev2) ikev=$ikev;;
-        *) help; exit 1;;
+        *) echo "bad ikev mode $ikev"; help; exit 4;;
     esac
     case "$encryption" in
         aes128) encryption=$encryption;;
         aes192) encryption=$encryption;;
         aes256) encryption=$encryption;;
         3des) encryption=$encryption;;
-        *) help; exit;;
+        *) echo "bad encryption mode $encryption"; help; exit 5;;
     esac
     case "$hash" in
         sha1) hash=$hash;;
         md5) hash=$hash;;
-        *) help; exit 1;;
+        *) echo "bad hash mode $hash"; help; exit 6;;
     esac
     case "$dh" in
         2) dh="modp1024";;
@@ -133,11 +133,14 @@ set_vpn()
         21) dh="ecp521";;
         25) dh="ecp192";;
         26) dh="ecp224";;
-        *) help; exit 1;;
+        *) echo "bad dh setting $dh"; help; exit 7;;
     esac
     crypto_name="c_${encryption}_${hash}_${dh}"
     
-    [ -z "$local_ip" -o -z "$remote_ip" -o -z "$psk" -o -z "$remote_subnets" ] && help && exit 1
+    if [ -z "$local_ip" -o -z "$remote_ip" -o -z "$psk" -o -z "$remote_subnets" ]; then
+        help
+        exit 8
+    fi
     local_nat_ip=$(ip r get ${remote_ip} | sed '1 s/[0-9.]* *via *[0-9.]* *dev *eth[0-9] *src *\([0-9a-z. ]*\)$/\1/p' -n)
     [ -z "$local_nat_ip" ] && echo "No route to ${remote_ip} found" && exit 1
 
