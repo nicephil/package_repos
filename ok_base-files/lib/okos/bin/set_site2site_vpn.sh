@@ -160,7 +160,7 @@ set_vpn()
     uci add_list ipsec.${site_name}.tunnel="${tunnel_name}"
     uci set ipsec.${tunnel_name}='tunnel'
     uci set ipsec.${tunnel_name}.mode='start'
-    uci set ipsec.${tunnel_name}.mark="${id}"
+    uci set ipsec.${tunnel_name}.mark="${id}/0xff"
     uci set ipsec.${tunnel_name}.keyexchange="${ikev}"
     uci set ipsec.${tunnel_name}.local_subnet="0.0.0.0/0"
     uci set ipsec.${tunnel_name}.remote_subnet="0.0.0.0/0"
