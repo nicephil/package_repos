@@ -37,11 +37,11 @@ config interface 'wan'
 #	option up '8'
 
 config interface 'wan1'
-	option enabled '1'
+	option enabled '0'
 	option family 'ipv4'
 
 config interface 'wan2'
-	option enabled '1'
+	option enabled '0'
 	option family 'ipv4'
 
 config member 'wan_m1_w1'
