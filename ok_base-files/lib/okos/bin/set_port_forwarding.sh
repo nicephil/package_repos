@@ -65,7 +65,7 @@ while [ -n "$1" ]; do
         -*) echo "unknown option $1"; help;exit 2;;
         *) break;;
     esac
-don
+done
 
 _del_pfwd()
 {
