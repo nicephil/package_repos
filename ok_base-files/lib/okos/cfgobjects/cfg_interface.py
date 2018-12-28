@@ -96,14 +96,15 @@ class CfgInterface(CfgObj):
                     checker['dnss'] = (None, '')
                     checker['default_route_enable'] = (None, 0)
                     checker['mtu'] = (None, 0)
+                    checker['mac_clone'] = (self._check_mac_, '')
                 cmd = ['set_wan_dhcp.sh', checker['logic_ifname']]
                 cmd += (checker['manual_dns'] and checker['dnss']) and ['-d', checker['dnss'], ] or []
                 cmd += checker['default_route_enable'] and ['-r',] or ['-R',]
                 cmd += checker['mtu'] and ['-m', checker['mtu']] or []
                 cmd += ['-S',]
-                return self.doit(cmd)
+                res = self.doit(cmd)
             # For static ip
-            if checker['ip_type'] == 1:
+            elif checker['ip_type'] == 1:
                 with ConfigInputEnv(new, 'Set static ip on WAN port %s' % (checker['logic_ifname'])):
                     checker['ips'] = (None, None)
                     checker['dnss'] = (None, None)
@@ -111,14 +112,15 @@ class CfgInterface(CfgObj):
                     checker['default_route_enable'] = (None, 0)
                     checker['default_route_ip'] = (None, '')
                     checker['mtu'] = (None, 0)
+                    checker['mac_clone'] = (self._check_mac_, '')
                 ips_str = ','.join(['%s/%s' % (ip['ip'], ip['netmask']) for ip in checker['ips']])
                 cmd = ['set_wan_static_ip.sh', checker['logic_ifname'], checker['gateway'], ips_str, checker['dnss']]
                 cmd += (checker['default_route_enable'] and checker['default_route_ip']) and ['-r', checker['default_route_ip']] or ['-R',]
                 cmd += checker['mtu'] and ['-m', checker['mtu']] or []
                 cmd += ['-S',]
-                return self.doit(cmd)
+                res = self.doit(cmd)
             # For pppoe
-            if checker['ip_type'] == 2:
+            elif checker['ip_type'] == 2:
                 with ConfigInputEnv(new, 'Set PPPOE on WAN port %s' % (checker['logic_ifname'])):
                     checker['pppoe_username'] = (None, None)
                     checker['pppoe_password'] = (None, None)
@@ -126,12 +128,19 @@ class CfgInterface(CfgObj):
                     checker['pppoe_keep_connected'] = (None, 1)
                     checker['default_route_enable'] = (None, 0)
                     checker['mtu'] = (None, 0)
+                    checker['mac_clone'] = (self._check_mac_, '')
                 cmd = ['set_wan_pppoe.sh', checker['logic_ifname'],
                         checker['pppoe_username'], checker['pppoe_password'], '-k', checker['pppoe_timeout'], ]
                 cmd += checker['default_route_enable'] and ['-r',] or ['-R',]
                 cmd += checker['mtu'] and ['-m', checker['mtu'],] or []
                 cmd += ['-S',]
-                return self.doit(cmd)
+                res = self.doit(cmd)
+            else:
+                res = False
+            if checker['mac_clone']:
+                cmd = ['set_mac_clone.sh', 'set', checker['logic_ifname'], checker['mac_clone']]
+                res &= self.doit(cmd)
+            return res
         # Disable interface
         else:
             cmd = ['disable_port.sh', checker['logic_ifname'], ]

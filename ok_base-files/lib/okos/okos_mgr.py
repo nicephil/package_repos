@@ -16,19 +16,19 @@ class PostMan(threading.Thread):
         self.name = 'StatusMgr'
         self.term = False
         self.mailbox = mailbox
-        self.oakmgr = Oakmgr(mailbox, debug=False)
+        self.oakmgr = Oakmgr(mailbox, debug=True)
         self.timers = [
-            Redirector(interval=120, debug=False),
-            HeartBeat(self.oakmgr, mailbox, debug=False),
-            SystemHealthReporter(mailbox, interval=10, debug=False),
-            Site2SiteVpnReporter(mailbox, interval=60, debug=False),
-            IfStatusReporter(mailbox, interval=60, debug=False),
-            DeviceReporter(mailbox, interval=60, debug=False),
-            #WiredClientReporter(mailbox, interval=10, debug=False),
-            #ClientStatistic(mailbox, interval=15, debug=False),
-            DdnsStateReporter(mailbox, interval=60, debug=False),
-            HostnameReporter(interval=10, debug=False),
-            WanMonitorTimer(mailbox, debug=False),
+            Redirector(interval=120, debug=True),
+            HeartBeat(self.oakmgr, mailbox, debug=True),
+            SystemHealthReporter(mailbox, interval=10, debug=True),
+            Site2SiteVpnReporter(mailbox, interval=60, debug=True),
+            IfStatusReporter(mailbox, interval=60, debug=True),
+            DeviceReporter(mailbox, interval=60, debug=True),
+            WiredClientReporter(mailbox, interval=10, debug=True),
+            ClientStatistic(mailbox, interval=15, debug=True),
+            DdnsStateReporter(mailbox, interval=60, debug=True),
+            HostnameReporter(interval=10, debug=True),
+            WanMonitorTimer(mailbox, debug=True),
         ]
 
 
