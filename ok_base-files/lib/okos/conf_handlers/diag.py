@@ -12,8 +12,8 @@ import struct
 from signal import SIGKILL
 
 class Diag(ConfHandler):
-    def __init__(self, mailbox):
-        super(Diag, self).__init__(mailbox, const.DEV_DIAG_REQ_OPT_TYPE, const.DEV_DIAG_RESP_OPT_TYPE, name='Diag')
+    def __init__(self, mailbox, debug=False):
+        super(Diag, self).__init__(mailbox, const.DEV_DIAG_REQ_OPT_TYPE, const.DEV_DIAG_RESP_OPT_TYPE, name='Diag', debug=debug)
     def _handler(self, request):
         '''
         name: e0

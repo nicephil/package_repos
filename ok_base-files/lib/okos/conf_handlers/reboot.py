@@ -5,8 +5,8 @@ import time
 import os
 
 class Reboot(ConfHandler):
-    def __init__(self, mailbox):
-        super(Reboot, self).__init__(mailbox, const.DEV_REBOOT_OPT_TYPE, 0, name='Reboot')
+    def __init__(self, mailbox, debug=False):
+        super(Reboot, self).__init__(mailbox, const.DEV_REBOOT_OPT_TYPE, 0, name='Reboot', debug=debug)
     def _handler(self, request):
         okos_system_log_info("device is reset from nms request")
         time.sleep(5)

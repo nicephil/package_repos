@@ -4,8 +4,8 @@ from okos_tools import *
 import ubus
 
 class WebUiConf(ConfHandler):
-    def __init__(self, mailbox):
-        super(WebUiConf, self).__init__(mailbox, const.DEV_WEBUI_CONF_REQ_OPT_TYPE, const.DEV_WEBUI_CONF_RESP_OPT_TYPE, name='WebUiConf')
+    def __init__(self, mailbox, debug=False):
+        super(WebUiConf, self).__init__(mailbox, const.DEV_WEBUI_CONF_REQ_OPT_TYPE, const.DEV_WEBUI_CONF_RESP_OPT_TYPE, name='WebUiConf', debug=debug)
     def _handler(self, request):
         json_data = {}
         try:

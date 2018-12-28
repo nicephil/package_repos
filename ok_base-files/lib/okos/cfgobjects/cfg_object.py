@@ -190,10 +190,19 @@ class CfgObj(object):
 
     def _check_mac_(self, input):
         p = const.FMT_PATTERN['mac']
-        m = p.match(str(input))
+        m = p.match(str(input).lower())
         if not m:
             return False, 'MAC address format error'
-        mac = ':'.join(m.groups())
+        mac_cells = m.groups()
+        all_0_check = filter(lambda c: bool(c == '00'), mac_cells)
+        if len(all_0_check) == 6:
+            return False, 'MAC address should not be all zero'
+        all_1_check = filter(lambda c: bool(c == 'ff'), mac_cells)
+        if len(all_1_check) == 6:
+            return False, 'MAC address should not be all 1'
+        if int(mac_cells[0],16) & 0x01:
+            return False, 'MAC address should be a unicast mac address'
+        mac = ':'.join(mac_cells)
         return True, mac.lower()
 
 class ParameterChecker(object):

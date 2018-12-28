@@ -6,8 +6,8 @@ import os
 
 
 class Upgrade(ConfHandler):
-    def __init__(self, mailbox):
-        super(Upgrade, self).__init__(mailbox, const.DEV_UPGRADE_REQ_OPT_TYPE, const.DEV_UPGRADE_RESP_OPT_TYPE, name='Upgrade')
+    def __init__(self, mailbox, debug=False):
+        super(Upgrade, self).__init__(mailbox, const.DEV_UPGRADE_REQ_OPT_TYPE, const.DEV_UPGRADE_RESP_OPT_TYPE, name='Upgrade', debug=debug)
     def _handler(self, request):
         ret = 0
         data = json.loads(request['data'], encoding='utf-8')

@@ -17,7 +17,8 @@ class ConfHandler(object):
             self.debug and log_debug('[%s] reply - sent out - with <%s>' % (self.name, res))
         self.debug and log_debug('[%s] request - done -' % (self.name))
     def _handler(self, request):
-        pass
+        log_err('You MUST implement A _handler for ConfHandler')
+        raise NotImplementedError
 
 
 

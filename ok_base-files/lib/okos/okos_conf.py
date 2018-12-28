@@ -12,12 +12,12 @@ class ConfMgr(threading.Thread):
         self.term = False
         self.mailbox = mailbox
         self.handlers = {}
-        self._register(ConfRequest(self.mailbox))
-        self._register(WebUiConf(self.mailbox))
-        self._register(Reboot(self.mailbox))
-        self._register(Diag(self.mailbox))
-        self._register(Upgrade(self.mailbox))
-        self._register(QueryWiredClients(self.mailbox))
+        self._register(ConfRequest(self.mailbox, debug=True))
+        self._register(WebUiConf(self.mailbox, debug=True))
+        self._register(Reboot(self.mailbox, debug=True))
+        self._register(Diag(self.mailbox, debug=True))
+        self._register(Upgrade(self.mailbox, debug=True))
+        self._register(QueryWiredClients(self.mailbox, debug=True))
         self._register(DdnsTest(self.mailbox, debug=True))
         
         self.timers = [
