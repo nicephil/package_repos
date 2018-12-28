@@ -144,8 +144,7 @@ class CfgInterface(CfgObj):
                     phy_ifx = const.PORT_MAPPING_LOGIC[checker['logic_ifname']]
                     old_mac = UciStatus('network.device')[phy_ifx].setdefault('macaddr','')
                 cmd = ['set_mac_clone.sh', 'set', checker['logic_ifname'], 
-                        '--mac-clone', checker['mac_clone'],
-                    ]
+                        '--mac-clone', checker['mac_clone'],]
                 if old_mac:
                     cmd += ['--old-mac', old_mac]
                 res &= self.doit(cmd)
