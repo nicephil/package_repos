@@ -229,8 +229,11 @@ class ParameterChecker(object):
         if default is None:
             entry['value'] = self.src[index]
         else:
-            entry['value'] = self.src.setdefault(index, default)
-        if callable(entry['checker']):
+            #entry['value'] = self.src.setdefault(index, default)
+            entry['value'] = self.src[index] if index in self.src else None
+        if entry['value'] is None and default is not None:
+            entry['value'] = default
+        elif callable(entry['checker']) and entry['value']:
             res, data = entry['checker'](entry['value'])
             if not res:
                 log_warning('[Parameter Checking] %s failed (%s) - %s -' % (index, entry['value'], data))
@@ -238,7 +241,7 @@ class ParameterChecker(object):
             else:
                 log_debug('[Parameter Checking] for [{idx}]:>[{d}]'.format(idx=index, d=data))
                 entry['value'] = data
-            
+
 
 
 class ConfigInputEnv(ExecEnv):
