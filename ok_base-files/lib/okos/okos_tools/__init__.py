@@ -6,7 +6,6 @@ from okos_logger import log_debug, log_info, log_warning, log_err, log_crit
 from okos_logger import logger, logcfg, logit, logchecker
 
 from okos_timer import Timer, Poster, HierarchicPoster
-#from okos_timer import repeat_timer, RepeatedTimer, ReportTimer # will be removed later.
 
 # from okos_utils import config_conf_file
 from okos_utils import get_whole_conf_path, get_whole_conf_bak_path, set_whole_confinfo, rollback_whole_confinfo, get_whole_confinfo
