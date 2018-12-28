@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 from cfg_object import CfgObj, ConfigInputEnv, ConfigParseEnv, ParameterChecker
-from okos_tools import logcfg, logchecker, log_err
+from okos_tools import logcfg, logchecker, log_err, UciStatus, ExecEnv
 from constant import const
+
 
 class CfgInterface(CfgObj):
     differ = 'logic_ifname'
@@ -138,7 +139,15 @@ class CfgInterface(CfgObj):
             else:
                 res = False
             if checker['mac_clone']:
-                cmd = ['set_mac_clone.sh', 'set', checker['logic_ifname'], checker['mac_clone']]
+                old_mac = None
+                with ConfigInputEnv(None, 'Acquire Interface MAC address') as X:
+                    phy_ifx = const.PORT_MAPPING_LOGIC[checker['logic_ifname']]
+                    old_mac = UciStatus('network.device')[phy_ifx].setdefault('macaddr','')
+                cmd = ['set_mac_clone.sh', 'set', checker['logic_ifname'], 
+                        '--mac-clone', checker['mac_clone'],
+                    ]
+                if old_mac:
+                    cmd += ['--old-mac', old_mac]
                 res &= self.doit(cmd)
             return res
         # Disable interface
