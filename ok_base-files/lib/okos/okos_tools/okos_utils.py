@@ -145,13 +145,13 @@ def post_url(url, param_data=None, json_data=None, files=None, debug=False):
             response = requests.post(url, params=param_data, json=json_data, files=files, timeout=10)
             if response.status_code == 200:
                 data = response.json()
-                debug and log_debug('response:{status}, json:{json}'.format(status=response.status_code, json=data))
+                debug and log_debug('<operate_type:{op}> response:{status}, json:{json}'.format(op=op, status=response.status_code, json=data))
                 return data
             else:
-                log_warning('Target reply error : {response} <operate_type:{op}>\n'.format(response=response, op=op))
+                log_warning('Target reply <operate_type:{op}> error : {response}\n'.format(response=response, op=op))
         except Exception, e:
             time.sleep(1)
-            log_warning("requests err {}, time:{}, <operate_type:{}>".format(repr(e), i, op))
+            log_warning("<operate_type:{op}> requests err {}, time:{}, <operate_type:{}>".format(repr(e), i, op))
             continue
     return {}
 
