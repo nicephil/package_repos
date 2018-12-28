@@ -151,7 +151,7 @@ def post_url(url, param_data=None, json_data=None, files=None, debug=False):
                 log_warning('Target reply <operate_type:{op}> error : {response}\n'.format(response=response, op=op))
         except Exception, e:
             time.sleep(1)
-            log_warning("<operate_type:{op}> requests err {}, time:{}, <operate_type:{}>".format(repr(e), i, op))
+            log_warning("<operate_type:{op}> requests err {e}, time:{i}".format(e=repr(e), i=i, op=op))
             continue
     return {}
 
