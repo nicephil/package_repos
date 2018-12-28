@@ -31,12 +31,18 @@ class ClientStatistic(HierarchicPoster):
         self.add_layer('report', 1, self._report)
         self.add_layer('period', 3, self._period)
 
+    def remove_out_of_statistic_data(self, filename, num):
+        files = self.syscall._output(['ls %s' % (filename)], shell=True).split('\n')
+        files = [f for f in files if f]
+        old = files[:-num]
+        map(lambda f: self.syscall._call(['rm', f]), old)
+
     def _period(self, cargo):
         '''
         At the end of statistic report period, do 
         1) cleanup job.
         '''
-        self.syscall.remove_out_of_statistic_data(self.dump_file_name.format(ts='*'), self.max_file_num)
+        self.remove_out_of_statistic_data(self.dump_file_name.format(ts='*'), self.max_file_num)
         return True
         
     def _report(self, cargo):

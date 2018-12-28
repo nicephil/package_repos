@@ -1,6 +1,6 @@
 import functools
 import threading
-from okos_tools import log_debug, ExecEnv, Envelope
+from okos_tools import log_debug, log_err, ExecEnv, Envelope
 
 
 class Timer(object):
@@ -20,26 +20,27 @@ class Timer(object):
         self._timer = threading.Timer(now and 1 or self.interval, self.repeat())
         self._timer.name = self.name
         self.debug = debug
-        self.debug and log_debug('Timer %s is created' % (self.name))
+        self.debug and log_debug('[Timer] %s is created' % (self.name))
 
     def handler(self, *args, **kwargs):
-        log_debug("I am in the handler")
-        pass
+        log_err("You should implement A handler")
+        raise NotImplementedError
+
     def start(self):
-        self.debug and log_debug("Timer %s is kicked off" % self.name)
+        self.debug and log_debug("[Timer] %s is kicked off" % self.name)
         self._timer.start()
     def repeat(self):
         def wrapper(*args, **kwargs):
-            self.debug and log_debug('Timer %s start to execute:' % (self.name))
+            self.debug and log_debug('[Timer] %s start to execute:' % (self.name))
             res = False
             if self.repeated:
-                with ExecEnv('Timer', desc='periodic process', raiseup=False, debug=False) as _X:
+                with ExecEnv('Timer', desc='periodic process', raiseup=False, debug=self.debug) as _X:
                     res = self.handler(*args, **kwargs)
                 self._timer = threading.Timer(self.interval, self.repeat())
                 self._timer.name = self.name
                 self.start()
             else:
-                with ExecEnv('Timer', desc='One time shot process', raiseup=False, debug=False) as _X:
+                with ExecEnv('Timer', desc='One time shot process', raiseup=False, debug=self.debug) as _X:
                     res = self.handler(*args, **kwargs)
             return res
         return wrapper
@@ -60,16 +61,16 @@ class Poster(Timer):
         self.debug = debug
     def repeat(self):
         def wrapper(*args, **kwargs):
-            self.debug and log_debug('Timer %s start to execute:' % (self.name))
+            self.debug and log_debug('[Poster] %s start to execute:' % (self.name))
             message = None
             if self.repeated:
-                with ExecEnv('Poster', desc='periodic process', raiseup=False, debug=False) as _X:
+                with ExecEnv('Poster', desc='periodic process', raiseup=False, debug=self.debug) as _X:
                     message = self.handler(*args, **kwargs)
                 self._timer = threading.Timer(self.interval, self.repeat())
                 self._timer.setName(self.name)
                 self.start()
             else:
-                with ExecEnv('Poster', desc='One time shot process', raiseup=False, debug=False) as _X:
+                with ExecEnv('Poster', desc='One time shot process', raiseup=False, debug=self.debug) as _X:
                     message = self.handler(*args, **kwargs)
             message and self.env.go(message)
             return message
@@ -84,16 +85,16 @@ class InTimePoster(Timer):
         self.env = Envelope(mailbox, operate_type=operate_type, pri=pri)
     def repeat(self):
         def wrapper(*args, **kwargs):
-            self.debug and log_debug('Timer %s start to execute:' % (self.name))
+            self.debug and log_debug('[InTimePoster] %s start to execute:' % (self.name))
             message, ts = None, None
             if self.repeated:
-                with ExecEnv('InTimePoster', desc='periodic process', raiseup=False, debug=False) as _X:
+                with ExecEnv('InTimePoster', desc='periodic process', raiseup=False, debug=self.debug) as _X:
                     message, ts = self.handler(*args, **kwargs)
                 self._timer = threading.Timer(self.interval, self.repeat())
                 self._timer.setName(self.name)
                 self.start()
             else:
-                with ExecEnv('InTimePoster', desc='One time shot process', raiseup=False, debug=False) as _X:
+                with ExecEnv('InTimePoster', desc='One time shot process', raiseup=False, debug=self.debug) as _X:
                     message, ts = self.handler(*args, **kwargs)
             message and self.env.go(message, timestamp=ts)
             return message
@@ -112,7 +113,7 @@ class HierarchicPoster(Poster):
         self._actions.append({'name':name, 'interval':interval, 'func':func, 'counter': 0})
     def _action(self, cargo, fx):
         fx['counter'] = fx['counter']+1 if fx['counter'] < fx['interval'] else 1
-        self.debug and log_debug('Layer<{name}> round {counter}/{interval}'.format(name=fx['name'], counter=fx['counter'], interval=fx['interval']))
+        self.debug and log_debug('[HierarchicPoster] Layer<{name}> round {counter}/{interval}'.format(name=fx['name'], counter=fx['counter'], interval=fx['interval']))
         if fx['counter'] >= fx['interval']:
             fx['func'](cargo)
             return True
