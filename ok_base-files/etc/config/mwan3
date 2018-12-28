@@ -5,7 +5,7 @@ config globals 'globals'
 	option rtmon_interval '5'
 
 config interface 'wan'
-	option enabled '1'
+	option enabled '0'
 	option family 'ipv4'
 #	list track_ip '8.8.4.4'
 #	list track_ip '8.8.8.8'
@@ -37,11 +37,11 @@ config interface 'wan'
 #	option up '8'
 
 config interface 'wan1'
-	option enabled '1'
+	option enabled '0'
 	option family 'ipv4'
 
 config interface 'wan2'
-	option enabled '1'
+	option enabled '0'
 	option family 'ipv4'
 
 config member 'wan_m1_w1'
