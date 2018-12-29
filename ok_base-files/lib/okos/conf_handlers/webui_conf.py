@@ -37,7 +37,7 @@ class WebUiConf(ConfHandler):
             e_data['ips'] = []
             e_data['ips'].append({})
             l_ipaddr = network_conf[sid]['ipaddr']
-            if isinstance(l_ipaddr, tuple):
+            if isinstance(l_ipaddr, tuple) or isinstance(l_ipaddr, list):
                 e_data['ips'][0]['ip'] = l_ipaddr[0]
             else:
                 e_data['ips'][0]['ip'] = l_ipaddr
