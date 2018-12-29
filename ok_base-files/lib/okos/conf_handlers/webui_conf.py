@@ -4,6 +4,18 @@ from okos_tools import *
 import ubus
 
 class WebUiConf(ConfHandler):
+    '''
+{
+    "mac" : "000C2932A423",
+    "delay" : 10,
+    "list" : [
+        {
+            "operate_type" : 2009,
+            "cookie_id" : 1234,
+        }
+    ],
+}
+    '''
     def __init__(self, mailbox, debug=False):
         super(WebUiConf, self).__init__(mailbox, const.DEV_WEBUI_CONF_REQ_OPT_TYPE, const.DEV_WEBUI_CONF_RESP_OPT_TYPE, name='WebUiConf', debug=debug)
     def _handler(self, request):
