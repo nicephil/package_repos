@@ -134,24 +134,24 @@ def get_redirector_key(salt, mac):
 
 def post_url(url, param_data=None, json_data=None, files=None, debug=False):
     if debug:
-        log_debug('post to {url}'.format(url=url))
-        log_debug('parameters :{param_data}'.format(param_data=param_data))
-        log_debug('json body :{json_data}'.format(json_data=json_data))
+        log_debug('[OakSDC] post to {url}'.format(url=url))
+        log_debug('[OakSDC] parameters :{param_data}'.format(param_data=param_data))
+        log_debug('[OakSDC] json body :{json_data}'.format(json_data=json_data))
 
-    op = json_data.setdefault('operate_type', 0)
-
-    for i in range(1,4):
+    for i in range(0,3):
         try:
+            if json_data:
+                json_data['retry'] = i
             response = requests.post(url, params=param_data, json=json_data, files=files, timeout=10)
             if response.status_code == 200:
                 data = response.json()
-                debug and log_debug('<operate_type:{op}> response:{status}, json:{json}'.format(op=op, status=response.status_code, json=data))
+                debug and log_debug('[OakSDC] response::{json}'.format(status=response.status_code, json=data))
                 return data
             else:
-                log_warning('Target reply <operate_type:{op}> error : {response}\n'.format(response=response, op=op))
+                log_warning('[OakSDC] reply error : {response}\n'.format(response=response))
         except Exception, e:
             time.sleep(1)
-            log_warning("<operate_type:{op}> requests err {e}, time:{i}".format(e=repr(e), i=i, op=op))
+            log_warning("[OakSDC] requests with err <{e}> retry:{i}".format(e=repr(e), i=i))
             continue
     return {}
 

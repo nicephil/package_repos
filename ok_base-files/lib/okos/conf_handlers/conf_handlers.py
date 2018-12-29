@@ -7,7 +7,7 @@ class ConfHandler(object):
         self.name = name
         self.request_id = request_id
         self.response_id = response_id
-        self.env = Envelope(mailbox, operate_type=response_id, pri=pri)
+        self.env = Envelope(mailbox, operate_type=response_id, pri=pri, debug=debug)
         self.debug = debug
     def handler(self, request):
         self.debug and log_debug('[%s] request - start -' % (self.name))

@@ -1,4 +1,4 @@
-from okos_tools import *
+from okos_tools import CAPWAP_SERVER, log_warning, log_debug, okos_system_log_info, UciSection, post_url, okos_system_log_warn
 import os
 import json
 from constant import const
@@ -42,13 +42,14 @@ class Oakmgr(object):
 
     def access(self, msgs):
         server = (self.capwap['mas_server'], 80, 'nms')
-        #server = ('192.168.254.141', 8080, 'nms-webapp')
         url = 'http://{server}:{port}/{path}/api/device/router/info'.format(server=server[0], port=server[1], path=server[2])
         post_data = {
             'mac' : self.device_mac,
             'delay' : const.HEARTBEAT_DELAY,
             'list' : msgs,
         }
+
+        self.debug and map(lambda m: log_debug('<operate_type:{op}>>cookie:{c}>>{data}'.format(op=m['operate_type'], c=m['cookie_id'], data=m['data'])), msgs)
         requested = post_url(url, json_data=post_data, debug=self.debug)
         if self.first_access_nms:
             self.first_access_nms = False
@@ -58,9 +59,11 @@ class Oakmgr(object):
                 okos_system_log_info("connected to oakmgr @{}".format(server[0]))
         if requested and 'error_code' in requested and requested['error_code'] == 1002:
             okos_system_log_warn("oakmgr-{} reject access".format(server))
+        else:
+            self.debug and log_debug('=>OakSDC({svr}): [{mac}] send data successfully!'.format(mac=post_data['mac'], svr=server))
 
         requested = self.access_pipe() or requested
 
         for r in requested.setdefault('list', []):
-            self.debug and log_debug('REQUESTED data: %s' % (r))
+            self.debug and log_debug('<=OakSDC: REQUESTED data: %s' % (r))
             self.mailbox.pub(const.CONF_REQUEST_Q, r, timeout=0)

@@ -32,13 +32,13 @@ class ConfMgr(threading.Thread):
     "delay" : 10,
     "list" : [
         {
-            "operate_type" : 3102,
+            "operate_type" : 2016,
             "cookie_id" : 1234,
             "timestamp" : 2222222,
-            "data" : "{\"url\" : \"http://image.oakridge.vip/images/x86_gw/sysloader/v2.433.2_bin.app\", \"timeout\" : 60}"
+            "data" : "{\"timeout\" : 60}"
         }
     ],
-    'errorcode': 1002
+    "errorcode": 1002
 }
         '''
         map(lambda x: x.start(), self.timers)
@@ -49,7 +49,7 @@ class ConfMgr(threading.Thread):
             self._round()
 
     def _round(self):
-        with ExecEnv('Conf Request', desc='Exec request from mailbox', raiseup=False, debug=self.debug) as ctx:
+        with ExecEnv('Conf Request', desc='Exec request from SDC', raiseup=False, debug=self.debug) as ctx:
             request = self.mailbox.sub(const.CONF_REQUEST_Q)
             if not request:
                 time.sleep(10)

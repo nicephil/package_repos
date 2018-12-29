@@ -6,65 +6,32 @@ from okos_tools import *
 import os
 from constant import const
 from okos_conf import ConfMgr
+from post_man import PostMan
 import json
 from okos_timers import *
 import time
 
-class PostMan(threading.Thread):
-    def __init__(self, mailbox):
-        super(PostMan, self).__init__()
-        self.name = 'StatusMgr'
-        self.term = False
-        self.mailbox = mailbox
-        self.oakmgr = Oakmgr(mailbox, debug=True)
-        self.timers = [
-            Redirector(interval=120, debug=True),
-            HeartBeat(self.oakmgr, mailbox, debug=True),
-            SystemHealthReporter(mailbox, interval=10, debug=True),
-            Site2SiteVpnReporter(mailbox, interval=60, debug=True),
-            IfStatusReporter(mailbox, interval=60, debug=True),
-            DeviceReporter(mailbox, interval=60, debug=True),
-            WiredClientReporter(mailbox, interval=10, debug=True),
-            ClientStatistic(mailbox, interval=15, debug=True),
-            DdnsStateReporter(mailbox, interval=60, debug=True),
-            HostnameReporter(interval=10, debug=True),
-            WanMonitorTimer(mailbox, debug=True),
-        ]
-
-
-    def _round(self):
-        msg = self.mailbox.sub(const.STATUS_Q)
-        if not msg:
-            time.sleep(10)
-            log_err('ERROR: subscribe messages from STATUS_Q failed!\n\n')
-            return
-        if msg[0] < 10:
-            msgs = self.mailbox.get_all(const.STATUS_Q)
-            msgs.append(msg)
-            self.oakmgr.access([m[1] for m in msgs])
-        else:
-            self.mailbox.pub(const.HEARTBEAT_Q, msg[1])
-
-    def run(self):
-        map(lambda x: x.start(), self.timers)
-
-        while_loop = lambda : ((not self.term) and self._round()) or while_loop()
-        #while_loop()
-        while not self.term:
-            self._round()
-
-
-
 class OkosMgr(object):
-    def __init__(self):
+    def __init__(self, debug=False):
         super(OkosMgr, self).__init__()
         self.productinfo = PRODUCT_INFO
+        self.debug = debug
         self.mailbox = MailBox()
         self.threads = [
-            PostMan(self.mailbox),
+            PostMan(self.mailbox, debug=True),
             ConfMgr(self.mailbox),
         ]
         self.timers = [
+            Redirector(interval=120, debug=self.debug),
+            SystemHealthReporter(self.mailbox, interval=10, debug=self.debug),
+            Site2SiteVpnReporter(self.mailbox, interval=60, debug=self.debug),
+            IfStatusReporter(self.mailbox, interval=60, debug=self.debug),
+            DeviceReporter(self.mailbox, interval=60, debug=self.debug),
+            WiredClientReporter(self.mailbox, interval=10, debug=self.debug),
+            ClientStatistic(self.mailbox, interval=15, debug=self.debug),
+            DdnsStateReporter(self.mailbox, interval=60, debug=self.debug),
+            HostnameReporter(interval=10, debug=self.debug),
+            WanMonitorTimer(self.mailbox, debug=self.debug),
         ]
 
     def join_threads(self):
@@ -90,7 +57,7 @@ def main(args):
         pid_file = '/var/run/okos_mgr.pid'
         daemonlize(pid_file)
     with UbusEnv(debug=True):
-        OkosMgr().join_threads()
+        OkosMgr(debug=True).join_threads()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Okos Main Daemon')
