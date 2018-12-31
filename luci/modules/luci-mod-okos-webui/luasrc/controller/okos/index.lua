@@ -35,6 +35,7 @@ function index()
     entry({"okos", "diag"}, call("action_diag"), _("Diag"))
     entry({"okos", "querydiag"}, call("action_querydiag"), _("QueryDiag"))
     entry({"okos", "devumac"}, call("action_devumac"), _("DeviceUniqueMAC"))
+    entry({"okos", "oakreboot"}, call("action_oakreboot"), _("DeviceOakreboot"))
     entry({"okos", "regdev"}, call("action_regdev"), _("RegDev"))
     entry({"okos", "setgre"}, call("action_setgre"), _("SetGRE"))
 end
@@ -584,6 +585,7 @@ function action_configwan()
         username = "oakridge",
         password = "oakridge",
         mtu = "1500"
+        mac = "00:25:33:44:55:66"
     }
     ]]--
     if input.proto == nil or input.ifname == nil or input.ifname ~= "eth0" then
@@ -633,11 +635,11 @@ function action_configwan()
     -- setup new network
     local net =  { }
     if input.proto == "static" then
-        net = nw:add_network("wan", {proto=input.proto, ipaddr=input.ipaddr, netmask=input.netmask, gateway=input.gateway, dns=input.dns})
+        net = nw:add_network("wan", {proto=input.proto, ipaddr=input.ipaddr, netmask=input.netmask, gateway=input.gateway, dns=input.dns, macaddr=input.mac})
     elseif input.proto == "dhcp" then
-        net = nw:add_network("wan", {proto=input.proto})
+        net = nw:add_network("wan", {proto=input.proto, macaddr=input.mac})
     elseif input.proto == "pppoe" then
-        net = nw:add_network("wan", {proto=input.proto, username=input.username, password=input.password, mtu=input.mtu})
+        net = nw:add_network("wan", {proto=input.proto, username=input.username, password=input.password, mtu=input.mtu, macaddr=input.mac})
     end
     if net then
         net:add_interface(input.ifname)
@@ -884,6 +886,42 @@ function action_devumac()
     -- response --
     response_json(response)
 end
+
+--  reboot
+function action_oakreboot()
+    -- sanity check --
+    if not sanity_check_get() then
+        return
+    end
+
+    -- process --
+    local response = { }
+    --[[
+    response = {
+        errocode = 0,
+    }
+    ]]--
+    response.errcode = 0
+    local ipaddr = uci:get("webui_config", "lan4053", "ipaddr")
+    local netmask = uci:get("webui_config", "lan4053", "netmask")
+    local dhcp_start = uci:get("webui_config", "lan4053", "dhcp_start")
+    local dhcp_limit = uci:get("webui_config", "lan4053", "dhcp_limit")
+    local dhcp_leasetime = uci:get("webui_config", "lan4053", "dhcp_leasetime")
+    local dhcp_server_enable = uci:get("webui_config", "lan4053", "dhcp_server_enable")
+    uci:set("network", "lan4053", "ipaddr", ipaddr) 
+    uci:set("network", "lan4053", "netmask", netmask) 
+    uci:commit("network")
+    uci:set("dhcp", "lan4053", "start", dhcp_start) 
+    uci:set("dhcp", "lan4053", "limit", dhcp_limit) 
+    uci:set("dhcp", "lan4053", "leasetime", dhcp_leasetime) 
+    uci:set("dhcp", "lan4053", "ignore", dhcp_server_enable and 0 or 1) 
+    uci:commit("dhcp")
+    sys.call("/etc/init.d/network restart;/etc/init.d/dnsmasq restart")
+
+    -- response --
+    response_json(response)
+end
+
 
 -- register device response from cloud
 function action_regdev()
