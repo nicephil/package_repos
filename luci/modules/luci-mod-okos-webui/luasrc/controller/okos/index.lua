@@ -939,7 +939,7 @@ function action_regdev()
         passcode = "oakridge"
     }
     ]]--
-    if input.oakmgr == nil or input.passcode == nil then
+    if input.passcode == nil then
         http.status(400, "Bad Request");
         http.close()
         return
@@ -954,12 +954,13 @@ function action_regdev()
     ]]--
     response.errcode = 0
 
-    response.errcode = sys.call("/sbin/uci set capwapc.server.mas_server=" .. input.oakmgr .. " && /sbin/uci commit capwapc")
+    if input.oakmgr ~= nil then
+        response.errcode = sys.call("/sbin/uci set capwapc.server.mas_server=" .. input.oakmgr .. " && /sbin/uci commit capwapc")
+    end
 
-    -- if response.errcode == 0 then
-        -- response.errcode = sys.user.setpasswd("root", input.passcode)
-        -- sys.call("/etc/init.d/handle_cloud start")
-    -- end
+    if response.errcode == 0 then
+        response.errcode = sys.user.setpasswd("root", input.passcode)
+    end
     
     -- response --
     response_json(response)
