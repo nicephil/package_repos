@@ -105,9 +105,10 @@ class HierarchicPoster(Poster):
     '''
     This timer is used to implement a hirachical timer.
     '''
-    def __init__(self, name, interval, mailbox, operate_type, pri, debug=False):
+    def __init__(self, name, interval, mailbox, operate_type, pri, persistency=True, debug=False):
         super(HierarchicPoster, self).__init__(name, interval, mailbox, operate_type, repeated=True, debug=debug, pri=pri)
         self.debug = debug
+        self.persistency = persistency
         self._actions = []
     def add_layer(self, name, interval, func):
         self._actions.append({'name':name, 'interval':interval, 'func':func, 'counter': 0})
@@ -125,7 +126,10 @@ class HierarchicPoster(Poster):
         def wrapper(self, *args, **kwargs):
             cargo = {}
             for action in self._actions:
-                if not self._action(cargo, action):
+                res = False
+                with ExecEnv('HierarchicPoster', desc='hierarchic process <{name}>'.format(name=action['name']), raiseup=False, debug=self.debug) as _X:
+                    res = self._action(cargo, action)
+                if not self.persistency and res == False:
                     break
             return handler(self, cargo, *args, **kwargs)
         return wrapper
