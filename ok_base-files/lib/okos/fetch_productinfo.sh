@@ -7,7 +7,7 @@ model=$(ar71xx_model)
 
 case "$board" in
 unifi)
-    mac=$(hexdump -e '1/1 "%02x:"' -n6 /dev/mtd7)
+    mac=$(hexdump -v -e '1/1 "%02x:"' -n6 /dev/mtd7)
     mac=${mac%:*}
     mac=`echo $mac | tr '[a-z]' '[A-Z]'`
     serial=`echo $mac |tr -d :`

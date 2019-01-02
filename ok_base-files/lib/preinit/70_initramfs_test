@@ -3,7 +3,7 @@
 # Copyright (C) 2010 Vertical Communications
 
 initramfs_test() {
-    echo "---> initramfs_test $INITRAMFS"
+    echo "--->initramfs_test:$INITRAMFS"
     if [ -n "$INITRAMFS" ]; then
 	boot_run_hook initramfs
 	preinit_ip_deconfig
