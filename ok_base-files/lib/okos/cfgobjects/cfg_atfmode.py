@@ -16,7 +16,8 @@ class CfgATFMode(CfgObj):
 
     def change(self):
         cmd = 'uci set wireless.qcawifi.atf_mode="' + str(self.data['atf_mode']) + '";' + \
-            'uci commit wireless;' + 'wifi unload;wifi load'
+            'uci commit wireless;wlanconfig ath50 commitatf ' + str(self.data['atf_mode']) + \
+            ';wlanconfig ath60 commitatf ' + str(self.data['atf_mode']) + ';wifi unload;wifi load'
         ret = subprocess.call(cmd, shell=True)
         if ret == 0:
             return True
