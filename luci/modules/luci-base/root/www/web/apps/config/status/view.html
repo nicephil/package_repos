@@ -1,0 +1,67 @@
+<div class="app-container diag-container" loading="$ctrl.loading">
+  <div class="header">
+    <div class="title-bar">
+      <div class="title">{{ 'STATUS.TITLE_WAN_CONFIG' | translate }}</div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="row">
+      <div class="col-sm-12" >
+        <div class="success-tip-info" ng-if="$ctrl.diag.status === true">
+          <span>{{ 'STATUS.MSG.INTERNET_READY' | translate }}</span>          
+        </div>
+        <div class="fail-tip-info" ng-if="$ctrl.diag.status === false">
+          <div class="fail-tip">{{ $ctrl.diag.error }}</div>  
+        </div>        
+      </div>
+    </div>
+
+    <div class="row section-item">
+      <div class="col-sm-12">
+        <div class="header-underline">
+          {{ 'STATUS.SUMMARY_INFO' | translate }}
+        </div>
+      </div>
+      <div class="col-sm-12 section-field">
+        <div class="oak-field-label">
+          <label class="field-label-content">{{ 'STATUS.CONN_TYPE' | translate }}:</label>
+        </div>
+        <div class="oak-field-value">
+          <span>{{ $ctrl.eth_config.proto | showConnTypeFilter}}</span>
+        </div>
+      </div>
+
+      <div class="col-sm-12 section-field">
+        <div class="oak-field-label">
+          <label class="field-label-content">{{ 'STATUS.IP' | translate }}:</label>
+        </div>
+        <div class="oak-field-value">
+          <span>{{ $ctrl.eth_config.ipaddr }}</span>
+        </div>
+      </div>
+
+      <div class="col-sm-12 section-field">
+        <div class="oak-field-label">
+          <label class="field-label-content">{{ 'STATUS.GATEWAY' | translate }}:</label>
+        </div>
+        <div class="oak-field-value">
+          <span>{{ $ctrl.eth_config.gateway }}</span>
+        </div>
+      </div>
+
+      <div class="col-sm-12 section-field">
+        <div class="oak-field-label">
+          <label class="field-label-content">{{ 'STATUS.DNS' | translate }}:</label>
+        </div>
+        <div class="oak-field-value">
+          <span>{{ $ctrl.eth_config.dns | showDnsFilter }}</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="footer">
+    <button class="btn btn-default login-btn pull-left" ng-click="$ctrl.pre()">{{'COMMON.PRE' | translate}}</button>
+    <button class="btn btn-primary login-btn pull-right" ng-click="$ctrl.next()">{{'COMMON.NEXT' | translate}}</button>
+  </div>
+</div>

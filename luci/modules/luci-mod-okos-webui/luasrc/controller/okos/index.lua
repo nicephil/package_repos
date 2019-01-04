@@ -749,7 +749,7 @@ function action_diag()
     ]]--
     --- sys.call("uci del_list dhcp.@dnsmasq[0].address='/#/172.16.254.254';/etc/init.d/dnsmasq reload;")
     sys.call("/etc/init.d/log restart;sleep 1")
-    response.errcode = sys.call("ifdown wan; sleep 1; ifup wan;sleep 3")
+    response.errcode = sys.call("ifdown wan; sleep 1; ifup wan;sleep 6")
     tmp = nw:get_protocol("static", "wan")
     response.proto = tmp:get("proto")
 

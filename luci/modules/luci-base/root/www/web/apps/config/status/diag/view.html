@@ -1,0 +1,24 @@
+<div class="app-container diag-container">
+  <div class="header">
+    <div class="title-bar">
+      <div class="title">{{ 'WAN_CONFIG.TITLE' | translate }}</div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="row">
+      <div class="col-sm-12">
+        <div class="section-header">{{ 'WAN_CONFIG.MSG.ISP_CONN_TIP' | translate }}</div>
+      </div>
+
+      <div class="col-sm-12">
+        <div class="diag-content">
+          <textarea ng-model="$ctrl.diagResult" ng-disabled="true"></textarea>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <button class="btn btn-primary login-btn pull-right" ng-click="$ctrl.login()">{{'COMMON.NEXT' | translate}}</button>
+  </div>
+</div>
