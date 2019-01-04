@@ -36,7 +36,13 @@ KEY="$(echo -n "${SALT}${_mac}" | md5sum | awk '{print $1}')"
 DEFAULT_PORT="80"
 PORT="$DEFAULT_PORT"
 DEFAULT_ADDR="api.oakridge.io"
-ADDR="$DEFAULT_ADDR"
+SAVED_ADDR=$(uci get capwapc.image.oakmgr_pub_name 2>/dev/null)
+if [ -z "$SAVED_ADDR" -o "$SAVED_ADDR" = "0.0.0.0"  ]
+then
+    ADDR="$DEFAULT_ADDR"
+else
+    ADDR="$SAVED_ADDR"
+fi
 OKOS_MD5SUM=""
 IMAGE_URL=""
 BOOT_DELAY=""
@@ -209,6 +215,7 @@ do
     fi
 
     # stop services to free memory
+    wifi unload
     /lib/okos/stopservices.sh
 
     # 6. loading okos to memory

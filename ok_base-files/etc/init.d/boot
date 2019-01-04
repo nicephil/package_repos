@@ -80,7 +80,7 @@ start() {
     sed -i "s/option hostname\toakridge/option hostname\t$mac/" /etc/defcfg/system
     mv /etc/config/wireless /etc/config/wireless_bak
     cp /etc/defcfg/wireless /etc/config/wireless
-    touch /etc/config/boot
+    touch /etc/issue
     ## end OK_PATCH
 
 
