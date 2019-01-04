@@ -195,7 +195,8 @@ qos_gothrough_wifi()
     config_get _type "$section" "type"
     config_get _ssid "$section" "ssid"
     _ifname="ath50"
-    [ "${section:3:1}" = "1" ] && _ifname="ath60"
+    [ "${section:3:1}" = "1" ] && {
+    _ifname="ath60"
     if [ -n "$_type" -a "$_type" = "2" ]
     then
         wlanconfig "$_ifname" addatfgroup public "$_ssid"
@@ -205,6 +206,7 @@ qos_gothrough_wifi()
         wlanconfig "$_ifname" configatfgroup private 80
     fi
     [ "$_ifname" = "ath50" ] && iwpriv "$_ifname" commitatf 1
+    }
 }
 
 qos_atf_init()
@@ -250,8 +252,8 @@ qos_atf_deinit()
     wlanconfig "ath50" delatfgroup private > /dev/null 2>&1
     wlanconfig "ath60" delatfgroup public > /dev/null 2>&1
     wlanconfig "ath60" delatfgroup private > /dev/null 2>&1
-    #iwpriv "ath50" commitatf 0 > /dev/null 2>&1
-    #iwpriv "ath60" commitatf 0 > /dev/null 2>&1
+    iwpriv "ath50" commitatf 0 > /dev/null 2>&1
+    iwpriv "ath60" commitatf 0 > /dev/null 2>&1
 }
 
 
