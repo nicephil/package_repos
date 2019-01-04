@@ -78,6 +78,9 @@ start() {
     uci set system.@system[0].hostname="$mac";uci commit system
 	echo "$mac" > /proc/sys/kernel/hostname
     sed -i "s/option hostname\toakridge/option hostname\t$mac/" /etc/defcfg/system
+    mv /etc/config/wireless /etc/config/wireless_bak
+    cp /etc/defcfg/wireless /etc/config/wireless
+    touch /etc/config/boot
     ## end OK_PATCH
 
 

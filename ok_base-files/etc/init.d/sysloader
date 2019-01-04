@@ -1,5 +1,5 @@
 #!/bin/sh /etc/rc.common
-START=40
+START=35
 
 SERVICE_DAEMONIZE=1
 #SERVICE_WRITE_PID=1
@@ -7,12 +7,12 @@ SERVICE_DAEMONIZE=1
 SERVICE_STOP_TIME=3
 
 start () {
-    service_start /lib/okos/handle_cloud.sh
+    service_start /lib/okos/sysloader.sh
 }
 
 stop () {
-    service_stop /lib/okos/handle_cloud.sh
-    killall -9 handle_cloud.sh
+    service_stop /lib/okos/sysloader.sh
+    killall -9 sysloader.sh
 }
 
 
