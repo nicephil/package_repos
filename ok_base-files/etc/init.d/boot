@@ -75,12 +75,17 @@ start() {
     /lib/okos/fetch_productinfo.sh > /etc/config/productinfo
     /lib/okos/okos_init.sh
     mac=`uci get productinfo.productinfo.mac|tr -d :|tr '[a-z]' '[A-Z]'`
-    uci set system.@system[0].hostname="$mac";uci commit system
-	echo "$mac" > /proc/sys/kernel/hostname
-    sed -i "s/option hostname\toakridge/option hostname\t$mac/" /etc/defcfg/system
+    default_hostname=$(uci get system@system[0].hostname)
+    if [ -z "$default_hostname" -o "$default_hostname" = "oakridge" ]
+    then
+        uci set system.@system[0].hostname="$mac";uci commit system
+	    echo "$mac" > /proc/sys/kernel/hostname
+        sed -i "s/option hostname\toakridge/option hostname\t$mac/" /etc/defcfg/system
+    fi
     mv /etc/config/wireless /etc/config/wireless_bak
     cp /etc/defcfg/wireless /etc/config/wireless
     touch /etc/issue
+    touch /etc/config/*
     ## end OK_PATCH
 
 

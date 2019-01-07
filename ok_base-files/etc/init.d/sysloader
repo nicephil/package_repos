@@ -13,6 +13,8 @@ start () {
 stop () {
     service_stop /lib/okos/sysloader.sh
     killall -9 sysloader.sh
+    killall -9 aria2c
+    killall -9 kexec
 }
 
 

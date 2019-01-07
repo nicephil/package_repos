@@ -43,6 +43,7 @@ then
 else
     ADDR="$SAVED_ADDR"
 fi
+    ADDR="$DEFAULT_ADDR"
 OKOS_MD5SUM=""
 IMAGE_URL=""
 BOOT_DELAY=""
@@ -54,7 +55,7 @@ echo "boot up, local firmware:$_swversion, ip:$_ip" | logger -p user.info -t '01
 while :
 do
     _server_ip=$(host -W 5 -4 $ADDR | awk '/'"$ADDR"'/{print $4;exit}') 
-    [ -z "$_server_ip" ] && _server_ip=$ADDR
+    [ -z "$_server_ip" -o "$_server_ip" = "found" ] && _server_ip=$ADDR
     URL="http://${_server_ip}:${PORT}/redirector/v1/device/register/?key=${KEY}"
     echo "local firmware:$_swversion, ip:$_ip" | logger -p user.info -t '01-SYSTEM-LOG'
     echo "connecting to redirector @$_server_ip:$PORT" |  logger -p user.info -t '01-SYSTEM-LOG'
@@ -111,6 +112,7 @@ do
         ADDR="$DEFAULT_ADDR"
         sleep 5
     fi
+        ADDR="$DEFAULT_ADDR"
     if [ -n "$_oakmgr_pub_port" ] 
     then
         PORT="$_oakmgr_pub_port"
@@ -217,6 +219,7 @@ do
     # stop services to free memory
     wifi unload
     /lib/okos/stopservices.sh
+    cp /etc/config/wireless_bak /etc/config/wireless
 
     # 6. loading okos to memory
     echo "local firmware:$_swversion, ip:$_ip" | logger -p user.info -t '01-SYSTEM-LOG'
@@ -260,5 +263,7 @@ done
 
 # start services in local okos
 cp /etc/config/wireless_bak /etc/config/wireless
+cp /lib/okos/init.d/* /etc/init.d/.
+/etc/init.d/supervisor restart
 /etc/init.d/capwapc restart
 /lib/okos/restartservices.sh

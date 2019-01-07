@@ -49,5 +49,10 @@ unifi)
 esac
 
 echo -e "\toption swversion `cat /etc/issue`"
-echo -e "\toption bootversion `cat /etc/issue`"
+if [ -f "/overlay/etc/issue" ]
+then
+    echo -e "\toption bootversion `cat /overlay/etc/issue`"
+else
+    echo -e "\toption bootversion `cat /etc/issue`"
+fi
 

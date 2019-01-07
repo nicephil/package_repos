@@ -18,7 +18,7 @@ initramfs_test() {
     #do
     #	[ ! -f "/overlay/etc/config/$file" ] && cp -rvf /etc/config/"$file" /overlay/etc/config/. 2>&1
     #done
-    #mount --bind /overlay/etc/config /etc/config
+    mount --bind /overlay/etc/config /etc/config
     # workaround
     [ -z $(uci -c /overlay/etc/config get capwapc.wtp 2>/dev/null) ] && {
     uci -c /overlay/etc/config -q batch <<-EOF
@@ -38,7 +38,7 @@ initramfs_test() {
     commit capwapc
 EOF
     }
-    mount --bind /overlay/etc/config/capwapc /etc/config/capwapc
+    #mount --bind /overlay/etc/config/capwapc /etc/config/capwapc
     mount --bind /overlay/root /root
     # end of OK_PATCH
 	break
