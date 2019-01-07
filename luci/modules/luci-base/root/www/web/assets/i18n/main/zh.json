@@ -1,0 +1,119 @@
+{
+  "COMMON":{
+    "WELCOME": "欢迎 {{device_type}}",
+    "PRE": "上一步",
+    "NEXT": "下一步",
+    "RESTART": "重启",
+    "COPIED": "复制成功",
+    "VALIDATE" : {    
+      "MINLENGTH" : "最小长度不能少于{{number}}个字符",          
+      "MAXLENGTH" : "最大长度不能超过{{number}}个字符",
+      "REQUIRED" : "不可空",
+      "PASSWORD_NOT_MATCH" : "输入两次的密码不同",
+      "PHONE_NOT_CORRECT" : "请填写正确的手机号码", 
+      "EMAIL_NOT_CORRECT" : "请输入正确的电子邮件地址",
+      "IP_NOT_CORRECT" : "请填写正确的IP地址",
+      "NUM_RANGE" : "范围: {{min}}-{{max}}",
+      "MAC_NOT_CORRECT" : "请填写正确的MAC地址",
+      "MAC_INVALID" : "MAC地址无效。"
+    },
+    "CONN_TYPE":{
+      "STATIC": "Static",
+      "DHCP": "DHCP",
+      "PPPOE": "PPPoE"
+    },
+    "ENABLE": "启用",
+    "DISABLE": "禁用"
+  },
+  "LOGIN":{        
+    "WELCOME_BACK": "欢迎回来",  
+    "DEVICE_ID_TIP": "您的OakCloud或SDC管理的设备ID",
+    "DEVICE_ID": "设备编号",
+    "LOGIN_CREDENTIAL": "登录凭证",
+    "LOGIN_CREDENTIAL_TIP": "如果要更改ISP配置，请输入您的登录凭据",
+    "PASSWORD": "密码",
+    "MSG": {
+      "INIT_FAIL": "初始化失败，请尝试再次刷新页面",
+      "LOGIN_FAIL": "密码不正确。 请检查并重试。"
+    } 
+  },
+  "WAN_CONFIG":{
+    "TITLE": "WAN配置",
+    "INTERFACE": "WAN接口",
+    "PYH_INTERFACE": "物理接口",
+    "ETH_PORT": "以太网端口",
+    "MAC_CLONE": "MAC克隆",      
+    "ISP_SETTINGS": "ISP设置",
+    "CONN_TYPE": "连接类型",
+    "ACCOUNT": "帐户",
+    "PWD": "密码",
+    "IP_CONFIG": "IP配置",
+    "IP_ADDR": "IP地址",
+    "DHCP_SERVER": "DHCP服务器",    
+    "STATUS": "状态",
+    "MASK": "子网掩码",
+    "GATEWAY": "网关",
+    "DNS": "DNS",
+    "CONN_SUMMARY": "连接摘要",
+    "ISP_SUMMARY": "ISP连接摘要",
+    "DEVICE_ID": "设备编号",
+    "MSG": {      
+      "GW_READY": "恭喜！ 你的网关准备好了。",
+      "GW_READY_TIP": "重启后，您的网关将准备好由OakCloud或您自己的SDC管理。 请注意下面的设备ID，以将此网关添加到您的SDC。",
+      "INTERFACE_STATUS_FAIL": "无法获取网关接口信息，请尝试刷新页面。",
+      "INTERFACE_CONFIG_FAIL": "配置失败，请再试一次",
+      "INTERFACE_CONFIG_SUCCESS": "配置成功"    
+    }
+  },
+  "LAN_CONFIG":{
+    "TITLE": "局域网配置",
+    "INTERFACE": "LAN接口",  
+    "IP_ADDR_SUBNET": "IP地址/子网",
+    "IP_ADDR_RANGE": "地址范围",
+    "VALIDATE":{
+      "IP_ADDR": "IP地址无效",
+      "NETMASK": "IP子网无效"
+    }
+  },
+
+  "STATUS":{
+    "TITLE_DONE": "全部完成！",
+    "TITLE_WAN_CONFIG": "WAN配置",
+    "SUMMARY_INFO": "连接摘要",
+    "DONE_INFO": "重启后，您的网关将准备好由OakCloud或您自己的SDC管理。 请注意下面的设备ID，以将此网关添加到您的SDC。",
+    "CONN_TYPE": "连接类型",
+    "IP": "IP",
+    "GATEWAY": "网关",
+    "DNS": "DNS",
+    "DEVICE_ID": "设备编号",
+    "CHANGE_PWD": "为了网络安全，请更改访问密码。",
+    "PWD": "密码",
+    "PWD_CONFIRM": "确认",
+    "MSG":{
+      "GATEWAY_READY": "恭喜！ 你的网关准备好了。",
+      "CANNOT_DEFAULT_PWD": "不能是默认密码",
+      "INTERNET_READY": "恭喜！ 您已成功连接到互联网。"
+    },
+    "DIAG":{
+      "START": "开始诊断",
+      "END_SUCCESS": "诊断成功结束",
+      "END_FAIL": "诊断失败",
+      "STEP1": "PPPoE发现......",
+      "STEP2": "创建PPPoE会话......",
+      "STEP3": "获取IP地址",
+      "STEP4": "检查DNS",
+      "STEP5": "连接到Internet",
+      "STEP1_FAIL": "PPPoE发现失败了......",
+      "STEP2_FAIL": "创建PPPoE会话失败...",
+      "STEP3_FAIL": "获取IP地址失败",
+      "STEP4_FAIL": "检查DNS失败",
+      "STEP5_FAIL": "连接到Internet失败",      
+      "TIP_STATIC": "使用静态IP连接到Internet",
+      "TIP_DHCP": "使用DHCP连接到Internet",
+      "TIP_PPPOE": "通过PPPoE拨号连接到您的ISP ...",
+      "STEP_ERROR_PPPOE": "网关无法连接到您的ISP。 请更新您的配置以重试。",      
+      "STEP_ERROR_PPPOE_INTERNET": "网关连接到您的ISP，但无法访问互联网。 请再试一次。",    
+      "STEP_ERROR_INTERNET": "网关无法连接到互联网。 请再试一次。"
+    }
+  }
+}

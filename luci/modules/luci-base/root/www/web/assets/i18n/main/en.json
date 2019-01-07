@@ -1,0 +1,119 @@
+{
+  "COMMON":{
+    "WELCOME": "Welcome {{device_type}}",
+    "PRE": "Previous",
+    "NEXT": "Next",
+    "RESTART": "Restart",
+    "COPIED": "Copy successfully",
+    "VALIDATE" : {    
+      "MINLENGTH" : "Minimum length cannot be less than {{number}} characters",          
+      "MAXLENGTH" : "Maximum length cannot exceed {{number}} characters",
+      "REQUIRED" : "Not nullable",
+      "PASSWORD_NOT_MATCH" : "The passwords entered twice are different",
+      "PHONE_NOT_CORRECT" : "Please fill in the correct mobile number", 
+      "EMAIL_NOT_CORRECT" : "Please input the correct email address",
+      "IP_NOT_CORRECT" : "Please fill in the correct IP address",
+      "NUM_RANGE" : "Range: {{min}}-{{max}}",
+      "MAC_NOT_CORRECT" : "Please fill in the correct MAC address",
+      "MAC_INVALID" : "The MAC address is invalid."
+    },
+    "CONN_TYPE":{
+      "STATIC": "Static",
+      "DHCP": "DHCP",
+      "PPPOE": "PPPoE"
+    },
+    "ENABLE": "Enable",
+    "DISABLE": "Disable"
+  },
+  "LOGIN":{        
+    "WELCOME_BACK": "Welcome back",  
+    "DEVICE_ID_TIP": "Your device ID for OakCloud or SDC management",
+    "DEVICE_ID": "Device ID",
+    "LOGIN_CREDENTIAL": "Login credential",
+    "LOGIN_CREDENTIAL_TIP": "If you want to change your ISP configuration, please input your login credential",
+    "PASSWORD": "Password",
+    "MSG": {
+      "INIT_FAIL": "Initialization failed, please try to refresh the page again",
+      "LOGIN_FAIL": "The password is incorrect. Please check and try again."
+    } 
+  },
+  "WAN_CONFIG":{
+    "TITLE": "WAN configuration",
+    "INTERFACE": "WAN interface",
+    "PYH_INTERFACE": "Physical interface",
+    "ETH_PORT": "Ethernet port",
+    "MAC_CLONE": "MAC Clone",      
+    "ISP_SETTINGS": "ISP Settings",
+    "CONN_TYPE": "Connection type",
+    "ACCOUNT": "Account",
+    "PWD": "Password",
+    "IP_CONFIG": "IP configurations",
+    "IP_ADDR": "IP address",
+    "DHCP_SERVER": "DHCP server",    
+    "STATUS": "Status",
+    "MASK": "Mask",
+    "GATEWAY": "Gateway",
+    "DNS": "DNS",
+    "CONN_SUMMARY": "Summary of the connection",
+    "ISP_SUMMARY": "Summary of the ISP connection",
+    "DEVICE_ID": "Device ID",
+    "MSG": {      
+      "GW_READY": "Congratulations! Your gateway is ready.",
+      "GW_READY_TIP": "After reboot, your gateway will be ready to be managed by OakCloud or your own SDC.  Please note the device ID below to add this gateway to your SDC.",
+      "INTERFACE_STATUS_FAIL": "Failed to get the gateway interface information, please try to refresh the page.",
+      "INTERFACE_CONFIG_FAIL": "Configuration failed, please try again",
+      "INTERFACE_CONFIG_SUCCESS": "Successful configuration"    
+    }
+  },
+  "LAN_CONFIG":{
+    "TITLE": "LAN configuration",
+    "INTERFACE": "LAN interface",  
+    "IP_ADDR_SUBNET": "IP address/subnet",
+    "IP_ADDR_RANGE": "Address range",
+    "VALIDATE":{
+      "IP_ADDR": "IP address is not valid",
+      "NETMASK": "IP subnet is not valid"
+    }
+  },
+
+  "STATUS":{
+    "TITLE_DONE": "All done!",
+    "TITLE_WAN_CONFIG": "WAN configuration",
+    "SUMMARY_INFO": "Summary of the connection",
+    "DONE_INFO": "After reboot, your gateway will be ready to be managed by OakCloud or your own SDC.  Please note the device ID below to add this gateway to your SDC.",
+    "CONN_TYPE": "Connection type",
+    "IP": "IP",
+    "GATEWAY": "Gateway",
+    "DNS": "DNS",
+    "DEVICE_ID": "Device ID",
+    "CHANGE_PWD": "For network security, please change the access password.",
+    "PWD": "Password",
+    "PWD_CONFIRM": "Confirm",
+    "MSG":{
+      "GATEWAY_READY": "Congratulations! Your gateway is ready.",
+      "CANNOT_DEFAULT_PWD": "Cannot be the default password",
+      "INTERNET_READY": "Congratulations! You are successfully connected to internet."
+    },
+    "DIAG":{
+      "START": "Start diagnosis",
+      "END_SUCCESS": "Diagnosis successfully ended",
+      "END_FAIL": "Diagnostic failed",
+      "STEP1": "PPPoE discovery...",
+      "STEP2": "Create PPPoE session...",
+      "STEP3": "Obtain IP address",
+      "STEP4": "Check DNS",
+      "STEP5": "Connect to Internet",
+      "STEP1_FAIL": "PPPoE discovery failed...",
+      "STEP2_FAIL": "Create PPPoE session failed...",
+      "STEP3_FAIL": "Obtain IP address failed",
+      "STEP4_FAIL": "Check DNS failed",
+      "STEP5_FAIL": "Connect to Internet failed",      
+      "TIP_STATIC": "Connecting to internet with Static IP",
+      "TIP_DHCP": "Connecting to internet with DHCP",
+      "TIP_PPPOE": "Connecting to your ISP via PPPoE dialup...",
+      "STEP_ERROR_PPPOE": "The gateway can not connect to your ISP. Please update your configuration to retry.",      
+      "STEP_ERROR_PPPOE_INTERNET": "The gateway is connected to your ISP, however, it can not reach the internet. Please try again.",    
+      "STEP_ERROR_INTERNET": "The gateway cannot connected to the internet. Please try again."
+    }
+  }
+}

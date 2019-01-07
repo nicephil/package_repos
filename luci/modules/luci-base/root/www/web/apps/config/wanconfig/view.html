@@ -1,0 +1,293 @@
+<div class="app-container wanconfig-container">
+  <div class="header">
+    <div class="title-bar">
+      <div class="title">{{ 'WAN_CONFIG.TITLE' | translate }}</div>
+    </div>
+  </div>
+  <div class="body" ng-class="{'no-padding-top': $ctrl.diag.status === false}">
+    <div class="row" ng-if="$ctrl.diag.status === false">
+      <div class="col-sm-12">
+        <div class="fail-tip">{{ $ctrl.diag.error }}</div>      
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-12">
+        <div class="section-header">2. {{ 'WAN_CONFIG.INTERFACE' | translate }}</div>
+      </div>
+    </div>
+    <form name="$ctrl.configForm" novalidate autocomplete="off" class="form-horizontal fill-height scroll-y-only">
+      <div class="row section-item">
+        <div class="col-sm-12">
+          <div class="header-underline">
+            {{ 'WAN_CONFIG.PYH_INTERFACE' | translate }}
+          </div>
+        </div>
+
+        <div class="col-sm-12 section-field">
+          <div class="oak-field-label">
+            <label class="field-label-content">{{ 'WAN_CONFIG.ETH_PORT' | translate }}: <span class="required">*</span></label>
+            <span class="field-point iconfont-l oak-point" ng-style="{'color': $ctrl.eth_config.up ? '#00CC00' : 'red' }"/>
+          </div>
+          <div class="oak-field-input">          
+            <select name="eth_config" class="form-control" ng-model="$ctrl.eth_config" ng-options="item as item.display for item in $ctrl.interfaces" ng-change="$ctrl.ethChagne()"></select>        
+          </div>
+        </div>
+
+        <div class="col-sm-12 section-field">
+          <div class="oak-field-label">
+            <label class="field-label-content">{{ 'WAN_CONFIG.MAC_CLONE' | translate }}: <span class="required">*</span></label>
+            <input type="checkbox" class="field-checkbox" ng-model="$ctrl.data.has_clone_mac" ng-true-value="true"
+              ng-false-value="false" />
+          </div>
+          <div class="oak-field-input">
+            <input type="text" class="form-control" ng-model="$ctrl.eth_config.mac" ng-disabled="!$ctrl.data.has_clone_mac"
+              ng-required="$ctrl.data.has_clone_mac" name="mac" ng-maxlength="64" ng-trim="true" placeholder="00:00:00:00:00:00"
+              ng-model-options="{ debounce: 500 }" mac-address ng-change="$ctrl.updateMac()">
+            <div ng-messages="$ctrl.configForm.mac.$error" role="alert" class="error text-align-left" ng-if="($ctrl.configForm.$submitted || $ctrl.configForm.mac.$touched) && $ctrl.configForm.mac.$invalid">
+              <div ng-message="macAddress">
+                <p class="col-tip text-align-left">
+                  <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.MAC_NOT_CORRECT' | translate }}</p>
+              </div>
+              <div ng-message="invalidMac">
+                <p class="col-tip text-align-left">
+                  <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.MAC_INVALID' | translate }}</p>
+              </div>
+              <div ng-message="required">
+                <p class="col-tip text-align-left">
+                  <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.REQUIRED' | translate }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row section-item">
+        <div class="col-sm-12">
+          <div class="header-underline">
+            {{ 'WAN_CONFIG.ISP_SETTINGS' | translate }}
+          </div>
+        </div>
+        <div class="col-sm-12 section-field">
+          <div class="oak-field-label">
+            <label class="field-label-content">{{ 'WAN_CONFIG.CONN_TYPE' | translate }}: <span class="required">*</span></label>
+          </div>
+          <div class="oak-field-input">
+            <div class="oak-input oak-input--suffix">
+              <select name="conn_type" class="form-control" ng-model="$ctrl.eth_config.proto" ng-options="item.proto as item.name for item in $ctrl.CONN_TYPE_SET"></select>
+            </div>
+          </div>
+        </div>
+
+        <div ng-if="$ctrl.eth_config.proto === 'pppoe'">
+          <div class="col-sm-12 section-field">
+            <div class="oak-field-label">
+              <label class="field-label-content">{{ 'WAN_CONFIG.ACCOUNT' | translate }}: <span class="required">*</span></label>
+            </div>
+            <div class="oak-field-input">
+              <input type="text" class="form-control" ng-model="$ctrl.eth_config.username" ng-required="true" name="username"
+                ng-maxlength="64" ng-trim="true">
+              <div ng-messages="$ctrl.configForm['username'].$error" role="alert" class="error text-align-left" ng-if="($ctrl.configForm.$submitted || $ctrl.configForm['username'].$touched) && $ctrl.configForm['username'].$invalid">
+                <div ng-message="required">
+                  <p class="col-tip">
+                    <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.REQUIRED' | translate }}</p>
+                </div>
+                <div ng-message="maxlength">
+                  <p class="col-tip">
+                    <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.MAXLENGTH' | translate: '{number: 64}' }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-sm-12 section-field">
+            <div class="oak-field-label">
+              <label class="field-label-content">{{ 'WAN_CONFIG.PWD' | translate }}: <span class="required">*</span></label>
+            </div>
+            <div class="oak-field-input">
+              <div class="oak-input oak-input--suffix">
+                <input type="{{$ctrl.passwordType}}" class="form-control" ng-model="$ctrl.eth_config.password" ng-required="true"
+                  name="password" ng-maxlength="64" ng-trim="true">
+                <span class="oak-input__suffix clickable" ng-click="$ctrl.togglePasswordType()">
+                  <span>
+                    <i ng-if="$ctrl.passwordType === 'password'" class="iconfont-l oak-invisible"></i>
+                    <i ng-if="$ctrl.passwordType === 'text'" class="iconfont-l oak-visiable"></i>
+                  </span>
+                </span>
+              </div>
+              <div ng-messages="$ctrl.configForm['password'].$error" role="alert" class="error text-align-left" ng-if="($ctrl.configForm.$submitted || $ctrl.configForm['password'].$touched) && $ctrl.configForm['password'].$invalid">
+                <div ng-message="required">
+                  <p class="col-tip">
+                    <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.REQUIRED' | translate }}</p>
+                </div>
+                <div ng-message="maxlength">
+                  <p class="col-tip">
+                    <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.MAXLENGTH' | translate: '{number: 64}' }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div ng-if="$ctrl.eth_config.proto === 'dhcp'">
+
+          <!-- <div class="col-sm-12 section-field">
+            <div class="oak-field-label">
+              <label class="field-label-content">{{ 'WAN_CONFIG.IP_ADDR' | translate }}: <span class="required">*</span></label>
+            </div>
+            <div class="oak-field-value">              
+              <span ng-if="$ctrl.eth_config.original_proto === 'dhcp'">{{ $ctrl.eth_config.ipaddr | nullValueFilter }}</span>
+            </div>
+          </div> -->
+
+          <!-- <div class="col-sm-12 section-field">
+            <div class="oak-field-label">
+              <label class="field-label-content">{{ 'WAN_CONFIG.MASK' | translate }}: <span class="required">*</span></label>
+            </div>
+            <div class="oak-field-value">
+              <span ng-if="$ctrl.eth_config.original_proto === 'dhcp'">{{ $ctrl.eth_config.netmask | nullValueFilter}}</span>
+            </div>
+          </div>
+
+          <div class="col-sm-12 section-field">
+            <div class="oak-field-label">
+              <label class="field-label-content">{{ 'WAN_CONFIG.GATEWAY' | translate }}: <span class="required">*</span></label>
+            </div>
+            <div class="oak-field-value">
+              <span ng-if="$ctrl.eth_config.original_proto === 'dhcp'">{{ $ctrl.eth_config.gateway | nullValueFilter }}</span>
+            </div>
+          </div>
+
+          <div class="col-sm-12 section-field">
+            <div class="oak-field-label">
+              <label class="field-label-content">{{ 'WAN_CONFIG.DNS' | translate }}1: <span class="required">*</span></label>
+            </div>
+            <div class="oak-field-value">
+              <span ng-if="$ctrl.eth_config.original_proto === 'dhcp'">{{ $ctrl.eth_config.dns1 | nullValueFilter }}</span>
+            </div>
+          </div>
+
+          <div class="col-sm-12 section-field">
+            <div class="oak-field-label">
+              <label class="field-label-content">{{ 'WAN_CONFIG.DNS' | translate }}2:</label>
+            </div>
+            <div class="oak-field-value">
+              <span ng-if="$ctrl.eth_config.original_proto === 'dhcp'">{{ $ctrl.eth_config.dns2 | nullValueFilter }}</span>
+            </div>
+          </div> -->
+
+
+        </div>
+
+        <div ng-if="$ctrl.eth_config.proto === 'static'">
+          <div class="col-sm-12 section-field">
+            <div class="oak-field-label">
+              <label class="field-label-content">{{ 'WAN_CONFIG.IP_ADDR' | translate }}: <span class="required">*</span></label>
+            </div>
+            <div class="oak-field-input">
+              <input type="text" class="form-control" ng-model="$ctrl.eth_config.ipaddr" ng-required="true" name="ipaddr"
+                ng-trim="true" ng-ip-address>
+              <div ng-messages="$ctrl.configForm.ipaddr.$error" role="alert" class="error text-align-left" ng-if="($ctrl.configForm.$submitted || $ctrl.configForm.ipaddr.$touched) && $ctrl.configForm.ipaddr.$invalid">
+                <div ng-message="ipAddress">
+                  <p class="col-tip">
+                    <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.IP_NOT_CORRECT' | translate }}</p>
+                </div>
+                <div ng-message="required">
+                  <p class="col-tip text-align-left">
+                    <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.REQUIRED' | translate }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-sm-12 section-field">
+            <div class="oak-field-label">
+              <label class="field-label-content">{{ 'WAN_CONFIG.MASK' | translate }}: <span class="required">*</span></label>
+            </div>
+            <div class="oak-field-input">
+              <div class="oak-input oak-input--suffix">
+                <input type="text" class="form-control" ng-model="$ctrl.eth_config.netmask" ng-required="true" name="netmask"
+                  ng-trim="true" ng-ip-address>
+                <div ng-messages="$ctrl.configForm.netmask.$error" role="alert" class="error text-align-left" ng-if="($ctrl.configForm.$submitted || $ctrl.configForm.netmask.$touched) && $ctrl.configForm.netmask.$invalid">
+                  <div ng-message="ipAddress">
+                    <p class="col-tip">
+                      <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.IP_NOT_CORRECT' | translate }}</p>
+                  </div>
+                  <div ng-message="required">
+                    <p class="col-tip text-align-left">
+                      <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.REQUIRED' | translate }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-sm-12 section-field">
+            <div class="oak-field-label">
+              <label class="field-label-content">{{ 'WAN_CONFIG.GATEWAY' | translate }}: <span class="required">*</span></label>
+            </div>
+            <div class="oak-field-input">
+              <div class="oak-input oak-input--suffix">
+                <input type="text" class="form-control" ng-model="$ctrl.eth_config.gateway" ng-required="true" name="gateway"
+                  ng-trim="true" ng-ip-address>
+                <div ng-messages="$ctrl.configForm.gateway.$error" role="alert" class="error text-align-left" ng-if="($ctrl.configForm.$submitted || $ctrl.configForm.gateway.$touched) && $ctrl.configForm.gateway.$invalid">
+                  <div ng-message="ipAddress">
+                    <p class="col-tip">
+                      <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.IP_NOT_CORRECT' | translate }}</p>
+                  </div>
+                  <div ng-message="required">
+                    <p class="col-tip text-align-left">
+                      <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.REQUIRED' | translate }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-sm-12 section-field">
+            <div class="oak-field-label">
+              <label class="field-label-content">{{ 'WAN_CONFIG.DNS' | translate }}1: <span class="required">*</span></label>
+            </div>
+            <div class="oak-field-input">
+              <input type="text" class="form-control" ng-model="$ctrl.data.dns1" ng-required="true" name="dns1" ng-trim="true"
+                ng-ip-address>
+              <div ng-messages="$ctrl.configForm.dns1.$error" role="alert" class="error text-align-left" ng-if="($ctrl.configForm.$submitted || $ctrl.configForm.dns1.$touched) && $ctrl.configForm.dns1.$invalid">
+                <div ng-message="ipAddress">
+                  <p class="col-tip">
+                    <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.IP_NOT_CORRECT' | translate }}</p>
+                </div>
+                <div ng-message="required">
+                  <p class="col-tip text-align-left">
+                    <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.REQUIRED' | translate }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-sm-12 section-field">
+            <div class="oak-field-label">
+              <label class="field-label-content">{{ 'WAN_CONFIG.DNS' | translate }}2:</label>
+            </div>
+            <div class="oak-field-input">
+              <input type="text" class="form-control" ng-model="$ctrl.data.dns2" name="dns2" ng-trim="true"
+                ng-ip-address>
+              <div ng-messages="$ctrl.configForm.dns1.$error" role="alert" class="error text-align-left" ng-if="($ctrl.configForm.$submitted || $ctrl.configForm.dns2.$touched) && $ctrl.configForm.dns2.$invalid">
+                <div ng-message="ipAddress">
+                  <p class="col-tip">
+                    <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.IP_NOT_CORRECT' | translate }}</p>
+                </div>
+                <div ng-message="required">
+                  <p class="col-tip text-align-left">
+                    <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.REQUIRED' | translate }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+  <div class="footer">
+    <button class="btn btn-primary login-btn pull-right" ng-click="$ctrl.next()">{{'COMMON.NEXT' | translate}}</button>
+  </div>
+</div>

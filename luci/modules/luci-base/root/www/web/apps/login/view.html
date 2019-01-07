@@ -1,0 +1,72 @@
+<div class="app-container login-container" loading="$ctrl.loading">
+  <div class="header">
+    <div class="title-bar">
+      <div class="title">{{ 'LOGIN.WELCOME_BACK' | translate }}</div>
+    </div>
+  </div>
+  <div class="body">
+    <div id="credential-section">
+      <div class="row section-item">
+        <div class="col-sm-12">
+          <div class="header-underline">
+            {{ 'LOGIN.DEVICE_ID_TIP' | translate }}
+          </div>
+        </div>
+        <div class="col-sm-12" style="padding-top: 15px;">
+          <div class="oak-field-label">
+            <label class="field-label-content">{{ 'LOGIN.DEVICE_ID' | translate }}: <span class="required">*</span></label>
+          </div>
+          <div class="oak-field-value copy-container">
+            <span id="device_id">{{ $ctrl.device.mac | macDisplayFilter }}</span>
+            <span class="iconfont-l oak-copy copy clickable" ng-click="$ctrl.copy()" ngclipboard ngclipboard-success="$ctrl.onSuccssCopy(e)"
+              data-clipboard-target="#device_id"></span>
+          </div>
+        </div>
+      </div>
+      <form id="login-form" name="$ctrl.loginForm" novalidate autocomplete="off" ng-model-options="{ updateOn: 'blur' }">
+        <div class="row section-item" style="padding-top: 60px;">
+          <div class="col-sm-12">
+            <div class="header-underline">
+              {{ 'LOGIN.LOGIN_CREDENTIAL' | translate }}
+            </div>
+          </div>
+          <div class="col-sm-12">
+            <div class="description">
+              {{ 'LOGIN.LOGIN_CREDENTIAL_TIP' | translate }}
+            </div>
+          </div>
+          <div class="col-sm-12">
+            <div class="oak-field-label">
+              <label class="field-label-content">{{ 'LOGIN.PASSWORD' | translate }}: <span class="required">*</span></label>
+            </div>
+            <div class="oak-field-input">
+              <div class="oak-input oak-input--suffix">
+                <input type="{{$ctrl.passwordType}}" class="form-control" ng-model="$ctrl.data.password" ng-required="true"
+                  id="password" name="password" maxlength="32" ng-maxlength="32" ng-required="true" ng-trim="true">
+                <span class="oak-input__suffix clickable" ng-click="$ctrl.togglePasswordType()">
+                  <span>
+                    <i ng-if="$ctrl.passwordType === 'password'" class="iconfont-l oak-invisible"></i>
+                    <i ng-if="$ctrl.passwordType === 'text'" class="iconfont-l oak-visiable"></i>
+                  </span>
+                </span>
+              </div>
+              <div ng-messages="$ctrl.loginForm.password.$error" role="alert" class="error text-align-left" ng-if="( $ctrl.loginForm.password.$touched || $ctrl.loginForm.$submitted ) && $ctrl.loginForm.password.$invalid">
+                  <div ng-message="required">
+                    <p class="col-tip text-align-left">
+                      <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.REQUIRED' | translate }}</p>
+                  </div>
+                  <div ng-message="maxlength">
+                    <p class="col-tip text-align-left">
+                      <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.MAXLENGTH' | translate: '{count: 32}' }}</p>
+                  </div>
+                </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="footer">
+    <button class="btn btn-primary login-btn pull-right" ng-click="$ctrl.doLogin()">{{'COMMON.NEXT' | translate}}</button>
+  </div>
+</div>

@@ -1,0 +1,21 @@
+<div id="header">
+  <div class="header-left pull-left"><a class="logo" href="javascript:;"></a> </div>
+  <div class="header-center">
+    <span class="welcome">{{ "COMMON.WELCOME" | translate:'{device_type: "SDC-1000"}' }}</span>
+  </div>
+  <div class="header-right pull-right">
+    <div class="dropdown">
+      <div class="btn btn-default dropdown-toggle" id="dropdownMenu1" data-toggle="dropdown">
+        <span ng-class="{ 'usa': $ctrl.lang === 'en', 'china': $ctrl.lang === 'zh' }" class="headIco"></span>        
+      </div>
+      <ul class="dropdown-menu w86 pull-right" role="menu" aria-labelledby="dropdownMenu1">
+        <li ng-show=" $ctrl.lang === 'zh' " role="presentation">
+          <a role="menuitem" tabindex="-1" ng-click="$ctrl.changeLang('en')"><span class="headIco usa"></span> </a>
+        </li>
+        <li ng-show=" $ctrl.lang === 'en' " role="presentation">
+          <a role="menuitem" tabindex="-1" ng-click="$ctrl.changeLang('zh')"><span class="headIco china"></span> </a>
+        </li>          
+      </ul>
+    </div>
+  </div>
+</div>

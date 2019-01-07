@@ -1,0 +1,120 @@
+<div class="app-container diag-container" loading="$ctrl.loading">
+  <div class="header">
+    <div class="title-bar">
+      <div class="title">{{ 'STATUS.TITLE_DONE' | translate }}</div>
+    </div>
+  </div>
+  <div class="body">
+    <form name="$ctrl.configForm" novalidate autocomplete="off" class="form-horizontal fill-height scroll-y-only">
+      <div class="row">
+        <div class="col-sm-12">
+          <div class="success-tip-info">
+            <span>{{ 'STATUS.MSG.GATEWAY_READY' | translate }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row section-item">
+        <div class="col-sm-12">
+          <div class="header-underline">
+            {{ 'STATUS.CHANGE_PWD' | translate }}
+          </div>
+        </div>
+
+        <div class="col-sm-12 section-field">
+          <div class="oak-field-label">
+            <label class="field-label-content">{{ 'STATUS.PWD' | translate }}: <span class="required">*</span></label>
+          </div>
+          <div class="oak-field-input">
+            <div class="oak-input oak-input--suffix">
+              <input type="{{$ctrl.passwordType}}" class="form-control" ng-model="$ctrl.passcode" ng-required="true"
+                name="password" ng-maxlength="64" ng-minlength="6" ng-trim="true">
+              <span class="oak-input__suffix clickable" ng-click="$ctrl.togglePasswordType()">
+                <span>
+                  <i ng-if="$ctrl.passwordType === 'password'" class="iconfont-l oak-invisible"></i>
+                  <i ng-if="$ctrl.passwordType === 'text'" class="iconfont-l oak-visiable"></i>
+                </span>
+              </span>
+            </div>
+            <div ng-messages="$ctrl.configForm['password'].$error" role="alert" class="error text-align-left" ng-if="($ctrl.configForm.$submitted || $ctrl.configForm['password'].$touched) && $ctrl.configForm['password'].$invalid">
+              <div ng-message="required">
+                <p class="col-tip">
+                  <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.REQUIRED' | translate }}</p>
+              </div>
+              <div ng-message="maxlength">
+                <p class="col-tip">
+                  <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.MAXLENGTH' | translate: '{number: 64}' }}</p>
+              </div>
+              <div ng-message="minlength">
+                <p class="col-tip">
+                  <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.MINLENGTH' | translate: '{number: 6}' }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <div class="col-sm-12 section-field">
+          <div class="oak-field-label">
+            <label class="field-label-content">{{ 'STATUS.PWD_CONFIRM' | translate }}: <span class="required">*</span></label>
+          </div>
+          <div class="oak-field-input">
+            <div class="oak-input oak-input--suffix">
+              <input type="{{$ctrl.passwordType}}" class="form-control" ng-model="$ctrl.passcode_confirm" ng-required="true"
+                name="passcode_confirm" ng-maxlength="64" ng-minlength="6" ng-trim="true" equals="{{$ctrl.passcode}}"/>
+              <span class="oak-input__suffix clickable" ng-click="$ctrl.togglePasswordType()">
+                <span>
+                  <i ng-if="$ctrl.passwordType === 'password'" class="iconfont-l oak-invisible"></i>
+                  <i ng-if="$ctrl.passwordType === 'text'" class="iconfont-l oak-visiable"></i>
+                </span>
+              </span>
+            </div>
+            <div ng-messages="$ctrl.configForm['passcode_confirm'].$error" role="alert" class="error text-align-left"
+              ng-if="($ctrl.configForm.$submitted || $ctrl.configForm['passcode_confirm'].$touched) && $ctrl.configForm['passcode_confirm'].$invalid">
+              <div ng-message="required">
+                <p class="col-tip">
+                  <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.REQUIRED' | translate }}</p>
+              </div>
+              <div ng-message="maxlength">
+                <p class="col-tip">
+                  <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.MAXLENGTH' | translate: '{number: 64}' }}</p>
+              </div>
+              <div ng-message="minlength">
+                <p class="col-tip">
+                  <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.MINLENGTH' | translate: '{number: 6}' }}</p>
+              </div>
+              <div ng-message="equals">
+                <p class="col-tip text-align-left">
+                  <i class="fa fa-times-circle err"></i>{{ 'COMMON.VALIDATE.PASSWORD_NOT_MATCH' | translate }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row section-item">
+        <div class="col-sm-12">
+          <div class="header-underline">
+            {{ 'STATUS.DONE_INFO' | translate }}
+          </div>
+        </div>
+
+        <div class="col-sm-12 section-field" style="padding-top: 10px;">
+          <div class="oak-field-label">
+            <label class="field-label-content">{{ 'STATUS.DEVICE_ID' | translate }}:</label>
+          </div>
+          <div class="oak-field-value copy-container">
+            <span id="device_id">{{ $ctrl.device.mac | macDisplayFilter}}</span>
+            <span class="iconfont-l oak-copy copy clickable" ng-click="$ctrl.copy()" ngclipboard ngclipboard-success="$ctrl.onSuccssCopy(e)"
+              data-clipboard-target="#device_id"></span>
+          </div>
+        </div>
+
+
+      </div>
+    </form>
+  </div>
+  <div class="footer">
+    <button class="btn btn-default login-btn pull-left" ng-click="$ctrl.back()">{{'COMMON.PRE' | translate}}</button>
+    <button class="btn btn-primary login-btn pull-right" ng-click="$ctrl.restart()">{{'COMMON.RESTART' | translate}}</button>
+  </div>
+</div>
