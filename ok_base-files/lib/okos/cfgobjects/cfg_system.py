@@ -13,12 +13,14 @@ class CfgSystem(CfgObj):
         d['hostname'] = system['hostname']
         d['zone'] = system['zone']
         d['location'] = system['location']
+        d['survive_mode'] = system['survive_mode']
         return [res,]
     def change(self):
         '''
         cmd = 'uci set system.@system[0].hostname="' + str(self.data['hostname']) + '";' + \
             'uci set system.@system[0].location="' + str(self.data['location']) + '";' + \
             'uci set system.@system[0].zone="' + str(self.data['zone']) + '";' + \
+            'uci set system.survive_mode.survive_mode="' + str(self.data['survive_mode']) + '";' + \
             'uci commit system;' + \
             'echo "' + str(self.data['hostname']) + '" > /proc/sys/kernel/hostname;'
         ret = subprocess.call(cmd, shell=True)

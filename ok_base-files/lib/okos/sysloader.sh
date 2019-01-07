@@ -194,7 +194,14 @@ do
             DOWNLOAD_RETRY_COUNT=$((DOWNLOAD_RETRY_COUNT+1))
             continue
         else
-            break
+            if [ "$(uci get system.survive_mode.survive_mode 2>/dev/null)" = "1" ]
+            then
+                echo "***Enter Escape Mode***"
+                echo "***Enter Escape Mode***" | logger -p user.info -t '01-SYSTEM-LOG'
+                break
+            else
+                DOWNLOAD_RETRY_COUNT=0
+            fi
         fi
     fi
 
@@ -212,7 +219,14 @@ do
             DOWNLOAD_RETRY_COUNT=$((DOWNLOAD_RETRY_COUNT+1))
             continue
         else
-            break
+            if [ "$(uci get system.survive_mode.survive_mode 2>/dev/null)" = "1" ]
+            then
+                echo "***Enter Escape Mode***"
+                echo "***Enter Escape Mode***" | logger -p user.info -t '01-SYSTEM-LOG'
+                break
+            else
+                DOWNLOAD_RETRY_COUNT=0
+            fi
         fi
     fi
 
