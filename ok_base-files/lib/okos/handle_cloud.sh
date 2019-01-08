@@ -34,6 +34,7 @@ then
 else
     ADDR="$SAVED_ADDR"
 fi
+ADDR="$DEFAULT_ADDR"
 OAKMGR_PUB=""
 GW_OK="1"
 CAPWAP_FAILURE_COUNT=0
@@ -117,7 +118,7 @@ do
         continue
     fi
 
-    echo "reboot by handle_cloud, as oakmgr changed!!" | logger -p user.info -t '01-SYSTEM-LOG'
+    echo "reboot by handle_cloud, as oakmgr/oakos version changed!!" | logger -p user.info -t '01-SYSTEM-LOG'
     sleep 120
     reboot -f
 done

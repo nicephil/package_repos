@@ -112,7 +112,7 @@ do
         ADDR="$DEFAULT_ADDR"
         sleep 5
     fi
-        ADDR="$DEFAULT_ADDR"
+
     if [ -n "$_oakmgr_pub_port" ] 
     then
         PORT="$_oakmgr_pub_port"
