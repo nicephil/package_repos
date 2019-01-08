@@ -15,8 +15,9 @@ config timeserver ntp
 	list server	pool.ntp.org
 	list server	cn.ntp.org.cn
 	option enable_server 1 
-config survive_mode 'survive_Mode'
-    option survive_Mode 1
+
+config survive_mode 'survive_mode'
+    option survive_mode 1
 
 config button
     option button 'reset'

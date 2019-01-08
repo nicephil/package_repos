@@ -43,7 +43,7 @@ then
 else
     ADDR="$SAVED_ADDR"
 fi
-    ADDR="$DEFAULT_ADDR"
+ADDR="$DEFAULT_ADDR"
 OKOS_MD5SUM=""
 IMAGE_URL=""
 BOOT_DELAY=""
@@ -55,7 +55,7 @@ echo "boot up, local firmware:$_swversion, ip:$_ip" | logger -p user.info -t '01
 while :
 do
     _server_ip=$(host -W 5 -4 $ADDR | awk '/'"$ADDR"'/{print $4;exit}') 
-    [ -z "$_server_ip" -o "$_server_ip" = "found" ] && _server_ip=$ADDR
+    [ -z "$_server_ip" -o "$_server_ip" = "found:" ] && _server_ip=$ADDR
     URL="http://${_server_ip}:${PORT}/redirector/v1/device/register/?key=${KEY}"
     echo "local firmware:$_swversion, ip:$_ip" | logger -p user.info -t '01-SYSTEM-LOG'
     echo "connecting to redirector @$_server_ip:$PORT" |  logger -p user.info -t '01-SYSTEM-LOG'
@@ -69,7 +69,7 @@ do
         sleep 5
         ADDR="$DEFAULT_ADDR"
         PORT="$DEFAULT_PORT"
-        if [ "$RETRY_COUNT" -lt 3 ]
+        if [ "$RETRY_COUNT" -lt 2 ]
         then
             RETRY_COUNT=$((RETRY_COUNT+1))
             continue
@@ -182,14 +182,14 @@ do
     [ "$?" == "0" ] && second_image_server_url="http://image.oakridge.io/${_image_server_uri} http://image.oakridge.vip/${_image_server_uri}"
     other_image_server_urls="$second_image_server_url  http://alpha1.oakridge.vip/${_image_server_uri} http://alpha1.oakridge.io/${_image_server_uri} http://beta2.oakridge.vip/${_image_server_uri} http://beta2.oakridge.io/${_image_server_uri} http://nms1.oakridge.vip/${_image_server_uri} http://nms1.oakridge.io/${_image_server_uri} http://beta1.oakridge.vip/${_image_server_uri} http://beta1.oakridge.io/${_image_server_uri}"
     echo "$_image_server_uri"
-    aria2c -x 5 --min-split-size=2M --file-allocation=none -c  "$main_image_server_url" "$IMAGE_URL" $other_image_server_urls -d "/" -o ${OKOS_FILE} 2>&1 | logger -t 'sysloader'
+    aria2c -t 30 -x 5 --min-split-size=2M --file-allocation=none -c  "$main_image_server_url" "$IMAGE_URL" $other_image_server_urls -d "/" -o ${OKOS_FILE} 2>&1 | logger -t 'sysloader'
     # no file download, so try again
     if [ ! -f "${OKOS_FILE}" ]
     then
         echo "failed to download oakos, err:aria2c failed" | logger -p user.err -t '01-SYSTEM-LOG'
         sleep 5
         report_status "100" "download failed"
-        if [ "$DOWNLOAD_RETRY_COUNT" -lt 3 ]
+        if [ "$DOWNLOAD_RETRY_COUNT" -lt 2 ]
         then
             DOWNLOAD_RETRY_COUNT=$((DOWNLOAD_RETRY_COUNT+1))
             continue
@@ -200,6 +200,8 @@ do
                 echo "***Enter Escape Mode***" | logger -p user.info -t '01-SYSTEM-LOG'
                 break
             else
+                echo "***Not Set Escape Mode***"
+                echo "***Not Set Escape Mode***" | logger -p user.info -t '01-SYSTEM-LOG'
                 DOWNLOAD_RETRY_COUNT=0
             fi
         fi
@@ -214,7 +216,7 @@ do
         rm -rf "${OKOS_FILE}" "${OKOS_FILE}".aria2
         sleep 5
         report_status "100" "image checksum failed"
-        if [ "$DOWNLOAD_RETRY_COUNT" -lt 5 ]
+        if [ "$DOWNLOAD_RETRY_COUNT" -lt 4 ]
         then
             DOWNLOAD_RETRY_COUNT=$((DOWNLOAD_RETRY_COUNT+1))
             continue
@@ -225,6 +227,8 @@ do
                 echo "***Enter Escape Mode***" | logger -p user.info -t '01-SYSTEM-LOG'
                 break
             else
+                echo "***Not Set Escape Mode***"
+                echo "***Not Set Escape Mode***" | logger -p user.info -t '01-SYSTEM-LOG'
                 DOWNLOAD_RETRY_COUNT=0
             fi
         fi
@@ -278,6 +282,7 @@ done
 # start services in local okos
 cp /etc/config/wireless_bak /etc/config/wireless
 cp /lib/okos/init.d/* /etc/init.d/.
+/etc/init.d/handle_cloud restart
 /etc/init.d/supervisor restart
 /etc/init.d/capwapc restart
-/lib/okos/restartservices.sh
+/lib/okos/restartservices.sh debug

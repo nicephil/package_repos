@@ -34,7 +34,6 @@ then
 else
     ADDR="$SAVED_ADDR"
 fi
-    ADDR="$DEFAULT_ADDR"
 OAKMGR_PUB=""
 GW_OK="1"
 CAPWAP_FAILURE_COUNT=0
@@ -52,7 +51,7 @@ do
     [ "$GW_OK" = "0" -a -f "/tmp/firstboot_report" ]  && {
         echo "----->looks gateway is unreachable, renew ip now" | logger -t 'handle_cloud'
         #ubus call network.interface notify_proto '{"action": 2, "interface": "lan1", "signal": 16}'
-        /etc/init.d/network restart
+        #/etc/init.d/network restart
         sleep 20
         GW_OK="1"
     }
@@ -80,7 +79,7 @@ do
 
     if [ -z "$response" ]
     then
-        echo "response is null" | logger -t 'handle_cloud'
+        echo "redirector/SDC response is null" | logger -t 'handle_cloud'
         sleep 5
         continue
     fi
@@ -95,12 +94,20 @@ do
     json_get_var _oakmgr_pub_port "oakmgr_pub_port"
 
     # get queried version
-    _image_file=${IMAGE_URL##*/}
+    _image_file=${_image_url##*/}
     _ver_var=${_image_file%%_*}
+
+    echo "_oakmgr_pub_name:$_oakmgr_pub_name, capwapc.mas_server=$(uci get capwapc.server.mas_server 2>/dev/null), quried_version:$_ver_var, local_version:$(cat /etc/issue)" | logger -t 'handle_cloud'
 
     if [ -z "$_oakmgr_pub_name" -o -z "$_ver_var" ]
     then
         echo "no valid oakmgr_pub_name, so query agian" | logger -p user.info -t 'handle_cloud'
+        if [ -n "$_oakmgr_pub_name" ] 
+        then
+            ADDR="$_oakmgr_pub_name"
+        else
+            ADDR="$DEFAULT_ADDR"
+        fi
         sleep 5
         continue
     elif [ "$_oakmgr_pub_name" = "$(uci get capwapc.server.mas_server 2>/dev/null)" -a "$_ver_var" = "$(cat /etc/issue)" ]
@@ -110,7 +117,6 @@ do
         continue
     fi
 
-    echo "_oakmgr_pub_name:$_oakmgr_pub_name, capwapc.mas_server=$(uci get capwapc.server.mas_server 2>/dev/null), quried_version:$_ver_var, local_version:$(cat /etc/issue)" | logger -t 'handle_cloud'
     echo "reboot by handle_cloud, as oakmgr changed!!" | logger -p user.info -t '01-SYSTEM-LOG'
     sleep 120
     reboot -f
