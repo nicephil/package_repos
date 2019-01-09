@@ -17,6 +17,21 @@ def okos_system_log_err(msg):
 	syslog.syslog(syslog.LOG_ERR, msg)
 	syslog.closelog()
 
+def okos_sta_log_info(msg):
+	syslog.openlog("200-STA", syslog.LOG_NDELAY, syslog.LOG_USER)
+	syslog.syslog(syslog.LOG_INFO, msg)
+	syslog.closelog()
+
+def okos_sta_log_warn(msg):
+	syslog.openlog("200-STA", syslog.LOG_NDELAY, syslog.LOG_USER)
+	syslog.syslog(syslog.LOG_WARNING, msg)
+	syslog.closelog()
+
+def okos_sta_log_err(msg):
+	syslog.openlog("200-STA", syslog.LOG_NDELAY, syslog.LOG_USER)
+	syslog.syslog(syslog.LOG_ERR, msg)
+	syslog.closelog()
+
 def log_debug(msg):
     syslog.syslog(syslog.LOG_DEBUG, "[{threadName}]:{msg}".format(threadName=threading.currentThread().getName(), msg=msg))
 

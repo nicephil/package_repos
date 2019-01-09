@@ -47,7 +47,7 @@ class ArpDb(object):
         sql = '''SELECT mac,ipaddr,device,timestamp FROM {tb_name}'''.format(tb_name=ArpDb.TABLE_NAME)
         self.cur.execute(sql)
         res = self.cur.fetchall()
-        self.debug and log_debug('[%s] query all from db <%s>: %s' % (ArpDb.DESC, ArpDb.TABLE_NAME, res))
+        self.debug and log_debug('[%s] query all from db <%s>: %s\n' % (ArpDb.DESC, ArpDb.TABLE_NAME, res))
         if timestamp:
             return [{'mac':r[0], 'ip':r[1], 'device':r[2], 'timestamp':r[3]} for r in res]
         else:
@@ -67,9 +67,10 @@ class ArpDb(object):
     
     def remove_olds(self, arps):
         macs = [(arp['mac'],) for arp in arps]
+        self.debug and log_debug('[%s] remove %s from db <%s>' % (ArpDb.DESC, macs, ArpDb.TABLE_NAME))
         self.cur.executemany('DELETE from {tab} where MAC = ?'.format(tab=ArpDb.TABLE_NAME), macs)
         self.conn.commit()
-        self.debug and log_debug('[%s] remove %s from db <%s>' % (ArpDb.DESC, macs, ArpDb.TABLE_NAME))
+        self.debug and log_debug('[%s] remove from db <%s> is done' % (ArpDb.DESC, ArpDb.TABLE_NAME))
 
     def add_news(self, arps, ts=None):
         millis = ts or int(round(time.time() * 1000))

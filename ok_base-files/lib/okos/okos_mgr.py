@@ -30,7 +30,7 @@ class OkosMgr(object):
             WiredClientReporter(self.mailbox, interval=10, debug=self.debug),
             ClientStatistic(self.mailbox, interval=15, debug=self.debug),
             DdnsStateReporter(self.mailbox, interval=60, debug=self.debug),
-            HostnameReporter(interval=10, debug=self.debug),
+            #HostnameReporter(interval=10, debug=self.debug),
             WanMonitorTimer(self.mailbox, debug=self.debug),
         ]
 
