@@ -318,6 +318,15 @@ int portald_scheme_update_domain(char * domain_name)
     return 0;
 }
 
+int portald_scheme_update_survive_mode(int survive_mode)
+{
+    //system.survive_mode.survive_mode=1
+    cfg_add_section("system","survive_mode");
+    cfg_set_option_value_int("system.survive_mode.survive_mode", survive_mode);
+
+    return 0;
+}
+
 int portald_scheme_update_domain_id(int domain_id)
 {
     //system.domain_id.domain_id=11

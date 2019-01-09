@@ -64,6 +64,7 @@ extern int dump_portal_scheme_sta(int writefd, char *scheme_name);
 extern int portal_scheme_del_sta(char * scheme_name, char * clientmac);
 extern int portald_scheme_update_domain(char * domain_name);
 extern int portald_scheme_update_domain_id(int domain_id);
+extern int portald_scheme_update_survive_mode(int survive_mode);
 extern int portald_scheme_update_business_id(int business_id);
 extern int portald_scheme_update_auth_url(char *auth_url);
 extern int portal_scheme_authentication(char * scheme_name, char * clientmac, unsigned int time);
