@@ -35,6 +35,6 @@ class DeviceReporter(Poster):
         with DeviceInfoEnv('Collect info for local ip address', debug=self.debug):
             #mas_server = ubus.call('uci', 'get', {'config':'capwapc', 'section':'server'})[0]['values'].setdefault('mas_server', '')
             mas_server = self.capwap_server['mas_server']
-            _, _, data_json['internal_ip'] = SystemCall(debug=False).localip2target(mas_server)
+            _, data_json['internal_ip'] = SystemCall(debug=self.debug).localip2target(mas_server)
 
         return data_json
