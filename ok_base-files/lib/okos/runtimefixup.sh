@@ -88,13 +88,13 @@ do
         if [ -z "$_ath" ]
         then
             echo "{'sta_mac':'${client}','logmsg':'missed disconnected event on $__ath'}" | logger -p 6 -t "200-STA"
-            iwpriv $__ath kickmac $client
+            #iwpriv $__ath kickmac $client
             continue
         # in db, but different ath
         elif [ "$__ath" != "$_ath" ]
         then
             echo "{'sta_mac':'${client}','logmsg':'missed disconnected event on $__ath'}" | logger -p 6 -t "200-STA"
-            iwpriv $__ath kickmac $client
+            #iwpriv $__ath kickmac $client
             continue
         fi
     fi
