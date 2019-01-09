@@ -141,8 +141,8 @@ set_vpn()
         help
         exit 8
     fi
-    local_nat_ip=$(ip r get ${remote_ip} | sed '1 s/[0-9.]* *via *[0-9.]* *dev *eth[0-9] *src *\([0-9a-z. ]*\)$/\1/p' -n)
-    [ -z "$local_nat_ip" ] && echo "No route to ${remote_ip} found" && exit 1
+    local_nat_ip=$(ip r get ${remote_ip} | sed '1 s/[0-9.]* *via *[0-9.]* *dev *[a-zA-Z][a-zA-Z0-9-]* *src *\([0-9a-z. ]*\)$/\1/p' -n)
+    [ -z "$local_nat_ip" ] && echo "No route to ${remote_ip} found" && exit 9
 
     cleanup $site_name $tunnel_name $crypto_name
 
