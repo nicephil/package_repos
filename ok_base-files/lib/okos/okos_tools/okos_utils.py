@@ -17,7 +17,7 @@ def set_capwapc(mas_server):
     """" set capwapc """
     try:
         ubus.call("uci", "set", {"config":"capwapc","section":"server", "values":{"mas_server":mas_server}})
-        #_, _, localip = SystemCall().localip2target(mas_server)
+        #_, localip = SystemCall().localip2target(mas_server)
         #ubus.call("uci", "set", {"config":"capwapc","section":"server", "values":{"local_ip":localip}})
         ubus.call("uci", "commit", {"config":"capwapc"})
     except Exception, e:

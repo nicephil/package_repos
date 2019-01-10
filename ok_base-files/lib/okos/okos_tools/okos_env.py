@@ -131,9 +131,9 @@ class SystemCall(object):
         p = const.FMT_PATTERN['ipaddr']
         if not p.match(target):
             target = socket.gethostbyname(target)
-        p = re.compile('^[0-9.]{7,15}[ ]+via[ ]+([0-9.]{7,15})[ ]+dev[ ]+([a-z_0-9]+)[ ]+src[ ]+([0-9.]{7,15})')
+        p = re.compile('^[0-9.]{7,15}[ ]+.*dev[ ]+([a-zA-Z_0-9-]+)[ ]+src[ ]+([0-9.]{7,15})')
         res = p.match(self._output(['ip', 'route', 'get', target]))
-        return res and res.groups() or ('','','')
+        return res and res.groups() or ('','')
 
     def ip_netmask_4_iface(self, iface):
         '''

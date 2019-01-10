@@ -31,7 +31,7 @@ class WiredClientReporter(Poster):
         '''
         arpt = {}
         with ExecEnv('ARP table file', desc='get arp entries', raiseup=False, debug=self.debug) as X:
-            X.output = arpt = arptable.get_arp_table()
+            arpt = arptable.get_arp_table()
             arpt = filter(lambda a: int(a['Flags'], 16) == 2, arpt)
             map(lambda a: a.setdefault('IFace', a['Device'].split('.')[0]), arpt)
             arpt = filter(lambda a: a['IFace'] in const.LAN_IFACES, arpt)
@@ -67,7 +67,7 @@ class WiredClientReporter(Poster):
         millis = int(round(time.time() * 1000))
         res = ''
         with ExecEnv('WiredClients', desc='Query Arp Cache', raiseup=False, debug=self.debug) as X:
-            X.output = new = self.get_arp_entries()
+            new = self.get_arp_entries()
             with ArpDb(debug=self.debug) as arp_db:
                 old = arp_db.get_all()
                 up = [a for a in new if a not in old]
@@ -79,10 +79,13 @@ class WiredClientReporter(Poster):
             map(lambda x: x.setdefault('state', 1), down)
             map(lambda x: x.setdefault('state', 0), up)
 
+            map(lambda x: okos_sta_log_info("{{'sta_mac':'{mac}','logmsg':'is offline from {iface}'}}".format(mac=x['mac'],iface=x['device'])), down)
+            map(lambda x: okos_sta_log_info("{{'sta_mac':'{mac}','logmsg':'is online from {iface}'}}".format(mac=x['mac'],iface=x['device'])), up)
+
             map(lambda x: self.del_statistic(x['ip'], x['mac']), down)
             map(lambda x: self.add_statistic(x['ip'], x['mac']), up)
 
-            X.output = res = down + up
+            res = down + up
             res = map(lambda x: clients_output_fmt(x, millis), res)
             
         return res and {'clients': res}

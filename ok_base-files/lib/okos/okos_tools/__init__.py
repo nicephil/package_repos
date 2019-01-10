@@ -2,6 +2,7 @@ from okos_env import ExecEnv, SystemCall
 from envelope import Envelope
 
 from okos_logger import okos_system_log_info, okos_system_log_warn, okos_system_log_err
+from okos_logger import okos_sta_log_info, okos_sta_log_warn, okos_sta_log_err
 from okos_logger import log_debug, log_info, log_warning, log_err, log_crit
 from okos_logger import logger, logcfg, logit, logchecker
 
