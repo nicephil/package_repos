@@ -1422,7 +1422,7 @@ int wlan_set_bind(int radio_id, int stid)
                 okos_service_system_log(LOG_ERR, "configuration loaded failed, err:no valid ppsk_key_url");
                 return -1;
             }
-            sprintf(tuple, "wget -q -T %d -O /var/run/wpa_psk_file-stid%d %s", 60, stid, buf);
+            sprintf(tuple, "wget -q -T %d -O /etc/config/wpa_psk_file-stid%d %s", 60, stid, buf);
             ret = system(tuple);
             if (ret == -1) {
                 syslog(LOG_ERR, "ppsk_keys_url:%s download failed\n", buf);
@@ -1440,7 +1440,7 @@ int wlan_set_bind(int radio_id, int stid)
             cfg_set_option_value(tuple, "psk-mixed");
 
             sprintf(tuple, "wireless.ath%d%d.wpa_psk_file", radio_id, stid);
-            sprintf(buf, "/var/run/wpa_psk_file-stid%d", stid);
+            sprintf(buf, "/etc/config/wpa_psk_file-stid%d", stid);
             cfg_set_option_value(tuple, buf);
         } else if (!strcmp(buf, "wpa-psk")) {
             sprintf(tuple, "wireless.ath%d%d.encryption", radio_id, stid);
