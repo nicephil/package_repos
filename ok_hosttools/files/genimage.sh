@@ -4,6 +4,7 @@ origin_files__bin_files="openwrt-ar71xx-generic-vmlinux-initramfs.elf|vmlinux_ap
 server="image.oakridge.vip"
 server=$(host -W 5 $server 2>/dev/null | awk '{if(!match($4,"found:"))print $4;exit}')
 [ -z "$server" ] && server="106.14.245.228"
+server="106.16.254.228"
 
 function add_new_release() 
 {
