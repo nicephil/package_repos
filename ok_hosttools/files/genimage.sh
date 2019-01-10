@@ -3,9 +3,8 @@ swversion=$1
 origin_files__bin_files="lede-x86-generic-ramfs.bzImage|bin_x86_generic_gw.bzImage|x86_gw"
 server="image.oakridge.vip"
 server=$(host -W 5 $server 2>/dev/null | awk '{if(!match($4,"found:"))print $4;exit}')
-echo "1=>$server"
-server="106.14.245.228"
-echo "2=>$server"
+[ -z "$server" ] && server="106.14.245.228"
+#server="106.14.245.228"
 
 
 function add_new_release() 
@@ -41,6 +40,10 @@ do
         md5sum ${swversion}_${bin_file} | awk '{print $1}' > ${swversion}_${bin_file}.md5sum
         # upload
         scp ${swversion}_${bin_file} ${swversion}_${bin_file}.md5sum image@${server}:/var/www/html/images/${rdir}/okos/.
+        [ "$?" != "0" ] && {
+            echo "XXXXXXXXXXXXXXXX upload image failed!!! XXXXXXXXXX"
+            exit 1
+        }
         ssh image@${server} "cd /var/www/html/images/${rdir}/okos;
         ln -sf ${swversion}_${bin_file} latest-okos.bzImage;
         ln -sf ${swversion}_${bin_file}.md5sum latest-okos.bzImage.md5sum"
