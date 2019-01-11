@@ -47,7 +47,7 @@ sync;echo 3 > /proc/sys/vm/drop_caches
 
 rm -rf $lockfile
 
-if [ ! -f "/tmp/firstboot_report"  -a -n "$arg1" ]
+if [ ! -f "/tmp/firstboot_report"  -a -z "$arg1" ]
 then
     has_reportnow=1 /lib/okos/getifaceinfo.sh
     echo "configuration loaded successfully" | logger -p user.info -t "01-SYSTEM-LOG"
