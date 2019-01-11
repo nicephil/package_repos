@@ -621,16 +621,16 @@ static int dc_hdl_node_survive_mode(struct json_object *obj)
 
 static int dc_hdl_node_domain_id(struct json_object *obj)
 {
-    int domain_id = 0;
+    char domain_id[65] = {0};
     int ret, node = dc_node_system;
     struct node_pair_save pair = {
-        .key   = "domain_id",
-        .type  = json_type_int,
+        .key   = "domain_id_str",
+        .type  = json_type_string,
         .value = &domain_id,
         .size  = sizeof(domain_id),
     };
     
-    if (json_object_get_type(obj) != json_type_int) {
+    if (json_object_get_type(obj) != json_type_string) {
         return dc_error_code(dc_error_obj_type, node, 0);
     }
 
@@ -643,7 +643,7 @@ static int dc_hdl_node_domain_id(struct json_object *obj)
 
 
     if ((ret = portald_scheme_update_domain_id(domain_id)) != 0) {
-        nmsc_log("Set domain name %d failed for %d.", domain_id, ret);
+        nmsc_log("Set domain name %s failed for %d.", domain_id, ret);
         return dc_error_code(dc_error_commit_failed, node, ret);
     } 
 
@@ -737,7 +737,7 @@ int dc_hdl_node_system(struct json_object *obj)
         {"country_code", dc_hdl_node_country},
         {"domain_name", dc_hdl_node_domain_name},
         {"survive_mode", dc_hdl_node_survive_mode},
-        {"domain_id", dc_hdl_node_domain_id},
+        {"domain_id_str", dc_hdl_node_domain_id},
         {"business_id", dc_hdl_node_business_id},
         {"auth_url", dc_hdl_node_auth_url}
     };
