@@ -6,6 +6,14 @@
 . /lib/ar71xx.sh
 . /lib/functions/network.sh
 
+rand()
+{
+    min=$1
+    max=$(($2-$min+1))
+    num=$(cat /dev/urandom | head -n 10 | cksum | awk -F ' ' '{print $1}')
+    echo $(($num%$max+$min))
+}
+
 # 2. fetch device info
 config_load "productinfo"
 config_get _mac "productinfo" "mac"
@@ -119,7 +127,8 @@ do
     fi
 
     echo "reboot by handle_cloud, as oakmgr/oakos version changed!!" | logger -p user.info -t '01-SYSTEM-LOG'
-    sleep 120
+    sleep 30
+    sleep $(rand 1 1200)
     reboot -f
 done
 
