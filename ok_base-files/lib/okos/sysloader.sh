@@ -280,8 +280,26 @@ done
 
 
 # start services in local okos
-cp /etc/config/wireless_bak /etc/config/wireless
-cp /lib/okos/init.d/* /etc/init.d/.
+echo "using local okos:$_swversion, ip:$_ip" | logger -p user.info -t '01-SYSTEM-LOG'
+RETRY_COUNT=0
+while :
+do
+    cp -rvf /etc/config/wireless_bak /etc/config/wireless | logger -p user.info -t 'sysloader'
+    cp -rvf /lib/okos/init.d/* /etc/init.d/. | logger -p user.info -t 'sysloader'
+    if [ -f /etc/init.d/capwapc -a -f /etc/init.d/supervisor -a -f /etc/config/wireless ]
+    then
+        break
+    fi
+    if [ "$RETRY_COUNT" -lt 5 ]
+    then
+        RETRY_COUNT=$((RETRY_COUNT+1))
+        sleep 5
+        continue
+    else
+        reboot -f
+    fi
+done
+
 /etc/init.d/handle_cloud restart
 /etc/init.d/supervisor restart
 /etc/init.d/capwapc restart
