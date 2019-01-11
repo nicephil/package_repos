@@ -16,7 +16,7 @@ config timeserver ntp
 	list server	cn.ntp.org.cn
 	option enable_server 1 
 
-config survive_mode survive_mode
+config survive_mode 'survive_mode'
     option survive_mode 1
 
 config button
