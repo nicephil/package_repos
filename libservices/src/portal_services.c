@@ -327,7 +327,24 @@ int portald_scheme_update_survive_mode(int survive_mode)
     return 0;
 }
 
-int portald_scheme_update_domain_id(char *domain_id)
+int portald_scheme_update_domain_id(int domain_id)
+{
+    //system.domain_id.domain_id=11
+    cfg_add_section("system","domain_id");
+    cfg_set_option_value_int("system.domain_id.domain_id", domain_id);
+
+    //productinfo.productinfo.myhost="XXXX"
+    char buf[64] = {0};
+    char buf1[256] = {0};
+    cfg_get_option_value("productinfo.productinfo.myhost", buf, sizeof(buf));
+    sprintf(buf1, "%s_%d", buf, domain_id);
+    //system.@system[0].hostname
+    cfg_set_option_value("system.@system[0].hostname", buf1);
+
+    return 0;
+}
+
+int portald_scheme_update_domain_id_str(char *domain_id)
 {
     //system.domain_id.domain_id=11
     cfg_add_section("system","domain_id");
