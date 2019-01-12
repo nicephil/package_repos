@@ -300,6 +300,7 @@ do
     fi
 done
 
+rm -rf /tmp/wifievent.pipe;ulimit -c unlimited;nice -n -15 /lib/okos/clientevent.py
 /etc/init.d/handle_cloud restart
 /etc/init.d/supervisor restart
 /etc/init.d/capwapc restart
