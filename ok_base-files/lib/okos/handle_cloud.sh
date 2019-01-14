@@ -126,9 +126,10 @@ do
         continue
     fi
 
-    echo "reboot by handle_cloud, as oakmgr/oakos version changed!!" | logger -p user.info -t '01-SYSTEM-LOG'
+    timeout=$(rand 1 1200)
+    echo "will be reboot by handle_cloud after ${timeout}s, as oakmgr/oakos version changed!!" | logger -p user.info -t '01-SYSTEM-LOG'
     sleep 30
-    sleep $(rand 1 1200)
+    sleep $timeout
     reboot -f
 done
 
