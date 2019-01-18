@@ -21,7 +21,7 @@ class Agent (Thread):
                         'refetch': refetch_interval,
                         'nextcmd': nextcmd_interval
                        }
-        self.url = "http://clientcenter.oakridge.io:8102/clientcenter/v0/gohome"
+        self.url = "http://clientcenter.oakridge.vip:8102/clientcenter/v0/gohome"
         self.next_tic = time.time()
         self.name = "Agent"
         self.now = time.time()

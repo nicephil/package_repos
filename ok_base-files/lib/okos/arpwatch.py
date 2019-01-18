@@ -163,7 +163,7 @@ class Arpwatch(Thread):
 
     def get_hostname(self, ip):
         '''host 192.168.254.144
-        '144.254.168.192.in-addr.arpa domain name pointer StevenMcBookPro.hz.oakridge.io.\n'
+        '144.254.168.192.in-addr.arpa domain name pointer StevenMcBookPro.hz.oakridge.vip.\n'
         '''
         res = self.check_output(['host', ip])
         return res and res.split(' ')[-1][:-2] or ''

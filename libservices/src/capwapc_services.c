@@ -35,7 +35,7 @@ int capwapc_get_curcfg(struct capwapc_config *cfg)
                     /* capwapc.server.sla_server='139.196.188.253' */
                 } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_SLASER)) {
                     strncpy(cfg->sla_server, o_cur->v.string, sizeof(cfg->sla_server));
-                    /* capwapc.server.def_server='redirector.oakridge.io' */
+                    /* capwapc.server.def_server='redirector.oakridge.vip' */
                 } else if (!strcmp(o_cur->e.name, CAPWAPC_CFG_OPTION_DEFSER)) {
                     strncpy(cfg->def_server, o_cur->v.string, sizeof(cfg->def_server));
                     /* capwapc.server.opt43_mas_server='139.196.188.253' */

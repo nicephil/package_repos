@@ -1907,7 +1907,7 @@ okos_simulate_3ssid(void)
     okos_conf_set_str(dns->mask, "dangdang.com");
     okos_conf_set_int(dns, target, TARGET_ACCEPT);
     dns = okos_conf_append_list_member(dn_white_list->rules);
-    okos_conf_set_str(dns->mask, "a1.oakridge.io");
+    okos_conf_set_str(dns->mask, "a1.oakridge.vip");
     okos_conf_set_str(dns->port, "39901");
     okos_conf_set_str(dns->protocol, "tcp");
     okos_conf_set_int(dns, target, TARGET_ACCEPT);
@@ -1956,7 +1956,7 @@ okos_simulate_3ssid(void)
     dn_white_list = okos_conf_append_list_member(ssid->dn_white_list);
     okos_conf_set_str(dn_white_list->name, "dn white list");
     dns = okos_conf_append_list_member(dn_white_list->rules);
-    okos_conf_set_str(dns->mask, "oakridge.io");
+    okos_conf_set_str(dns->mask, "oakridge.vip");
     okos_conf_set_int(dns, target, TARGET_ACCEPT);
     dns = okos_conf_append_list_member(dn_white_list->rules);
     okos_conf_set_str(dns->mask, "apple.com.cn");
