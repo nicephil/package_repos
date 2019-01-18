@@ -2,23 +2,14 @@
 
 other_image_servers="
 alpha1.oakridge.vip
-alpha1.oakridge.io
 alpha2.oakridge.vip
-alpha2.oakridge.io
 beta1.oakridge.vip
-beta1.oakridge.io
 beta2.oakridge.vip
-beta2.oakridge.io
 nms1.oakridge.vip
-nms1.oakridge.io
 nms2.oakridge.vip
-nms2.oakridge.io
 "
 other_image_servers="
-alpha1.oakridge.io
-beta2.oakridge.io
 nms1.oakridge.vip
-nms1.oakridge.io
 "
 
 lbase_dir="/var/www/html/images"
