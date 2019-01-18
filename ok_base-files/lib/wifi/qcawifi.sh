@@ -258,7 +258,7 @@ load_qcawifi() {
 	[ -n "$intval" ] && append umac_args "intval=$intval"
 
     #OK_PATCH
-	config_get atf_mode qcawifi atf_mode 1
+	config_get atf_mode qcawifi atf_mode 0
 	[ -n "$atf_mode" ] && append umac_args "atf_mode=$atf_mode"
 
         config_get atf_msdu_desc qcawifi atf_msdu_desc
