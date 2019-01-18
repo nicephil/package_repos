@@ -2023,7 +2023,7 @@ EOF
     ssid_tmp=${ssid_tmp:8:12}
     cat <<EOF
 config qcawifi 'qcawifi'
-    option atf_mode 1
+    option atf_mode 0
 
 config wifi-iface ath60
     option device wifi1
