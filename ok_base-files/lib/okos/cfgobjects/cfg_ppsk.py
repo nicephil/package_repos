@@ -59,11 +59,13 @@ class CfgPPSK(CfgObj):
             cmd_stdout = cmd_stdout.strip()
         except Exception as e:
             cmd_stdout = None
+            cmd_stderr = None
         if cmd_stderr:
             cmd_stdout = None
         return cmd_stdout
     def change(self):
         ret = False
+        return ret
         # 1. wget self.data['ppsk_keys_url'] in new ppsk file
         new_c = self.download_file(self.data['ppsk_keys_url'])
         if not new_c:
