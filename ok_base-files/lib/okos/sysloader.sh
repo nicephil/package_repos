@@ -35,7 +35,7 @@ SALT="Nobody knows"
 KEY="$(echo -n "${SALT}${_mac}" | md5sum | awk '{print $1}')"
 DEFAULT_PORT="80"
 PORT="$DEFAULT_PORT"
-DEFAULT_ADDR="api.oakridge.vip"
+DEFAULT_ADDR="api.oakridge.io"
 SAVED_ADDR=$(uci get capwapc.image.oakmgr_pub_name 2>/dev/null)
 if [ -z "$SAVED_ADDR" -o "$SAVED_ADDR" = "0.0.0.0"  ]
 then
@@ -177,10 +177,10 @@ do
     # possibles urls
     _image_server_uri=${IMAGE_URL#http://*/}
     main_image_server_url="http://${_oakmgr_pub_name}/${_image_server_uri}"
-    second_image_server_url="http://image.oakridge.vip/${_image_server_uri} http://image.oakridge.vip/${_image_server_uri}"
+    second_image_server_url="http://image.oakridge.vip/${_image_server_uri} http://image.oakridge.io/${_image_server_uri}"
     echo ${_oakmgr_pub_name} | grep  "\.io" > /dev/null 2>&1
-    [ "$?" == "0" ] && second_image_server_url="http://image.oakridge.vip/${_image_server_uri} http://image.oakridge.vip/${_image_server_uri}"
-    other_image_server_urls="$second_image_server_url  http://alpha1.oakridge.vip/${_image_server_uri} http://alpha1.oakridge.vip/${_image_server_uri} http://beta2.oakridge.vip/${_image_server_uri} http://beta2.oakridge.vip/${_image_server_uri} http://nms1.oakridge.vip/${_image_server_uri} http://nms1.oakridge.vip/${_image_server_uri} http://beta1.oakridge.vip/${_image_server_uri} http://beta1.oakridge.vip/${_image_server_uri}"
+    [ "$?" == "0" ] && second_image_server_url="http://image.oakridge.io/${_image_server_uri} http://image.oakridge.vip/${_image_server_uri}"
+    other_image_server_urls="$second_image_server_url  http://alpha1.oakridge.vip/${_image_server_uri} http://alpha1.oakridge.io/${_image_server_uri} http://beta2.oakridge.vip/${_image_server_uri} http://beta2.oakridge.io/${_image_server_uri} http://nms1.oakridge.vip/${_image_server_uri} http://nms1.oakridge.io/${_image_server_uri} http://beta1.oakridge.vip/${_image_server_uri} http://beta1.oakridge.io/${_image_server_uri}"
     echo "$_image_server_uri"
     aria2c -t 30 -x 5 --min-split-size=2M --file-allocation=none -c  "$main_image_server_url" "$IMAGE_URL" $other_image_server_urls -d "/" -o ${OKOS_FILE} 2>&1 | logger -t 'sysloader'
     # no file download, so try again
