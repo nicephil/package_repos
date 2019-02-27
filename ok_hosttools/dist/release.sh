@@ -1,7 +1,7 @@
 #!/bin/sh
 
 all_types="A820 A822 A826 A920 A923 W282 WL8200-I2 AC-PRO AC-LITE AC-LR ubntlr ubntlite ubntpro SEAP-380 A750 A751"
-url="api.oakridge.vip"
+url="api.oakridge.io"
 
 echo "====> query old release md5"
 echo ./dist_release.py $url -A deploy -s --type $all_types
