@@ -1997,8 +1997,8 @@ config wifi-device  wifi$devidx
     option channel	auto
     option macaddr ${mac}
     option hwmode	${mode_11}
-    option htmode auto
-    option disabled 1
+    option htmode HT20
+    option disabled 0
     option txpower 31
     option wmm 1
     option bintval 100
@@ -2012,6 +2012,7 @@ config wifi-device  wifi$devidx
     option frag 2346
     option enable_ol_stats 1
     option dfs_toggle 1
+    list bind 'ServiceTemplate0'
 
 EOF
 	devidx=$(($devidx - 1))
@@ -2028,11 +2029,10 @@ config qcawifi 'qcawifi'
 config wifi-iface ath60
     option device wifi1
     option ifname ath60
-    option network dwan
+    option network lan1
     option mode ap
     option ssid ok_${ssid_tmp}_5G
-    option encryption psk-mixed
-    option key oakridge
+    option encryption open
     option disabled 0
     option hidden 1
 
@@ -2040,14 +2040,30 @@ config wifi-iface ath60
 config wifi-iface ath50
     option device wifi0
     option ifname ath50
-    option network dwan
+    option network lan1
     option mode ap
     option ssid ok_${ssid_tmp}
-    option encryption psk-mixed
-    option key oakridge
+    option encryption open
     option disabled 0
     option hidden 1
 
+config wifi-iface ath00
+    option device wifi0
+    option ifname ath00
+    option network lan1
+    option mode ap
+    option ssid ok_${ssid_tmp}_2
+    option encryption open
+    option disabled 0
+
+config wifi-iface ath10
+    option device wifi1
+    option ifname ath10
+    option network lan1
+    option mode ap
+    option ssid ok_${ssid_tmp}_5
+    option encryption open
+    option disabled 0
 EOF
     }
     #end of OK_PATCH

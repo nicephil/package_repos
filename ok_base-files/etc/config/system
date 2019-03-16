@@ -33,3 +33,5 @@ config button
     option min '4'
     option max '60'
 
+config auth_url 'auth_url'
+    option auth_url 'http://auth.pingxiang.io/auth/device/client'

@@ -52,6 +52,8 @@ DOWNLOAD_RETRY_COUNT=0
 
 echo "boot up, local firmware:$_swversion, ip:$_ip" | logger -p user.info -t '01-SYSTEM-LOG'
 
+if [ -n "$2" ]
+then
 while :
 do
     _server_ip=$(host -W 5 -4 $ADDR | awk '/'"$ADDR"'/{print $4;exit}') 
@@ -277,6 +279,7 @@ do
     sync
     sleep 5
 done
+fi
 
 
 # start services in local okos
@@ -301,7 +304,4 @@ do
 done
 
 rm -rf /tmp/wifievent.pipe;ulimit -c unlimited;nice -n -15 /lib/okos/clientevent.py
-/etc/init.d/handle_cloud restart
-/etc/init.d/supervisor restart
-/etc/init.d/capwapc restart
 /lib/okos/restartservices.sh debug

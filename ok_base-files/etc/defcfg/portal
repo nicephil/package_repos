@@ -1,0 +1,8 @@
+
+config 1000_2000 '1000_2000'
+	option url 'http://auth.pingxiang.io/auth/device/client'
+	option authip '10.10.111.111'
+	list iplist '172.31.30.122/32'
+	option enabled 'enabled'
+	option dns_set 'default'
+
