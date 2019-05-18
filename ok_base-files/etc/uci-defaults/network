@@ -132,6 +132,12 @@ ap152)
         ucidef_add_switch "switch0" "1" "1"
         ucidef_add_switch_vlan_with_name "switch0" "4" "0t 1"
         ucidef_add_switch_vlan_with_name "switch0" "5" "0t 2"
+    elif [ "$model" = "WA115AC" ]
+    then
+        ucidef_set_interface_lan_with_vlan "eth0.1 eth0.4090" "1"
+        ucidef_add_switch "switch0" "1" "1"
+        ucidef_add_switch_vlan_with_name "switch0" "1" "0t 3"
+        ucidef_add_switch_vlan_with_name "switch0" "4090" "0t 2"
     else
         ucidef_set_interface_lan_with_vlan "eth0.1 eth0.4090" "1"
         ucidef_add_switch "switch0" "1" "1"
