@@ -160,6 +160,7 @@ extern int cfg_is_ubnt_lite(void);
 extern int cfg_is_w282(void);
 extern int cfg_is_a750(void);
 extern int cfg_is_a751(void);
+extern int cfg_is_wa115ac(void);
 extern int cfg_get_product_info(struct product_info * info);
 enum upgrade_failed_e{
     MTDDEV_GET_FAILED = -1,

@@ -99,6 +99,14 @@ int vlan_create(int vlanid, int endid)
                 cfg_set_option_value(tuple, "0t 2t");
             }
         }
+        if (cfg_is_wa115ac()) {
+            if (vlanid == 1) {
+                cfg_set_option_value(tuple, "0t 3");
+            } else {
+                cfg_set_option_value(tuple, "0t 3t");
+            }
+        }
+
 
     }
 
