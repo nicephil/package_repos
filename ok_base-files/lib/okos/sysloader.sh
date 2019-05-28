@@ -101,6 +101,8 @@ do
     json_get_var _device "device"
     json_get_var _oakmgr_pub_name "oakmgr_pub_name"
     json_get_var _oakmgr_pub_port "oakmgr_pub_port"
+    OIFS=$IFS;IFS=":";set -- $_oakmgr_pub_name;aa=$1;bb=$2;IFS=$OIFS
+    _oakmgr_pub_name="$aa";_oakmgr_pub_port="$bb"
 
     OKOS_MD5SUM="$_okos_md5sum"
     IMAGE_URL="$_image_url"
