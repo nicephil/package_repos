@@ -83,5 +83,5 @@ report_status() {
 
     # 4. upload json file to nms
     URL="http://${mas_server}:${oakmgr_pub_port}/nms/api/device/ap/info"
-    curl -i -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "$_json_data" $URL
+    curl -m 10 -i -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "$_json_data" $URL
 }
