@@ -43,6 +43,8 @@ then
     echo "failed: get mas_server"
     exit
 fi
+config_get oakmgr_pub_port image oakmgr_pub_port
+[ -z "$oakmgr_pub_port" ] && oakmgr_pub_port="80"
 
 config_load productinfo
 config_get mac productinfo mac
@@ -409,5 +411,5 @@ echo "@cee:${json_data}" | logger -p user.info -t '04-SYSTEM-STATUS'
 #echo $json_data
 
 # 4. upload json file to nms
-URL="http://${mas_server}/nms/api/device/ap/info"
+URL="http://${mas_server}:${oakmgr_pub_port}/nms/api/device/ap/info"
 curl -m 120 -i -X POST -H "Content-type: application/json" -H "charset: utf-8" -H "Accept: */*" -d "$json_data" $URL

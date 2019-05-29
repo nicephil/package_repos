@@ -51,6 +51,8 @@ then
     rm -rf /tmp/apstats.lock
     return 1
 fi
+config_get oakmgr_pub_port image oakmgr_pub_ort
+[ -z "$oakmgr_pub_port" ] && oakmgr_pub_port="80"
 config_load wireless
 
 timestamp=`date +%s`
@@ -233,7 +235,7 @@ fi
 echo "@cee:$(cat /tmp/${json_file})" | logger -p user.info -t '03-SYSTEM-STATISTIC'
 
 # 10. upload json file to nms
-URL="http://${mas_server}/nms/file/device/stat?objectname=${json_file}&override=1"
+URL="http://${mas_server}:${oakmgr_pub_port}/nms/file/device/stat?objectname=${json_file}&override=1"
 curl -m 60 -s -F "action=upload" -F "filename=@/tmp/${json_file}"  "$URL"
 
 apstats_debug_log "upload json file done"
