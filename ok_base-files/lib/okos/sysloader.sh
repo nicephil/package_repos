@@ -103,6 +103,7 @@ do
     json_get_var _oakmgr_pub_port "oakmgr_pub_port"
     OIFS=$IFS;IFS=":";set -- $_oakmgr_pub_name;aa=$1;bb=$2;IFS=$OIFS
     _oakmgr_pub_name="$aa";_oakmgr_pub_port="$bb"
+    [ -z "$_oakmgr_pub_port" ] && _oakmgr_pub_port="80"
 
     OKOS_MD5SUM="$_okos_md5sum"
     IMAGE_URL="$_image_url"
@@ -178,7 +179,7 @@ do
     fi
     # possibles urls
     _image_server_uri=${IMAGE_URL#http://*/}
-    main_image_server_url="http://${_oakmgr_pub_name}/${_image_server_uri}"
+    main_image_server_url="http://${_oakmgr_pub_name}:${_oakmgr_pub_port}/${_image_server_uri}"
     second_image_server_url="http://image.oakridge.vip/${_image_server_uri} http://image.oakridge.io/${_image_server_uri}"
     echo ${_oakmgr_pub_name} | grep  "\.io" > /dev/null 2>&1
     [ "$?" == "0" ] && second_image_server_url="http://image.oakridge.io/${_image_server_uri} http://image.oakridge.vip/${_image_server_uri}"
