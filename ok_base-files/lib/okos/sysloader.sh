@@ -101,9 +101,10 @@ do
     json_get_var _device "device"
     json_get_var _oakmgr_pub_name "oakmgr_pub_name"
     json_get_var _oakmgr_pub_port "oakmgr_pub_port"
-    OIFS=$IFS;IFS=":";set -- $_oakmgr_pub_name;aa=$1;bb=$2;IFS=$OIFS
-    _oakmgr_pub_name="$aa";_oakmgr_pub_port="$bb"
+    OIFS=$IFS;IFS=":";set -- $_oakmgr_pub_name;aa=$1;bb=$2;cc=$3;IFS=$OIFS
+    _oakmgr_pub_name="$aa";_oakmgr_pub_port="$bb";_capwapc_ctrl_port="$cc"
     [ -z "$_oakmgr_pub_port" ] && _oakmgr_pub_port="80"
+    [ -z "$_capwapc_ctrl_port" ] && _capwapc_ctrl_port="5246"
 
     OKOS_MD5SUM="$_okos_md5sum"
     IMAGE_URL="$_image_url"
@@ -135,6 +136,7 @@ do
 
     # save info to local
     uci set capwapc.server.mas_server="$_oakmgr_pub_name"
+    uci set capwapc.wtp.ctrl_port="$_capwapc_ctrl_port"
     uci set capwapc.image=image
     uci set capwapc.image.okos_md5sum="$_okos_md5sum"
     uci set capwapc.image.image_url="$_image_url"
@@ -149,6 +151,8 @@ do
     [ -z "$_image_server_ip" ] && _image_server_ip=$_oakmgr_pub_name
     _image_file=${IMAGE_URL##*/}
     _ver_var=${_image_file%%_*}
+
+    break
 
     # local the same, so boot local okos
     if [ "$_ver_var" = "$(cat /etc/issue)" ]

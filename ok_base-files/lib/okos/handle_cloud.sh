@@ -34,6 +34,7 @@ echo "===>$json_data" | logger -t 'handle_cloud'
 SALT="Nobody knows"
 KEY="$(echo -n "${SALT}${_mac}" | md5sum | awk '{print $1}')"
 PORT="80"
+DEFAULT_PORT="80"
 DEFAULT_ADDR="api.oakridge.io"
 SAVED_ADDR=$(uci get capwapc.image.oakmgr_pub_name 2>/dev/null)
 if [ -z "$SAVED_ADDR" -o "$SAVED_ADDR" = "0.0.0.0"  ]
@@ -101,6 +102,10 @@ do
     json_get_var _device "device"
     json_get_var _oakmgr_pub_name "oakmgr_pub_name"
     json_get_var _oakmgr_pub_port "oakmgr_pub_port"
+    OIFS=$IFS;IFS=":";set -- $_oakmgr_pub_name;aa=$1;bb=$2;cc=$3;IFS=$OIFS
+    _oakmgr_pub_name="$aa";_oakmgr_pub_port="$bb";_capwapc_ctrl_port="$cc"
+    [ -z "$_oakmgr_pub_port" ] && _oakmgr_pub_port="80"
+    [ -z "$_capwapc_ctrl_port" ] && _capwapc_ctrl_port="5246"
 
     # get queried version
     _image_file=${_image_url##*/}
@@ -116,6 +121,12 @@ do
             ADDR="$_oakmgr_pub_name"
         else
             ADDR="$DEFAULT_ADDR"
+        fi
+        if [ -n "$_oakmgr_pub_port" ] 
+        then
+            PORT="$_oakmgr_pub_port"
+        else
+            PORT="$DEFAULT_PORT"
         fi
         sleep 5
         continue
