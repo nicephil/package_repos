@@ -130,7 +130,7 @@ do
         fi
         sleep 5
         continue
-    elif [ "$_oakmgr_pub_name" = "$(uci get capwapc.server.mas_server 2>/dev/null)" -a "$_ver_var" = "$(cat /etc/issue)" ]
+    elif [ "$_oakmgr_pub_name" = "$(uci get capwapc.server.mas_server 2>/dev/null)" ]
     then
         echo "existing oakmgr_pub_name:$_oakmgr_pub_name _ver_var:$_ver_var is the same as quried, so no action" | logger -p user.info -t 'handle_cloud'
         sleep 120
