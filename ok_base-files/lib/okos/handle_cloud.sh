@@ -104,6 +104,7 @@ do
     json_get_var _oakmgr_pub_port "oakmgr_pub_port"
     OIFS=$IFS;IFS=":";set -- $_oakmgr_pub_name;aa=$1;bb=$2;IFS=$OIFS
     _oakmgr_pub_name="$aa";_oakmgr_pub_port="$bb"
+    [ -z "$_oakmgr_pub_port" ] && _oakmgr_pub_port="80"
 
     # get queried version
     _image_file=${_image_url##*/}
