@@ -51,7 +51,7 @@ then
     rm -rf /tmp/apstats.lock
     return 1
 fi
-config_get oakmgr_pub_port image oakmgr_pub_ort
+config_get oakmgr_pub_port image oakmgr_pub_port
 [ -z "$oakmgr_pub_port" ] && oakmgr_pub_port="80"
 config_load wireless
 
