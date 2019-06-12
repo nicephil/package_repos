@@ -35,7 +35,7 @@ SALT="Nobody knows"
 KEY="$(echo -n "${SALT}${_mac}" | md5sum | awk '{print $1}')"
 DEFAULT_PORT="80"
 PORT="$DEFAULT_PORT"
-DEFAULT_ADDR="api.oakridge.io"
+DEFAULT_ADDR="api.oakridge.vip"
 SAVED_ADDR=$(uci get capwapc.image.oakmgr_pub_name 2>/dev/null)
 if [ -z "$SAVED_ADDR" -o "$SAVED_ADDR" = "0.0.0.0"  ]
 then
