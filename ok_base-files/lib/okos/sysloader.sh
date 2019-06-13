@@ -54,8 +54,7 @@ echo "boot up, local firmware:$_swversion, ip:$_ip" | logger -p user.info -t '01
 
 while :
 do
-    _server_ip=$(host -W 5 -4 $ADDR | awk '/'"$ADDR"'/{print $4;exit}') 
-    [ -z "$_server_ip" -o "$_server_ip" = "found:" ] && _server_ip=$ADDR
+    _server_ip=$ADDR
     URL="http://${_server_ip}:${PORT}/redirector/v1/device/register/?key=${KEY}"
     echo "local firmware:$_swversion, ip:$_ip" | logger -p user.info -t '01-SYSTEM-LOG'
     echo "connecting to redirector @$_server_ip:$PORT" |  logger -p user.info -t '01-SYSTEM-LOG'
