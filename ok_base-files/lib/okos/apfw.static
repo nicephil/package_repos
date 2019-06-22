@@ -106,7 +106,7 @@ set_global_static_chains_rules()
     $CMD -t nat -N GotoPortal
 
     ##### make sure the ordering of rule
-    $CMD -t nat -A REROUTING -j ACCEPT
+    $CMD -t nat -A PREROUTING -j ACCEPT
     # ClientControl rule
     $CMD -t nat -A PREROUTING -j ClientControl
     # wifidog rule
