@@ -80,6 +80,7 @@ set_global_static_chains_rules()
     $CMD -A INPUT -j Firewall 
 
     # firewall rule
+    $CMD -A FORWARD -j ACCEPT
     $CMD -A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT 
     # must to accept
     $CMD -A FORWARD -j MustAccept
@@ -105,6 +106,7 @@ set_global_static_chains_rules()
     $CMD -t nat -N GotoPortal
 
     ##### make sure the ordering of rule
+    $CMD -t nat -A REROUTING -j ACCEPT
     # ClientControl rule
     $CMD -t nat -A PREROUTING -j ClientControl
     # wifidog rule
@@ -119,6 +121,8 @@ set_global_static_chains_rules()
     $CMD -t mangle -P POSTROUTING ACCEPT
     $CMD -t mangle -N Portal
     $CMD -t mangle -N TC_USER
+    $CMD -t mangle -A PREROUTING -j ACCEPT
+    $CMD -t mangle -A POSTROUTING -j ACCEPT
     $CMD -t mangle -A PREROUTING -j Portal 
     $CMD -t mangle -A POSTROUTING -j TC_USER
 

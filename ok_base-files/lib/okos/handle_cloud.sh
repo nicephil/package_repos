@@ -34,8 +34,8 @@ echo "===>$json_data" | logger -t 'handle_cloud'
 SALT="Nobody knows"
 KEY="$(echo -n "${SALT}${_mac}" | md5sum | awk '{print $1}')"
 PORT="80"
-DEFAULT_PORT="80"
-DEFAULT_ADDR="api.oakridge.vip"
+DEFAULT_PORT="8101"
+DEFAULT_ADDR="apnms.dyiots.com"
 SAVED_ADDR=$(uci get capwapc.image.oakmgr_pub_name 2>/dev/null)
 if [ -z "$SAVED_ADDR" -o "$SAVED_ADDR" = "0.0.0.0"  ]
 then
