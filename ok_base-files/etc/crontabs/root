@@ -1,3 +1,1 @@
-* * * * * nice -n -15 /lib/okos/runtimefixup.sh
 */1 * * * * nice -n -15 /lib/okos/apstats.sh
-*/10 * * * * nice -n -15 /lib/okos/setgre.sh
